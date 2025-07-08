@@ -28,7 +28,7 @@
     <PropertyGroup>
         <GameVersion>1.2.12</GameVersion>
         <BANNERLORD_GAME_DIR>$(BANNERLORD_GAME_DIR)</BANNERLORD_GAME_DIR>
-        <BANNERLORD_GAME_DIR Condition=" '$(BANNERLORD_GAME_DIR)' == '' ">E:\SteamLibrary\steamapps\common\Mount &amp; Blade II Bannerlord</BANNERLORD_GAME_DIR>
+        <BANNERLORD_GAME_DIR Condition=" '$(BANNERLORD_GAME_DIR)' == '' ">C:\Program Files (x86)\Steam\steamapps\common\Mount &amp; Blade II Bannerlord</BANNERLORD_GAME_DIR>
     </PropertyGroup>
     
     <PropertyGroup>
