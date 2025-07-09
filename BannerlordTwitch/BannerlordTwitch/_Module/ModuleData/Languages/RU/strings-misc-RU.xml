@@ -31,6 +31,8 @@
         <!-- Common Phrases -->
         <!-- General -->
         <string id="C5T5nnix" text="Общий" original="General"/>
+		<!-- Permissions -->
+		<string id="kJbOqjr1" text="Права доступа" original="Permissions"/>
         <!-- Limits -->
         <string id="1lHWj3nT" text="Пределы" original="Limits"/>
         <!-- Initialization -->
@@ -352,6 +354,10 @@
         <string id="JqNXbyIT" text="Помощь" original="Help"/>
         <!-- What to show in the !help command -->
         <string id="9QV7UzFh" text="Что показывать в команде! Help" original="What to show in the !help command"/>
+		<!-- Mod Only -->
+        <string id="Rh3cTAVq" text="Только для модераторов" original="Moderator only"/>
+		<!-- Only moderators and broadcaster can use this command -->
+        <string id="6ggxMun9" text="Только модераторы и стример могут использовать эту команду" original="Only moderators and broadcaster can use this command"/>
         <!-- Reward -->
         <!-- Channel points reward definition -->
         <string id="KaFWtYmc" text="Определение вознаграждения баллов канала" original="Channel points reward definition"/>
@@ -409,6 +415,8 @@
         <string id="luOJS8dL" text="Команды:" original="Commands: "/>
         <!-- Also see Channel Point Rewards -->
         <string id="0o3dPQSk" text="Также см. Награды за баллы канала" original="Also see Channel Point Rewards"/>
+		<!-- TwitchService: only moderates can use command -->
+		<string id="X9J4K2L8" text="@{DisplayName}, Только модераторы и стример могут использовать эту команду" original="@{DisplayName}, Only moderators and broadcaster can use this command"/>
         <!-- TwitchService connected -->
         <string id="BiYZ1CbN" text="TwitchService подключен" original="TwitchService connected"/>
         <!-- TwitchService stopped -->

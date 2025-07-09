@@ -19,6 +19,10 @@ namespace BannerlordTwitch
          LocDescription("{=9QV7UzFh}What to show in the !help command"),
          PropertyOrder(3), UsedImplicitly]
         public LocString Help { get; set; } = string.Empty;
+        [LocDisplayName("{=Rh3cTAVq}Moderator only"), LocCategory("Permissions", "{=kJbOqjr1}Permissions"),
+        LocDescription("{=6ggxMun9}Only moderators and broadcaster can use this command"),
+        PropertyOrder(4), UsedImplicitly]
+        public bool ModeratorOnly { get; set; }
 
         [ItemsSource(typeof(CommandHandlerItemsSource))]
         public override string Handler { get; set; }

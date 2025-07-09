@@ -520,12 +520,20 @@ namespace BannerlordTwitch
                 }
 
                 var context = ReplyContext.FromMessage(cmd, chatMessage, args);
+                if (cmd.ModeratorOnly && !chatMessage.IsModerator && !chatMessage.IsBroadcaster)
+                {
+                    Log.Info($"[{nameof(TwitchService)}] Blocked command '{cmdName}' from '{chatMessage.DisplayName}' — not mod or broadcaster");
+                    SendReply(context,
+                        "{=X9J4K2L8}@{DisplayName}, Only moderators and broadcaster can use this command"
+                            .Translate(("DisplayName", chatMessage.DisplayName)));
+                    return;
+                }
 
 #if !DEBUG
                 try
                 {
 #endif
-                    ActionManager.HandleCommand(cmd.Handler, context, cmd.HandlerConfig);
+                ActionManager.HandleCommand(cmd.Handler, context, cmd.HandlerConfig);
 #if !DEBUG
                 }
                 catch (Exception e)
