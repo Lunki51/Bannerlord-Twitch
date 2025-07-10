@@ -178,6 +178,12 @@ namespace BLTAdoptAHero
                 autoSummonTimer += dt;
                 if (autoSummonTimer < 0.25f)
                     return;
+                
+                if (Mission.Current == null ||
+                (!Mission.Current.IsFieldBattle && !Mission.Current.IsSiegeBattle))
+                {
+                    return; // Блокируем автопризыв только в НЕ-боевых миссиях
+                }
 
                 autoSummonTimer = 0f;
                 var cfg = BLTAdoptAHeroModule.CommonConfig;
