@@ -42,7 +42,7 @@ namespace BLTAdoptAHero
              LocDescription("{=F1KDzuZZ}Create a new hero instead of adopting an existing one (they will be a wanderer at a random tavern)"),
              PropertyOrder(1), UsedImplicitly]
             public bool CreateNew { get; set; }
-            [LocDisplayName("{=TLrDxhlh}In-game Notification?"),
+            [LocDisplayName("{=EWlUcw9W}In-game Notification?"),
              LocCategory("General", "{=C5T5nnix}General"),
              LocDescription("{=F1KDzuZZ}Enable/Disable the ingame adoption notification)"),
              PropertyOrder(2), UsedImplicitly]
@@ -95,13 +95,13 @@ namespace BLTAdoptAHero
             public bool AllowPlayerCompanion { get; set; }
 
             [LocDisplayName("{=O4DGlP9Z}Subscriber Only"),
-             LocCategory("Subscribers", "{=1lHWj3nT}Subscribers"),
+             LocCategory("Subscribers", "{=26cIeQzp}Subscribers"),
              LocDescription("{=TBNkHsLC}Only subscribers can adopt"),
              PropertyOrder(1), UsedImplicitly]
             public bool SubscriberOnly { get; set; }
 
             [LocDisplayName("{=dO41CKIU}Minimum Subscribed Months"),
-             LocCategory("Subscribers", "{=1lHWj3nT}Subscribers"),
+             LocCategory("Subscribers", "{=26cIeQzp}Subscribers"),
              LocDescription("{=BVZwDqR0}Only viewers who have been subscribers for at least this many months can adopt, ignored if not specified"),
              PropertyOrder(2), UsedImplicitly]
             public int? MinSubscribedMonths { get; set; }
@@ -150,7 +150,7 @@ namespace BLTAdoptAHero
             public Guid StartingClass { get; set; }
 
             [LocDisplayName("{=dvbkxJQz}Inheritance Percentage"),
-             LocCategory("Inheritance", "{=1lHWj3nT}Inheritance"),
+             LocCategory("Inheritance", "{=biICJtC2}Inheritance"),
              LocDescription("{=KLJtpEjg}What fraction of assets will be inherited when a new character is adopted after an old one died (0 to 1)"),
              UIRangeAttribute(0, 1, 0.05f),
              Editor(typeof(SliderFloatEditor), typeof(SliderFloatEditor)),
@@ -158,7 +158,7 @@ namespace BLTAdoptAHero
             public float Inheritance { get; set; } = 0.25f;
 
             [LocDisplayName("{=Bi19tTPj}Maximum Inherited Custom Items"),
-             LocCategory("Inheritance", "{=1lHWj3nT}Inheritance"),
+             LocCategory("Inheritance", "{=biICJtC2}Inheritance"),
              LocDescription("{=tFolfAOn}How many custom items can be inherited"),
              Range(0, Int32.MaxValue),
              PropertyOrder(2), UsedImplicitly]
@@ -319,7 +319,7 @@ namespace BLTAdoptAHero
 
             if (settings.CreateNew && (settings.ViewerSelects == Settings.ViewerSelect.Clan || settings.ViewerSelects == Settings.ViewerSelect.Faction || settings.ViewerSelects == Settings.ViewerSelect.Name))
             {
-                return (false, "{=mJfD7e2g}Config Error: Can't create new hero and have random selection filters".Translate());
+                return (false, "{=98Hl4Gnd}Config Error: Can't create new hero and have random selection filters".Translate());
             }
 
             CultureObject desiredCulture = null;
@@ -333,7 +333,7 @@ namespace BLTAdoptAHero
                 //Set Culture filter if enabled
                 if (settings.ViewerSelects == Settings.ViewerSelect.Culture)
                 {
-                    if (contextArgs.Trim() == "list" || contextArgs.Trim() == "a")
+                    if (contextArgs.Trim() == "{=fQKXPB5C}list".Translate() || contextArgs.Trim() == "{=z9cGIl8j}a".Translate())
                         return (false, "{=jjUmUpia}Culture list: {Cultures}".Translate(("Cultures", string.Join(", ", CampaignHelpers.MainCultures.Select(c => c.Name.ToString())))));
                     if (contextArgs.Length > 1)
                     {
@@ -353,8 +353,8 @@ namespace BLTAdoptAHero
                 //Set Faction filter if enabled
                 else if (settings.ViewerSelects == Settings.ViewerSelect.Faction)
                 {
-                    if (contextArgs.Trim() == "list" || contextArgs.Trim() == "a")
-                        return (false, "{=jjUmUpia}Faction list: {Factions}".Translate(("Factions", string.Join(", ", CampaignHelpers.MainFactions.Select(c => c.Name.ToString())))));
+                    if (contextArgs.Trim() == "{=fQKXPB5C}list".Translate() || contextArgs.Trim() == "{=z9cGIl8j}a".Translate())
+                        return (false, "{=7DN9p01E}Faction list: {Factions}".Translate(("Factions", string.Join(", ", CampaignHelpers.MainFactions.Select(c => c.Name.ToString())))));
                     if (contextArgs.Length > 1)
                     {
                         desiredFaction = CampaignHelpers.MainFactions.FirstOrDefault(c =>
@@ -367,7 +367,7 @@ namespace BLTAdoptAHero
                     }
                     else
                     {
-                        return (false, "{=jjUmUpia}Please enter the name of the faction you wish to adopt a hero from".Translate());
+                        return (false, "{=kAeOPuZc}Please enter the name of the faction you wish to adopt a hero from".Translate());
                     }
                 }
 
@@ -391,7 +391,7 @@ namespace BLTAdoptAHero
                     }
                     else
                     {
-                        return (false, "{=jjUmUpia}Please enter the name of the leader you wish to adopt".Translate());
+                        return (false, "{=lJXxLdFz}Please enter the name of the leader you wish to adopt".Translate());
                     }
                 }
 
@@ -410,7 +410,7 @@ namespace BLTAdoptAHero
                             return false;
                         });
                         if (desiredClan == null)
-                            return (false, "{=q9m9Yp1F}Error could not find a clan with the name {clanName}".Translate(("clanName", contextArgs)));
+                            return (false, "{=bzsT7oy0}Error could not find a clan with the name {clanName}".Translate(("clanName", contextArgs)));
                     }
                     else
                     {

@@ -104,15 +104,15 @@ namespace BLTAdoptAHero.Actions
             {
                 var EnabledCommands = new StringBuilder();
                 if (JoinEnabled)
-                    EnabledCommands = EnabledCommands.Append("Join, ");
+                    EnabledCommands = EnabledCommands.Append("{=q5JhpNMF}Join, ".Translate());
                 if (CreateEnabled)
-                    EnabledCommands = EnabledCommands.Append("Create, ");
+                    EnabledCommands = EnabledCommands.Append("{=9lAIycwE}Create, ".Translate());
                 if (LeadEnabled)
-                    EnabledCommands = EnabledCommands.Append("Lead, ");
+                    EnabledCommands = EnabledCommands.Append("{=TrSSHcbH}Lead, ".Translate());
                 if (RenameEnabled)
-                    EnabledCommands = EnabledCommands.Append("Rename, ");
+                    EnabledCommands = EnabledCommands.Append("{=ugFdRADy}Rename, ".Translate());
                 if (StatsEnabled)
-                    EnabledCommands = EnabledCommands.Append("Stats, ");
+                    EnabledCommands = EnabledCommands.Append("{=mlayrmHr}Stats, ".Translate());
                 if (EnabledCommands != null)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString().Substring(0, EnabledCommands.ToString().Length - 2))));
 
@@ -180,19 +180,19 @@ namespace BLTAdoptAHero.Actions
 
             switch (command.ToLower())
             {
-                case "join":
+                case "{=I2jEHyAY}join".Translate():
                     HandleJoinCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
-                case "create":
+                case "{=ymJh4yMY}create".Translate():
                     HandleCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
-                case "lead":
+                case "{=pumBg7sU}lead".Translate():
                     HandleLeadCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
-                case "rename":
+                case "{=ek75vkTT}rename".Translate():
                     HandleRenameCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
-                case "stats":
+                case "{=VB2W7FoL}stats".Translate():
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 default:

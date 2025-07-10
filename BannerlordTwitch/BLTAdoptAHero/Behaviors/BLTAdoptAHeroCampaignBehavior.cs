@@ -576,7 +576,7 @@ namespace BLTAdoptAHero
                 // Index is 1 based, not 0
                 if (!int.TryParse(itemName.Substring(1), out int index) || index < 1 || index > customItems.Count)
                 {
-                    return (EquipmentElement.Invalid, "{=}Invalid item index".Translate());
+                    return (EquipmentElement.Invalid, "{=T6XnYOC9}Invalid item index".Translate());
                 }
                 return (customItems[index - 1], default);
             }

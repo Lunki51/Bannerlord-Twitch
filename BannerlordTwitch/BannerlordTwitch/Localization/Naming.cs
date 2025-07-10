@@ -15,6 +15,7 @@ namespace BannerlordTwitch.Localization
         public static readonly string Item = "{=5rErcMGl}Item".Translate();
         public static readonly string Skills = "{=5gVLi7NA}Skills".Translate();
         public static readonly string Sep = "{=aG3roJj3} ■".Translate();
+        public static readonly string Sep2 = "{=AmuKxrmY} ■".Translate();
 
         public static string NotEnoughGold(int need, int have) =>
             "{=fuwuk4bR}Not enough {GoldIcon}: need {NeededGold}{GoldIcon}, have {HaveGold}{GoldIcon}!"

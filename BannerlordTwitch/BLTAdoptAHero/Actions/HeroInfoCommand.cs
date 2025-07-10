@@ -126,8 +126,8 @@ namespace BLTAdoptAHero
                     {
                         infoStrings.Add($"Clan {adoptedHero.Clan.Name}");
                     }
-                    infoStrings.Add($"{adoptedHero.Culture}");
-                    infoStrings.Add("{=4TVRrlOw}{Age} yrs".Translate(("Age", (int)Math.Ceiling(adoptedHero.Age))));
+                    infoStrings.Add($"{adoptedHero.Culture.Name}");
+                    infoStrings.Add("{=4TVRrlOw}{Age} yrs".Translate(("Age", (int)Math.Truncate((double)adoptedHero.Age))));
                     infoStrings.Add("{=jY2QJdA3}{HP} / {MaxHP} HP".Translate(
                         ("HP", adoptedHero.HitPoints), ("MaxHP", adoptedHero.CharacterObject.MaxHitPoints())));
                     if (adoptedHero.LastKnownClosestSettlement != null)
@@ -139,16 +139,18 @@ namespace BLTAdoptAHero
 
                 if (settings.ShowTopSkills)
                 {
-                    infoStrings.Add("{=fRwyY6ms}[LVL]".Translate() +
-                                    $" {adoptedHero.Level}");
-                    infoStrings.Add("{=rTId8pBy}[SKILLS]".Translate() +
-                                    " " + string.Join(Naming.Sep,
-                        CampaignHelpers.AllSkillObjects
-                            .Where(s => adoptedHero.GetSkillValue(s) >= settings.MinSkillToShow)
-                            .OrderByDescending(s => adoptedHero.GetSkillValue(s))
-                            .Select(skill => $"{SkillXP.GetShortSkillName(skill)} {adoptedHero.GetSkillValue(skill)} " +
-                                             $"[f{adoptedHero.HeroDeveloper.GetFocus(skill)}]")
-                    ));
+                    infoStrings.Add($"{"{=fRwyY6ms}[LVL]".Translate()} {adoptedHero.Level}");
+                
+                    var skillsList = CampaignHelpers.AllSkillObjects
+                        .Where(s => adoptedHero.GetSkillValue(s) >= settings.MinSkillToShow)
+                        .OrderByDescending(s => adoptedHero.GetSkillValue(s))
+                        .Select(skill =>
+                            $"{SkillXP.GetShortSkillName(skill)} {adoptedHero.GetSkillValue(skill)} " +
+                            $"[" +
+                            $"{"{=lHRDKsUT}f ".Translate()}" +
+                            $"{adoptedHero.HeroDeveloper.GetFocus(skill)}]" );
+                
+                    infoStrings.Add($"{"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
                 }
 
                 if (settings.ShowAttributes)

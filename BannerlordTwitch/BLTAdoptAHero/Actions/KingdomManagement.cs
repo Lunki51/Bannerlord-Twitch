@@ -184,7 +184,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h.Clan.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
+            var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
             if (desiredKingdom == null)
             {
                 onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
