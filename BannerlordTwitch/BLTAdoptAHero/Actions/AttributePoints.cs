@@ -6,6 +6,7 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using JetBrains.Annotations;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero
@@ -98,7 +99,7 @@ namespace BLTAdoptAHero
                         : "{=2vli3BCR}You have gained a point in {Attribute}, you now have {NewAmount}!")
                     .Translate(
                         ("Amount", amount),
-                        ("Attribute", CampaignHelpers.GetAttributeName(characterAttribute)),
+                        ("Attribute", CampaignHelpers.GetAttributeName(attribute)),
                         ("NewAmount", adoptedHero.GetAttributeValue(attribute)))
                 );
         }

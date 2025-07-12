@@ -45,6 +45,19 @@
         <string id="Bi19tTPj" text="Максимальное количество унаследованных настраиваемых предметов" original="Maximum Inherited Custom Items"/>
         <!-- How many custom items can be inherited -->
         <string id="tFolfAOn" text="Сколько настраиваемых предметов можно унаследовать" original="How many custom items can be inherited"/>
+		<!-- ClanManagement -->
+		<string id="pkzDqw18" text="Недопустимое или пустое действие клана, попробуйте (вступить/создать/возглавить/переименовать/стат)" original="Invalid or empty clan action, try (join/create/lead/rename/stats)"/>
+		<!-- Translation of clan management chat commands -->
+		<string id="q5JhpNMF" text="Вступить" original="Join"/>
+		<string id="9lAIycwE" text="Создать" original="Create"/>
+		<string id="TrSSHcbH" text="Возглавить" original="Lead"/>
+		<string id="ugFdRADy" text="Переименовать" original="Rename"/>
+		<string id="mlayrmHr" text="Стат" original="Stats"/>
+		<string id="I2jEHyAY" text="вступить" original="join"/>
+		<string id="ymJh4yMY" text="создать" original="create"/>
+		<string id="pumBg7sU" text="возглавить" original="lead"/>
+		<string id="ek75vkTT" text="переименовать" original="rename"/>
+		<string id="VB2W7FoL" text="стат" original="stats"/>		
         <!-- Subscriber Only -->
         <string id="O4DGlP9Z" text="Только подписчик" original="Subscriber Only"/>
         <!-- Only subscribers can adopt -->
@@ -277,6 +290,8 @@
         <string id="u9Jx6QUr" text="Позволяет зрителям передавать один из своих пользовательских предметов другому зрителю." original="Allows viewers to give one of their own custom items to another viewer"/>
         <!-- You have no items to give -->
         <string id="Tfj1U5BB" text="Вам нечего отдавать" original="You have no items to give"/>
+		<!-- Invalid item index -->
+		<string id="T6XnYOC9" text="Неверный индекс элемента" original="Invalid item index"/>
         <!-- (recipient) (partial item name) -->
         <string id="BClUoR9H" text="(получатель) (частичное название товара)" original="(recipient) (partial item name)"/>
         <!-- Couldn't find recipient '{Name}' -->
@@ -382,6 +397,8 @@
         <string id="B2xDasDx" text="Замечали около {Place}" original="Last seen near {Place}"/>
         <!-- [LVL] -->
         <string id="fRwyY6ms" text="[УР]" original="[LVL]"/>
+		<!-- f -->
+		<string id="lHRDKsUT" text="ф " original="f "/>
         <!-- [SKILLS] -->
         <string id="rTId8pBy" text="[НАВЫКИ]" original="[SKILLS]"/>
         <!-- [ATTR] -->
@@ -770,5 +787,25 @@
         <string id="nXSUvuyD" text="Вы не можете активировать свои способности сейчас: {FailReason}!" original="You cannot activate your powers now: {FailReason}!"/>
         <!-- Your powers are already active! -->
         <string id="o23xAj6M" text="Ваши способности уже активны!" original="Your powers are already active!"/>
+		<!-- In-game Notification? -->
+		<string id="EWlUcw9W" text="Внутриигровое уведомление?" original="In-game Notification?"/>
+		<!-- Subscribers -->
+		<string id="26cIeQzp" text="Платные подписчики" original="Subscribers"/>
+		<!-- Inheritance -->
+		<string id="biICJtC2" text="Наследование" original="Inheritance"/>
+		<!-- Config Error: Can't create new hero and have random selection filters -->
+		<string id="98Hl4Gnd" text="Ошибка конфигурации: невозможно создать нового героя и использовать фильтры случайного выбора." original="Config Error: Can't create new hero and have random selection filters"/>
+		<!-- list -->
+		<string id="fQKXPB5C" text="лист" original="list"/>
+		<!-- a (list) -->
+		<string id="z9cGIl8j" text="список" original="a"/>
+		<!-- Faction list: {Factions} -->
+		<string id="7DN9p01E" text="Список фракций: {Factions}" original="Faction list: {Factions}"/>
+		<!-- Please enter the name of the faction you wish to adopt a hero from -->
+		<string id="kAeOPuZc" text="Введите название фракции, из которой вы хотите взять героя." original="Please enter the name of the faction you wish to adopt a hero from"/>
+		<!-- Please enter the name of the leader you wish to adopt -->
+		<string id="lJXxLdFz" text="Пожалуйста, введите имя лидера, которого вы хотите усыновить." original="Please enter the name of the leader you wish to adopt"/>
+		<!-- Error could not find a clan with the name {clanName} -->
+		<string id="bzsT7oy0" text="Ошибка: не удалось найти клан с названием {clanName}." original="Error could not find a clan with the name {clanName}"/>
     </strings>
 </base>

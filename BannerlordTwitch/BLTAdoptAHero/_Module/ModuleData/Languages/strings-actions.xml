@@ -212,6 +212,17 @@
 		<string id="Sg11nEUe" text="Tier: {tier} | "/>
 		<string id="ZFGikYn8" text="Strength: {strength} | "/>
 		<string id="eHJYAZha" text="Members: {members}"/>
+		<!-- Translation of clan management chat commands -->
+		<string id="q5JhpNMF" text="Join"/>
+		<string id="9lAIycwE" text="Create"/>
+		<string id="TrSSHcbH" text="Lead"/>
+		<string id="ugFdRADy" text="Rename"/>
+		<string id="mlayrmHr" text="Stats"/>
+		<string id="I2jEHyAY" text="join"/>
+		<string id="ymJh4yMY" text="create"/>
+		<string id="pumBg7sU" text="lead"/>
+		<string id="ek75vkTT" text="rename"/>
+		<string id="VB2W7FoL" text="stats"/>
 
 		<!-- KingdomManagement -->
 		<string id="1yrA4CUf" text="Kingdom Management"/>
@@ -481,6 +492,8 @@
         <string id="u9Jx6QUr" text="Allows viewers to give one of their own custom items to another viewer"/>
         <!-- You have no items to give -->
         <string id="Tfj1U5BB" text="You have no items to give"/>
+		<!-- Invalid item index -->
+		<string id="T6XnYOC9" text="Invalid item index"/>
         <!-- (recipient) (partial item name) -->
         <string id="BClUoR9H" text="(recipient) (partial item name)"/>
         <!-- Couldn't find recipient '{Name}' -->
@@ -587,6 +600,8 @@
         <string id="B2xDasDx" text="Last seen near {Place}"/>
         <!-- [LVL] -->
         <string id="fRwyY6ms" text="[LVL]"/>
+		<!-- f -->
+		<string id="lHRDKsUT" text="f "/>
         <!-- [SKILLS] -->
         <string id="rTId8pBy" text="[SKILLS]"/>
         <!-- [ATTR] -->
@@ -1007,5 +1022,25 @@
         <string id="nXSUvuyD" text="You cannot activate your powers now: {FailReason}!"/>
         <!-- Your powers are already active! -->
         <string id="o23xAj6M" text="Your powers are already active!"/>
+		<!-- In-game Notification? -->
+		<string id="EWlUcw9W" text="In-game Notification?"/>
+		<!-- Subscribers -->
+		<string id="26cIeQzp" text="Subscribers"/>
+		<!-- Inheritance -->
+		<string id="biICJtC2" text="Inheritance"/>
+		<!-- Config Error: Can't create new hero and have random selection filters -->
+		<string id="98Hl4Gnd" text="Config Error: Can't create new hero and have random selection filters"/>
+		<!-- list -->
+		<string id="fQKXPB5C" text="list"/>
+		<!-- a (list) -->
+		<string id="z9cGIl8j" text="a"/>
+		<!-- Faction list: {Factions} -->
+		<string id="7DN9p01E" text="Faction list: {Factions}"/>
+		<!-- Please enter the name of the faction you wish to adopt a hero from -->
+		<string id="kAeOPuZc" text="Please enter the name of the faction you wish to adopt a hero from"/>
+		<!-- Please enter the name of the leader you wish to adopt -->
+		<string id="lJXxLdFz" text="Please enter the name of the leader you wish to adopt"/>
+		<!-- Error could not find a clan with the name {clanName} -->
+		<string id="bzsT7oy0" text="Error could not find a clan with the name {clanName}"/>
     </strings>
 </base>
