@@ -59,7 +59,7 @@ namespace BLTAdoptAHero
          CategoryOrder("Effects", 2),
          CategoryOrder("End Effects", 3),
          CategoryOrder("Kill Effects", 4)]
-        public class Settings : IDocumentable
+        private class Settings : IDocumentable
         {
             [LocDisplayName("{=DkCdNiwF}Allow Field Battle"),
              LocCategory("Allowed Missions", "{=i8P1EnE1}Allowed Missions"),
@@ -258,10 +258,6 @@ namespace BLTAdoptAHero
             new("{=4yUH9sfX}I'll mount your pike on a head!") { PlayerSide = false, Weight = 0.01f },
         };
 
-        public static void Execute(Hero hero, Settings settings, ReplyContext context, Action<string> onSuccess, Action<string> onFailure)
-        {
-            SummonInBattle(hero, settings, context, onSuccess, onFailure);
-        }
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
             Action<string> onSuccess, Action<string> onFailure)
         {

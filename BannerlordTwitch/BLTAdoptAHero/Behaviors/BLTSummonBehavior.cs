@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Util;
 using HarmonyLib;
@@ -160,74 +159,15 @@ namespace BLTAdoptAHero
             onTickActions.Add(action);
         }
 
-        private float autoSummonTimer = 0f;
-
         public override void OnMissionTick(float dt)
         {
             SafeCall(() =>
             {
-                // выполняем отложенные действия
                 var actionsToDo = onTickActions.ToList();
                 onTickActions.Clear();
                 foreach (var action in actionsToDo)
                 {
                     action();
-                }
-
-                // автопризыв раз в 0.25 сек
-                autoSummonTimer += dt;
-                if (autoSummonTimer < 0.25f)
-                    return;
-                
-                if (Mission.Current == null ||
-                (!Mission.Current.IsFieldBattle && !Mission.Current.IsSiegeBattle))
-                {
-                    return; // Блокируем автопризыв только в НЕ-боевых миссиях
-                }
-
-                autoSummonTimer = 0f;
-                var cfg = BLTAdoptAHeroModule.CommonConfig;
-
-                if (!cfg.AutoSummonAll && !cfg.AutoSummonSpecific)
-                    return;
-
-                var names = new HashSet<string>();
-                if (cfg.AutoSummonSpecific && !string.IsNullOrWhiteSpace(cfg.AutoSummonHeroesList))
-                {
-                    names = cfg.AutoSummonHeroesList
-                        .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                        .Select(n => n.Trim() + " [BLT]")
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-                }
-
-                foreach (var hero in Hero.AllAliveHeroes.Where(h => h.IsAdopted()))
-                {
-                    if (!cfg.AutoSummonAll && !names.Contains(hero.Name.ToString()))
-                        continue;
-
-                    var state = GetHeroSummonState(hero);
-
-                    if (state == null || state.State != AgentState.Active)
-                    {
-                        if (state == null || !state.InCooldown)
-                        {
-                            var summonCfg = new SummonHero.Settings
-                            {
-                                OnPlayerSide = true,
-                                WithRetinue = true,
-                                AllowWhenDepleted = true,
-                                GoldCost = 0,
-                                PreferredFormation = "Infantry"
-                            };
-
-                            var fakeContext = ReplyContext.FromUser(null, hero.Name.ToString(), "");
-
-                            SummonHero.Execute(hero, summonCfg, fakeContext,
-                                onSuccess: msg => Log.Trace($"[AutoSummon] Success: {msg}"),
-                                onFailure: msg => Log.Trace($"[AutoSummon] Failed: {msg}")
-                            );
-                        }
-                    }
                 }
             });
         }
