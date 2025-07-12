@@ -28,8 +28,6 @@
         <string id="aG3roJj3" text=" ■" original=" ■"/>
 		<!--  ■ -->
 		<string id="AmuKxrmY" text=" ■" original=" ■"/>
-		<!--  ░ -->
-		<string id="U9DzsTDv" text=" ░ " original=" ░ "/>
 		<!-- Not enough {GoldIcon}: need {NeededGold}{GoldIcon}, have {HaveGold}{GoldIcon}! -->
         <string id="fuwuk4bR" text="Недостаточно {GoldIcon}: надо {NeededGold}{GoldIcon}, есть {HaveGold}{GoldIcon}!" original="Not enough {GoldIcon}: need {NeededGold}{GoldIcon}, have {HaveGold}{GoldIcon}!"/>
         <!-- Common Phrases -->
