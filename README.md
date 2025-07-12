@@ -102,3 +102,4 @@ As per the LGPL (under which this code is licensed), deployment of changes in bi
 
 # Credits
 This is a continuation of the project, originally started by somebody else.
+Original: [Author](https://github.com/billw2012) | [Github](https://github.com/billw2012/Bannerlord-Twitch) | [Discord](https://discord.gg/q2p4eHsxFn) | [Youtube](https://www.youtube.com/@billw2461)
