@@ -88,7 +88,7 @@ namespace BannerlordTwitch
 
             private static IEnumerable<string> FormatMessage(params string[] msg)
             {
-                const string space = "{=U9DzsTDv} ░ "; // " ░▓█▓░ ";// " ▄▓▄▓▄ ";
+                const string space = " ░ "; // " ░▓█▓░ ";// " ▄▓▄▓▄ ";
                 var parts = new List<string>();
                 string currPart = msg.First();
                 foreach (string msgPart in msg.Skip(1))

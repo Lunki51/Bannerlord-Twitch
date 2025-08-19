@@ -178,21 +178,27 @@ namespace BLTAdoptAHero.Actions
             var command = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
 
+            string joinCommand = "{=I2jEHyAY}join".Translate();
+            string createCommand = "{=ymJh4yMY}create".Translate();
+            string leadCommand = "{=pumBg7sU}lead".Translate();
+            string renameCommand = "{=ek75vkTT}rename".Translate();
+            string statsCommand = "{=VB2W7FoL}stats".Translate();
+
             switch (command.ToLower())
             {
-                case "{=I2jEHyAY}join".Translate():
+                case var _ when command.ToLower() == joinCommand:
                     HandleJoinCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
-                case "{=ymJh4yMY}create".Translate():
+                case var _ when command.ToLower() == createCommand:
                     HandleCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
-                case "{=pumBg7sU}lead".Translate():
+                case var _ when command.ToLower() == leadCommand:
                     HandleLeadCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
-                case "{=ek75vkTT}rename".Translate():
+                case var _ when command.ToLower() == renameCommand:
                     HandleRenameCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
-                case "{=VB2W7FoL}stats".Translate():
+                case var _ when command.ToLower() == statsCommand:
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 default:
