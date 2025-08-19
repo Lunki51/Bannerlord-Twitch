@@ -203,6 +203,11 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleJoinCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
+            if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
+            {
+                onSuccess("{heroName} has become a noble!");
+                adoptedHero.SetNewOccupation(Occupation.Lord);
+            }
             if (!settings.JoinEnabled)
             {
                 onFailure("{=VupTnRNX}Joining clans is disabled".Translate());
@@ -249,6 +254,11 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleCreateCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
+            if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
+            {
+                onSuccess("{heroName} has become a noble!");
+                adoptedHero.SetNewOccupation(Occupation.Lord);
+            }
             if (!settings.CreateEnabled)
             {
                 onFailure("{=drmqcbE2}Creating clans is disabled".Translate());
@@ -294,6 +304,11 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleLeadCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
         {
+            if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
+            {
+                onSuccess("{heroName} has become a noble!");
+                adoptedHero.SetNewOccupation(Occupation.Lord);
+            }
             if (!settings.LeadEnabled)
             {
                 onFailure("{=OVxeTkYW}Leading clans is disabled".Translate());
@@ -350,6 +365,11 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleRenameCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
+            if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
+            {
+                onSuccess("{heroName} has become a noble!");
+                adoptedHero.SetNewOccupation(Occupation.Lord);
+            }
             if (!settings.RenameEnabled)
             {
                 onFailure("{=4pDk2rNm}Renaming clans is disabled".Translate());
@@ -381,6 +401,11 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleStatsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
         {
+            if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
+            {
+                onSuccess("{heroName} has become a noble!");
+                adoptedHero.SetNewOccupation(Occupation.Lord);
+            }
             if (!settings.StatsEnabled)
             {
                 onFailure("{=9XKKVMKf}Clan stats is disabled".Translate());
