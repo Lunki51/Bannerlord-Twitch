@@ -364,7 +364,7 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation("{=TsmDfvuz}{heroName} has created and is leading clan {clanName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("clanName", adoptedHero.Clan.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
             if ((!settings.BuyTitleEnabled) && ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null)))
             {
-                onSuccess("{heroName} has become a noble!");
+                onSuccess("{=TESTING}{heroName} has become a noble!".Translate(("heroName", adoptedHero.Name.ToString())));
                 adoptedHero.SetNewOccupation(Occupation.Lord);
             }
         }
