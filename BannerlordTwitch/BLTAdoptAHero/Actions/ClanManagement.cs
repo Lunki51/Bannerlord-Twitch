@@ -481,7 +481,26 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())));
             clanStats.Append("{=Sg11nEUe}Tier: {tier} | ".Translate(("tier", adoptedHero.Clan.Tier.ToString())));
             clanStats.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.TotalStrength).ToString())));
-            clanStats.Append("{=eHJYAZha}Members: {members}".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
+            
+            if (adoptedHero.IsPartyLeader) { 
+                clanStats.Append("{=TESTING}Party: {party} | ".Translate(("party", Math.Round(adoptedHero.PartyBelongedTo.GetTotalStrengthWithFollowers(false)).ToString())));
+                if (adoptedHero.PartyBelongedTo.ShortTermTargetParty != null) {
+                    clanStats.Append("{=TESTING}Target: {target} - ".Translate(("target", adoptedHero.PartyBelongedTo.ShortTermTargetParty.Name.ToString())));
+                    clanStats.Append("{=TESTING}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.PartyBelongedTo.ShortTermTargetParty.GetTotalStrengthWithFollowers(false)).ToString())));
+                }
+                if (adoptedHero.PartyBelongedTo.TargetSettlement != null && adoptedHero.PartyBelongedTo.IsCurrentlyGoingToSettlement)
+                    clanStats.Append("{=TESTING}Travelling: {travelling} | ".Translate(("travelling", adoptedHero.PartyBelongedTo.TargetSettlement.Name.ToString())));
+                else if (adoptedHero.PartyBelongedTo.TargetSettlement != null)
+                    clanStats.Append("{=TESTING}Patrolling: {patrolling} | ".Translate(("patrolling", adoptedHero.PartyBelongedTo.TargetSettlement.Name.ToString())));
+            }
+            if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
+                clanStats.Append("{=TESTING}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
+            if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
+                clanStats.Append("{=TESTING}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
+            clanStats.Append("{=TESTING}Wealth: {wealth} | ".Translate(("wealth", adoptedHero.Clan.Leader.Gold.ToString())));
+            clanStats.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
+            if (adoptedHero.Clan.Fiefs.Count>=1)
+                clanStats.Append("{=TESTING}Fiefs: {fiefs} | ".Translate(("fiefs", adoptedHero.Clan.Fiefs.Count.ToString())));
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
         }
 
