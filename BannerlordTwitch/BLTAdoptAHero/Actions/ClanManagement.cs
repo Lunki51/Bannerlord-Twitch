@@ -7,6 +7,8 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.Annotations;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -25,7 +27,10 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Create", 1),
          CategoryOrder("Lead", 2),
          CategoryOrder("Rename", 3),
-         CategoryOrder("Stats", 4)]
+         CategoryOrder("Stats", 4),
+         CategoryOrder("Leave", 5),
+         //CategoryOrder("Disband", 6),
+         CategoryOrder("Buy Noble Title", 6)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -100,6 +105,30 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool StatsEnabled { get; set; } = true;
 
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Leave", "{=TESTING}Leave"),
+             LocDescription("Allow BLTs to leave their clan.   WARNING: Leaving will turn their character into a wanderer, and they may have to buy their Nobility back!"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool LeaveEnabled { get; set; } = true;
+            
+            //[LocDisplayName("{=pYjIUlTE}Enabled"),
+            // LocCategory("Disband", "{=TESTING}Disband"),
+            // LocDescription("Enable BLTs disbanding an empty clan.   WARNING: Disbanding will turn their character into a wanderer, and they may have to buy their Nobility back!"),
+            // PropertyOrder(1), UsedImplicitly]
+            //public bool DisbandEnabled { get; set; } = true;
+            
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Buy Noble Title", "{=TESTING}Buy Noble Title"),
+             LocDescription("Allow non-noble BLTs to buy their way into being a Lord, allowing their Hero's AI many more clan and kingdom actions.   NOTE: Disabling this will simply make BLT's into Lords when creating or joining a clan, instead of through this command."),
+             PropertyOrder(1), UsedImplicitly]
+            public bool BuyTitleEnabled { get; set; } = true;
+
+            [LocDisplayName("{=d5WMYSvO}Gold Cost"),
+             LocCategory("Buy Noble Title", "{=TESTING}Buy Noble Title"),
+             LocDescription("Cost of Becoming a Noble"),
+             PropertyOrder(2), UsedImplicitly]
+            public int TitlePrice { get; set; } = 200000;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var EnabledCommands = new StringBuilder();
@@ -113,6 +142,13 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands = EnabledCommands.Append("{=ugFdRADy}Rename, ".Translate());
                 if (StatsEnabled)
                     EnabledCommands = EnabledCommands.Append("{=mlayrmHr}Stats, ".Translate());
+                if (LeaveEnabled)
+                    EnabledCommands = EnabledCommands.Append("{=TESTING}Leave, ".Translate());
+                //if (DisbandEnabled)
+                //    EnabledCommands = EnabledCommands.Append("{=TESTING}Disband, ".Translate());
+                //    Log.ShowInformation("disband");
+                if (BuyTitleEnabled)
+                    EnabledCommands = EnabledCommands.Append("{=TESTING}Buy Noble Title, ".Translate());
                 if (EnabledCommands != null)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString().Substring(0, EnabledCommands.ToString().Length - 2))));
 
@@ -139,6 +175,11 @@ namespace BLTAdoptAHero.Actions
                                     "Rename Config: " +
                                     "</strong>" +
                                     "Price={price}{icon}".Translate(("price", RenamePrice.ToString()), ("icon", Naming.Gold)));
+                if (BuyTitleEnabled)
+                    generator.Value("<strong>" +
+                                    "Buy Noble Title Config: " +
+                                    "</strong>" +
+                                    "Price={price}{icon}".Translate(("price", TitlePrice.ToString()), ("icon", Naming.Gold)));
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -157,11 +198,12 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=MPTOZqMS}You cannot manage your clan, as a mission is active!".Translate());
                 return;
             }
-            if (adoptedHero.HeroState == Hero.CharacterStates.Prisoner)
-            {
-                onFailure("{=oxNqBy4k}You cannot manage your clan, as you are a prisoner!".Translate());
-                return;
-            }
+            //This is deemed annoying and unnecessary in the community, especially since you can't effect being captured or released at all through clan commands, so there are very few possible conflicts or errors from this.
+            //if (adoptedHero.HeroState == Hero.CharacterStates.Prisoner)
+            //{
+            //    onFailure("{=oxNqBy4k}You cannot manage your clan, as you are a prisoner!".Translate());
+            //    return;
+            //}
 
             if (context.Args.IsEmpty())
             {
@@ -177,12 +219,22 @@ namespace BLTAdoptAHero.Actions
             var splitArgs = context.Args.Split(' ');
             var command = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
+            // Special case: !clan buy title
+            if (command.Equals("buy", StringComparison.OrdinalIgnoreCase) &&
+                splitArgs.Length > 1 &&
+                splitArgs[1].Equals("title", StringComparison.OrdinalIgnoreCase))
+            {
+                command = "buy title";
+            }
 
             string joinCommand = "{=I2jEHyAY}join".Translate();
             string createCommand = "{=ymJh4yMY}create".Translate();
             string leadCommand = "{=pumBg7sU}lead".Translate();
             string renameCommand = "{=ek75vkTT}rename".Translate();
             string statsCommand = "{=VB2W7FoL}stats".Translate();
+            string leaveCommand = "{=TESTING}leave".Translate();
+            //string disbandCommand = "{=TESTING}disband".Translate();
+            string buytitleCommand = "{=TESTING}buy title".Translate();
 
             switch (command.ToLower())
             {
@@ -201,8 +253,17 @@ namespace BLTAdoptAHero.Actions
                 case var _ when command.ToLower() == statsCommand:
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
+                case var _ when command.ToLower() == leaveCommand:
+                    HandleLeaveCommand(settings, adoptedHero, onSuccess, onFailure);
+                    break;
+                //case var _ when command.ToLower() == disbandCommand:
+                //    HandleDisbandCommand(settings, adoptedHero, onSuccess, onFailure);
+                //    break;
+                case var _ when command.ToLower() == buytitleCommand:
+                    HandleBuyTitleCommand(settings, adoptedHero, onSuccess, onFailure);
+                    break;
                 default:
-                    onFailure("{=pkzDqw18}Invalid or empty clan action, try (join/create/lead/rename/stats)".Translate());
+                    onFailure("{=pkzDqw18}Invalid or empty clan action, try (join/create/lead/rename/stats/leave/buy title)".Translate());
                     break;
             }
         }
@@ -251,6 +312,11 @@ namespace BLTAdoptAHero.Actions
             adoptedHero.Clan = desiredClan;
             onSuccess("{=T7U1Piwx}Joined clan {name}".Translate(("name", desiredName)));
             Log.ShowInformation("{=WseRTV8W}{heroName} has joined clan {clanName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("clanName", adoptedHero.Clan.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
+            if ((!settings.BuyTitleEnabled) && ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null)))
+            {
+                onFailure("{=TESTING}{heroName} has become a noble!".Translate(("heroName", adoptedHero.Name.ToString())));
+                adoptedHero.SetNewOccupation(Occupation.Lord);
+            }
         }
 
         private void HandleCreateCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
@@ -296,6 +362,11 @@ namespace BLTAdoptAHero.Actions
                 CampaignHelpers.AddEncyclopediaBookmarkToItem(newClan);
             onSuccess("{=omDrEeDx}Created and leading clan {name}".Translate(("name", fullClanName)));
             Log.ShowInformation("{=TsmDfvuz}{heroName} has created and is leading clan {clanName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("clanName", adoptedHero.Clan.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
+            if ((!settings.BuyTitleEnabled) && ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null)))
+            {
+                onSuccess("{=TESTING}{heroName} has become a noble!".Translate(("heroName", adoptedHero.Name.ToString())));
+                adoptedHero.SetNewOccupation(Occupation.Lord);
+            }
         }
 
         private void HandleLeadCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
@@ -318,6 +389,11 @@ namespace BLTAdoptAHero.Actions
             if (adoptedHero.IsClanLeader)
             {
                 onFailure("{=cRpqnI3B}You are already the leader of your clan".Translate());
+                return;
+            }
+            if ((adoptedHero.Occupation != Occupation.Lord) && (!settings.BuyTitleEnabled))
+            {
+                onFailure("{=TESTING}You must be a noble to usurp a clan!".Translate());
                 return;
             }
             if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.LeadPrice)
@@ -405,8 +481,109 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())));
             clanStats.Append("{=Sg11nEUe}Tier: {tier} | ".Translate(("tier", adoptedHero.Clan.Tier.ToString())));
             clanStats.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.TotalStrength).ToString())));
-            clanStats.Append("{=eHJYAZha}Members: {members}".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
+            
+            if (adoptedHero.IsPartyLeader) { 
+                clanStats.Append("{=TESTING}Party: {party} | ".Translate(("party", Math.Round(adoptedHero.PartyBelongedTo.GetTotalStrengthWithFollowers(false)).ToString())));
+                if (adoptedHero.PartyBelongedTo.ShortTermTargetParty != null) {
+                    clanStats.Append("{=TESTING}Target: {target} - ".Translate(("target", adoptedHero.PartyBelongedTo.ShortTermTargetParty.Name.ToString())));
+                    clanStats.Append("{=TESTING}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.PartyBelongedTo.ShortTermTargetParty.GetTotalStrengthWithFollowers(false)).ToString())));
+                }
+                if (adoptedHero.PartyBelongedTo.TargetSettlement != null && adoptedHero.PartyBelongedTo.IsCurrentlyGoingToSettlement)
+                    clanStats.Append("{=TESTING}Travelling: {travelling} | ".Translate(("travelling", adoptedHero.PartyBelongedTo.TargetSettlement.Name.ToString())));
+                else if (adoptedHero.PartyBelongedTo.TargetSettlement != null)
+                    clanStats.Append("{=TESTING}Patrolling: {patrolling} | ".Translate(("patrolling", adoptedHero.PartyBelongedTo.TargetSettlement.Name.ToString())));
+            }
+            if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
+                clanStats.Append("{=TESTING}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
+            if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
+                clanStats.Append("{=TESTING}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
+            clanStats.Append("{=TESTING}Wealth: {wealth} | ".Translate(("wealth", adoptedHero.Clan.Leader.Gold.ToString())));
+            clanStats.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
+            if (adoptedHero.Clan.Fiefs.Count>=1)
+                clanStats.Append("{=TESTING}Fiefs: {fiefs} | ".Translate(("fiefs", adoptedHero.Clan.Fiefs.Count.ToString())));
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
+        }
+
+        private void HandleLeaveCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.LeaveEnabled)
+            {
+                onFailure("{=TESTING}Leaving clans is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Clan == null)
+            {
+                onFailure("{=yPeUCq8t}You are not in a clan".Translate());
+                return;
+            }
+            
+            var mobileParty = MobileParty.All.ToList().Where(p => p.LeaderHero?.CharacterObject == adoptedHero.CharacterObject).FirstOrDefault();
+            if (mobileParty != null)
+            {
+                mobileParty.RemoveParty();
+            }
+            adoptedHero.Clan = null;
+            adoptedHero.SetNewOccupation(Occupation.Wanderer);
+            var targetSettlement = Settlement.All.Where(s => s.IsTown).SelectRandom();
+            EnterSettlementAction.ApplyForCharacterOnly(adoptedHero, targetSettlement);
+        }
+
+        //private void HandleDisbandCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        //{
+        //    if (!settings.LeaveEnabled)
+        //    {
+        //        onFailure("Leaving clans is disabled");
+        //        return;
+        //    }
+        //    if (adoptedHero.Clan == null)
+        //    {
+        //        onFailure("{=yPeUCq8t}You are not in a clan".Translate());
+        //        return;
+        //    }
+            
+        //    var mobileParty = MobileParty.All.ToList().Where(p => p.LeaderHero?.CharacterObject == adoptedHero.CharacterObject).FirstOrDefault();
+        //    if (mobileParty != null)
+        //    {
+        //        mobileParty.RemoveParty();
+        //    }
+        //    adoptedHero.Clan = null;
+        //    adoptedHero.Clan.Kingdom = null;
+        //    adoptedHero.SetNewOccupation(Occupation.Wanderer);
+        //    var targetSettlement = Settlement.All.Where(s => s.IsTown).SelectRandom();
+        //    EnterSettlementAction.ApplyForCharacterOnly(adoptedHero, targetSettlement);
+        //}
+        
+        private void HandleBuyTitleCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if ((adoptedHero.Occupation == Occupation.Lord) && (!settings.BuyTitleEnabled))
+            {
+                onFailure("{=TESTING}Buying Noble Titles is disabled, and you are already a noble!".Translate());
+                return;
+            }
+            if (!settings.BuyTitleEnabled)
+            {
+                onFailure("{=TESTING}Buying Noble Titles is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Occupation == Occupation.Lord)
+            {
+                onFailure("{=TESTING}You are already a noble!".Translate());
+                return;
+            }
+            if (adoptedHero.Clan == null)
+            {
+                onFailure("{=yPeUCq8t}You are not in a clan".Translate());
+                return;
+            }
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.TitlePrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.TitlePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
+            
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.TitlePrice, true);
+            adoptedHero.SetNewOccupation(Occupation.Lord);
+            onSuccess("{heroName} has become a noble!".Translate(("heroName", adoptedHero.Name.ToString())));
         }
     }
 }
