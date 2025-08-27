@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Text;
+using System.Collections.Generic;
 using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
@@ -265,12 +266,53 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
                 return;
             }
-
+            bool war=false;
+            List<Kingdom> warKingdoms = new List<Kingdom>();
+            TextObject warList = new TextObject();
+            bool blnComma = false;
+            foreach (Kingdom k in Kingdom.All)
+            {
+                if ((adoptedHero.Clan.Kingdom != k) && (adoptedHero.Clan.Kingdom.IsAtWarWith(k)))
+                {
+                     war = true;
+                    if (blnComma)
+                    {
+                        warList.Value = warList.Value + ", " + k.Name.Value + ":" + ((int)k.TotalStrength).ToString();
+                    }
+                    else
+                    {
+                        warList.Value = warList.Value + k.Name.Value + ":" + ((int)k.TotalStrength).ToString();
+                        blnComma = true;
+                    }
+                }
+            }
             var clanStats = new StringBuilder();
             clanStats.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
             clanStats.Append("{=Ss588M9l}Ruling Clan: {rulingClan} | ".Translate(("rulingClan", adoptedHero.Clan.Kingdom.RulingClan.Name.ToString())));
             clanStats.Append("{=T1FhhCH9}Clan Count: {clanCount} | ".Translate(("clanCount", adoptedHero.Clan.Kingdom.Clans.Count.ToString())));
             clanStats.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.Kingdom.TotalStrength).ToString())));
+            if (war)
+                clanStats.Append("{=TESTING}Wars: {wars} | ".Translate(("wars", warList.ToString())));
+            if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
+                clanStats.Append("{=TESTING}Capital: {capital} | ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
+            if (adoptedHero.Clan.Kingdom.Fiefs.Count >= 1) 
+            {
+                int townCount = 0;
+                int castleCount = 0;
+                foreach (var settlement in adoptedHero.Clan.Kingdom.Fiefs)
+                {
+                    if (!settlement.IsCastle)
+                    {
+                        townCount++;
+                    }
+                    if (settlement.IsCastle)
+                    {
+                        castleCount++; 
+                    }
+                }
+                clanStats.Append("{=TESTING}Towns: {towns} | ".Translate(("towns", (object)townCount)));
+                clanStats.Append("{=TESTING}Castles: {castles} | ".Translate(("castles", (object)castleCount)));
+            }
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
         }
     }
