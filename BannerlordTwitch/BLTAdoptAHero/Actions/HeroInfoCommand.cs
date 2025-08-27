@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using BannerlordTwitch;
@@ -8,6 +8,7 @@ using BannerlordTwitch.Rewards;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.Achievements;
 using BLTAdoptAHero.Powers;
+using TaleWorlds.CampaignSystem;
 using JetBrains.Annotations;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
@@ -76,7 +77,10 @@ namespace BLTAdoptAHero
              LocDescription("{=YW8HsNEF}Shows the heroes unlocked powers"),
              PropertyOrder(12), UsedImplicitly]
             public bool ShowPowers { get; set; }
-
+            [LocDisplayName("{=TESTING}Show Family"),
+             LocDescription("{=TESTING}Shows hero family"),
+             PropertyOrder(13), UsedImplicitly]
+            public bool ShowFamily { get; set; }
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var shows = new List<string>();
@@ -93,6 +97,7 @@ namespace BLTAdoptAHero
                 if (ShowAchievements) shows.Add("{=ZW9XlwY7}Achievements".Translate());
                 if (ShowTrackedStats) shows.Add("{=Xmo7pOpj}Tracked stats".Translate());
                 if (ShowPowers) shows.Add("{=xVDOsWPq}Powers".Translate());
+                if (ShowFamily) shows.Add("{=TESTING}Family".Translate());
                 generator.PropertyValuePair("{=UB1bAtSI}Shows".Translate(), string.Join(", ", shows));
             }
         }
@@ -140,7 +145,7 @@ namespace BLTAdoptAHero
                 if (settings.ShowTopSkills)
                 {
                     infoStrings.Add($"{"{=fRwyY6ms}[LVL]".Translate()} {adoptedHero.Level}");
-                
+
                     var skillsList = CampaignHelpers.AllSkillObjects
                         .Where(s => adoptedHero.GetSkillValue(s) >= settings.MinSkillToShow)
                         .OrderByDescending(s => adoptedHero.GetSkillValue(s))
@@ -148,8 +153,8 @@ namespace BLTAdoptAHero
                             $"{SkillXP.GetShortSkillName(skill)} {adoptedHero.GetSkillValue(skill)} " +
                             $"[" +
                             $"{"{=lHRDKsUT}f ".Translate()}" +
-                            $"{adoptedHero.HeroDeveloper.GetFocus(skill)}]" );
-                
+                            $"{adoptedHero.HeroDeveloper.GetFocus(skill)}]");
+
                     infoStrings.Add($"{"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
                 }
 
@@ -300,8 +305,75 @@ namespace BLTAdoptAHero
                                         ));
                     }
                 }
+                if (settings.ShowFamily)
+                {
+                    string strOutpu = "";
+                    string CleanName(string name)
+                    {
+                        return name.StartsWith("{=") ? name.Substring(name.IndexOf("}") + 1) : name;
+                    }
+
+                    if (adoptedHero.ExSpouses.Count > 0 && adoptedHero.Spouse == null)
+                    {
+                        strOutpu += "Your spouse has died or divorced you | ";
+                    }
+
+                    if (adoptedHero.Spouse != null)
+                    {
+                        strOutpu += adoptedHero.Spouse.IsFemale ? "Wife:" : "Husband:";
+                        strOutpu += CleanName(adoptedHero.Spouse.Name.Value) + ",";
+                        strOutpu += ((int)adoptedHero.Spouse.Age).ToString();
+
+                        if (adoptedHero.Spouse.IsFemale && adoptedHero.Spouse.IsPregnant)
+                        {
+                            strOutpu += ",Pregnant | ";
+                        }
+                        else
+                        {
+                            strOutpu += " | ";
+                        }
+                    }
+
+                    if (adoptedHero.Children.Count != 0)
+                    {
+                        strOutpu += "Children:";
+                        foreach (Hero c in adoptedHero.Children)
+                        {
+                            string kids = "";
+
+                            kids += CleanName(c.Name.Value) + ",";
+                            kids += c.IsFemale ? "Daughter," : "Son,";
+                            kids += ((int)c.Age).ToString();
+
+                            if (c.Spouse != null)
+                            {
+                                kids += ",Married:";
+                                kids += CleanName(c.Spouse.Name.Value) + "-";
+                            }
+                            else
+                            {
+                                kids += "-";
+                            }
+
+                            strOutpu += kids;
+                        }
+
+                        strOutpu = strOutpu.TrimEnd('-');
+                    }
+                    if (adoptedHero.Children.Count == 0 && adoptedHero.Spouse != null)
+                    {
+                        strOutpu += "You have no children";
+                    }
+                    if (adoptedHero.Children.Count == 0 && adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count == 0)
+                    {
+                        strOutpu += "You have no family";
+                    }
+                    infoStrings.Add("Family | " + strOutpu);
+                }
+
+                ActionManager.SendReply(context, infoStrings.ToArray());
+
             }
-            ActionManager.SendReply(context, infoStrings.ToArray());
         }
     }
 }
