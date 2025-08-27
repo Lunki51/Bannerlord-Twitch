@@ -388,7 +388,7 @@ namespace BLTAdoptAHero
                                     ("WonGold", BLTAdoptAHeroModule.CommonConfig.WinGold),
                                     ("GoldIcon", Naming.Gold)));
                         }
-                        else if (BLTAdoptAHeroModule.CommonConfig.LoseGold > 0)
+                        else if (BLTAdoptAHeroModule.CommonConfig.LoseGold != 0)
                         {
                             Hero.MainHero.ChangeHeroGold(BLTAdoptAHeroModule.CommonConfig.LoseGold);
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero,
@@ -574,10 +574,10 @@ namespace BLTAdoptAHero
                             }
                             else
                             {
-                                if (BLTAdoptAHeroModule.CommonConfig.LoseGold > 0)
+                                if (BLTAdoptAHeroModule.CommonConfig.LoseGold != 0)
                                 {
                                     BLTAdoptAHeroCampaignBehavior.Current
-                                        .ChangeHeroGold(adoptedHero, -BLTAdoptAHeroModule.CommonConfig.LoseGold);
+                                        .ChangeHeroGold(adoptedHero, BLTAdoptAHeroModule.CommonConfig.LoseGold);
                                     results.Add($"{Naming.Dec}{BLTAdoptAHeroModule.CommonConfig.LoseGold}{Naming.Gold}");
                                 }
 
