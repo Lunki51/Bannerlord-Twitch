@@ -349,6 +349,8 @@
     <Compile Include="Behaviors\BLTTournamentMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentQueueBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
+    <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
+    <Compile Include="Behaviors\BLTMarriageBehavior.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />

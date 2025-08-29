@@ -6,6 +6,7 @@ using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.UI;
+using BLTAdoptAHero.Behaviors;
 using HarmonyLib;
 using JetBrains.Annotations;
 using SandBox.GauntletUI.Missions;
@@ -149,6 +150,8 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTAdoptAHeroCampaignBehavior());
                     campaignStarter.AddBehavior(new BLTTournamentQueueBehavior());
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
+                    campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
+                    campaignStarter.AddBehavior(new BLTMarriageBehavior());
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models
                         .OfType<AgentApplyDamageModel>().FirstOrDefault()));
