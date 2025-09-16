@@ -192,7 +192,7 @@ namespace BLTAdoptAHero.Actions
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 default:
-                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/mercenary/rebel/leave/stats)".Translate());
+                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/stats)".Translate());
                     break;
             }
 
