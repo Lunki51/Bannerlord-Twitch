@@ -6,7 +6,7 @@ using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.UI;
-using BLTAdoptAHero.Behaviors;
+using BLTAdoptAHero;
 using HarmonyLib;
 using JetBrains.Annotations;
 using SandBox.GauntletUI.Missions;
@@ -61,6 +61,7 @@ namespace BLTAdoptAHero
                 mission.AddMissionBehavior(new BLTSummonBehavior());
                 mission.AddMissionBehavior(new BLTRemoveAgentsBehavior());
                 mission.AddMissionBehavior(new BLTHeroPowersMissionBehavior());
+                //mission.AddMissionBehavior(new BLTHeroWidgetBehavior());
             }
             catch (Exception e)
             {
@@ -77,6 +78,13 @@ namespace BLTAdoptAHero
                 || __instance.Mission.GetMissionBehavior<TournamentFightMissionController>() != null))
             {
                 __instance.AddMissionView(SandBoxViewCreator.CreateMissionNameMarkerUIHandler(__instance.Mission));
+
+                //var vanillaMarker = Mission.Current?.GetMissionBehavior<MissionNameMarkerUIHandler>();
+                //if (__instance.Mission.GetMissionBehavior<BLTHeroWidgetBehavior>() != null && vanillaMarker != null)
+                //{
+                //    __instance.AddMissionView(new BLTHeroWidgetView());
+                //    Log.Trace("BLTHeroWidgetView initialized and linked to BLTHeroWidgetBehavior");
+                //}
             }
         }
 
@@ -151,7 +159,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTTournamentQueueBehavior());
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
                     campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
-                    campaignStarter.AddBehavior(new BLTMarriageBehavior());
+                    campaignStarter.AddBehavior(new BLTClanBehavior());
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models
                         .OfType<AgentApplyDamageModel>().FirstOrDefault()));

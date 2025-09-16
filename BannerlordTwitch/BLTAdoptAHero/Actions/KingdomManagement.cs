@@ -25,6 +25,7 @@ namespace BLTAdoptAHero.Actions
     {
         [CategoryOrder("Join", 0),
          CategoryOrder("Rebel", 1),
+         CategoryOrder("Leave", 2),
          CategoryOrder("Stats", 4)]
         private class Settings : IDocumentable
         {
@@ -46,10 +47,22 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(3), UsedImplicitly]
             public int JoinPrice { get; set; } = 150000;
 
+            [LocDisplayName("{=vKsTAxDD}Mercenary"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=pEMiWgjg}!kingdom merc to enter mercenary contract"),
+             PropertyOrder(4), UsedImplicitly]
+            public bool MercenaryEnabled { get; set; } = true;
+
+            [LocDisplayName("{=VTZ0Wc7R}Mercenary Cost"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=DUgSwHnD}Mercenary contract cost"),
+             PropertyOrder(5), UsedImplicitly]
+            public int MercPrice { get; set; } = 50000;
+
             [LocDisplayName("{=7KEOBexC}Players Kingdom?"),
              LocCategory("Join", "{=q5JhpNMF}Join"),
              LocDescription("{=7ivCO9JL}Allow viewers to join the players kingdom"),
-             PropertyOrder(4), UsedImplicitly]
+             PropertyOrder(6), UsedImplicitly]
             public bool JoinAllowPlayer { get; set; } = true;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -71,6 +84,12 @@ namespace BLTAdoptAHero.Actions
             public int RebelClanTierMinimum { get; set; } = 2;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Leave", "{=zG5I9PwG}Leave"),
+             LocDescription("{=H0TsFPbu}Enable viewer clan leaving their kingdom"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool LeaveEnabled { get; set; } = true;
+
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
              LocDescription("{=CFBJIpux}Enable stats command"),
              PropertyOrder(1), UsedImplicitly]
@@ -79,14 +98,20 @@ namespace BLTAdoptAHero.Actions
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var EnabledCommands = new StringBuilder();
+
                 if (JoinEnabled)
-                    EnabledCommands = EnabledCommands.Append("Join, ");
+                    EnabledCommands.Append("Join, ");
+                if (MercenaryEnabled)
+                    EnabledCommands.Append("Mercenary, ");
                 if (RebelEnabled)
-                    EnabledCommands = EnabledCommands.Append("Create, ");
+                    EnabledCommands.Append("Rebel, ");
+                if (LeaveEnabled)
+                    EnabledCommands.Append("Leave, "); 
                 if (StatsEnabled)
-                    EnabledCommands = EnabledCommands.Append("Stats, ");
-                if (EnabledCommands != null)
-                    generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString().Substring(0, EnabledCommands.ToString().Length - 2))));
+                    EnabledCommands.Append("Stats, ");
+
+                if (EnabledCommands.Length > 0)
+                    generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString(0, EnabledCommands.Length - 2))));
 
                 if (JoinEnabled)
                     generator.Value("<strong>" +
@@ -94,13 +119,17 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "Max Clans={maxHeroes}, ".Translate(("maxClans", JoinMaxClans.ToString())) +
                                     "Price={price}{icon}, ".Translate(("price", JoinPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Mercenary={mercenary}, " +
+                                    "Price={price}{icon}, ".Translate(("price", MercPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Allow Join Players Kingdom?={allowPlayer}".Translate(("allowPlayer", JoinAllowPlayer.ToString())));
+
                 if (RebelEnabled)
                     generator.Value("<strong>" +
                                     "Rebel Config: " +
                                     "</strong>" +
                                     "Price={price}{icon}, ".Translate(("price", RebelPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}".Translate(("tier", RebelClanTierMinimum.ToString())));
+
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -150,16 +179,23 @@ namespace BLTAdoptAHero.Actions
                 case "join":
                     HandleJoinCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
+                case "merc":
+                    HandleMercenaryCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
                 case "rebel":
                     HandleRebelCommand(settings, adoptedHero, onSuccess, onFailure);
+                    break;
+                case "leave":
+                    HandleLeaveCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "stats":
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 default:
-                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/rebel/stats)".Translate());
+                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/mercenary/rebel/leave/stats)".Translate());
                     break;
             }
+
         }
 
         private void HandleJoinCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
@@ -235,6 +271,11 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=OgwKEDza}You already are the ruling clan".Translate());
                 return;
             }
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                onFailure("{=Py6VMkK6}Your clan is mercenary".Translate());
+                return;
+            }
             if (adoptedHero.Clan.Tier < settings.RebelClanTierMinimum)
             {
                 onFailure("{=Ok94bnhi}Your clan is not high enough tier to rebel".Translate());
@@ -266,35 +307,34 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
                 return;
             }
-            bool war=false;
-            List<Kingdom> warKingdoms = new List<Kingdom>();
+            
+            bool war = false;
             TextObject warList = new TextObject();
-            bool blnComma = false;
             foreach (Kingdom k in Kingdom.All)
             {
                 if ((adoptedHero.Clan.Kingdom != k) && (adoptedHero.Clan.Kingdom.IsAtWarWith(k)))
                 {
-                     war = true;
-                    if (blnComma)
-                    {
-                        warList.Value = warList.Value + ", " + k.Name.Value + ":" + ((int)k.TotalStrength).ToString();
-                    }
-                    else
-                    {
-                        warList.Value = warList.Value + k.Name.Value + ":" + ((int)k.TotalStrength).ToString();
-                        blnComma = true;
-                    }
+                    war = true;
+                    warList.Value = warList.Value + k.Name.Value + ":" + ((int)k.TotalStrength).ToString() + ", ";
                 }
             }
+            warList.Value = warList.Value.TrimEnd(',', ' ');
+
             var clanStats = new StringBuilder();
             clanStats.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
             clanStats.Append("{=Ss588M9l}Ruling Clan: {rulingClan} | ".Translate(("rulingClan", adoptedHero.Clan.Kingdom.RulingClan.Name.ToString())));
             clanStats.Append("{=T1FhhCH9}Clan Count: {clanCount} | ".Translate(("clanCount", adoptedHero.Clan.Kingdom.Clans.Count.ToString())));
             clanStats.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.Kingdom.TotalStrength).ToString())));
+            clanStats.Append("{=6VFGXqRe}Influence: {influence} | ".Translate(("influence", Math.Round(adoptedHero.Clan.Influence).ToString())));
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                string mercGold = (adoptedHero.Clan.MercenaryAwardMultiplier * (Math.Round(adoptedHero.Clan.Influence / 5f)+1)).ToString() + "/" + adoptedHero.Clan.MercenaryAwardMultiplier.ToString();
+                clanStats.Append("{=PbxexPi9}Mercenary💰: {mercenary} | ".Translate(("mercenary", mercGold)));
+            }
             if (war)
-                clanStats.Append("{=TESTING}Wars: {wars} | ".Translate(("wars", warList.ToString())));
+                clanStats.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
             if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
-                clanStats.Append("{=TESTING}Capital: {capital} | ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
+                clanStats.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
             if (adoptedHero.Clan.Kingdom.Fiefs.Count >= 1) 
             {
                 int townCount = 0;
@@ -310,10 +350,101 @@ namespace BLTAdoptAHero.Actions
                         castleCount++; 
                     }
                 }
-                clanStats.Append("{=TESTING}Towns: {towns} | ".Translate(("towns", (object)townCount)));
-                clanStats.Append("{=TESTING}Castles: {castles} | ".Translate(("castles", (object)castleCount)));
+                clanStats.Append("{=BwuFSJU1}Towns: {towns} | ".Translate(("towns", (object)townCount)));
+                clanStats.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleCount)));
             }
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
+        }
+
+        private void HandleLeaveCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.LeaveEnabled)
+            {
+                onFailure("{=ozTfk7uB}Kingdom leaving is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
+                return;
+            }
+            if (!adoptedHero.IsClanLeader)
+            {
+                onFailure("{=PSmxb52U}You cannot leave your kingdom, as you are not your clans leader!".Translate());
+                return;
+            }
+            if (adoptedHero.Clan == adoptedHero.Clan.Kingdom.RulingClan)
+            {
+                onFailure("{=OgwKEDza}You already are the ruling clan".Translate());
+                return;
+            }
+            IFaction oldBoss = adoptedHero.Clan.Kingdom;
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                adoptedHero.Clan.EndMercenaryService(true);
+                adoptedHero.Clan.ClanLeaveKingdom(true);
+                onSuccess("{=XWE579kx}Your clan has ended their mercenary contract".Translate());
+                return;
+            }
+            
+            adoptedHero.Clan.ClanLeaveKingdom(true);
+            onSuccess("{=sc77IxCW}Your clan has left {oldBoss}".Translate(("oldBoss", oldBoss)));
+            return;
+        }
+
+        private void HandleMercenaryCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.MercenaryEnabled)
+            {
+                onFailure("{=aSIP2AKk}Mercenary is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom != null && adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                onFailure("{=7nEJJGzL}Already a mercenary!".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom != null)
+            {
+                onFailure("{=GEGrsLPm}Your clan is already in a kingdom, in order to leave you must rebel against them".Translate());
+                return;
+            }
+            if (!adoptedHero.IsClanLeader)
+            {
+                onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(desiredName))
+            {
+                onFailure("{=ETfJQatX}(merc) (kingdom name)".Translate());
+                return;
+            }
+
+            var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
+            if (desiredKingdom == null)
+            {
+                onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
+                return;
+            }
+            if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.Clan == Hero.MainHero.Clan.Kingdom.RulingClan && !settings.JoinAllowPlayer)
+            {
+                onFailure("{=L4dccNIC}Joining the players kingdom is disabled".Translate());
+                return;
+            }
+            if (desiredKingdom.Clans.Count >= settings.JoinMaxClans)
+            {
+                onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
+                return;
+            }
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.MercPrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.MercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MercPrice, true);
+            ChangeKingdomAction.ApplyByJoinFactionAsMercenary(adoptedHero.Clan, desiredKingdom);
+            adoptedHero.Clan.MercenaryAwardMultiplier = (int)Math.Max(50, 50f * (1f + 4.0f * adoptedHero.Clan.Renown / 6150f) * (0.5f + 1.5f * (float)adoptedHero.GetSkillValue(DefaultSkills.Charm) / 330f));
+            Log.ShowInformation("{=tpwW6Ix8}{clanName} is now under contract with {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
     }
 }

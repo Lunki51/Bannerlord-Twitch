@@ -124,9 +124,22 @@
 		<string id="KjuNxda1" text="Change Hero Gender Enabled"/>
 		<string id="puULf6Ca" text="Enable ability to change gender"/>
 		<string id="Tt3LPI6w" text="Change Hero Gender Gold Cost"/>
+		<string id="1lZ8Vcbc" text="Gender"/>
 		<string id="oyxJVLCx" text="Cost of changing gender"/>
 		<string id="jW4WABm2" text="Only on created heroes?"/>
 		<string id="guSdSDEy" text="Only allow swapping gender for heroes that are created, instead of adopted"/>
+		<string id="tlrdxhlh" text="Hero appearance enabled"/>
+		<string id="rnaya1kT" text="Appearance"/>
+		<string id="f1kdzuzz" text="Allow applying bodyproperty string to your character"/>
+		<string id="BKial3sf" text="Hero marriage enabled"/>
+		<string id="PUP4VDH3" text="Marriage"/>
+		<string id="SSJOUTxk" text="Enable ability for heroes to marry"/>
+		<string id="R0Nn6K7Q" text="Hero marriage gold cost"/>
+		<string id="ySzfRTTr" text="Cost of marry action"/>
+		<string id="AHxka3EX" text="Only create spouse"/>
+		<string id="n7fZ5jrr" text="Spawn spouse instead of choosing existing hero"/>
+		<string id="gMbchUTO" text="Allow clan or name selection"/>
+		<string id="GYzk7nZB" text="Allow selecting by clan or hero name"/>
 		<string id="EyBgfdPz" text="You cannot manage your hero, as a mission is active!"/>
 		<string id="KIaeC6OH" text="You cannot manage your hero, as you are a prisoner!"/>
 		<string id="rS4Ykysf" text="Changing heroes gender is not enabled"/>
@@ -139,7 +152,25 @@
 		<string id="FlGjts5K" text="Your hero has changed their gender to male"/>
 		<string id="MgcrSo56" text="{Name} has changed their gender to male!"/>
 		<string id="rPqyzuoG" text="Invalid gender (male/female)"/>
+		<string id="uaiHAfGa" text="Changing appearance is disabled"/>
+		<string id="VuhqWvIK" text="Please provide an appearance string"/>
+		<string id="CW9BdhhR" text="Invalid appearance string format"/>
+		<string id="GjKCaf8c" text="Appearance updated successfully!"/>
+		<string id="5LxKguGE" text="Hero marriage is not enabled"/>
+		<string id="42LsY2qb" text="You are already married"/>
+		<string id="zXegzi8c" text="You are not in a clan"/>
+		<string id="avHpPxTN" text="You do not have enough gold ({price}) to marry"/>
+		<string id="cfkeeEB0" text="Failed to find a character template to spawn"/>
+		<string id="JW5L4lvt" text="Marriage successful with spawned spouse"/>
+		<string id="h6AHfoVx" text="{heroName} has married {spouseName}!"/>
+		<string id="OwlH8hKI" text="Please specify a culture to spawn spouse from"/>
+		<string id="Hh87fxvK" text="No clan, name or culture starting with '{Text}' found"/>
+		<string id="CCYS1Sb0" text="No culture starting with '{Text}' found"/>
+		<string id="AMBu22hn" text="No valid spouse found, spawned fallback spouse successfully"/>
+		<string id="GlvwEhly" text="No available hero with '{Text}' clan or name found"/>
+		<string id="asmoKHI6" text="Marriage successful"/>
 		<string id="6t9UWDR2" text="Invalid action"/>
+
 		
 		<!-- ClanManagement -->
 		<string id="pYjIUlTE" text="Enabled"/>
@@ -165,12 +196,13 @@
 		<string id="LWj6LPyH" text="Toggle whether or not trying to lead a clan already led by a BLT hero is possible - random chance they win based on skill difference"/>
 		<string id="NhJk9hgu" text="Enable renaming clans command"/>
 		<string id="d2H2BrIG" text="Cost of renaming a clan"/>
+		<string id="KC7IE9Bt" text="Enable fiefs command"/>
 		<string id="vNGlBZUB" text="Enable stats command"/>
 		<string id="MPTOZqMS" text="You cannot manage your clan, as a mission is active!"/>
 		<string id="oxNqBy4k" text="You cannot manage your clan, as you are a prisoner!"/>
 		<string id="B86KnTcu" text="You are not in a clan"/>
 		<string id="xMSAI7HK" text="Your clan is {clanName}"/>
-		<string id="pkzDqw18" text="Invalid or empty clan action, try (join/create/lead/rename/stats)"/>
+		<string id="pkzDqw18" text="Invalid or empty clan action, try (join/create/lead/rename/stats/party/fiefs/leave/buy title/banner)"/>
 		<string id="VupTnRNX" text="Joining clans is disabled"/>
 		<string id="OrBEbanC" text="You cannot join another clan as you are the leader of your clan"/>
 		<string id="3ktTpCyC" text="(join) (clan name)"/>
@@ -180,6 +212,7 @@
 		<string id="T7U1Piwx" text="Joined clan {name}"/>
 		<string id="AtU1Piwx" text="You do not have enough gold ({price}) to join a clan"/>
 		<string id="WseRTV8W" text="{heroName} has joined clan {clanName}!"/>
+		<string id="6yQUu78N" text="{heroName} has become a noble"/>
 		<string id="drmqcbE2" text="Creating clans is disabled"/>
 		<string id="zZYHVBZ6" text="You cannot create another clan as you are the leader of your clan"/>
 		<string id="6vTxAMVx" text="(create) (clan name)"/>
@@ -191,6 +224,7 @@
 		<string id="xH2geJ28" text="You are not in a clan"/>
 		<string id="jGg5q1JD" text="You cannot lead the players clan"/>
 		<string id="cRpqnI3B" text="You are already the leader of your clan"/>
+		<string id="xjAujM6b" text="You must be a noble to usurp a clan!"/>
 		<string id="A2KOZv2B" text="You do not have enough gold ({price}) to lead a clan"/>
 		<string id="L7PFIoD6" text="Leading clans led by other BLT Heroes is disabled"/>
 		<string id="PlG3BI1y" text="You have been bested in battle by {oldLeader} and failed to lead your clan"/>
@@ -211,18 +245,63 @@
 		<string id="ch83d8zT" text="Kingdom: {kingdom} | "/>
 		<string id="Sg11nEUe" text="Tier: {tier} | "/>
 		<string id="ZFGikYn8" text="Strength: {strength} | "/>
+		<string id="zVDODxiN" text="Prisoner: {prisoner} | "/>
+		<string id="SDVLj0nw" text="Wealth: {wealth} | "/>
 		<string id="eHJYAZha" text="Members: {members}"/>
+		<string id="BwuFSJU1" text="Towns: {towns} | "/>
+		<string id="0rMNNQ7R" text="Castles: {castles}"/>
+		<string id="r1nJTiSA" text="Your hero has just been released"/>
+		<string id="ocrxKWUF" text="Governor: {governor}"/>
+		<string id="sN2NzoA7" text="Party(Strength: {party_strength} - "/>
+		<string id="4HDBsO9U" text="Size: {size} - "/>
+		<string id="jrBszDI8" text="Prisoners: {prisoners}) | "/>
+		<string id="Sunm7EKS" text="Size: {size}) | "/>
+		<string id="c3CZCj6p" text="(Defending)"/>
+		<string id="83Uwa9xi" text="(Attacking)"/>
+		<string id="QV6KWiVt" text="Field Battle {battleside} [{enemy}] | "/>
+		<string id="U3NJo32u" text="Raid {battleside} [{enemy}] | "/>
+		<string id="FbhijpQL" text="Siege {battleside} [{enemy}] | "/>
+		<string id="9aFoBcPY" text="Target: {target} - "/>
+		<string id="D3dcUxuj" text="Size: {size} | "/>
+		<string id="SER2eRHo" text="Travelling: {travelling} | "/>
+		<string id="n225F4tj" text="Defending: {defending} | "/>
+		<string id="tHVQ8nsh" text="Raiding: {raiding} | "/>
+		<string id="TUfgsPaj" text="Besieging: {besieging} | "/>
+		<string id="pAhTQCii" text="Fleeing: {fleeing} - "/>
+		<string id="QmPqTDMX" text="Patrolling: {patrolling} | "/>
+		<string id="fBShVu8p" text="Holding | "/>
+		<string id="CVzSgXhT" text="Army: {army}"/>
+		<string id="d76wc5iS" text="[Strength: {strength} | "/>
+		<string id="7p5j5Mlx" text="Party nº: {count}] "/>
+		<string id="6q8NKGam" text="Clan fiefs is disabled"/>
+		<string id="ssqRB9Ye" text="You have no fiefs"/>
+		<string id="sJdd2kgr" text="Editing banners is disabled"/>
+		<string id="PSDbhv3a" text="Make your banner at https://bannerlord.party/banner and paste it directly or through https://pastes.io/"/>
+		<string id="BiiO7KQx" text="Banner updated successfully!"/>
+			
+
 		<!-- Translation of clan management chat commands -->
 		<string id="q5JhpNMF" text="Join"/>
 		<string id="9lAIycwE" text="Create"/>
 		<string id="TrSSHcbH" text="Lead"/>
 		<string id="ugFdRADy" text="Rename"/>
 		<string id="mlayrmHr" text="Stats"/>
+		<string id="7XUApUQM" text="Fiefs"/>
+		<string id="dvp0XkiR" text="Leave"/>
+		<string id="1gQo38uG" text="Disband"/>
+		<string id="moApZJvC" text="Buy Noble Title"/>
+		<string id="UnFfiM9h" text="Edit Banner"/>
 		<string id="I2jEHyAY" text="join"/>
 		<string id="ymJh4yMY" text="create"/>
 		<string id="pumBg7sU" text="lead"/>
 		<string id="ek75vkTT" text="rename"/>
 		<string id="VB2W7FoL" text="stats"/>
+		<string id="iXrUl79z" text="party"/>
+		<string id="D909bAhX" text="fiefs"/>
+		<string id="0oxt9iXm" text="leave"/>
+		<string id="jk3WfmjK" text="buy title"/>
+		<string id="15vWZKaM" text="banner"/>
+		
 
 		<!-- KingdomManagement -->
 		<string id="1yrA4CUf" text="Kingdom Management"/>
@@ -232,12 +311,19 @@
 		<string id="5WqAw2LI" text="Maximum clans (includes NPC's) before join is disallowed"/>
 		<string id="6PUxQuLg" text="Gold Cost"/>
 		<string id="6fkIuAEC" text="Cost of joining a kingdom"/>
+		<string id="vKsTAxDD" text="Mercenary"/>
+		<string id="pEMiWgjg" text="}!kingdom merc to enter mercenary contract"/>
+		<string id="VTZ0Wc7R" text="Mercenary Cost"/>
+		<string id="DUgSwHnD" text="Mercenary contract cost"/>
 		<string id="7KEOBexC" text="Players Kingdom?"/>
 		<string id="7ivCO9JL" text="Allow viewers to join the players kingdom"/>
+		<string id="qgKGFYNu" text="Rebel"/>
 		<string id="88BqaM2k" text="Enable viewer clan rebelling against their kingdom"/>
 		<string id="97hqQyTG" text="Cost of starting a rebellion"/>
 		<string id="9rmGjERc" text="Minimum Clan Tier"/>
 		<string id="ANLOgDZU" text="Minimum clan tier to start a rebellion"/>
+		<string id="zG5I9PwG" text="Leave"/>
+		<string id="H0TsFPbu" text="Enable viewer clan leaving their kingdom"/>
 		<string id="CFBJIpux" text="Enable stats command"/>
 		<string id="CRCwDnag" text="You cannot manage your kingdom, as a mission is active!"/>
 		<string id="Cjm2sCjR" text="You cannot manage your kingdom, as you are a prisoner!"/>
@@ -259,6 +345,7 @@
 		<string id="NbvwN9z3" text="Your clan is not in a kingdom"/>
 		<string id="Nzm5bI4I" text="You cannot lead a rebellion agaisnt your kingdom, as you are not your clans leader!"/>
 		<string id="OgwKEDza" text="You already are the ruling clan"/>
+		<string id="Py6VMkK6" text="Your clan is mercenary"/>
 		<string id="Ok94bnhi" text="Your clan is not high enough tier to rebel"/>
 		<string id="PHGPejab" text="You do not have enough gold ({price}) to start a rebellion"/>
 		<string id="PHuBl5tJ" text="Your clan has rebelled against {oldBoss} and declared war"/>
@@ -268,7 +355,18 @@
 		<string id="Ss588M9l" text="Ruling Clan: {rulingClan} | "/>
 		<string id="T1FhhCH9" text="Clan Count: {clanCount} | "/>
 		<string id="TUOmh7NY" text="Strength: {strength} | "/>
-		<string id="qgKGFYNu" text="Rebel"/>
+		<string id="6VFGXqRe" text="Influence: {influence} | "/>
+		<string id="PbxexPi9" text="Mercenary💰: {mercenary} | "/>
+		<string id="QadZnUKh" text="Wars: {wars} | "/>
+		<string id="EXKsUpaU" text="Capital: {capital} | "/>
+		<string id="ozTfk7uB" text="Kingdom leaving is disabled"/>
+		<string id="XWE579kx" text="You cannot leave your kingdom, as you are not your clans leader!"/>
+		<string id="qgKGFYNu" text="Your clan has ended their mercenary contract"/>
+		<string id="sc77IxCW" text="Your clan has left {oldBoss}"/>
+		<string id="aSIP2AKk" text="Mercenary is disabled"/>
+		<string id="7nEJJGzL" text="Already a mercenary!"/>
+		<string id="ETfJQatX" text="(merc) (kingdom name)"/>
+		<string id="tpwW6Ix8" text="{clanName} is now under contract with {kingdomName}!"/>
         
         <!-- Subscriber Only -->
         <string id="4zAUTiSP" text="Subscriber Only"/>
@@ -562,6 +660,10 @@
         <string id="cHaiwygJ" text="Show Powers"/>
         <!-- Shows the heroes unlocked powers -->
         <string id="YW8HsNEF" text="Shows the heroes unlocked powers"/>
+		<!-- Show Family -->
+        <string id="XN95uDm8" text="Show Family"/>
+		<!-- Shows hero family -->
+        <string id="nqgafTYp" text="Shows hero family"/>
         <!-- Gold -->
         <string id="YVhcZatv" text="Gold"/>
         <!-- Age, Clan, Culture, Health -->
@@ -588,6 +690,8 @@
         <string id="Xmo7pOpj" text="Tracked stats"/>
         <!-- Powers -->
         <string id="xVDOsWPq" text="Powers"/>
+		<!-- Family -->
+        <string id="PyDGfwhk" text="Family"/>
         <!-- Shows -->
         <string id="UB1bAtSI" text="Shows"/>
         <!-- No Class -->
@@ -601,7 +705,7 @@
         <!-- [LVL] -->
         <string id="fRwyY6ms" text="[LVL]"/>
 		<!-- f -->
-		<string id="lHRDKsUT" text="f "/>
+		<string id="lHRDKsUT" text="f"/>
         <!-- [SKILLS] -->
         <string id="rTId8pBy" text="[SKILLS]"/>
         <!-- [ATTR] -->

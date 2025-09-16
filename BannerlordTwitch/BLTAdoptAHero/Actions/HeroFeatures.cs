@@ -28,50 +28,50 @@ namespace BLTAdoptAHero.Actions
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=KjuNxda1}Change Hero Gender Enabled"),
-             LocCategory("Gender", "{=TESTING}Gender"),
+             LocCategory("Gender", "{=1lZ8Vcbc}Gender"),
              LocDescription("{=puULf6Ca}Enable ability to change gender"),
              PropertyOrder(1), UsedImplicitly]
             public bool GenderEnabled { get; set; } = true;
 
             [LocDisplayName("{=Tt3LPI6w}Change Hero Gender Gold Cost"),
-             LocCategory("Gender", "{=TESTING}Gender"),
+             LocCategory("Gender", "{=1lZ8Vcbc}Gender"),
              LocDescription("{=oyxJVLCx}Cost of changing gender"),
              PropertyOrder(2), UsedImplicitly]
             public int GenderCost { get; set; } = 50000;
 
             [LocDisplayName("{=jW4WABm2}Only on created heroes?"),
-             LocCategory("Gender", "{=TESTING}Gender"),
+             LocCategory("Gender", "{=1lZ8Vcbc}Gender"),
              LocDescription("{=guSdSDEy}Only allow changing gender for heroes that are created, instead of adopted"),
              PropertyOrder(3), UsedImplicitly]
             public bool GenderDisabledonNative { get; set; } = true;
 
             [LocDisplayName("{=tlrdxhlh}Hero appearance enabled"),
-             LocCategory("Appearance", "{=TESTING}Appearance"),
+             LocCategory("Appearance", "{=rnaya1kT}Appearance"),
              LocDescription("{=f1kdzuzz}Allow applying bodyproperty string to your character"),
              PropertyOrder(4), UsedImplicitly]
             public bool AppearanceEnabled { get; set; } = true;
 
-            [LocDisplayName("{=tlrdxhlh}Hero marriage enabled"),
-             LocCategory("Marriage", "{=TESTING}Marriage"),
-             LocDescription("{=f1kdzuzz}Enable ability for heroes to marry"),
+            [LocDisplayName("{=BKial3sf}Hero marriage enabled"),
+             LocCategory("Marriage", "{=PUP4VDH3}Marriage"),
+             LocDescription("{=SSJOUTxk}Enable ability for heroes to marry"),
              PropertyOrder(5), UsedImplicitly]
             public bool MarriageEnabled { get; set; } = true;
 
-            [LocDisplayName("{=tlrdxhlh}Hero marriage gold cost"),
-             LocCategory("Marriage", "{=TESTING}Marriage"),
-             LocDescription("{=f1kdzuzz}Cost of marry action"),
+            [LocDisplayName("{=R0Nn6K7Q}Hero marriage gold cost"),
+             LocCategory("Marriage", "{=PUP4VDH3}Marriage"),
+             LocDescription("{=ySzfRTTr}Cost of marry action"),
              PropertyOrder(6), UsedImplicitly]
             public int MarriageCost { get; set; } = 50000;
 
-            [LocDisplayName("{=TESTING}Only create spouse"),
-             LocCategory("Marriage", "{=TESTING}Marriage"),
-             LocDescription("{=TESTING}Spawn spouse instead of choosing existing hero"),
+            [LocDisplayName("{=AHxka3EX}Only create spouse"),
+             LocCategory("Marriage", "{=PUP4VDH3}Marriage"),
+             LocDescription("{=n7fZ5jrr}Spawn spouse instead of choosing existing hero"),
              PropertyOrder(7), UsedImplicitly]
             public bool OnlySpawnSpouse { get; set; } = false;
 
-            [LocDisplayName("{=TESTING}Allow clan or name selection"),
-             LocCategory("Marriage", "{=TESTING}Marriage"),
-             LocDescription("{=TESTING}Allow selecting by clan or hero name"),
+            [LocDisplayName("{=gMbchUTO}Allow clan or name selection"),
+             LocCategory("Marriage", "{=PUP4VDH3}Marriage"),
+             LocDescription("{=GYzk7nZB}Allow selecting by clan or hero name"),
              PropertyOrder(8), UsedImplicitly]
             public bool ClanorName { get; set; } = true;
 
@@ -188,7 +188,7 @@ namespace BLTAdoptAHero.Actions
                     {
                         if (!settings.AppearanceEnabled)
                         {
-                            onFailure("{=TESTING}Changing appearance is disabled".Translate());
+                            onFailure("{=uaiHAfGa}Changing appearance is disabled".Translate());
                             return;
                         }
 
@@ -198,7 +198,7 @@ namespace BLTAdoptAHero.Actions
 
                         if (string.IsNullOrEmpty(appearanceArg))
                         {
-                            onFailure("{=TESTING}Please provide an appearance string.".Translate());
+                            onFailure("{=VuhqWvIK}Please provide an appearance string".Translate());
                             return;
                         }
                         // Validate general format (allow any age, as we'll override it)
@@ -215,7 +215,7 @@ namespace BLTAdoptAHero.Actions
                         }
                         if (!IsValidBodyProperties(appearanceArg))
                         {
-                            onFailure("{=TESTING}Invalid appearance string format.".Translate());
+                            onFailure("{=CW9BdhhR}Invalid appearance string format".Translate());
                             return;
                         }
 
@@ -238,8 +238,7 @@ namespace BLTAdoptAHero.Actions
 
                         adoptedHero.CharacterObject.UpdatePlayerCharacterBodyProperties(updatedBodyProperties, race, isFemale);
 
-                        onSuccess("{=TESTING}Appearance updated successfully!".Translate());
-                        Log.ShowInformation("{=TESTING}Appearance updated successfully!".Translate());
+                        onSuccess("{=GjKCaf8c}Appearance updated successfully!".Translate());
                         return;
                     }
 
@@ -247,22 +246,22 @@ namespace BLTAdoptAHero.Actions
                     {
                         if (!settings.MarriageEnabled)
                         {
-                            onFailure("{=TESTING}Hero marriage is not enabled".Translate());
+                            onFailure("{=5LxKguGE}Hero marriage is not enabled".Translate());
                             return;
                         }
                         if (adoptedHero.Spouse != null)
                         {
-                            onFailure("{=TESTING}You are already married".Translate());
+                            onFailure("{=42LsY2qb}You are already married".Translate());
                             return;
                         }
                         if (adoptedHero.Clan == null)
                         {
-                            onFailure("{=TESTING}You are not in a clan".Translate());
+                            onFailure("{=zXegzi8c}You are not in a clan".Translate());
                             return;
                         }
                         if (settings.MarriageCost > BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero))
                         {
-                            onFailure("{=TESTING}You do not have enough gold ({price}) to marry".Translate(("price", settings.MarriageCost.ToString())));
+                            onFailure("{=avHpPxTN}You do not have enough gold ({price}) to marry".Translate(("price", settings.MarriageCost.ToString())));
                             return;
                         }
 
@@ -288,7 +287,7 @@ namespace BLTAdoptAHero.Actions
 
                             if (character == null)
                             {
-                                onFailure("{=TESTING}Failed to find a character template to spawn.".Translate());
+                                onFailure("{=cfkeeEB0}Failed to find a character template to spawn".Translate());
                                 return null;
                             }
 
@@ -311,7 +310,7 @@ namespace BLTAdoptAHero.Actions
                             if (targetSettlement != null)
                                 EnterSettlementAction.ApplyForCharacterOnly(newHero, targetSettlement);
                             else
-                                Log.Error("No suitable settlement found to place new hero.");
+                                Log.Error("No suitable settlement found to place new hero");
 
                             newHero.SetNewOccupation(Occupation.Lord);
                             newHero.Clan = adoptedHero.Clan;
@@ -342,13 +341,7 @@ namespace BLTAdoptAHero.Actions
                         {
                             if (string.IsNullOrEmpty(spouseArg))
                             {
-                                onFailure("{=TESTING}Please specify a culture to spawn spouse from.".Translate());
-                                return;
-                            }
-                            if (spouseArg.Equals("{=TESTING}list".Translate(), StringComparison.CurrentCultureIgnoreCase) ||
-                                spouseArg.Equals("{=TESTING}a".Translate(), StringComparison.CurrentCultureIgnoreCase))
-                            {
-                                onFailure("{=TESTING}Culture list: {Cultures}".Translate(("Cultures", string.Join(", ", CampaignHelpers.MainCultures.Select(c => c.Name.ToString())))));
+                                onFailure("{=OwlH8hKI}Please specify a culture to spawn spouse from".Translate());
                                 return;
                             }
 
@@ -360,9 +353,9 @@ namespace BLTAdoptAHero.Actions
                             newHero.Spouse = adoptedHero;
                             
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MarriageCost);
-                            onSuccess("{=TESTING}Marriage successful with spawned spouse.".Translate());
-                            Log.ShowInformation("{=MarriageAnnouncement}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(newHero.Name.ToString()))),
-                                adoptedHero.CharacterObject, Log.Sound.Horns2);
+                            onSuccess("{=JW5L4lvt}Marriage successful with spawned spouse".Translate());
+                            Log.ShowInformation("{=h6AHfoVx}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(newHero.Name.ToString()))),
+                                adoptedHero.Spouse.CharacterObject, Log.Sound.Horns2);
                             return;
                         }
                         else
@@ -391,10 +384,12 @@ namespace BLTAdoptAHero.Actions
                                 !n.Clan.Name.ToString().Contains("[BLT Clan]");
 
                             candidates = candidates.Where(universalFilters);
+                            bool ClanorName = false;
 
                             if (!string.IsNullOrEmpty(spouseArg))
                             {
                                 string argLower = spouseArg.ToLowerInvariant().Trim();
+                                
 
                                 if (settings.ClanorName)
                                 {
@@ -404,8 +399,9 @@ namespace BLTAdoptAHero.Actions
                                         string heroName = StripTranslationKey(n.Name.ToString());
 
                                         bool clanMatch = clanName.StartsWith(spouseArg, StringComparison.CurrentCultureIgnoreCase) && !clanName.Contains("[BLT Clan]");
-                                        bool nameMatch = heroName.StartsWith(spouseArg, StringComparison.CurrentCultureIgnoreCase) && (n.Clan == null || !n.Clan.Name.ToString().Contains("[BLT Clan]"));
+                                        bool nameMatch = heroName.StartsWith(spouseArg, StringComparison.CurrentCultureIgnoreCase) && (n.Clan != null || !n.Clan.Name.ToString().Contains("[BLT Clan]"));
 
+                                        ClanorName = true;
                                         return clanMatch || nameMatch;
                                     });
 
@@ -415,7 +411,7 @@ namespace BLTAdoptAHero.Actions
                                             c.Name.ToString().StartsWith(spouseArg, StringComparison.CurrentCultureIgnoreCase));
                                         if (cultureMatch == null)
                                         {
-                                            onFailure("{=TESTING}No clan, name or culture starting with '{Text}' found".Translate(("Text", spouseArg)));
+                                            onFailure("{=Hh87fxvK}No clan, name or culture starting with '{Text}' found".Translate(("Text", spouseArg)));
                                             return;
                                         }
 
@@ -438,7 +434,7 @@ namespace BLTAdoptAHero.Actions
                                         c.Name.ToString().StartsWith(spouseArg, StringComparison.CurrentCultureIgnoreCase));
                                     if (spouseCulture == null)
                                     {
-                                        onFailure("{=TESTING}No culture starting with '{Text}' found".Translate(("Text", spouseArg)));
+                                        onFailure("{=CCYS1Sb0}No culture starting with '{Text}' found".Translate(("Text", spouseArg)));
                                         return;
                                     }
                                     candidates = candidates.Where(n => n.Culture == spouseCulture);
@@ -453,7 +449,7 @@ namespace BLTAdoptAHero.Actions
 
                             var spouse = candidates.SelectRandom();
 
-                            if (spouse == null)
+                            if (spouse == null && ClanorName == false)
                             {
                                 var newHero = SpawnSpouse(spouseArg);
                                 if (newHero == null) return;
@@ -462,9 +458,14 @@ namespace BLTAdoptAHero.Actions
                                 newHero.Spouse = adoptedHero;
 
                                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MarriageCost);
-                                onSuccess("{=TESTING}No valid spouse found, spawned fallback spouse successfully.".Translate());
-                                Log.ShowInformation("{=MarriageAnnouncement}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(newHero.Name.ToString()))),
+                                onSuccess("{=AMBu22hn}No valid spouse found, spawned fallback spouse successfully".Translate());
+                                Log.ShowInformation("{=h6AHfoVx}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(newHero.Name.ToString()))),
                                     adoptedHero.CharacterObject, Log.Sound.Horns2);
+                                return;
+                            }
+                            if (spouse == null && ClanorName == true)
+                            {
+                                onFailure("{=GlvwEhly}No available hero with '{Text}' clan or name found".Translate(("Text", spouseArg)));
                                 return;
                             }
 
@@ -475,13 +476,16 @@ namespace BLTAdoptAHero.Actions
                             spouse.SetBirthDay(CampaignTime.YearsFromNow(-Math.Max(Campaign.Current.Models.AgeModel.HeroComesOfAge, adoptedHero.Age + randAge2.Next(-3, +3))));
 
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MarriageCost);
-                            onSuccess("{=TESTING}Marriage successful.".Translate());
-                            Log.ShowInformation("{=MarriageAnnouncement}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(spouse.Name.ToString()))),
-                                adoptedHero.CharacterObject, Log.Sound.Horns2);
+                            onSuccess("{=asmoKHI6}Marriage successful".Translate());
+                            Log.ShowInformation("{=h6AHfoVx}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(spouse.Name.ToString()))),
+                                adoptedHero.Spouse.CharacterObject, Log.Sound.Horns2);
 
                             return;
                         }
                     }
+                default:
+                    onFailure("{=6t9UWDR2}Invalid action".Translate());
+                    return;
             }
         }
     }

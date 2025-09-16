@@ -8,7 +8,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 
 
-namespace BLTAdoptAHero.Behaviors
+namespace BLTAdoptAHero
 {
     public class BLTClanBannerSaveBehavior : CampaignBehaviorBase
     {
@@ -17,14 +17,8 @@ namespace BLTAdoptAHero.Behaviors
         public override void RegisterEvents()
         {
             CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, OnGameLoaded);
-            CampaignEvents.OnGameLoadedEvent.AddNonSerializedListener(this, test);
             CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, OnClanChangedKingdom);
 
-        }
-
-        void test(CampaignGameStarter _)
-        {
-            Log.Trace("text");
         }
         private void OnGameLoaded(CampaignGameStarter _)
         {

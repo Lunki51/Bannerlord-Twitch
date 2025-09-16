@@ -101,6 +101,10 @@
         <string id="BDk1G4nc" text="Level Scaling Cap"/>
         <!-- Caps the maximum multiplier for the level difference, defaults to 5 if not specified -->
         <string id="Vod0pJEN" text="Caps the maximum multiplier for the level difference, defaults to 5 if not specified"/>
+		<!-- Minimum Gold Per Kill -->
+        <string id="EYXeYMQo" text="Minimum Gold Per Kill"/>
+		<!-- Minimum percent gold earned per kill -->
+        <string id="J2GKeUI9" text="Minimum percent gold earned per kill"/>
 
         <!-- Win Gold -->
         <string id="IQTT5vYE" text="Win Gold"/>

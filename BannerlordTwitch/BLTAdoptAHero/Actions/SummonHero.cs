@@ -392,7 +392,7 @@ namespace BLTAdoptAHero
                         {
                             Hero.MainHero.ChangeHeroGold(BLTAdoptAHeroModule.CommonConfig.LoseGold);
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero,
-                                -BLTAdoptAHeroModule.CommonConfig.LoseGold);
+                                +BLTAdoptAHeroModule.CommonConfig.LoseGold);
                             ActionManager.SendReply(context,
                                 "{=ajhKKeEo}You lost {LostGold}{GoldIcon}!".Translate(
                                     ("LostGold", BLTAdoptAHeroModule.CommonConfig.WinGold),

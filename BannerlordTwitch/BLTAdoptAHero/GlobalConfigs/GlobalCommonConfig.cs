@@ -244,9 +244,9 @@ namespace BLTAdoptAHero
          Document, UsedImplicitly]
         public float LevelScalingCap { get; set; } = 5;
 
-        [LocDisplayName("{=TESTING}Minimum Gold Per Kill"),
+        [LocDisplayName("{=EYXeYMQo}Minimum Gold Per Kill"),
          LocCategory("Kill Rewards", "{=E2RBmb1K}Kill Rewards"),
-         LocDescription("{=TESTING}Minimum percent gold earned per kill"),
+         LocDescription("{=J2GKeUI9}Minimum percent gold earned per kill"),
          PropertyOrder(9),
          Range(0, 1), Editor(typeof(SliderFloatEditor), typeof(SliderFloatEditor)),
          Document, UsedImplicitly]
@@ -268,9 +268,9 @@ namespace BLTAdoptAHero
 
         [LocDisplayName("{=lfCWK7aA}Lose Gold"),
          LocCategory("Battle End Rewards", "{=uPwaOKdT}Battle End Rewards"),
-         LocDescription("{=E209XRml}Gold lost if the heroes side loses(Put a negative number to gain gold)"),
+         LocDescription("{=E209XRml}Gold lost if the heroes side loses"),
          PropertyOrder(3), Document, UsedImplicitly]
-        public int LoseGold { get; set; } = 5000;
+        public int LoseGold { get; set; } = -5000;
 
         [LocDisplayName("{=Vobr36Bl}Lose XP"),
          LocCategory("Battle End Rewards", "{=uPwaOKdT}Battle End Rewards"),
