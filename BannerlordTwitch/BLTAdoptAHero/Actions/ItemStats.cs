@@ -15,8 +15,8 @@ using BLTAdoptAHero;
 
 namespace BLTAdoptAHero
 {
-    [LocDisplayName("{=TESTING}Item stats"),
-     LocDescription("{=TESTING}Shows detailed stats of hero equipment or custom items"),
+    [LocDisplayName("{=y4BMYwgn}Item stats"),
+     LocDescription("{=bfsWG9GS}Shows detailed stats of hero equipment or custom items"),
      UsedImplicitly]
     public class ItemStats : HeroCommandHandlerBase
     {
@@ -26,7 +26,7 @@ namespace BLTAdoptAHero
             if (string.IsNullOrWhiteSpace(context.Args))
             {
                 ActionManager.SendReply(context,
-                    context.ArgsErrorMessage("{=TESTING}invalid".Translate()));
+                    context.ArgsErrorMessage("{=nHbTeHpp}invalid mode (use armor, inv, custom, store)".Translate()));
                 return;
             }
 
@@ -43,7 +43,7 @@ namespace BLTAdoptAHero
                         int arm = (int)(adoptedHero.CharacterObject.GetArmArmorSum());
                         int leg = (int)(adoptedHero.CharacterObject.GetLegArmorSum());
 
-                        string result = "{=TESTING}Overall Armor: Head: {head} - Body: {body} - Arm: {arm} - Leg: {leg}"
+                        string result = "{=2w64E4Oh}Overall Armor: Head: {head} - Body: {body} - Arm: {arm} - Leg: {leg}"
                             .Translate(("head", head), ("body", body), ("arm", arm), ("leg", leg));
                         onSuccess(result);
                         break;
@@ -81,34 +81,34 @@ namespace BLTAdoptAHero
                                         {
                                             var rW = new System.Text.StringBuilder();
 
-                                            rW.Append("{=TESTING} - Damage: {dmg} - MissileSpeed: {spd}"
+                                            rW.Append("{=6eAEEYD4} - Damage: {dmg} - MissileSpeed: {spd}"
                                                 .Translate(("dmg", w.GetModifiedMissileDamage(element.ItemModifier)), ("spd", w.GetModifiedMissileSpeed(element.ItemModifier))));
 
-                                            if ((int)w.GetModifiedStackCount(element.ItemModifier) != 0)
-                                                rW.Append("{=TESTING} - Stack: {stk}"
+                                            if ((int)w.GetModifiedStackCount(element.ItemModifier) > 1)
+                                                rW.Append("{=6oAUemDk} - Stack: {stk}"
                                                     .Translate(("stk", (int)w.GetModifiedStackCount(element.ItemModifier))));
 
                                             inv += rW.ToString();
                                         }
                                         else if (w.IsMeleeWeapon)
                                         {
-                                            inv += "{=TESTING} - Damage(swing/thrust): {sw}/{th} - Speed(swing/thrust): {sps}/{spt} - Length: {len}"
+                                            inv += "{=4JDkt6Vj} - Damage(swing/thrust): {sw}/{th} - Speed(swing/thrust): {sps}/{spt} - Length: {len}"
                                                 .Translate(("sw", w.GetModifiedSwingDamage(element.ItemModifier)), ("th", w.GetModifiedThrustDamage(element.ItemModifier)),
                                                            ("sps", w.GetModifiedSwingSpeed(element.ItemModifier)), ("spt", w.GetModifiedThrustDamage(element.ItemModifier)), ("len", w.WeaponLength));
                                         }
                                         else if (w.IsShield)
                                         {
-                                            inv += "{=TESTING} - Hp: {hp}".Translate(("hp", (1*element.GetModifiedMaximumHitPointsForUsage(0))));
+                                            inv += "{=zEabmx65} - HP: {hp}".Translate(("hp", (1*element.GetModifiedMaximumHitPointsForUsage(0))));
                                         }
                                         else if (w.IsAmmo)
                                         {
-                                            inv += "{=TESTING} - Damage: {dmg} - Stack: {stk}"
-                                                .Translate(("dmg", w.GetModifiedMissileDamage(element.ItemModifier)),
-                                                           ("stk", (int)w.GetModifiedStackCount(element.ItemModifier)));
+                                            inv += "{=ACds6V3a} - Damage: {dmg} Speed: {spd} - Stack: {stk}"
+                                        .Translate(("dmg", w.GetModifiedMissileDamage(element.ItemModifier)), ("spd", (int)w.GetModifiedMissileSpeed(element.ItemModifier)),
+                                                   ("stk", (int)w.GetModifiedStackCount(element.ItemModifier)));
                                         }
                                         else if (item.BannerComponent?.BannerEffect != null)
                                         {
-                                            inv += "{=TESTING} - Effect: {eff}"
+                                            inv += "{=wphkep40} - Effect: {eff}"
                                                 .Translate(("eff", item.BannerComponent.BannerEffect.GetDescription((int)item.Tier)));
                                         }
                                     }
@@ -119,13 +119,13 @@ namespace BLTAdoptAHero
                                     var zC = new System.Text.StringBuilder();
 
                                     if (a.HeadArmor > 0)
-                                        zC.Append("{=TESTING} - Head: {val}".Translate(("val", element.GetModifiedHeadArmor())));
+                                        zC.Append("{=UFJ0MM9n} - Head: {val}".Translate(("val", element.GetModifiedHeadArmor())));
                                     if (a.BodyArmor > 0)
-                                        zC.Append("{=TESTING} - Torso: {val}".Translate(("val", element.GetModifiedBodyArmor())));
+                                        zC.Append("{=1uh8yzId} - Torso: {val}".Translate(("val", element.GetModifiedBodyArmor())));
                                     if (a.ArmArmor > 0)
-                                        zC.Append("{=TESTING} - Arms: {val}".Translate(("val", element.GetModifiedArmArmor())));
+                                        zC.Append("{=6O4gnvEM} - Arms: {val}".Translate(("val", element.GetModifiedArmArmor())));
                                     if (a.LegArmor > 0)
-                                        zC.Append("{=TESTING} - Legs: {val}".Translate(("val", element.GetModifiedLegArmor())));
+                                        zC.Append("{=a96X89Z3} - Legs: {val}".Translate(("val", element.GetModifiedLegArmor())));
 
                                     inv += zC.ToString();
                                 }
@@ -148,7 +148,7 @@ namespace BLTAdoptAHero
                                         hp = element.ItemModifier.ModifyMountHitPoints(hp);
                                     }
 
-                                    inv += "{=TESTING} - Speed: {spd} - Maneuver: {man} - ChargeDmg: {cdmg} - Hp: {hp}"
+                                    inv += "{=SoV9WfBM} - Speed: {spd} - Maneuver: {man} - ChargeDmg: {cdmg} - HP: {hp}"
                                         .Translate(("spd", speed),
                                                    ("man", maneuver),
                                                    ("cdmg", charge),
@@ -186,20 +186,20 @@ namespace BLTAdoptAHero
 
                         if (element.IsEqualTo(EquipmentElement.Invalid))
                         {
-                            onFailure(error ?? "{=TESTING}(unknown error)".Translate());
+                            onFailure(error ?? "{=3ZKRp5OF}(unknown error)".Translate());
                             return;
                         }
 
                         var item = element.Item;
                         if (item == null)
                         {
-                            onFailure("{=TESTING}(no item found)".Translate());
+                            onFailure("{=V4aRMn9L}(no item found)".Translate());
                             return;
                         }
 
                         string custom = $"{GetIcon(item)} {item.Name} | " +
-                                        "{=TESTING}Type: {type}".Translate(("type", item.ItemType)) + " | " +
-                                        "{=TESTING}Tier: {tier}".Translate(("tier", item.Tier));
+                                        "{=rDvZf4JE}Type: {type}".Translate(("type", item.ItemType)) + " | " +
+                                        "{=Sg11nEUe}Tier: {tier}".Translate(("tier", item.Tier));
 
                         if (item.HasWeaponComponent)
                         {
@@ -210,28 +210,28 @@ namespace BLTAdoptAHero
                                 {
                                     var rW = new System.Text.StringBuilder();
 
-                                    rW.Append("{=TESTING} - Damage: {dmg} - MissileSpeed: {spd}"
+                                    rW.Append("{=6eAEEYD4} - Damage: {dmg} - MissileSpeed: {spd}"
                                         .Translate(("dmg", w.GetModifiedMissileDamage(element.ItemModifier)), ("spd", w.GetModifiedMissileSpeed(element.ItemModifier))));
 
-                                    if ((int)w.GetModifiedStackCount(element.ItemModifier) != 0)
-                                        rW.Append("{=TESTING} - Stack: {stk}"
+                                    if ((int)w.GetModifiedStackCount(element.ItemModifier) > 1 )
+                                        rW.Append("{=6oAUemDk} - Stack: {stk}"
                                             .Translate(("stk", (int)w.GetModifiedStackCount(element.ItemModifier))));
 
                                     custom += rW.ToString();
                                 }
                                 else if (w.IsMeleeWeapon)
                                 {
-                                    custom += "{=TESTING} - Damage(swing/thrust): {sw}/{th} - Speed(swing/thrust): {sps}/{spt} - Length: {len}"
+                                    custom += "{=4JDkt6Vj} - Damage(swing/thrust): {sw}/{th} - Speed(swing/thrust): {sps}/{spt} - Length: {len}"
                                         .Translate(("sw", w.GetModifiedSwingDamage(element.ItemModifier)), ("th", w.GetModifiedThrustDamage(element.ItemModifier)),
                                                    ("spd", w.GetModifiedSwingSpeed(element.ItemModifier)), ("spt", w.GetModifiedThrustDamage(element.ItemModifier)), ("len", w.WeaponLength));
                                 }
                                 else if (w.IsShield)
                                 {
-                                    custom += "{=TESTING} - Hp: {hp}".Translate(("hp", (1 * element.GetModifiedMaximumHitPointsForUsage(0))));
+                                    custom += "{=zEabmx65} - Hp: {hp}".Translate(("hp", (1 * element.GetModifiedMaximumHitPointsForUsage(0))));
                                 }
                                 else if (w.IsAmmo)
                                 {
-                                    custom += "{=TESTING} - Damage: {dmg} Speed: {spd} - Stack: {stk}"
+                                    custom += "{=ACds6V3a} - Damage: {dmg} Speed: {spd} - Stack: {stk}"
                                         .Translate(("dmg", w.GetModifiedMissileDamage(element.ItemModifier)), ("spd", (int)w.GetModifiedMissileSpeed(element.ItemModifier)),
                                                    ("stk", (int)w.GetModifiedStackCount(element.ItemModifier)));
                                 }
@@ -243,13 +243,13 @@ namespace BLTAdoptAHero
                             var zC = new System.Text.StringBuilder();
 
                             if (a.HeadArmor > 0)
-                                zC.Append("{=TESTING} - Head: {val}".Translate(("val", a.HeadArmor)));
+                                zC.Append("{=UFJ0MM9n} - Head: {val}".Translate(("val", a.HeadArmor)));
                             if (a.BodyArmor > 0)
-                                zC.Append("{=TESTING} - Torso: {val}".Translate(("val", a.BodyArmor)));
+                                zC.Append("{=1uh8yzId} - Torso: {val}".Translate(("val", a.BodyArmor)));
                             if (a.ArmArmor > 0)
-                                zC.Append("{=TESTING} - Arms: {val}".Translate(("val", a.ArmArmor)));
+                                zC.Append("{=6O4gnvEM} - Arms: {val}".Translate(("val", a.ArmArmor)));
                             if (a.LegArmor > 0)
-                                zC.Append("{=TESTING} - ALegs: {val}".Translate(("val", a.LegArmor)));
+                                zC.Append("{=a96X89Z3} - Legs: {val}".Translate(("val", a.LegArmor)));
 
                             custom += zC.ToString();
                         }
@@ -272,17 +272,17 @@ namespace BLTAdoptAHero
                                 hp = element.ItemModifier.ModifyMountHitPoints(hp);
                             }
 
-                            custom += "{=TESTING} - Speed: {spd} - Maneuver: {man} - ChargeDmg: {cdmg} - Hp: {hp}"
+                            custom += "{=SoV9WfBM} - Speed: {spd} - Maneuver: {man} - ChargeDmg: {cdmg} - Hp: {hp}"
                                 .Translate(("spd", speed),
                                            ("man", maneuver),
                                            ("cdmg", charge),
                                            ("hp", hp));
                         }
                         if (custom == $"{GetIcon(item)} {item.Name} | " +
-                        "{=TESTING}Type: {type}".Translate(("type", item.ItemType)) + " | " +
-                        "{=TESTING}Tier: {tier}".Translate(("tier", item.Tier)))
+                        "{=rDvZf4JE}Type: {type}".Translate(("type", item.ItemType)) + " | " +
+                        "{=Sg11nEUe}Tier: {tier}".Translate(("tier", item.Tier)))
                         {
-                            onFailure("{=TESTING}Item has no recognized components".Translate());
+                            onFailure("{=N1GcPlOD}Item has no recognized components".Translate());
                         }
                         onSuccess(custom);
                         break;
@@ -316,18 +316,18 @@ namespace BLTAdoptAHero
                                 var registeredElement = new EquipmentElement(item, dummy);
 
                                 BLTAdoptAHeroCampaignBehavior.Current.AddCustomItem(adoptedHero, registeredElement);
-                                onSuccess($"{item.Name} has been stored as a custom item!");
+                                onSuccess("{=StHrxSot}{item.Name} has been stored as a custom item!");
                             }
                             else
                             {
-                                onFailure($"{item.Name} is already stored as a custom item!");
+                                onFailure("{=mOdh17Cj}{item.Name} is already stored as a custom item!");
                             }
                         }
                         break;
                     }
 
                 default:
-                    onFailure("invalid mode (use inv, custom, store)");
+                    onFailure("{=nHbTeHpp}invalid mode (use armor, inv, custom, store)".Translate());
                     break;
             }
         }

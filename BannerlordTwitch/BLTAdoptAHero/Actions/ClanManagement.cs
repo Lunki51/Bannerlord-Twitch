@@ -571,23 +571,6 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())));
             clanStats.Append("{=Sg11nEUe}Tier: {tier} | ".Translate(("tier", adoptedHero.Clan.Tier.ToString())));
             clanStats.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.TotalStrength).ToString())));
-
-            //if (adoptedHero.IsPartyLeader)
-            //{
-            //    clanStats.Append("{=TESTING}Party(Strength: {party_strength} - ".Translate(("party_strength", Math.Round(adoptedHero.PartyBelongedTo.GetTotalStrengthWithFollowers(false)).ToString())));
-            //    string partySizeStr = $"{adoptedHero.PartyBelongedTo.LimitedPartySize}/{adoptedHero.PartyBelongedTo.Party.PartySizeLimit}";
-            //    clanStats.Append("{=TESTING}Size: {size}) | ".Translate(("size", partySizeStr)));
-                
-            //    if (adoptedHero.PartyBelongedTo.ShortTermTargetParty != null)
-            //    {
-            //        clanStats.Append("{=9aFoBcPY}Target: {target} - ".Translate(("target", adoptedHero.PartyBelongedTo.ShortTermTargetParty.Name.ToString())));
-            //        clanStats.Append("{=1rDeAsgF}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.PartyBelongedTo.ShortTermTargetParty.GetTotalStrengthWithFollowers(false)).ToString())));
-            //    }
-            //    if (adoptedHero.PartyBelongedTo.TargetSettlement != null && adoptedHero.PartyBelongedTo.IsCurrentlyGoingToSettlement)
-            //        clanStats.Append("{=SER2eRHo}Travelling: {travelling} | ".Translate(("travelling", adoptedHero.PartyBelongedTo.TargetSettlement.Name.ToString())));
-            //    else if (adoptedHero.PartyBelongedTo.TargetSettlement != null)
-            //        clanStats.Append("{=QmPqTDMX}Patrolling: {patrolling} | ".Translate(("patrolling", adoptedHero.PartyBelongedTo.TargetSettlement.Name.ToString())));
-            //}
             if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
                 clanStats.Append("{=zVDODxiN}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
             if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)

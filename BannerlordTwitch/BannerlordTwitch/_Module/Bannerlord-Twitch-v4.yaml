@@ -41,7 +41,7 @@ Commands:
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -84,7 +84,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -107,18 +107,18 @@ Commands:
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
-    AllowNoble: true
+    AllowNoble: false
     AllowPartyLeader: false
     AllowPlayerCompanion: false
     AllowWanderer: true
-    CreateNew: false
+    CreateNew: true
     Inheritance: 0.25
     MaxInheritedCustomItems: 2
     MinSubscribedMonths: 
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -152,7 +152,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -186,7 +186,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -220,7 +220,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -254,7 +254,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -288,7 +288,7 @@ Commands:
     OnPlayerSide: false
     PreferredFormation: Infantry
     ShoutPercent: 0.25
-    WithRetinue: false
+    WithRetinue: true
   Help: ''
   HideHelp: false
   ID: 9082614c-46a3-47f9-b198-e56babde5745
@@ -331,7 +331,7 @@ Commands:
   Name: '{=haKiwbsR}bltbet'
   RespondInOverlay: true
   RespondInTwitch: true
-- Documentation: Buy a randomly tiered mount for your Hero.
+- Documentation: Buy a randomly tiered mount for your Hero.Only for mounted classes.(1250000 gold)
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
@@ -346,14 +346,15 @@ Commands:
   Name: buymount
   RespondInOverlay: true
   RespondInTwitch: true
-- Documentation: 'Use to manage clan actions <br> Usage is <code>!clan (join/create/lead/rename/stats) name </code> <br> Example: !clan join Banu Tammar or !clan stats'
+- Documentation: 'Use to manage clan actions <br> Usage is <code>!clan (join/create/lead/rename/stats/leave/buy title/banner) name </code> <br> Example: !clan join Banu Tammar or !clan stats'
   Enabled: true
   Handler: ClanManagement
   HandlerConfig:
     BuyTitleEnabled: true
     CreateEnabled: true
-    CreatePrice: 2500000
+    CreatePrice: 1500000
     EditBannerEnabled: true
+    FiefsEnabled: true
     JoinAllowPlayer: false
     JoinEnabled: true
     JoinMaxHeroes: 50
@@ -363,7 +364,8 @@ Commands:
     LeadPrice: 1000000
     LeaveEnabled: true
     RenameEnabled: true
-    RenamePrice: 1000000
+    RenamePrice: 100000
+    Renown: 50
     StatsEnabled: true
     TitlePrice: 200000
   Help: ''
@@ -497,8 +499,8 @@ Commands:
     DeactivateSound: 
     Duration: 10
     ForceDropWeapons: false
-    HealPercent: 0
-    HealPerSecond: 6
+    HealPercent: 2
+    HealPerSecond: 3
     Name: healing
     ParticleEffects: []
     Properties: []
@@ -512,13 +514,18 @@ Commands:
   Name: heal
   RespondInOverlay: true
   RespondInTwitch: false
-- Documentation: 'Use to adjust hero physical features <br> Usage is <code>!hero (gender) (male/female) </code> <br> Example: !hero gender male'
+- Documentation: 'Use to adjust hero physical features <br> Usage is <code>!hero gender (male/female) / !hero looks (appearance string) / !hero marry (culture/clan/name)</code> <br> Example: !hero gender male'
   Enabled: true
   Handler: HeroFeatures
   HandlerConfig:
+    AppearanceEnabled: true
+    ClanorName: true
     GenderCost: 50000
     GenderDisabledonNative: true
     GenderEnabled: true
+    MarriageCost: 50000
+    MarriageEnabled: true
+    OnlySpawnSpouse: false
   Help: ''
   HideHelp: true
   ID: 8443567a-70cb-4073-bb00-b00cc150ab81
@@ -552,7 +559,7 @@ Commands:
   Name: '{=UbklIEGh}inv'
   RespondInOverlay: true
   RespondInTwitch: false
-- Documentation: 'Use to manage clan actions <br> Usage is <code>!kingdom (join/rebel/stats) name </code> <br> Example: !kingdom join Aserai or !clan stats'
+- Documentation: 'Use to manage clan actions <br> Usage is <code>!kingdom (join/rebel/leave/stats) name </code> <br> Example: !kingdom join Aserai or !clan stats'
   Enabled: true
   Handler: KingdomManagement
   HandlerConfig:
@@ -560,6 +567,9 @@ Commands:
     JoinEnabled: true
     JoinMaxClans: 20
     JoinPrice: 150000
+    LeaveEnabled: true
+    MercenaryEnabled: true
+    MercPrice: 50000
     RebelClanTierMinimum: 2
     RebelEnabled: true
     RebelPrice: 2500000
@@ -700,7 +710,7 @@ Commands:
   Name: retire
   RespondInOverlay: false
   RespondInTwitch: true
-- Documentation: Smith a custom armor item
+- Documentation: Smith a custom armor item(500000 gold)
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
@@ -715,7 +725,7 @@ Commands:
   Name: smitharmor
   RespondInOverlay: false
   RespondInTwitch: true
-- Documentation: Smith a custom weapon
+- Documentation: Smith a custom weapon(1000000 gold)
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
@@ -772,7 +782,7 @@ Commands:
     OnPlayerSide: true
     PreferredFormation: Infantry
     ShoutPercent: 0.25
-    WithRetinue: false
+    WithRetinue: true
   Help: ''
   HideHelp: false
   ID: 01a497f3-d529-4780-80dd-41343b3e05ad
@@ -816,6 +826,32 @@ Commands:
   ID: d94add4a-28a7-4cf7-bd26-8f0f9c3ac6b3
   ModeratorOnly: false
   Name: family
+  RespondInOverlay: true
+  RespondInTwitch: true
+- Documentation: ''
+  Enabled: false
+  Handler: ItemStats
+  HandlerConfig: 
+  Help: ''
+  HideHelp: false
+  ID: 68ddc127-7829-405d-8f4e-b2fb3a7999da
+  ModeratorOnly: false
+  Name: itemstats
+  RespondInOverlay: true
+  RespondInTwitch: false
+- Documentation: ''
+  Enabled: false
+  Handler: AttributePoints
+  HandlerConfig:
+    AmountHigh: 1
+    AmountLow: 1
+    GoldCost: 250000
+    Random: false
+  Help: ''
+  HideHelp: true
+  ID: bd1fb6e6-1c01-4be1-b41e-eaa92c457542
+  ModeratorOnly: false
+  Name: buyattribute
   RespondInOverlay: true
   RespondInTwitch: true
 DisableAutomaticFulfillment: false
@@ -1931,7 +1967,7 @@ GlobalConfigs:
       ShowNotification: false
       XPReward: 0
     LevelScalingCap: 5
-    LoseGold: 5000
+    LoseGold: -5000
     LoseXP: 5000
     MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5
@@ -3768,35 +3804,26 @@ Rewards:
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
-    AllowNoble: true
+    AllowNoble: false
     AllowPartyLeader: false
     AllowPlayerCompanion: false
     AllowWanderer: true
-    CreateNew: false
+    CreateNew: true
     Inheritance: 0.25
     MaxInheritedCustomItems: 2
     MinSubscribedMonths: 
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
     StartingGold: 0
     StartingSkills:
-    - MaxLevel: 50
+    - MaxLevel: 75
       MinLevel: 25
-      Skill: Melee
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Ranged
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Athletics
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Riding
+      Skill: All
     SubscriberOnly: false
     ViewerSelects: Culture
   ID: eafbd312-1127-4930-bca0-47b83e205c7b
@@ -3829,24 +3856,15 @@ Rewards:
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
     StartingGold: 0
     StartingSkills:
-    - MaxLevel: 50
+    - MaxLevel: 75
       MinLevel: 25
-      Skill: Melee
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Ranged
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Athletics
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Riding
+      Skill: All
     SubscriberOnly: false
     ViewerSelects: Faction
   ID: 55918467-fe58-49a0-a354-57af0be6cd24
@@ -3868,35 +3886,26 @@ Rewards:
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
-    AllowNoble: true
+    AllowNoble: false
     AllowPartyLeader: false
     AllowPlayerCompanion: false
     AllowWanderer: true
-    CreateNew: false
+    CreateNew: true
     Inheritance: 0.25
     MaxInheritedCustomItems: 2
     MinSubscribedMonths: 
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 35
+      Max: 25
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
     StartingGold: 0
     StartingSkills:
-    - MaxLevel: 50
+    - MaxLevel: 75
       MinLevel: 25
-      Skill: Melee
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Ranged
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Athletics
-    - MaxLevel: 50
-      MinLevel: 25
-      Skill: Riding
+      Skill: All
     SubscriberOnly: false
     ViewerSelects: Nothing
   ID: e072adb0-83a2-4408-87bb-b2cff3f12ee2
@@ -3919,8 +3928,8 @@ Rewards:
   HandlerConfig:
     AlertSound: None
     AllowFieldBattle: true
-    AllowFriendlyMission: true
-    AllowHideOut: true
+    AllowFriendlyMission: false
+    AllowHideOut: false
     AllowSiegeBattle: true
     AllowVillageBattle: true
     AllowWhenDepleted: false
@@ -3929,7 +3938,7 @@ Rewards:
     OnPlayerSide: false
     PreferredFormation: LightCavalry
     ShoutPercent: 0.25
-    WithRetinue: false
+    WithRetinue: true
   ID: 422cc8d9-84cb-4cc9-afdf-889e615fdea6
   RespondInOverlay: true
   RespondInTwitch: false
@@ -4061,8 +4070,8 @@ Rewards:
     DeactivateSound: 
     Duration: 10
     ForceDropWeapons: false
-    HealPercent: 0
-    HealPerSecond: 6
+    HealPercent: 2
+    HealPerSecond: 3
     Name: Healing
     ParticleEffects: 
     Properties: 
@@ -4096,7 +4105,7 @@ Rewards:
     Duration: 15
     ForceDropWeapons: false
     HealPercent: 0
-    HealPerSecond: 2
+    HealPerSecond: 4
     Name: Healing
     ParticleEffects:
     - AttachPoint: OnBody
@@ -4173,7 +4182,7 @@ Rewards:
     OnPlayerSide: true
     PreferredFormation: LightCavalry
     ShoutPercent: 0.25
-    WithRetinue: false
+    WithRetinue: true
   ID: 77c1dbd8-02cb-47d7-9796-7308e989b7f3
   RespondInOverlay: true
   RespondInTwitch: false

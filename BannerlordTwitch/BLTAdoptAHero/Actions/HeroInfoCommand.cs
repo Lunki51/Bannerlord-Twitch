@@ -98,7 +98,7 @@ namespace BLTAdoptAHero
                 if (ShowAchievements) shows.Add("{=ZW9XlwY7}Achievements".Translate());
                 if (ShowTrackedStats) shows.Add("{=Xmo7pOpj}Tracked stats".Translate());
                 if (ShowPowers) shows.Add("{=xVDOsWPq}Powers".Translate());
-                if (ShowFamily) shows.Add("PyDGfwhk}Family".Translate());
+                if (ShowFamily) shows.Add("{=PyDGfwhk}Family".Translate());
                 generator.PropertyValuePair("{=UB1bAtSI}Shows".Translate(), string.Join(", ", shows));
             }
         }
@@ -378,21 +378,21 @@ namespace BLTAdoptAHero
 
                     if (adoptedHero.ExSpouses.Count > 0 && adoptedHero.Spouse == null)
                     {
-                        strOutpu += "{=TESTING}Your spouse has died or divorced you |".Translate();
+                        strOutpu += "{=TGdqsQSP}Your spouse has died or divorced you |".Translate();
                     }
 
                     if (adoptedHero.Spouse != null)
                     {
                         strOutpu += adoptedHero.Spouse.IsFemale
-                            ? "{=TESTING}Wife:".Translate()
-                            : "{=TESTING}Husband:".Translate();
+                            ? "{=G6HbpqA8}Wife:".Translate()
+                            : "{=ouo9vhXQ}Husband:".Translate();
 
                         strOutpu += CleanName(adoptedHero.Spouse.FirstName.Value) + ", ";
                         strOutpu += ((int)adoptedHero.Spouse.Age).ToString();
 
                         if (adoptedHero.IsPregnant || adoptedHero.Spouse.IsPregnant)
                         {
-                            strOutpu += "{=TESTING}, Pregnancy | ".Translate();
+                            strOutpu += "{=uc0OVGuT}, Pregnancy | ".Translate();
                         }
                         else
                         {
@@ -402,20 +402,20 @@ namespace BLTAdoptAHero
 
                     if (adoptedHero.Children.Count != 0)
                     {
-                        strOutpu += "{=TESTING}Children:".Translate();
+                        strOutpu += "{=kTgY4UOK}Children:".Translate();
                         foreach (Hero c in adoptedHero.Children)
                         {
                             string kids = "";
 
                             kids += CleanName(c.FirstName.Value) + ", ";
                             kids += c.IsFemale
-                                ? "{=TESTING}Daughter, ".Translate()
-                                : "{=TESTING}Son, ".Translate();
+                                ? "{=Ve0MnA3y}Daughter, ".Translate()
+                                : "{=RfTn6PsS}Son, ".Translate();
                             kids += ((int)c.Age).ToString();
 
                             if (c.Spouse != null)
                             {
-                                kids += "{=TESTING}, Married:".Translate();
+                                kids += "{=sf2lvgLN}, Married:".Translate();
                                 kids += CleanName(c.Spouse.FirstName.Value) + " - ";
                             }
                             else
@@ -430,13 +430,13 @@ namespace BLTAdoptAHero
                     }
                     if (adoptedHero.Children.Count == 0 && adoptedHero.Spouse != null)
                     {
-                        strOutpu += "{=TESTING}You have no children".Translate();
+                        strOutpu += "{=flwvh8pU}You have no children".Translate();
                     }
                     if (adoptedHero.Children.Count == 0 && adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count == 0)
                     {
-                        strOutpu += "{=TESTING}You have no family".Translate();
+                        strOutpu += "{=1E2rDky4}You have no family".Translate();
                     }
-                    infoStrings.Add("{=TESTING}Family |".Translate() + " " + strOutpu);
+                    infoStrings.Add("{=XWxg1QRc}Family |".Translate() + " " + strOutpu);
                 }
 
                 ActionManager.SendReply(context, infoStrings.ToArray());

@@ -237,7 +237,7 @@ namespace BLTAdoptAHero
 
                         string opponentName = enemySide.LeaderParty.Name.ToString();
 
-                        Log.LogFeedEvent("{=TESTING}@{HeroParty} is involved in a {EventType} against {Opponent}!"
+                        Log.LogFeedEvent("{=fFW54iwx}@{HeroParty} is involved in a {EventType} against {Opponent}!"
                             .Translate(
                                 ("HeroParty", hero.PartyBelongedTo.Name.ToString()),
                                 ("EventType", eventType),
@@ -273,7 +273,7 @@ namespace BLTAdoptAHero
                         var enemySide = hero.PartyBelongedTo.MapEventSide.OtherSide;
                         string opponentName = enemySide.LeaderParty.Name.ToString();
 
-                        Log.LogFeedEvent("{=heroBattleResult}@{HeroName} has {Result} a {EventType} against {Opponent}!"
+                        Log.LogFeedEvent("{=Bsfc1uYG}@{HeroName} has {Result} a {EventType} against {Opponent}!"
                         .Translate(
                             ("HeroName", hero.PartyBelongedTo.Name.ToString()),
                             ("Result", result ? "won" : "lost"),
