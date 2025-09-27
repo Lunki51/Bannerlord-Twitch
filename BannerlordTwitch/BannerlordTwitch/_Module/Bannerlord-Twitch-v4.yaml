@@ -1967,7 +1967,7 @@ GlobalConfigs:
       ShowNotification: false
       XPReward: 0
     LevelScalingCap: 5
-    LoseGold: -5000
+    LoseGold: 5000
     LoseXP: 5000
     MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5

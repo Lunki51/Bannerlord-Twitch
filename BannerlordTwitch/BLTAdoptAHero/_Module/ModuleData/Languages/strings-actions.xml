@@ -640,8 +640,8 @@
         <string id="StHrxSot" text="{item.Name} has been stored as a custom item!"/>
 		<!-- {item.Name} is already stored as a custom item! -->
         <string id="UB1bAtSI" text="{item.Name} is already stored as a custom item!"/>
-		<!-- {=TESTING}Item has no recognized components -->
-        <string id="N1GcPlOD" text="{=TESTING}Item has no recognized components"/>
+		<!-- Item has no recognized components -->
+        <string id="N1GcPlOD" text="Item has no recognized components"/>
         
         <!-- HeroInfoCommand -->
         <!-- Show Hero Info -->
@@ -1114,8 +1114,10 @@
         
         <!-- You won {WonGold}{GoldIcon}! -->
         <string id="pmj8vjZj" text="You won {WonGold}{GoldIcon}!"/>
-        <!-- You lost {LostGold}{GoldIcon}! -->
-        <string id="ajhKKeEo" text="You lost {LostGold}{GoldIcon}!"/>
+        <!-- You {Sign} {Amount}{GoldIcon}! -->
+        <string id="ajhKKeEo" text="You {Sign} {Amount}{GoldIcon}!"/>
+		<string id="UI7XX8GC" text="lost"/>
+		<string id="aKy60dQc" text="won"/>
         <!-- You have joined the battle! -->
         <string id="Ft3cxfIx" text="You have joined the battle!"/>
         <!-- You cannot be summoned now, the mission has not started yet! -->

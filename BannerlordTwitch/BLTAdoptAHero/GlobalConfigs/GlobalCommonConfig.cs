@@ -268,9 +268,9 @@ namespace BLTAdoptAHero
 
         [LocDisplayName("{=lfCWK7aA}Lose Gold"),
          LocCategory("Battle End Rewards", "{=uPwaOKdT}Battle End Rewards"),
-         LocDescription("{=E209XRml}Gold lost if the heroes side loses"),
+         LocDescription("{=E209XRml}Gold lost if the heroes side loses(negative to win gold)"),
          PropertyOrder(3), Document, UsedImplicitly]
-        public int LoseGold { get; set; } = -5000;
+        public int LoseGold { get; set; } = 5000;
 
         [LocDisplayName("{=Vobr36Bl}Lose XP"),
          LocCategory("Battle End Rewards", "{=uPwaOKdT}Battle End Rewards"),

@@ -119,8 +119,8 @@
         <string id="pc3G0W39" text="Gold won if the heroes side wins"/>
         <!-- XP the hero gets if the heroes side wins -->
         <string id="F7Tw4D07" text="XP the hero gets if the heroes side wins"/>
-        <!-- Gold lost if the heroes side loses -->
-        <string id="E209XRml" text="Gold lost if the heroes side loses"/>
+        <!-- Gold lost if the heroes side loses(negative to win gold) -->
+        <string id="E209XRml" text="Gold lost if the heroes side loses(negative to win gold)"/>
         <!-- XP the hero gets if the heroes side loses -->
         <string id="itAfYdmO" text="XP the hero gets if the heroes side loses"/>
         <!-- Difficulty Scaling On Players Side -->
