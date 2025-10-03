@@ -850,7 +850,7 @@ namespace BLTAdoptAHero.Actions
                 if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && adoptedHero.GovernorOf == null && adoptedHero.CanLeadParty())
                 {
                     if (!adoptedHero.IsClanLeader && adoptedHero.Clan.WarPartyComponents.Count >= adoptedHero.Clan.CommanderLimit)
-                        return;
+                        partyStats.Append("{=TESTING} | Party limit reached".Translate());
                     else
                     {
                         try
