@@ -21,7 +21,7 @@ namespace BLTAdoptAHero
     [HarmonyPatch]
     internal class BLTAdoptAHeroCommonMissionBehavior : AutoMissionBehavior<BLTAdoptAHeroCommonMissionBehavior>
     {
-        private readonly List<Hero> activeHeroes = new();
+        public readonly List<Hero> activeHeroes = new();
 
         private class HeroMissionState
         {
@@ -325,7 +325,7 @@ namespace BLTAdoptAHero
             return state;
         }
 
-        private static bool IsHeroOnPlayerSide(Hero hero)
+        public static bool IsHeroOnPlayerSide(Hero hero)
             => hero.PartyBelongedTo?.MapEventSide?.MissionSide == PlayerEncounter.Current?.PlayerSide;
 
         private void UpdateHeroVM(Hero hero)

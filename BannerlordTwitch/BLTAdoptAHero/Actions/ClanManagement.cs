@@ -151,7 +151,7 @@ namespace BLTAdoptAHero.Actions
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Buy Noble Title", "{=moApZJvC}Buy Noble Title"),
-             LocDescription("Allow non-noble BLTs to buy their way into being a Lord, allowing their Hero's AI many more clan and kingdom actions.   NOTE: Disabling this will simply make BLT's into Lords when creating or joining a clan, instead of through this command."),
+             LocDescription("Allow non-noble BLTs to buy their way into being a Lord, allowing their Hero's AI many more clan and kingdom actions.   NOTE: Buying title is needed when joining.Disabling this will simply make BLT's into Lords when joining a clan."),
              PropertyOrder(1), UsedImplicitly]
             public bool BuyTitleEnabled { get; set; } = true;
 
@@ -445,14 +445,16 @@ namespace BLTAdoptAHero.Actions
             var clanBanner = Banner.CreateRandomBanner();
             newClan.InitializeClan(new TextObject(fullClanName), new TextObject(fullClanName), clanCulture, clanBanner);
             newClan.UpdateHomeSettlement(Settlement.All.SelectRandom());
+            //BLTClanBehavior.Current?.RegisterBLTClan(newClan);
             adoptedHero.Clan = newClan;
             newClan.AddRenown(settings.Renown, false);
-            newClan.SetLeader(adoptedHero);
+            adoptedHero.Gold = 50000;
+            newClan.SetLeader(adoptedHero);           
             if (!CampaignHelpers.IsEncyclopediaBookmarked(newClan))
                 CampaignHelpers.AddEncyclopediaBookmarkToItem(newClan);
             onSuccess("{=omDrEeDx}Created and leading clan {name}".Translate(("name", fullClanName)));
             Log.ShowInformation("{=TsmDfvuz}{heroName} has created and is leading clan {clanName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("clanName", adoptedHero.Clan.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
-            if ((!settings.BuyTitleEnabled) && ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null)))
+            if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
             {
                 onSuccess("{=vBmuM0Hn}{heroName} has become a noble!".Translate(("heroName", adoptedHero.Name.ToString())));
                 adoptedHero.SetNewOccupation(Occupation.Lord);
@@ -577,6 +579,7 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=zVDODxiN}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
             clanStats.Append("{=SDVLj0nw}Wealth: {wealth} | ".Translate(("wealth", adoptedHero.Clan.Leader.Gold.ToString())));
             clanStats.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
+            clanStats.Append("{=TESTING}Parties: {cparties}/{mparties} |".Translate(("cparties", adoptedHero.Clan.WarPartyComponents.Count), ("mparties", adoptedHero.Clan.CommanderLimit)));
             if (adoptedHero.Clan.Fiefs.Count >= 1)
             {
                 int townCount = 0;
@@ -614,20 +617,21 @@ namespace BLTAdoptAHero.Actions
 
             if (adoptedHero.HeroState == Hero.CharacterStates.Released)
                 partyStats.Append("{=r1nJTiSA}Your hero has just been released".Translate());
-            if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
+            else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
             {
                 partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
+                partyStats.Append(" | ");
                 partyStats.Append("{=B2xDasDx}Last seen near {Place}".Translate(("Place", adoptedHero.PartyBelongedToAsPrisoner.LeaderHero.LastKnownClosestSettlement.Name)));
 
             }
-            if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
+            else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
                 partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
-            if (adoptedHero.GovernorOf != null)
+            else if (adoptedHero.GovernorOf != null)
             {
                 var govFief = Settlement.FindFirst(s => s.Town != null && s.Town.Governor == adoptedHero);
                 partyStats.Append("{=ocrxKWUF}Governor: {governor}".Translate(("governor", govFief.Name.ToString())));
             }
-            if (adoptedHero.IsPartyLeader)
+            else if (adoptedHero.IsPartyLeader)
             {
                 partyStats.Append("{=sN2NzoA7}Party(Strength: {party_strength} - ".Translate(("party_strength", Math.Round(adoptedHero.PartyBelongedTo.Party.TotalStrength).ToString())));
                 string partySizeStr = $"{adoptedHero.PartyBelongedTo.MemberRoster.TotalHealthyCount}/{adoptedHero.PartyBelongedTo.Party.PartySizeLimit}";
@@ -837,6 +841,38 @@ namespace BLTAdoptAHero.Actions
                     }
                 }
             }
+            else if (adoptedHero.StayingInSettlement == adoptedHero.HomeSettlement)
+            {
+                partyStats.Append("{=TESTING}Your hero has stayed at {place} for {time} days".Translate(("place", adoptedHero.StayingInSettlement.Name.ToString()), ("time", adoptedHero.PassedTimeAtHomeSettlement)));
+            }
+            else 
+            { partyStats.Append("{=TESTING}Your hero is not in a party".Translate());
+                if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && adoptedHero.GovernorOf == null && adoptedHero.CanLeadParty())
+                {
+                    if (!adoptedHero.IsClanLeader && adoptedHero.Clan.WarPartyComponents.Count >= adoptedHero.Clan.CommanderLimit)
+                        return;
+                    else
+                    {
+                        try
+                        {
+                            adoptedHero.Clan.CreateNewMobileParty(adoptedHero);
+                            partyStats.Append("{=TESTING} | Create party".Translate());
+                        }
+                        catch
+                        {
+                            partyStats.Append("{=TESTING} | Create party failed".Translate());
+                            var clan = adoptedHero.Clan;
+                            bool leader = adoptedHero.IsClanLeader;
+
+                            adoptedHero.Clan = null;
+                            adoptedHero.Clan = clan;
+                            adoptedHero.Clan.SetLeader(adoptedHero);
+                            if (leader)
+                                adoptedHero.Clan.SetLeader(adoptedHero);
+                        }
+                    }
+                } 
+            }
 
             onSuccess("{=TESTING}{party}".Translate(("party", partyStats.ToString())));
  
@@ -929,16 +965,28 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=yPeUCq8t}You are not in a clan".Translate());
                 return;
             }
-
-            var mobileParty = MobileParty.All.ToList().Where(p => p.LeaderHero?.CharacterObject == adoptedHero.CharacterObject).FirstOrDefault();
-            if (mobileParty != null)
+            if (adoptedHero.IsClanLeader)
             {
-                mobileParty.RemoveParty();
+                onFailure("{=cRpqnI3B}You are already the leader of your clan".Translate());
+                return;
             }
-            adoptedHero.Clan = null;
-            adoptedHero.SetNewOccupation(Occupation.Wanderer);
-            var targetSettlement = Settlement.All.Where(s => s.IsTown).SelectRandom();
-            EnterSettlementAction.ApplyForCharacterOnly(adoptedHero, targetSettlement);
+
+            //var mobileParty = MobileParty.All.ToList().Where(p => p.LeaderHero?.CharacterObject == adoptedHero.CharacterObject).FirstOrDefault();
+            //if (mobileParty != null)
+            //{
+            //    var newLead = adoptedHero.Clan.Heroes.ToList().Where(h => h.IsPartyLeader == false && h.CanLeadParty()).FirstOrDefault();
+            //    if (newLead == null)
+            //        mobileParty.RemoveParty();
+            //    else
+            //    mobileParty.ChangePartyLeader(newLead);
+            //}
+            //adoptedHero.Clan = null;
+            //adoptedHero.SetNewOccupation(Occupation.Wanderer);
+            //if (adoptedHero.IsPartyLeader)
+            //    adoptedHero.PartyBelongedTo.RemoveParty();
+            //var targetSettlement = Settlement.All.Where(s => s.IsTown).SelectRandom();
+            //EnterSettlementAction.ApplyForCharacterOnly(adoptedHero, targetSettlement);
+            onSuccess("Clan leave doesnt work");
         }
 
         //private void HandleDisbandCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)

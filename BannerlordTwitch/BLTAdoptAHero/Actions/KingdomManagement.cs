@@ -443,7 +443,6 @@ namespace BLTAdoptAHero.Actions
             }
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MercPrice, true);
             ChangeKingdomAction.ApplyByJoinFactionAsMercenary(adoptedHero.Clan, desiredKingdom);
-            adoptedHero.Clan.MercenaryAwardMultiplier = (int)Math.Max(50, 50f * (1f + 4.0f * adoptedHero.Clan.Renown / 6150f) * (0.5f + 1.5f * (float)adoptedHero.GetSkillValue(DefaultSkills.Charm) / 330f));
             Log.ShowInformation("{=tpwW6Ix8}{clanName} is now under contract with {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
     }

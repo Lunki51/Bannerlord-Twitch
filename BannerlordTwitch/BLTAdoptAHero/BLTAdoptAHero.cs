@@ -61,7 +61,10 @@ namespace BLTAdoptAHero
                 mission.AddMissionBehavior(new BLTSummonBehavior());
                 mission.AddMissionBehavior(new BLTRemoveAgentsBehavior());
                 mission.AddMissionBehavior(new BLTHeroPowersMissionBehavior());
-                //mission.AddMissionBehavior(new BLTHeroWidgetBehavior());
+                //if (mission.CombatType == Mission.MissionCombatType.Combat && mission.PlayerTeam != null && mission.HasMissionBehavior<BLTAdoptAHeroCommonMissionBehavior>())
+                //{
+                //    mission.AddMissionBehavior(new HeroWidgetMissionView());
+                //}
             }
             catch (Exception e)
             {
@@ -78,16 +81,8 @@ namespace BLTAdoptAHero
                 || __instance.Mission.GetMissionBehavior<TournamentFightMissionController>() != null))
             {
                 __instance.AddMissionView(SandBoxViewCreator.CreateMissionNameMarkerUIHandler(__instance.Mission));
-
-                //var vanillaMarker = Mission.Current?.GetMissionBehavior<MissionNameMarkerUIHandler>();
-                //if (__instance.Mission.GetMissionBehavior<BLTHeroWidgetBehavior>() != null && vanillaMarker != null)
-                //{
-                //    __instance.AddMissionView(new BLTHeroWidgetView());
-                //    Log.Trace("BLTHeroWidgetView initialized and linked to BLTHeroWidgetBehavior");
-                //}
             }
         }
-
 
         [UsedImplicitly, HarmonyPostfix,
          HarmonyPatch(typeof(MissionNameMarkerTargetVM), MethodType.Constructor, typeof(Agent), typeof(bool))]

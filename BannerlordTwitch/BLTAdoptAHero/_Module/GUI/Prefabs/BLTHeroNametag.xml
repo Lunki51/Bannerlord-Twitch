@@ -1,52 +1,45 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Prefab PrefabName="BLTHeroNametag">
+﻿<Prefab>
   <Window>
-    <Widget WidthSizePolicy="StretchToParent"
-            HeightSizePolicy="StretchToParent"
-            DoNotAcceptEvents="true">
-
-      <!-- Root list bound to Tags -->
-      <ListPanel DataSource="{Tags}"
-                 WidthSizePolicy="StretchToParent"
-                 HeightSizePolicy="StretchToParent"
-                 DoNotAcceptEvents="true"
-                 ClipContents="false">
-
-        <!-- Template for each hero tag -->
-        <ItemTemplate>
-          <!-- Root container for the tag -->
-          <Widget WidthSizePolicy="Fixed"
-                  HeightSizePolicy="Fixed"
-                  SuggestedWidth="200"
-                  SuggestedHeight="40"
-                  IsVisible="{IsEnabled}"
-                  HorizontalAlignment="Center"
-                  VerticalAlignment="Center"
-                  PositionX="{ScreenPosition.X}"
-                  PositionY="{ScreenPosition.Y}"
-                  ScaleFactor="{Scale}">
-
-            <!-- Background panel (color and transparency) -->
-            <BrushWidget WidthSizePolicy="StretchToParent"
-                         HeightSizePolicy="StretchToParent"
-                         Brush="SPGeneral\SimpleBg"
-                         Color="{Color}"
-                         AlphaFactor="0.6"
-                         CornerRadius="8"/>
-
-            <!-- Text: hero name -->
-            <TextWidget WidthSizePolicy="StretchToParent"
-                        HeightSizePolicy="StretchToParent"
-                        Text="{Name}"
-                        Brush="SPGeneral\TextBrush"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center"
-                        ClipText="true"
-                        AutoScaleText="true"
-                        AutoScaleTextDownOnly="true"/>
-          </Widget>
-        </ItemTemplate>
-      </ListPanel>
+    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent">
+      <Children>
+        <!-- Bind to the Heroes list -->
+        <Widget DataSource="{Heroes}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent">
+          <ItemTemplate>
+            <!-- Each hero entry -->
+            <Widget DataSource="{.}" 
+                    IsVisible="@IsVisible"
+					WidthSizePolicy="Fixed"
+					HeightSizePolicy="Fixed"
+					SuggestedWidth="@Width"
+					SuggestedHeight="@Height"
+					HorizontalAlignment="Left"
+					VerticalAlignment="Top"
+					ScaledPositionXOffset="@PositionX"
+					ScaledPositionYOffset="@PositionY">
+              <Children>
+                <ListPanel WidthSizePolicy="Fixed"
+				   SuggestedWidth="@Width"
+				   HeightSizePolicy="Fixed"
+				   SuggestedHeight="@Height"
+				   LayoutImp.LayoutMethod="HorizontalLeftToRight"
+				   HorizontalAlignment="Left"
+				   VerticalAlignment="Top">
+				  <Children>
+					<TextWidget WidthSizePolicy="StretchToParent"
+								HeightSizePolicy="StretchToParent"
+								VerticalAlignment="Center"
+								Brush="FiraSansExtraCondensed-Regular"
+								Brush.TextHorizontalAlignment="Center"
+								Brush.FontSize="@FontSize"
+								Text="@HeroName"
+								Brush.FontColor="@Color"/>
+				  </Children>
+				</ListPanel>
+              </Children>
+            </Widget>
+          </ItemTemplate>
+        </Widget>
+      </Children>
     </Widget>
   </Window>
 </Prefab>

@@ -290,39 +290,51 @@ namespace BLTAdoptAHero
 
                 case "store":
                     {
-                        int slotIndex = -1;
-                        if (argParts.Count > 1 && int.TryParse(argParts[1], out int parsed))
-                            slotIndex = parsed - 1; // user-facing 1 = index 0
+                        // Require a slot index argument
+                        if (argParts.Count < 2 || !int.TryParse(argParts[1], out int slotIndex))
+                        {
+                            onFailure("You must specify which equipment slot to store");
+                            break;
+                        }
+                        slotIndex -= 1; // convert to zero-based index
 
                         var slots = adoptedHero.BattleEquipment.YieldFilledEquipmentSlots().ToList();
-
-                        // Pick a single slot if requested
-                        var selectedSlots = (slotIndex >= 0 && slotIndex < slots.Count)
-                            ? new List<(EquipmentElement element, EquipmentIndex index)> { slots[slotIndex] }
-                            : slots;
-
-                        foreach (var (element, index) in selectedSlots)
+                        if (slotIndex < 0 || slotIndex >= slots.Count)
                         {
-                            var item = element.Item;
-                            if (item == null) continue;
-
-                            var modifier = element.ItemModifier;
-
-                            if (!BLTCustomItemsCampaignBehavior.Current.IsRegistered(modifier))
-                            {
-                                var baseName = item.Name?.ToString() ?? "Custom item";
-                                // Create a dummy modifier so it's valid for custom storage
-                                var dummy = BLTCustomItemsCampaignBehavior.Current.CreateDummyModifier(baseName);
-                                var registeredElement = new EquipmentElement(item, dummy);
-
-                                BLTAdoptAHeroCampaignBehavior.Current.AddCustomItem(adoptedHero, registeredElement);
-                                onSuccess("{=StHrxSot}{item.Name} has been stored as a custom item!");
-                            }
-                            else
-                            {
-                                onFailure("{=mOdh17Cj}{item.Name} is already stored as a custom item!");
-                            }
+                            onFailure($"Invalid slot index. Must be between 1 and {slots.Count}");
+                            break;
                         }
+
+                        var (element, index) = slots[slotIndex];
+                        var item = element.Item;
+                        if (item == null)
+                        {
+                            onFailure("That slot is empty");
+                            break;
+                        }
+
+                        var itemName = item.Name?.ToString() ?? "Custom item";
+
+                        // 🔎 Check existing custom items for duplicate name
+                        bool alreadyStored = BLTAdoptAHeroCampaignBehavior.Current.GetCustomItems(adoptedHero)
+                            .Any(ci => ci.Item != null &&
+                                       string.Equals(ci.Item.Name?.ToString(), itemName, StringComparison.OrdinalIgnoreCase));
+
+                        if (!alreadyStored)
+                        {
+                            var dummy = BLTCustomItemsCampaignBehavior.Current.CreateDummyModifier(itemName);
+                            var registeredElement = new EquipmentElement(item, dummy);
+
+                            BLTAdoptAHeroCampaignBehavior.Current.AddCustomItem(adoptedHero, registeredElement);
+                            onSuccess("{=StHrxSot}{item.Name} has been stored as a custom item!"
+                                .Translate(("item.Name", itemName)));
+                        }
+                        else
+                        {
+                            onFailure("{=mOdh17Cj}{item.Name} is already stored as a custom item!"
+                                .Translate(("item.Name", itemName)));
+                        }
+
                         break;
                     }
 

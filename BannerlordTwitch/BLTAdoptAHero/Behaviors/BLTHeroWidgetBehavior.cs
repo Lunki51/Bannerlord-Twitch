@@ -1,260 +1,315 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Linq;
-//using BannerlordTwitch.Helpers;
-//using BannerlordTwitch.Util;
-//using TaleWorlds.CampaignSystem;
-//using TaleWorlds.Core;
-//using TaleWorlds.Engine;
-//using TaleWorlds.Engine.Screens;
-//using TaleWorlds.Engine.GauntletUI;
-//using TaleWorlds.Library;
-//using TaleWorlds.MountAndBlade;
-//using TaleWorlds.MountAndBlade.View.MissionViews;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using BannerlordTwitch.Helpers;
+using BannerlordTwitch.Util;
+using BLTAdoptAHero.UI;
+using TaleWorlds.CampaignSystem;
+using TaleWorlds.Core;
+using TaleWorlds.Engine;
+using TaleWorlds.Engine.Screens;
+using TaleWorlds.Engine.GauntletUI;
+using TaleWorlds.GauntletUI.Data;
+using TaleWorlds.Library;
+using TaleWorlds.MountAndBlade;
+using TaleWorlds.MountAndBlade.View;
+using TaleWorlds.MountAndBlade.View.MissionViews;
+using TaleWorlds.CampaignSystem.TournamentGames;
+using SandBox.Tournaments.MissionLogics;
+using SandBox.ViewModelCollection.Missions.NameMarker;
+using TaleWorlds.MountAndBlade.GauntletUI.Widgets.Mission.NameMarker;
 
-//namespace BLTAdoptAHero
-//{
-//    // ==============================================================
-//    // Mission Behavior: tracks adopted heroes
-//    // ==============================================================
-//    public class BLTHeroWidgetBehavior : AutoMissionBehavior<BLTHeroWidgetBehavior>
-//    {
-//        private readonly Dictionary<Agent, HeroData> _trackedHeroes = new();
-//        public IReadOnlyDictionary<Agent, HeroData> TrackedHeroes => _trackedHeroes;
+namespace BLTAdoptAHero
+{
+    [DefaultView]
+    public class HeroWidgetMissionView : MissionView
+    {
+        private GauntletLayer _layer;
+        private HeroWidgetVM _vm;
+        private IGauntletMovie _gauntletMovie;
+        private Camera _camera;
+        private readonly Dictionary<Hero, HeroIconVM> _heroToVM = new();
+        private bool _isInitialized = false;
 
-//        public class HeroData
-//        {
-//            public Hero Hero;
-//            public Agent Agent;
-//        }
+        public override void OnMissionScreenTick(float dt)
+        {
+            var heroBehavior = Mission.Current?.GetMissionBehavior<BLTAdoptAHeroCommonMissionBehavior>();
+            var combatMission = Mission.Current.CombatType;
+            if (heroBehavior == null || MissionScreen == null || combatMission == Mission.MissionCombatType.NoCombat)
+                return;
 
-//        // Events for the View
-//        public event Action<Agent, Hero> HeroTracked;
-//        public event Action<Agent> HeroUntracked;
+            if (!_isInitialized)
+            {
+                if (heroBehavior.activeHeroes.Count > 0)
+                {
+                    InitializeUI();
+                    _isInitialized = true;
+                }
+            }
+            else
+            {
+                UpdateHeroIcons(heroBehavior);
+            }
+        }
 
-//        public override void OnAgentBuild(Agent agent, Banner banner)
-//        {
-//            SafeCall(() =>
-//            {
-//                var hero = agent.GetHero();
-//                if (hero == null || !hero.IsAdopted()) return;
+        private void InitializeUI()
+        {
+            //Log.Trace("BLTAdoptAHero: Initializing UI.");
+            this._vm = new HeroWidgetVM();
+            this._layer = new GauntletLayer(111, "BLTHeroWidgetLayer", false);
+            this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);            
+            this.MissionScreen.AddLayer(_layer);
+            //Log.Trace("BLTAdoptAHero: Layer added to MissionScreen.");
+            //Log.Trace($"BLTAdoptAHero: Movie loaded. RootWidget is Null? {_gauntletMovie.RootWidget == null}");
+            this._camera = MissionScreen.CombatCamera;           
+        }
 
-//                Log.Trace($"[Behavior] Tracking adopted hero {hero.Name}");
+        internal void UpdateHeroIcons(BLTAdoptAHeroCommonMissionBehavior heroBehavior)
+        {
+            bool inTournament = MissionHelpers.InTournament();
+            if (!_isInitialized || _camera == null) return;
+            
+            var heroVMs = new List<(Hero hero, HeroIconVM vm, float dist)>();
 
-//                _trackedHeroes[agent] = new HeroData
-//                {
-//                    Hero = hero,
-//                    Agent = agent
-//                };
+            // --- Step 1: Update positions, scale, visibility and cache distances & team colors ---
+            var heroTeamCache = new Dictionary<Hero, string>();
+            foreach (var hero in heroBehavior.activeHeroes)
+            {
+                if (!_heroToVM.TryGetValue(hero, out var vm))
+                {
+                    vm = new HeroIconVM { HeroName = hero.FirstName?.Raw() ?? "" };
+                    _vm.Heroes.Add(vm);
+                    _heroToVM[hero] = vm;
+                }
 
-//                HeroTracked?.Invoke(agent, hero);
-//            });
-//        }
+                var agent = hero.GetAgent();
+                if (agent != null && agent.IsActive())
+                {
+                    Vec3 globalPos = agent.Position;
+                    globalPos.z += agent.GetEyeGlobalHeight() + 0.15f;
 
-//        public override void OnAgentRemoved(Agent affectedAgent, Agent affectorAgent,
-//            AgentState state, KillingBlow blow)
-//        {
-//            SafeCall(() => ForceRemove(affectedAgent));
-//        }
+                    float x = 0f, y = 0f, z = 0f;
+                    MBWindowManager.WorldToScreen(_camera, globalPos, ref x, ref y, ref z);
 
-//        internal void ForceRemove(Agent agent)
-//        {
-//            SafeCall(() =>
-//            {
-//                if (_trackedHeroes.TryGetValue(agent, out var data))
-//                {
-//                    Log.Trace($"[Behavior] Removed adopted hero {data.Hero.Name}");
-//                    _trackedHeroes.Remove(agent);
-//                    HeroUntracked?.Invoke(agent);
-//                }
-//            });
-//        }
+                    bool onScreen = z > 0f && x > 0f && y > 0f &&
+                                    x < Screen.RealScreenResolutionWidth &&
+                                    y < Screen.RealScreenResolutionHeight;
 
-//        public override void OnMissionStateFinalized()
-//        {
-//            SafeCall(() =>
-//            {
-//                foreach (var kvp in _trackedHeroes)
-//                {
-//                    HeroUntracked?.Invoke(kvp.Value.Agent);
-//                }
+                    if (onScreen)
+                    {
+                        float dist = agent.Position.Distance(_camera.Position);
+                        if (dist < 350f)
+                        {
+                            float scale = MBMath.Lerp(1f, 0.5f, (dist - 30f) / 170f, 0.0f); //Min:30 Max:200
+                            scale = MBMath.ClampFloat(scale, 0.5f, 1f);
 
-//                _trackedHeroes.Clear();
-//                Log.Trace("[Behavior] Cleaned up on mission end");
-//            });
-//        }
-//    }
+                            vm.IsVisible = true;
+                            vm.Width = 200f * scale;
+                            vm.Height = 50f * scale;
+                            vm.FontSize = Math.Max(15, (int)(24f * scale));
+                            vm.PositionX = x - vm.Width * 0.5f;
+                            vm.PositionY = y - vm.Height * 0.5f - 5f;
 
-//    // ==============================================================
-//    // Mission View: renders adopted hero tags
-//    // ==============================================================
-//    public class BLTHeroWidgetView : MissionView
-//    {
-//        private GauntletLayer _layer;
-//        private HeroTagsVM _tagsVM;
-//        private readonly Dictionary<Agent, HeroTagVM> _agentToVM = new();
-//        private static bool _initialized;
-//        private BLTHeroWidgetBehavior _behavior;
+                            heroVMs.Add((hero, vm, dist));
 
-//        private const float MinScale = 0.7f;
-//        private const float MaxScale = 1.2f;
-//        private const float ScaleDistance = 25f;
+                            // Cache team color per hero
+                            if (!heroTeamCache.ContainsKey(hero))
+                                heroTeamCache[hero] = inTournament
+                                    ? GetTournamentTeamColor(hero)
+                                    : BLTAdoptAHeroCommonMissionBehavior.IsHeroOnPlayerSide(hero)
+                                        ? "#4EE04CF0"
+                                        : "#ED1C24F0";
+                        }
+                        else
+                        {
+                            vm.IsVisible = false;
+                        }
+                    }
+                    else
+                    {
+                        vm.IsVisible = false;
+                    }
+                }
+                else
+                {
+                    _vm.Heroes.Remove(vm);
+                    _heroToVM.Remove(hero);
+                }
+            }
 
-//        // -------------------------
-//        // ViewModels
-//        // -------------------------
-//        public class HeroTagVM : ViewModel
-//        {
-//            private string _name;
-//            private Vec2 _screenPosition;
-//            private bool _isEnabled;
-//            private float _scale;
-//            private Color _color;
+            // --- Step 2: Sort visible widgets by vertical position (sweep-line) ---
+            var sorted = heroVMs
+                .Where(h => h.vm.IsVisible)
+                .OrderBy(h => h.vm.PositionY)
+                .ToList();
 
-//            [DataSourceProperty] public string Name { get => _name; set { if (_name != value) { _name = value; OnPropertyChanged(nameof(Name)); } } }
-//            [DataSourceProperty] public Vec2 ScreenPosition { get => _screenPosition; set { if (_screenPosition != value) { _screenPosition = value; OnPropertyChanged(nameof(ScreenPosition)); } } }
-//            [DataSourceProperty] public bool IsEnabled { get => _isEnabled; set { if (_isEnabled != value) { _isEnabled = value; OnPropertyChanged(nameof(IsEnabled)); } } }
-//            [DataSourceProperty] public float Scale { get => _scale; set { if (Math.Abs(_scale - value) > 0.001f) { _scale = value; OnPropertyChanged(nameof(Scale)); } } }
-//            [DataSourceProperty] public Color Color { get => _color; set { if (_color != value) { _color = value; OnPropertyChanged(nameof(Color)); } } }
-//        }
+            float minOverlapY = 4f;  // minimum vertical overlap to trigger adjustment
+            float paddingY = 2f;     // extra space between widgets
+            float slideFactor = 0.5f; // fraction of overlap to push
 
-//        public class HeroTagsVM : ViewModel
-//        {
-//            [DataSourceProperty] public MBBindingList<HeroTagVM> Tags { get; set; } = new();
+            // --- Step 3: Sweep-line / spatial partition for overlap adjustment ---
+            for (int i = 0; i < sorted.Count - 1; i++)
+            {
+                var anchor = sorted[i].vm;
 
-//            public override void OnFinalize()
-//            {
-//                base.OnFinalize();
-//                Tags.Clear();
-//            }
-//        }
+                // Only check widgets within reasonable vertical distance
+                for (int j = i + 1; j < sorted.Count; j++)
+                {
+                    var farther = sorted[j].vm;
+                    if (!farther.IsVisible) continue;
 
-//        // -------------------------
-//        // Lifecycle
-//        // -------------------------
-//        public override void OnMissionScreenActivate()
-//        {
-//            base.OnMissionScreenActivate();
+                    // Skip if vertical distance is already larger than max possible overlap
+                    if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
+                        break;
 
-//            if (_initialized || MissionScreen == null)
-//                return;
+                    bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width &&
+                                    farther.PositionX + farther.Width > anchor.PositionX;
+                    bool overlapY = farther.PositionY < anchor.PositionY + anchor.Height &&
+                                    farther.PositionY + farther.Height > anchor.PositionY;
 
-//            Log.Trace("[View] Initializing UI layer (OnMissionScreenActivate)");
-//            _tagsVM = new HeroTagsVM();
-//            _layer = new GauntletLayer(1, "BLTHeroWidgetLayer");
+                    if (overlapX && overlapY)
+                    {
+                        float overlapAmountY = (anchor.PositionY + anchor.Height) - farther.PositionY;
+                        if (overlapAmountY > minOverlapY)
+                        {
+                            farther.PositionY += overlapAmountY * slideFactor + paddingY; // slide down smoothly
+                        }
+                    }
+                }
+            }
 
-//            try
-//            {
-//                _layer.LoadMovie("BLTHeroNametag", _tagsVM);
-//            }
-//            catch (Exception ex)
-//            {
-//                Log.Error($"[View] Failed to load BLTHeroNametag prefab - {ex.Message}");
-//            }
+            // --- Step 4: Apply cached colors ---
+            foreach (var (hero, vm, dist) in heroVMs)
+            {
+                if (heroTeamCache.TryGetValue(hero, out var color))
+                    vm.Color = color;
+            }
 
-//            MissionScreen.AddLayer(_layer);
+            // --- Step 5: Remove inactive heroes ---
+            var toRemove = _heroToVM.Keys.Except(heroBehavior.activeHeroes).ToList();
+            foreach (var hero in toRemove)
+            {
+                _vm.Heroes.Remove(_heroToVM[hero]);
+                _heroToVM.Remove(hero);
+            }
+        }
 
-//            _behavior = Mission.Current.GetMissionBehavior<BLTHeroWidgetBehavior>();
-//            if (_behavior != null)
-//            {
-//                _behavior.HeroTracked += AddHeroTag;
-//                _behavior.HeroUntracked += RemoveHeroTag;
-//            }
+        private string GetTournamentTeamColor(Hero hero)
+        {
+            if (!MissionHelpers.InTournament() || hero == null)
+                return "#FFFFFFF0"; // fallback if not in a tournament
 
-//            _initialized = true;
-//        }
+            var agents = Mission.Current?.Agents;
+            if (agents == null) return "#FFFFFFF0";
 
-//        private void AddHeroTag(Agent agent, Hero hero)
-//        {
-//            if (_agentToVM.ContainsKey(agent))
-//                return;
+            foreach (var agent in agents)
+            {
+                var agentHero = agent.GetAdoptedHero();
+                if (agentHero == null) continue;
 
-//            var vm = new HeroTagVM
-//            {
-//                Name = hero.Name.ToString(),
-//                IsEnabled = true,
-//                Scale = 1f,
-//                Color = Color.White
-//            };
-//            _tagsVM.Tags.Add(vm);
-//            _agentToVM[agent] = vm;
+                if (agentHero == hero)
+                {
+                    int teamIndex = agent.Team?.TeamIndex ?? -1;
 
-//            Log.Trace($"[View] Added HeroTagVM for {hero.Name}");
-//        }
+                    // Map team index to a color
+                    string[] teamColors = { "#0000FFF0", "#FF0000F0", "#00FF00F0", "#FFFF00F0" };
+                    if (teamIndex < 0 || teamIndex >= teamColors.Length)
+                        return "#FFFFFFF0"; // fallback for unexpected team index
 
-//        private void RemoveHeroTag(Agent agent)
-//        {
-//            if (_agentToVM.TryGetValue(agent, out var vm))
-//            {
-//                _tagsVM.Tags.Remove(vm);
-//                _agentToVM.Remove(agent);
-//                Log.Trace($"[View] Removed tag for {agent.Name}");
-//            }
-//        }
+                    return teamColors[teamIndex];
+                }
+            }
 
-//        public override void OnMissionTick(float dt)
-//        {
-//            base.OnMissionTick(dt);
-//            if (!_initialized || _behavior == null) return;
+            // Hero not found in tournament
+            return "#FFFFFFF0";
+        }
 
-//            foreach (var (agent, vm) in _agentToVM.ToList())
-//            {
-//                if (!agent.IsActive())
-//                {
-//                    vm.IsEnabled = false;
-//                    continue;
-//                }
+        public override void OnRemoveBehavior()
+        {
+            _heroToVM.Clear();
+            _vm?.Heroes.Clear();
+            
+            if (_layer != null && MissionScreen != null)            
+                MissionScreen.RemoveLayer(_layer);
+                
+            _layer = null;
+            _vm = null;
+            _camera = null;
+            base.OnRemoveBehavior();
+        }
+    }
 
-//                // Name
-//                vm.Name = agent.Name;
+    public class HeroWidgetVM : ViewModel
+    {
+        [DataSourceProperty]
+        public MBBindingList<HeroIconVM> Heroes { get; } = new();
+    }
 
-//                // Position (project 3D world pos to screen)
-//                var worldPos = agent.Position + new Vec3(0, 0, agent.GetEyeGlobalHeight());
-//                var cam = MissionScreen.CombatCamera;
-//                Vec3 viewportPos = cam.WorldPointToViewPortPoint(ref worldPos);
+    public class HeroIconVM : ViewModel
+    {
+        private string _heroName;
+        private bool _isVisible;
+        private float _positionX;
+        private float _positionY;
+        private string _color;
+        private float _width;
+        private float _height;
+        private int _fontSize;
 
-//                // Convert normalized viewport coords to actual screen pixels
-//                float screenX = viewportPos.x * Screen.RealScreenResolutionWidth;
-//                float screenY = (1 - viewportPos.y) * Screen.RealScreenResolutionHeight;
+        [DataSourceProperty]
+        public string HeroName
+        {
+            get => _heroName;
+            set { if (_heroName != value) { _heroName = value; OnPropertyChanged(nameof(HeroName)); } }
+        }
 
-//                // Assign
-//                vm.ScreenPosition = new Vec2(screenX, screenY);
-//                vm.IsEnabled = viewportPos.z > 0;
+        [DataSourceProperty]
+        public bool IsVisible
+        {
+            get => _isVisible;
+            set { if (_isVisible != value) { _isVisible = value; OnPropertyChanged(nameof(IsVisible)); } }
+        }
 
-//                // Scale with distance
-//                var dist = (worldPos - MissionScreen.CombatCamera.Position).Length;
-//                vm.Scale = MaxScale - Math.Min(dist / ScaleDistance, 1f) * (MaxScale - MinScale);
+        [DataSourceProperty]
+        public float PositionX
+        {
+            get => _positionX;
+            set { if (_positionX != value) { _positionX = value; OnPropertyChanged(nameof(PositionX)); } }
+        }
 
-//                // Coloring based on relation
-//                if (agent.Team == Mission.PlayerTeam)
-//                    vm.Color = Color.FromUint(0x0000FFFF); // Blue
-//                else if (Mission.PlayerTeam != null && agent.Team.IsEnemyOf(Mission.PlayerTeam))
-//                    vm.Color = Color.FromUint(0xFF0000FF); // Red
-//                else
-//                    vm.Color = Color.White;
-//            }
-//        }
+        [DataSourceProperty]
+        public float PositionY
+        {
+            get => _positionY;
+            set { if (_positionY != value) { _positionY = value; OnPropertyChanged(nameof(PositionY)); } }
+        }
 
-//        public override void OnMissionScreenFinalize()
-//        {
-//            base.OnMissionScreenFinalize();
+        [DataSourceProperty]
+        public string Color
+        {
+            get => _color;
+            set { if (_color != value) { _color = value; OnPropertyChanged(nameof(Color)); } }
+        }
 
-//            if (_layer != null)
-//            {
-//                MissionScreen.RemoveLayer(_layer);
-//                _layer = null;
-//            }
+        [DataSourceProperty]
+        public float Width
+        {
+            get => _width;
+            set { if (_width != value) { _width = value; OnPropertyChanged(nameof(Width)); } }
+        }
 
-//            if (_behavior != null)
-//            {
-//                _behavior.HeroTracked -= AddHeroTag;
-//                _behavior.HeroUntracked -= RemoveHeroTag;
-//            }
+        [DataSourceProperty]
+        public float Height
+        {
+            get => _height;
+            set { if (_height != value) { _height = value; OnPropertyChanged(nameof(Height)); } }
+        }
 
-//            _tagsVM?.OnFinalize();
-//            _tagsVM = null;
-//            _agentToVM.Clear();
-//            _initialized = false;
-//        }
-//    }
-//}
+        [DataSourceProperty]
+        public int FontSize
+        {
+            get => _fontSize;
+            set { if (_fontSize != value) { _fontSize = value; OnPropertyChanged(nameof(FontSize)); } }
+        }
+    }
+}
