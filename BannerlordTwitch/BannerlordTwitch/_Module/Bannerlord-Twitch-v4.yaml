@@ -45,7 +45,7 @@ Commands:
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
-    StartingGold: 250000
+    StartingGold: 50000
     StartingSkills:
     - MaxLevel: 125
       MinLevel: 50
@@ -852,6 +852,17 @@ Commands:
   ID: bd1fb6e6-1c01-4be1-b41e-eaa92c457542
   ModeratorOnly: false
   Name: buyattribute
+  RespondInOverlay: true
+  RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: CampaignInfo
+  HandlerConfig: 
+  Help: ''
+  HideHelp: false
+  ID: f57bc344-22e1-4df3-be2e-877d0da278ca
+  ModeratorOnly: false
+  Name: info
   RespondInOverlay: true
   RespondInTwitch: true
 DisableAutomaticFulfillment: false
