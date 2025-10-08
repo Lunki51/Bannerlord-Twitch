@@ -69,7 +69,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero, filtered by Clan
-  Enabled: true
+  Enabled: false
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -137,7 +137,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero, filtered by Faction <br> Can do "!adoptByFaction list" for a list of factions
-  Enabled: true
+  Enabled: false
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -171,7 +171,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero, filtered by Hero Name
-  Enabled: true
+  Enabled: false
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -205,7 +205,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a newly created Hero
-  Enabled: true
+  Enabled: false
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -239,7 +239,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero
-  Enabled: true
+  Enabled: false
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -803,7 +803,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: false
 - Documentation: Show your heroes family information
-  Enabled: false
+  Enabled: true
   Handler: HeroInfoCommand
   HandlerConfig:
     MinSkillToShow: 100
@@ -829,7 +829,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: ''
-  Enabled: false
+  Enabled: true
   Handler: ItemStats
   HandlerConfig: 
   Help: ''
@@ -840,7 +840,7 @@ Commands:
   RespondInOverlay: true
   RespondInTwitch: false
 - Documentation: ''
-  Enabled: false
+  Enabled: true
   Handler: AttributePoints
   HandlerConfig:
     AmountHigh: 1
@@ -865,6 +865,19 @@ Commands:
   Name: info
   RespondInOverlay: true
   RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: Rejuvenate
+  HandlerConfig:
+    Age: 1
+    Price: 10000
+  Help: ''
+  HideHelp: false
+  ID: 1a8ec0e1-f46b-4c09-9102-09577b238047
+  ModeratorOnly: false
+  Name: rejuvenate
+  RespondInOverlay: true
+  RespondInTwitch: false
 DisableAutomaticFulfillment: false
 GlobalConfigs:
 - Config:
@@ -3852,7 +3865,7 @@ Rewards:
     Prompt: '{=6amYI1lf}Get a hero in game with a specific culture. Almost all other actions require an adopted hero. Enter part of the culture name:'
     Title: Adopt a Hero by Culture
 - Documentation: Adopt a randomly selected Hero, filtered by Faction.  Enter "list" to get a list of factions
-  Enabled: true
+  Enabled: false
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false

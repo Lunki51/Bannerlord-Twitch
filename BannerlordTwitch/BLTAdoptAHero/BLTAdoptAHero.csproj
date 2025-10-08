@@ -355,6 +355,7 @@
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
+    <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />

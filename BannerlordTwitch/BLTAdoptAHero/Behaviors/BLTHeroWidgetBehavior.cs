@@ -109,6 +109,7 @@ namespace BLTAdoptAHero
                             vm.FontSize = Math.Max(15, (int)(24f * scale));
                             vm.PositionX = x - vm.Width * 0.5f;
                             vm.PositionY = y - vm.Height * 0.5f - 5f;
+                            vm.originalY = y - vm.Height * 0.5f - 5f;
 
                             heroVMs.Add((hero, vm, dist));
 
@@ -140,25 +141,25 @@ namespace BLTAdoptAHero
             // --- Step 2: Sort visible widgets by vertical position (sweep-line) ---
             var sorted = heroVMs
                 .Where(h => h.vm.IsVisible)
-                .OrderBy(h => h.vm.PositionY)
+                .OrderBy(h => h.dist)
                 .ToList();
 
             float minOverlapY = 4f;  // minimum vertical overlap to trigger adjustment
             float paddingY = 2f;     // extra space between widgets
             float slideFactor = 0.5f; // fraction of overlap to push
+            float maxYup = 70f;
+            float maxYdown = 30f;
 
             // --- Step 3: Sweep-line / spatial partition for overlap adjustment ---
             for (int i = 0; i < sorted.Count - 1; i++)
             {
                 var anchor = sorted[i].vm;
 
-                // Only check widgets within reasonable vertical distance
                 for (int j = i + 1; j < sorted.Count; j++)
                 {
                     var farther = sorted[j].vm;
                     if (!farther.IsVisible) continue;
 
-                    // Skip if vertical distance is already larger than max possible overlap
                     if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
                         break;
 
@@ -172,7 +173,13 @@ namespace BLTAdoptAHero
                         float overlapAmountY = (anchor.PositionY + anchor.Height) - farther.PositionY;
                         if (overlapAmountY > minOverlapY)
                         {
-                            farther.PositionY += overlapAmountY * slideFactor + paddingY; // slide down smoothly
+                            float newY = farther.PositionY + overlapAmountY * slideFactor + paddingY;
+
+                            // clamp movement relative to each VM’s originalY
+                            float maxUp = farther.originalY + maxYup;
+                            float maxDown = farther.originalY - maxYdown;
+
+                            farther.PositionY = MBMath.ClampFloat(newY, maxDown, maxUp);
                         }
                     }
                 }
@@ -251,6 +258,7 @@ namespace BLTAdoptAHero
         private bool _isVisible;
         private float _positionX;
         private float _positionY;
+        public float originalY;
         private string _color;
         private float _width;
         private float _height;

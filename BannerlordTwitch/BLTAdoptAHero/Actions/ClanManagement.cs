@@ -571,7 +571,7 @@ namespace BLTAdoptAHero.Actions
             clanStats.Append("{=sZcYhSOL}Leader: {leader} | ".Translate(("leader", adoptedHero.Clan.Leader.Name.ToString())));
             if (adoptedHero.Clan.Kingdom != null)
                 clanStats.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())));
-            clanStats.Append("{=Sg11nEUe}Tier: {tier} | ".Translate(("tier", adoptedHero.Clan.Tier.ToString())));
+            clanStats.Append("{=Sg11nEUe}Tier: {tier}({renown}) | ".Translate(("tier", adoptedHero.Clan.Tier.ToString()), ("renown", Math.Round(adoptedHero.Clan.Renown).ToString())));
             clanStats.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.TotalStrength).ToString())));
             if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
                 clanStats.Append("{=zVDODxiN}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
@@ -843,11 +843,11 @@ namespace BLTAdoptAHero.Actions
             }
             else if (adoptedHero.StayingInSettlement == adoptedHero.HomeSettlement)
             {
-                partyStats.Append("{=TESTING}Your hero has stayed at {place} for {time} days".Translate(("place", adoptedHero.StayingInSettlement.Name.ToString()), ("time", adoptedHero.PassedTimeAtHomeSettlement)));
+                partyStats.Append("{=TESTING}Your hero has stayed at {place} for {time} days".Translate(("place", adoptedHero.StayingInSettlement.Name.ToString()), ("time", Math.Round(adoptedHero.PassedTimeAtHomeSettlement, 1))));
             }
             else 
-            { partyStats.Append("{=TESTING}Your hero is not in a party".Translate());
-                if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && adoptedHero.GovernorOf == null && adoptedHero.CanLeadParty())
+            { partyStats.Append("{=TESTING}Your hero is not leading a party".Translate());
+                if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && adoptedHero.GovernorOf == null && adoptedHero.CanLeadParty() && !adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
                 {
                     if (!adoptedHero.IsClanLeader && adoptedHero.Clan.WarPartyComponents.Count >= adoptedHero.Clan.CommanderLimit)
                         partyStats.Append("{=TESTING} | Party limit reached".Translate());
@@ -986,7 +986,7 @@ namespace BLTAdoptAHero.Actions
             //    adoptedHero.PartyBelongedTo.RemoveParty();
             //var targetSettlement = Settlement.All.Where(s => s.IsTown).SelectRandom();
             //EnterSettlementAction.ApplyForCharacterOnly(adoptedHero, targetSettlement);
-            onSuccess("Clan leave doesnt work");
+            onSuccess("Clan leave doesnt work"); //attempt FactionDiscontinuationCampaignBehavior.FinalizeMapEvents!!
         }
 
         //private void HandleDisbandCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)

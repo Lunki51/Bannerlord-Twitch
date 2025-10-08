@@ -242,11 +242,12 @@ namespace BLTAdoptAHero.Actions
                 onFailure(Naming.NotEnoughGold(settings.JoinPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
-
+            AdoptedHeroFlags._allowKingdomMove = true;
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.JoinPrice, true);
             ChangeKingdomAction.ApplyByJoinToKingdom(adoptedHero.Clan, desiredKingdom);
             onSuccess("{=LSea9bms}Your clan {clanName} has joined the kingom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
             Log.ShowInformation("{=Lid1aV3k}{clanName} has joined kingdom {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
+            AdoptedHeroFlags._allowKingdomMove = false;
         }
 
         private void HandleRebelCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
@@ -286,12 +287,14 @@ namespace BLTAdoptAHero.Actions
                 onFailure(Naming.NotEnoughGold(settings.RebelPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
+            AdoptedHeroFlags._allowKingdomMove = true;
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.RebelPrice, true);
             IFaction oldBoss = adoptedHero.Clan.Kingdom;
             adoptedHero.Clan.ClanLeaveKingdom();
             DeclareWarAction.ApplyByRebellion(adoptedHero.Clan, oldBoss);
             FactionManager.DeclareWar(adoptedHero.Clan, oldBoss);
             onSuccess("{=PHuBl5tJ}Your clan has rebelled against {oldBoss} and declared war".Translate(("oldBoss", oldBoss)));
+            AdoptedHeroFlags._allowKingdomMove = false;
             return;
         }
 
@@ -309,16 +312,42 @@ namespace BLTAdoptAHero.Actions
             }
             
             bool war = false;
+            bool tribute = false;
             TextObject warList = new TextObject();
+            TextObject tributeList = new TextObject();
             foreach (Kingdom k in Kingdom.All)
             {
-                if ((adoptedHero.Clan.Kingdom != k) && (adoptedHero.Clan.Kingdom.IsAtWarWith(k)))
+                if (adoptedHero.Clan.Kingdom == k)
+                    continue;
+
+                StanceLink stance = adoptedHero.Clan.Kingdom.GetStanceWith(k);
+
+                if (adoptedHero.Clan.Kingdom.IsAtWarWith(k))
                 {
                     war = true;
-                    warList.Value = warList.Value + k.Name.Value + ":" + ((int)k.TotalStrength).ToString() + ", ";
+                    warList.Value += k.Name.Value + ":" + ((int)k.TotalStrength).ToString() + ", ";
+                }
+                else
+                {
+                    int dailyTributeFromUs = stance.GetDailyTributePaid(adoptedHero.Clan.Kingdom);
+                    int dailyTributeFromThem = stance.GetDailyTributePaid(k);
+
+                    if (dailyTributeFromUs > 0)
+                    {
+                        tribute = true;
+                        tributeList.Value +=
+                            $"{k.Name}:-{dailyTributeFromUs}, ";
+                    }
+                    else if (dailyTributeFromThem > 0)
+                    {
+                        tribute = true;
+                        tributeList.Value +=
+                            $"{k.Name}:+{dailyTributeFromUs}, ";
+                    }
                 }
             }
             warList.Value = warList.Value.TrimEnd(',', ' ');
+            tributeList.Value = tributeList.Value.TrimEnd(',', ' ');
 
             var clanStats = new StringBuilder();
             clanStats.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
@@ -333,7 +362,9 @@ namespace BLTAdoptAHero.Actions
             }
             if (war)
                 clanStats.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
-            if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
+            if (tribute)
+                clanStats.Append("{=TESTING}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
+                if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
                 clanStats.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
             if (adoptedHero.Clan.Kingdom.Fiefs.Count >= 1) 
             {
@@ -386,9 +417,10 @@ namespace BLTAdoptAHero.Actions
                 onSuccess("{=XWE579kx}Your clan has ended their mercenary contract".Translate());
                 return;
             }
-            
+            AdoptedHeroFlags._allowKingdomMove = true;
             adoptedHero.Clan.ClanLeaveKingdom(true);
             onSuccess("{=sc77IxCW}Your clan has left {oldBoss}".Translate(("oldBoss", oldBoss)));
+            AdoptedHeroFlags._allowKingdomMove = false;
             return;
         }
 

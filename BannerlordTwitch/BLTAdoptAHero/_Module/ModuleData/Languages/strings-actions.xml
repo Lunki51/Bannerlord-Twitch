@@ -243,7 +243,7 @@
 		<string id="Ki8jvwkw" text="Clan Name: {name} | "/>
 		<string id="sZcYhSOL" text="Leader: {leader} | "/>
 		<string id="ch83d8zT" text="Kingdom: {kingdom} | "/>
-		<string id="Sg11nEUe" text="Tier: {tier} | "/>
+		<string id="Sg11nEUe" text="Tier: {tier}({renown}) | "/>
 		<string id="ZFGikYn8" text="Strength: {strength} | "/>
 		<string id="zVDODxiN" text="Prisoner: {prisoner} | "/>
 		<string id="SDVLj0nw" text="Wealth: {wealth} | "/>
