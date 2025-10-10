@@ -342,7 +342,7 @@ namespace BLTAdoptAHero.Actions
                     {
                         tribute = true;
                         tributeList.Value +=
-                            $"{k.Name}:+{dailyTributeFromUs}, ";
+                            $"{k.Name}:+{dailyTributeFromThem}, ";
                     }
                 }
             }
