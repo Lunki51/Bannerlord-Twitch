@@ -207,13 +207,17 @@ namespace BLTAdoptAHero
             {
                 foreach (var clan in Clan.All)
                 {
-                    if (clan.Leader.IsAdopted())
+                    var leader = clan.Leader;
+                    if (leader == null)
+                        continue; // skip minor or destroyed clans
+
+                    if (leader.IsAdopted())
                     {
-                        if (clan.Leader.Gold <= 0)
+                        if (leader.Gold <= 0)
                         {
-                            clan.Leader.Gold = 25000;
+                            leader.Gold = 25000;
                         }
-                        if (clan.Influence <= 0 && !clan.IsUnderMercenaryService && clan.Kingdom != null)
+                        else if (clan.Influence <= 0 && !clan.IsUnderMercenaryService && clan.Kingdom != null)
                         {
                             clan.Influence = 100f;
                         }
