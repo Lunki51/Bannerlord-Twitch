@@ -102,7 +102,7 @@ namespace BLTAdoptAHero.Actions
                 if (JoinEnabled)
                     EnabledCommands.Append("Join, ");
                 if (MercenaryEnabled)
-                    EnabledCommands.Append("Mercenary, ");
+                    EnabledCommands.Append("Merc, ");
                 if (RebelEnabled)
                     EnabledCommands.Append("Rebel, ");
                 if (LeaveEnabled)
@@ -119,9 +119,12 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "Max Clans={maxHeroes}, ".Translate(("maxClans", JoinMaxClans.ToString())) +
                                     "Price={price}{icon}, ".Translate(("price", JoinPrice.ToString()), ("icon", Naming.Gold)) +
-                                    "Mercenary={mercenary}, " +
-                                    "Price={price}{icon}, ".Translate(("price", MercPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Allow Join Players Kingdom?={allowPlayer}".Translate(("allowPlayer", JoinAllowPlayer.ToString())));
+                if (MercenaryEnabled)
+                    generator.Value("<strong>" +
+                                    "Mercenary: " +
+                                    "</strong>" +
+                    "{mercenary}{icon}, ".Translate(("mercenary", MercPrice.ToString()), ("icon", Naming.Gold)));
 
                 if (RebelEnabled)
                     generator.Value("<strong>" +
@@ -363,7 +366,7 @@ namespace BLTAdoptAHero.Actions
             if (war)
                 clanStats.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
             if (tribute)
-                clanStats.Append("{=TESTING}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
+                clanStats.Append("{=0GhTvF3K}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
                 if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
                 clanStats.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
             if (adoptedHero.Clan.Kingdom.Fiefs.Count >= 1) 

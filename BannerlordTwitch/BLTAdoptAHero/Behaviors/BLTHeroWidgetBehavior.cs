@@ -147,8 +147,8 @@ namespace BLTAdoptAHero
             float minOverlapY = 4f;  // minimum vertical overlap to trigger adjustment
             float paddingY = 2f;     // extra space between widgets
             float slideFactor = 0.5f; // fraction of overlap to push
-            float maxYup = 70f;
-            float maxYdown = 30f;
+            float maxYup = 80f;
+            float maxYdown = 40f;
 
             // --- Step 3: Sweep-line / spatial partition for overlap adjustment ---
             for (int i = 0; i < sorted.Count - 1; i++)

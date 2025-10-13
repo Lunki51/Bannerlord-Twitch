@@ -413,6 +413,10 @@ namespace BLTAdoptAHero
                                 : "{=RfTn6PsS}Son, ".Translate();
                             kids += ((int)c.Age).ToString();
 
+                            if (c.IsDead)
+                            {
+                                kids += "{=abarE7q2}, Dead".Translate();
+                            }
                             if (c.Spouse != null)
                             {
                                 kids += "{=sf2lvgLN}, Married:".Translate();

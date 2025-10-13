@@ -205,7 +205,7 @@ namespace BLTAdoptAHero.Actions
                     generator.Value("<strong>" +
                                     "Create Config: " +
                                     "</strong>" +
-                                    "Price={price}{icon}".Translate(("price", CreatePrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Price={price}{icon}, ".Translate(("price", CreatePrice.ToString()), ("icon", Naming.Gold)) +
                                     "Renown={renown}, ".Translate(("renown", Renown)));
                 if (LeadEnabled)
                     generator.Value("<strong>" +
@@ -579,7 +579,7 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=zVDODxiN}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
             clanStats.Append("{=SDVLj0nw}Wealth: {wealth} | ".Translate(("wealth", adoptedHero.Clan.Leader.Gold.ToString())));
             clanStats.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
-            clanStats.Append("{=TESTING}Parties: {cparties}/{mparties} |".Translate(("cparties", adoptedHero.Clan.WarPartyComponents.Count), ("mparties", adoptedHero.Clan.CommanderLimit)));
+            clanStats.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} |".Translate(("cparties", adoptedHero.Clan.WarPartyComponents.Count), ("mparties", adoptedHero.Clan.CommanderLimit)));
             if (adoptedHero.Clan.Fiefs.Count >= 1)
             {
                 int townCount = 0;
@@ -621,7 +621,8 @@ namespace BLTAdoptAHero.Actions
             {
                 partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
                 partyStats.Append(" | ");
-                partyStats.Append("{=B2xDasDx}Last seen near {Place}".Translate(("Place", adoptedHero.PartyBelongedToAsPrisoner.LeaderHero.LastKnownClosestSettlement.Name)));
+                var place = adoptedHero.PartyBelongedToAsPrisoner?.LeaderHero?.LastKnownClosestSettlement?.Name?.ToString() ?? "Unknown";
+                partyStats.Append("{=B2xDasDx}Last seen near {Place}".Translate(("Place", place)));
 
             }
             else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
@@ -841,26 +842,26 @@ namespace BLTAdoptAHero.Actions
                     }
                 }
             }
-            else if (adoptedHero.StayingInSettlement == adoptedHero.HomeSettlement)
+            else if (adoptedHero.StayingInSettlement != null)
             {
-                partyStats.Append("{=TESTING}Your hero has stayed at {place} for {time} days".Translate(("place", adoptedHero.StayingInSettlement.Name.ToString()), ("time", Math.Round(adoptedHero.PassedTimeAtHomeSettlement, 1))));
+                partyStats.Append("{=dMOlobea}Your hero is staying at {place}".Translate(("place", adoptedHero.StayingInSettlement.Name.ToString())));
             }
             else 
-            { partyStats.Append("{=TESTING}Your hero is not leading a party".Translate());
+            { partyStats.Append("{=LVFh1Pd5}Your hero is not leading a party".Translate());
                 if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && adoptedHero.GovernorOf == null && adoptedHero.CanLeadParty() && !adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
                 {
                     if (!adoptedHero.IsClanLeader && adoptedHero.Clan.WarPartyComponents.Count >= adoptedHero.Clan.CommanderLimit)
-                        partyStats.Append("{=TESTING} | Party limit reached".Translate());
+                        partyStats.Append("{=sKbTZzds} | Party limit reached".Translate());
                     else
                     {
                         try
                         {
                             adoptedHero.Clan.CreateNewMobileParty(adoptedHero);
-                            partyStats.Append("{=TESTING} | Create party".Translate());
+                            partyStats.Append("{=wNXoOa5K} | Create party".Translate());
                         }
                         catch
                         {
-                            partyStats.Append("{=TESTING} | Create party failed".Translate());
+                            partyStats.Append("{=rFBSpayQ} | Create party failed".Translate());
                             var clan = adoptedHero.Clan;
                             bool leader = adoptedHero.IsClanLeader;
 

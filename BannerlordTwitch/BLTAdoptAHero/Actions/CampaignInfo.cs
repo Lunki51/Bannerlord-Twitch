@@ -14,8 +14,8 @@ using TaleWorlds.Localization;
 
 namespace BLTAdoptAHero
 {
-    [LocDisplayName("{=TESTING}CampaignInfo"),
-     LocDescription("{=TESTING}Shows kingdom list, culture list, wars list and specific kingdom/war info"),
+    [LocDisplayName("{=OpptAAU9}CampaignInfo"),
+     LocDescription("{=5FynPtK8}Shows kingdom list, culture list, wars list and specific kingdom/war info"),
      UsedImplicitly]
     public class CampaignInfo : ICommandHandler
     {
@@ -31,7 +31,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                ActionManager.SendReply(context, "{=TESTING}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))".Translate());
+                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))".Translate());
                 return;
             }
 
@@ -65,7 +65,7 @@ namespace BLTAdoptAHero
 
                 default:
                     ActionManager.SendReply(context,
-                        "{=TESTING}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))".Translate());
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))".Translate());
                     break;
             }
         }
@@ -74,7 +74,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(desiredName))
             {
-                ActionManager.SendReply(context, "{=TESTING}Need kingdom name".Translate());
+                ActionManager.SendReply(context, "{=DSNx7CFT}Need kingdom name".Translate());
                 return;
             }
 
@@ -104,7 +104,7 @@ namespace BLTAdoptAHero
             sb.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", desiredKingdom.Name.ToString())));
             sb.Append("{=Ss588M9l}Ruling Clan: {rulingClan} | ".Translate(("rulingClan", desiredKingdom.RulingClan.Name.ToString())));
             sb.Append("{=T1FhhCH9}Clan Count: {count} | ".Translate(("count", desiredKingdom.Clans.Count)));
-            sb.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(desiredKingdom.TotalStrength))));
+            sb.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(desiredKingdom.TotalStrength).ToString())));
             if (war)
                 sb.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
             if (desiredKingdom.RulingClan.HomeSettlement != null)
@@ -134,14 +134,15 @@ namespace BLTAdoptAHero
                 }
                 seen.Add(k1.StringId);
             }
-            ActionManager.SendReply(context, sb.ToString().TrimEnd('|', ' '));
+            string warList = sb.ToString().Substring(0, sb.Length - 3);
+            ActionManager.SendReply(context, warList);
         }
 
         private void ShowWar(string desiredName, ReplyContext context)
         {
             if (string.IsNullOrWhiteSpace(desiredName))
             {
-                ActionManager.SendReply(context, "{=TESTING}Need kingdom name".Translate());
+                ActionManager.SendReply(context, "{=DSNx7CFT}Need kingdom name".Translate());
                 return;
             }
 
@@ -158,7 +159,7 @@ namespace BLTAdoptAHero
             if (!Kingdom.All.Any(k => k.IsAtWarWith(desiredKingdom)))
             {
                 ActionManager.SendReply(context,
-                    "{=TESTING}{kingdom} is not at war".Translate(("kingdom", desiredKingdom.Name.ToString())));
+                    "{=Lk1NDpuQ}{kingdom} is not at war".Translate(("kingdom", desiredKingdom.Name.ToString())));
                 return;
             }
 
@@ -168,7 +169,7 @@ namespace BLTAdoptAHero
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     var stance = desiredKingdom.GetStanceWith(k);
-                    sb.Append("{=TESTING}{k1} VS {k2} = Casualties: {c1}/{c2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"
+                    sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"
                         .Translate(
                             ("k1", desiredKingdom.Name.ToString()),
                             ("k2", k.Name.ToString()),

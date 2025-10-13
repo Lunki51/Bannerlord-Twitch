@@ -141,6 +141,11 @@ namespace BLTAdoptAHero.Actions
                         onFailure("{=rS4Ykysf}Changing heroes gender is not enabled".Translate());
                         return;
                     }
+                    if (splitArgs.Length < 2 || string.IsNullOrWhiteSpace(splitArgs[1]))
+                    {
+                        onFailure("{=rPqyzuoG}Invalid entry (male/female)".Translate());
+                        return;
+                    }
                     if (!BLTAdoptAHeroCampaignBehavior.Current.GetIsCreatedHero(adoptedHero) && settings.GenderDisabledonNative)
                     {
                         onFailure("{=XfKeCtCR}Changing heroes gender is only enabled for created heroes".Translate());
@@ -274,6 +279,7 @@ namespace BLTAdoptAHero.Actions
 
                         Hero SpawnSpouse(string cultureArg = null)
                         {
+                            bool fallback = false;
                             var cultureToSpawn = !string.IsNullOrEmpty(cultureArg)
                                 ? CampaignHelpers.MainCultures.FirstOrDefault(c => c.Name.ToString().StartsWith(cultureArg, StringComparison.CurrentCultureIgnoreCase))
                                 : adoptedHero.Culture;
@@ -283,7 +289,10 @@ namespace BLTAdoptAHero.Actions
 
                             var character = CampaignHelpers.GetWandererTemplates(cultureToSpawn).SelectRandom();
                             if (character == null)
+                            {
                                 character = CampaignHelpers.AllWandererTemplates.SelectRandom();
+                                fallback = true;
+                            }                                
 
                             if (character == null)
                             {
@@ -333,7 +342,8 @@ namespace BLTAdoptAHero.Actions
                             string oldName = newHero.Name.ToString();
 
                             CampaignHelpers.SetHeroName(newHero, objectName, objectName);
-
+                            if (fallback)
+                                newHero.Culture = cultureToSpawn;
                             return newHero;
                         }
 
@@ -483,6 +493,30 @@ namespace BLTAdoptAHero.Actions
                             return;
                         }
                     }
+                //case "race":
+                //    {
+                //        if (splitArgs.Length < 2 || !int.TryParse(splitArgs[1], out int race))
+                //        {
+                //            onFailure("Usage: race <int>".Translate());
+                //            return;
+                //        }
+
+                //        BodyProperties newBody = BodyProperties.GetRandomBodyProperties(
+                //            race,
+                //            adoptedHero.IsFemale,
+                //            BodyProperties.Default,
+                //            BodyProperties.Default,
+                //            0,
+                //            MBRandom.RandomInt(),
+                //            "",
+                //            "",
+                //            ""
+                //        );
+
+                //        adoptedHero.UpdatePlayerCharacterBodyProperties(newBody, race, adoptedHero.IsFemale);
+                //        onSuccess($"Hero race set to {race}".Translate());
+                //        return;
+                //    }
                 default:
                     onFailure("{=6t9UWDR2}Invalid action".Translate());
                     return;

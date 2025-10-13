@@ -203,7 +203,8 @@ namespace BLTAdoptAHero
             {
                 CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, OnWeeklyTick);
             }
-            public void OnWeeklyTick()
+
+            private void OnWeeklyTick()
             {
                 foreach (var clan in Clan.All)
                 {
@@ -213,6 +214,7 @@ namespace BLTAdoptAHero
 
                     if (leader.IsAdopted())
                     {
+                        leader.Clan.Renown += 5f;
                         if (leader.Gold <= 0)
                         {
                             leader.Gold = 25000;

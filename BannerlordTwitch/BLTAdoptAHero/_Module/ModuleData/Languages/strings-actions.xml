@@ -248,6 +248,7 @@
 		<string id="zVDODxiN" text="Prisoner: {prisoner} | "/>
 		<string id="SDVLj0nw" text="Wealth: {wealth} | "/>
 		<string id="eHJYAZha" text="Members: {members}"/>
+		<string id="Ib213Hp9" text="Parties: {cparties}/{mparties} |"/>
 		<string id="BwuFSJU1" text="Towns: {towns} | "/>
 		<string id="0rMNNQ7R" text="Castles: {castles}"/>
 		<string id="r1nJTiSA" text="Your hero has just been released"/>
@@ -273,6 +274,11 @@
 		<string id="CVzSgXhT" text="Army: {army}"/>
 		<string id="d76wc5iS" text="[Strength: {strength} | "/>
 		<string id="7p5j5Mlx" text="Party nº: {count}] "/>
+		<string id="dMOlobea" text="Your hero is staying at {place}"/>
+		<string id="LVFh1Pd5" text="Your hero is not leading a party"/>
+		<string id="sKbTZzds" text=" | Party limit reached"/>
+		<string id="wNXoOa5K" text=" | Create party"/>
+		<string id="rFBSpayQ" text=" | Create party failed"/>
 		<string id="6q8NKGam" text="Clan fiefs is disabled"/>
 		<string id="ssqRB9Ye" text="You have no fiefs"/>
 		<string id="sJdd2kgr" text="Editing banners is disabled"/>
@@ -358,6 +364,7 @@
 		<string id="6VFGXqRe" text="Influence: {influence} | "/>
 		<string id="PbxexPi9" text="Mercenary💰: {mercenary} | "/>
 		<string id="QadZnUKh" text="Wars: {wars} | "/>
+		<string id="0GhTvF3K" text="Tribute: {tribute} | "/>
 		<string id="EXKsUpaU" text="Capital: {capital} | "/>
 		<string id="ozTfk7uB" text="Kingdom leaving is disabled"/>
 		<string id="XWE579kx" text="You cannot leave your kingdom, as you are not your clans leader!"/>
@@ -367,6 +374,15 @@
 		<string id="7nEJJGzL" text="Already a mercenary!"/>
 		<string id="ETfJQatX" text="(merc) (kingdom name)"/>
 		<string id="tpwW6Ix8" text="{clanName} is now under contract with {kingdomName}!"/>
+		
+		<!-- CampaignInfo -->
+		<string id="OpptAAU9" text="CampaignInfo"/>
+		<string id="5FynPtK8" text="Shows kingdom list, culture list, wars list and specific kingdom/war info"/>
+		<string id="tk7R3uwg" text="invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))"/>
+		<string id="DSNx7CFT" text="Need kingdom name"/>
+		<string id="Lk1NDpuQ" text="{kingdom} is not at war"/>
+		<string id="N9b5k8FR" text="{k1} VS {k2} = Casualties: {c1}/{c2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"/>
+		
         
         <!-- Subscriber Only -->
         <string id="4zAUTiSP" text="Subscriber Only"/>
@@ -828,6 +844,8 @@
         <string id="Ve0MnA3y" text="Daughter, "/>
 		<!-- Son,  -->
         <string id="RfTn6PsS" text="Son, "/>
+		<!-- , Dead -->
+        <string id="abarE7q2" text=", Dead"/>
 		<!-- , Married: -->
         <string id="sf2lvgLN" text=", Married:"/>
 		<!-- You have no children -->
