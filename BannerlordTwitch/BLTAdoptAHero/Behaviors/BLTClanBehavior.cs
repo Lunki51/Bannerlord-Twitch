@@ -208,24 +208,31 @@ namespace BLTAdoptAHero
             {
                 foreach (var clan in Clan.All)
                 {
+                    if (clan == null
+                        || !clan.IsInitialized
+                        || clan.IsEliminated
+                        || clan.IsBanditFaction
+                        || clan.IsMinorFaction
+                        || clan.IsClanTypeMercenary
+                        || clan.IsRebelClan)
+                        continue;
+
                     var leader = clan.Leader;
-                    if (leader == null)
-                        continue; // skip minor or destroyed clans
+                    if (leader == null || !leader.IsAlive)
+                        continue;
 
                     if (leader.IsAdopted())
                     {
-                        leader.Clan.Renown += 5f;
+                        clan.Renown += 5f;
+
                         if (leader.Gold <= 0)
-                        {
                             leader.Gold = 25000;
-                        }
                         else if (clan.Influence <= 0 && !clan.IsUnderMercenaryService && clan.Kingdom != null)
-                        {
                             clan.Influence = 100f;
-                        }
                     }
                 }
             }
         }
     }
-}
+ }
+
