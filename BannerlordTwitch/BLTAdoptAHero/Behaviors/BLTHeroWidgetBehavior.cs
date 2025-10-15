@@ -113,7 +113,6 @@ namespace BLTAdoptAHero
 
                             heroVMs.Add((hero, vm, dist));
 
-                            // Cache team color per hero
                             if (!heroTeamCache.ContainsKey(hero))
                                 heroTeamCache[hero] = inTournament
                                     ? GetTournamentTeamColor(hero)
@@ -138,7 +137,7 @@ namespace BLTAdoptAHero
                 }
             }
 
-            // --- Step 2: Sort visible widgets by vertical position (sweep-line) ---
+            // Sort visible widgets by distance
             var sorted = heroVMs
                 .Where(h => h.vm.IsVisible)
                 .OrderBy(h => h.dist)
@@ -147,10 +146,9 @@ namespace BLTAdoptAHero
             float minOverlapY = 4f;  // minimum vertical overlap to trigger adjustment
             float paddingY = 2f;     // extra space between widgets
             float slideFactor = 0.5f; // fraction of overlap to push
-            float maxYup = 80f;
-            float maxYdown = 40f;
+            float maxYup = 120f;
+            float maxYdown = 80f;
 
-            // --- Step 3: Sweep-line / spatial partition for overlap adjustment ---
             for (int i = 0; i < sorted.Count - 1; i++)
             {
                 var anchor = sorted[i].vm;
@@ -173,26 +171,30 @@ namespace BLTAdoptAHero
                         float overlapAmountY = (anchor.PositionY + anchor.Height) - farther.PositionY;
                         if (overlapAmountY > minOverlapY)
                         {
-                            float newY = farther.PositionY + overlapAmountY * slideFactor + paddingY;
+                            float deltaY = overlapAmountY * slideFactor;
 
-                            // clamp movement relative to each VM’s originalY
-                            float maxUp = farther.originalY + maxYup;
-                            float maxDown = farther.originalY - maxYdown;
+                            // clamp main movement relative to originalY
+                            float maxUp = farther.originalY - maxYup;    // cannot move above this
+                            float maxDown = farther.originalY + maxYdown; // cannot move below this
+                            float clampedY = MBMath.ClampFloat(farther.PositionY + deltaY, maxUp, maxDown);
 
-                            farther.PositionY = MBMath.ClampFloat(newY, maxDown, maxUp);
+                            // add padding after clamping, still respecting screen bounds
+                            float newY = clampedY + paddingY;
+                            newY = MBMath.ClampFloat(newY, 0f, Screen.RealScreenResolutionHeight - farther.Height);
+
+                            farther.PositionY = newY;
                         }
                     }
                 }
             }
 
-            // --- Step 4: Apply cached colors ---
+
             foreach (var (hero, vm, dist) in heroVMs)
             {
                 if (heroTeamCache.TryGetValue(hero, out var color))
                     vm.Color = color;
             }
 
-            // --- Step 5: Remove inactive heroes ---
             var toRemove = _heroToVM.Keys.Except(heroBehavior.activeHeroes).ToList();
             foreach (var hero in toRemove)
             {
