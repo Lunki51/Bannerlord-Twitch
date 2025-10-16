@@ -109,7 +109,6 @@ namespace BLTAdoptAHero
                             vm.FontSize = Math.Max(15, (int)(24f * scale));
                             vm.PositionX = x - vm.Width * 0.5f;
                             vm.PositionY = y - vm.Height * 0.5f - 5f;
-                            vm.originalY = y - vm.Height * 0.5f - 5f;
 
                             heroVMs.Add((hero, vm, dist));
 
@@ -146,8 +145,6 @@ namespace BLTAdoptAHero
             float minOverlapY = 4f;  // minimum vertical overlap to trigger adjustment
             float paddingY = 2f;     // extra space between widgets
             float slideFactor = 0.5f; // fraction of overlap to push
-            float maxYup = 120f;
-            float maxYdown = 80f;
 
             for (int i = 0; i < sorted.Count - 1; i++)
             {
@@ -171,18 +168,7 @@ namespace BLTAdoptAHero
                         float overlapAmountY = (anchor.PositionY + anchor.Height) - farther.PositionY;
                         if (overlapAmountY > minOverlapY)
                         {
-                            float deltaY = overlapAmountY * slideFactor;
-
-                            // clamp main movement relative to originalY
-                            float maxUp = farther.originalY - maxYup;    // cannot move above this
-                            float maxDown = farther.originalY + maxYdown; // cannot move below this
-                            float clampedY = MBMath.ClampFloat(farther.PositionY + deltaY, maxUp, maxDown);
-
-                            // add padding after clamping, still respecting screen bounds
-                            float newY = clampedY + paddingY;
-                            newY = MBMath.ClampFloat(newY, 0f, Screen.RealScreenResolutionHeight - farther.Height);
-
-                            farther.PositionY = newY;
+                            farther.PositionY += overlapAmountY * slideFactor + paddingY;
                         }
                     }
                 }
@@ -260,7 +246,6 @@ namespace BLTAdoptAHero
         private bool _isVisible;
         private float _positionX;
         private float _positionY;
-        public float originalY;
         private string _color;
         private float _width;
         private float _height;
