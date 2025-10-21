@@ -106,7 +106,7 @@ namespace BLTAdoptAHero.Actions
                 if (RebelEnabled)
                     EnabledCommands.Append("Rebel, ");
                 if (LeaveEnabled)
-                    EnabledCommands.Append("Leave, "); 
+                    EnabledCommands.Append("Leave, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
 
@@ -313,7 +313,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
                 return;
             }
-            
+
             bool war = false;
             bool tribute = false;
             TextObject warList = new TextObject();
@@ -360,16 +360,16 @@ namespace BLTAdoptAHero.Actions
             clanStats.Append("{=6VFGXqRe}Influence: {influence} | ".Translate(("influence", Math.Round(adoptedHero.Clan.Influence).ToString())));
             if (adoptedHero.Clan.IsUnderMercenaryService)
             {
-                string mercGold = (adoptedHero.Clan.MercenaryAwardMultiplier * (Math.Round(adoptedHero.Clan.Influence / 5f)+1)).ToString() + "/" + adoptedHero.Clan.MercenaryAwardMultiplier.ToString();
+                string mercGold = (adoptedHero.Clan.MercenaryAwardMultiplier * (Math.Round(adoptedHero.Clan.Influence / 5f) + 1)).ToString() + "/" + adoptedHero.Clan.MercenaryAwardMultiplier.ToString();
                 clanStats.Append("{=PbxexPi9}Mercenary💰: {mercenary} | ".Translate(("mercenary", mercGold)));
             }
             if (war)
                 clanStats.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
             if (tribute)
                 clanStats.Append("{=0GhTvF3K}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
-                if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
+            if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
                 clanStats.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
-            if (adoptedHero.Clan.Kingdom.Fiefs.Count >= 1) 
+            if (adoptedHero.Clan.Kingdom.Fiefs.Count >= 1)
             {
                 int townCount = 0;
                 int castleCount = 0;
@@ -381,7 +381,7 @@ namespace BLTAdoptAHero.Actions
                     }
                     if (settlement.IsCastle)
                     {
-                        castleCount++; 
+                        castleCount++;
                     }
                 }
                 clanStats.Append("{=BwuFSJU1}Towns: {towns} | ".Translate(("towns", (object)townCount)));
@@ -421,8 +421,16 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
             AdoptedHeroFlags._allowKingdomMove = true;
-            adoptedHero.Clan.ClanLeaveKingdom(true);
+            foreach (var fief in adoptedHero.Clan.Settlements.ToList())
+            {
+                Hero ruler = adoptedHero.Clan.Kingdom?.RulingClan?.Leader;
+                if (ruler != null && ruler != adoptedHero)
+                {
+                    ChangeOwnerOfSettlementAction.ApplyByDefault(ruler, fief);
+                }
+            }
             onSuccess("{=sc77IxCW}Your clan has left {oldBoss}".Translate(("oldBoss", oldBoss)));
+            adoptedHero.Clan.ClanLeaveKingdom();
             AdoptedHeroFlags._allowKingdomMove = false;
             return;
         }

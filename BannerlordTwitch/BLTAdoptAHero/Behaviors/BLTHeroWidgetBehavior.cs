@@ -57,21 +57,20 @@ namespace BLTAdoptAHero
             //Log.Trace("BLTAdoptAHero: Initializing UI.");
             this._vm = new HeroWidgetVM();
             this._layer = new GauntletLayer(111, "BLTHeroWidgetLayer", false);
-            this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);            
+            this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);
             this.MissionScreen.AddLayer(_layer);
             //Log.Trace("BLTAdoptAHero: Layer added to MissionScreen.");
             //Log.Trace($"BLTAdoptAHero: Movie loaded. RootWidget is Null? {_gauntletMovie.RootWidget == null}");
-            this._camera = MissionScreen.CombatCamera;           
+            this._camera = MissionScreen.CombatCamera;
         }
 
         internal void UpdateHeroIcons(BLTAdoptAHeroCommonMissionBehavior heroBehavior)
         {
             bool inTournament = MissionHelpers.InTournament();
             if (!_isInitialized || _camera == null) return;
-            
+
             var heroVMs = new List<(Hero hero, HeroIconVM vm, float dist)>();
 
-            // --- Step 1: Update positions, scale, visibility and cache distances & team colors ---
             var heroTeamCache = new Dictionary<Hero, string>();
             foreach (var hero in heroBehavior.activeHeroes)
             {
@@ -110,6 +109,7 @@ namespace BLTAdoptAHero
                             vm.PositionX = x - vm.Width * 0.5f;
                             vm.PositionY = y - vm.Height * 0.5f - 5f;
 
+
                             heroVMs.Add((hero, vm, dist));
 
                             if (!heroTeamCache.ContainsKey(hero))
@@ -136,15 +136,14 @@ namespace BLTAdoptAHero
                 }
             }
 
-            // Sort visible widgets by distance
             var sorted = heroVMs
                 .Where(h => h.vm.IsVisible)
                 .OrderBy(h => h.dist)
                 .ToList();
 
-            float minOverlapY = 4f;  // minimum vertical overlap to trigger adjustment
-            float paddingY = 2f;     // extra space between widgets
-            float slideFactor = 0.5f; // fraction of overlap to push
+            float minOverlapY = 4f;
+            float paddingY = 2f;
+            float slideFactor = 0.5f;
 
             for (int i = 0; i < sorted.Count - 1; i++)
             {
@@ -174,13 +173,14 @@ namespace BLTAdoptAHero
                 }
             }
 
-
+            // --- Step 4: Apply cached colors ---
             foreach (var (hero, vm, dist) in heroVMs)
             {
                 if (heroTeamCache.TryGetValue(hero, out var color))
                     vm.Color = color;
             }
 
+            // --- Step 5: Remove inactive heroes ---
             var toRemove = _heroToVM.Keys.Except(heroBehavior.activeHeroes).ToList();
             foreach (var hero in toRemove)
             {
@@ -223,10 +223,10 @@ namespace BLTAdoptAHero
         {
             _heroToVM.Clear();
             _vm?.Heroes.Clear();
-            
-            if (_layer != null && MissionScreen != null)            
+
+            if (_layer != null && MissionScreen != null)
                 MissionScreen.RemoveLayer(_layer);
-                
+
             _layer = null;
             _vm = null;
             _camera = null;

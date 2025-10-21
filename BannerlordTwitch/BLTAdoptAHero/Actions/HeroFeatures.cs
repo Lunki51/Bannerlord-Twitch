@@ -67,13 +67,13 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Marriage", "{=PUP4VDH3}Marriage"),
              LocDescription("{=n7fZ5jrr}Spawn spouse instead of choosing existing hero"),
              PropertyOrder(7), UsedImplicitly]
-            public bool OnlySpawnSpouse { get; set; } = false;
+            public bool OnlySpawnSpouse { get; set; } = true;
 
             [LocDisplayName("{=gMbchUTO}Allow clan or name selection"),
              LocCategory("Marriage", "{=PUP4VDH3}Marriage"),
              LocDescription("{=GYzk7nZB}Allow selecting by clan or hero name"),
              PropertyOrder(8), UsedImplicitly]
-            public bool ClanorName { get; set; } = true;
+            public bool ClanorName { get; set; } = false;
 
             //[locdisplayname("{=testing}allow viewer marriage"),
             // loccategory("marriage", "{=testing}marriage"),
@@ -254,6 +254,11 @@ namespace BLTAdoptAHero.Actions
                             onFailure("{=5LxKguGE}Hero marriage is not enabled".Translate());
                             return;
                         }
+                        if (adoptedHero.Occupation != Occupation.Lord)
+                        {
+                            onFailure("{=TESTING}Not a noble".Translate());
+                            return;
+                        }
                         if (adoptedHero.Spouse != null)
                         {
                             onFailure("{=42LsY2qb}You are already married".Translate());
@@ -292,7 +297,7 @@ namespace BLTAdoptAHero.Actions
                             {
                                 character = CampaignHelpers.AllWandererTemplates.SelectRandom();
                                 fallback = true;
-                            }                                
+                            }
 
                             if (character == null)
                             {
@@ -323,7 +328,7 @@ namespace BLTAdoptAHero.Actions
 
                             newHero.SetNewOccupation(Occupation.Lord);
                             newHero.Clan = adoptedHero.Clan;
-      
+
                             var randAge = new Random();
                             newHero.SetBirthDay(CampaignTime.YearsFromNow(-Math.Max(Campaign.Current.Models.AgeModel.HeroComesOfAge, adoptedHero.Age + randAge.Next(-3, +3))));
 
@@ -361,7 +366,7 @@ namespace BLTAdoptAHero.Actions
 
                             adoptedHero.Spouse = newHero;
                             newHero.Spouse = adoptedHero;
-                            
+
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MarriageCost);
                             onSuccess("{=JW5L4lvt}Marriage successful with spawned spouse".Translate());
                             Log.ShowInformation("{=h6AHfoVx}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(newHero.Name.ToString()))),
@@ -399,7 +404,7 @@ namespace BLTAdoptAHero.Actions
                             if (!string.IsNullOrEmpty(spouseArg))
                             {
                                 string argLower = spouseArg.ToLowerInvariant().Trim();
-                                
+
 
                                 if (settings.ClanorName)
                                 {

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
@@ -15,11 +17,13 @@ namespace BLTAdoptAHero
         private BLTFamily _bltFamily;
         private CampaignTime _lastFamilyInitTime;
         public BLTSocialSecurity SocialSecurity { get; } = new BLTSocialSecurity();
+        public BLTPartyCheck PartyCheck { get; } = new BLTPartyCheck();
 
         public override void RegisterEvents()
         {
             MarriageBehavior.RegisterEvents();
             SocialSecurity.RegisterEvents();
+            PartyCheck.RegisterEvents();
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, () =>
             {
                 if (_bltFamily == null)
@@ -233,6 +237,62 @@ namespace BLTAdoptAHero
                 }
             }
         }
-    }
- }
+        //public class FIefs
+        //{
+        //    ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail
+        //}
+        public class BLTPartyCheck
+        {
+            public void RegisterEvents()
+            {
+                CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            }
 
+            //public override void SyncData(IDataStore dataStore) { }
+
+            private void OnDailyTick()
+            {
+
+                foreach (var party in MobileParty.All)
+                {
+                    if (party?.LeaderHero == null)
+                        continue;
+
+                    Hero leader = party.LeaderHero;
+
+                    // Only apply to adopted heroes
+                    if (!HeroExtensions.IsAdopted(leader))
+                        continue;
+
+                    CheckAndFixParty(party);
+                }
+
+            }
+
+            private void CheckAndFixParty(MobileParty party)
+            {
+                var ai = party.Ai;
+                if (ai == null)
+                    return;
+
+                bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && (CampaignTime.Now - party.StationaryStartTime).ToHours > CampaignTime.HoursInDay;
+
+                bool isDisabled = ai.IsDisabled;
+                bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
+
+
+                if (isHolding || isDisabled || isStuck)
+                {
+                    Log.LogFeedEvent(
+                        $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Disabled: {ai.IsDisabled})");
+
+                    ai.DisableAi();
+                    ai.EnableAi();
+                    ai.RethinkAtNextHourlyTick = true;
+                    ai.CheckPartyNeedsUpdate();
+                }
+            }
+
+        }
+    }
+}
