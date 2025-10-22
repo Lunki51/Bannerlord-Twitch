@@ -309,6 +309,7 @@
     <Compile Include="Achievements\StatisticTotalRequirement.cs" />
     <Compile Include="Actions\AddGoldToHero.cs" />
     <Compile Include="Actions\CampaignInfo.cs" />
+    <Compile Include="Actions\Diplomacy.cs" />
     <Compile Include="Actions\ItemStats.cs" />
     <Compile Include="Actions\HeroToHeroGold.cs" />
     <Compile Include="Actions\AdoptAHero.cs" />
