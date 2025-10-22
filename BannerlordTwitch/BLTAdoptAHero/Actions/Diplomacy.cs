@@ -24,8 +24,7 @@ namespace BLTAdoptAHero
     class Diplomacy : HeroCommandHandlerBase
     {
         [CategoryOrder("War", 0),
-         CategoryOrder("Peace", 1)]
-         //CategoryOrder("Policy", 2)
+ CategoryOrder("Peace", 1)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=TESTING}War"),
@@ -52,32 +51,30 @@ namespace BLTAdoptAHero
              PropertyOrder(4), UsedImplicitly]
             public int PeacePrice { get; set; } = 100000;
 
-            //[LocDisplayName("{=TESTING}Policy"),
-            // LocCategory("Policy", "{=TESTING}Policy"),
-            // LocDescription("{=TESTING}Enable joining kingdoms command"),
-            // PropertyOrder(4), UsedImplicitly]
-            //public bool PolicyEnabled { get; set; } = true;
-
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                var EnabledCommands = new StringBuilder();
+                var sb = new StringBuilder();
+                if (WarEnabled) sb.Append("{=TESTING}War, ".Translate());
+                if (PeaceEnabled) sb.Append("{=TESTING}Peace, ".Translate());
+                if (sb.Length > 0)
+                    generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(
+                        ("commands", sb.ToString(0, sb.Length - 2))));
 
                 if (WarEnabled)
-                    EnabledCommands.Append("War, ");
+                    generator.Value("<strong>War Config: </strong>" +
+                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold)));
                 if (PeaceEnabled)
-                    EnabledCommands.Append("Peace, ");
-                //if (PolicyEnabled)
-                //    EnabledCommands.Append("Leave, ");
-                if (EnabledCommands.Length > 0)
-                    generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString(0, EnabledCommands.Length - 2))));
-
+                    generator.Value("<strong>Peace Config: </strong>" +
+                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)));
             }
         }
-        
+
+        public override Type HandlerConfigType => typeof(Settings);
+
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
             Action<string> onSuccess, Action<string> onFailure)
         {
-            var settings = config as Settings ?? new Settings();
+            if (config is not Settings settings) return;
             if (string.IsNullOrWhiteSpace(context.Args))
             {
                 ActionManager.SendReply(context,
@@ -175,12 +172,17 @@ namespace BLTAdoptAHero
                         if (adoptedHero.Clan.Influence < 200f || adoptedHero.Clan.Kingdom.RulingClan != adoptedHero.Clan)
                         {
                             onFailure("Not enough influence.");
-                            break;
+                            return;
                         }
                         if (kingdom.IsAtWarWith(desiredKingdom))
                         {
                             onFailure($"Already at war with {desiredKingdom}");
-                            break;
+                            return;
+                        }
+                        if (kingdom == desiredKingdom)
+                        {
+                            onFailure("Cant declare war on yourself!");
+                            return;
                         }
                         if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.WarPrice)
                         {
@@ -200,17 +202,22 @@ namespace BLTAdoptAHero
                             onFailure("Peace disabled".Translate());
                             return;
                         }
+                        if (kingdom == desiredKingdom)
+                        {
+                            onFailure("Cant peace yourself!");
+                            return;
+                        }
                         if (adoptedHero.Clan.Influence < 200f || adoptedHero.Gold < 50000 || adoptedHero.Clan.Kingdom.RulingClan != adoptedHero.Clan)
                         {
                             onFailure("Not enough influence or gold");
-                            break;
+                            return;
                         }
 
                         var stance = kingdom.GetStanceWith(desiredKingdom);
                         if (!kingdom.IsAtWarWith(desiredKingdom))
                         {
                             onFailure($"Already at peace with {desiredKingdom}");
-                            break;
+                            return;
                         }
                         if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PeacePrice)
                         {
