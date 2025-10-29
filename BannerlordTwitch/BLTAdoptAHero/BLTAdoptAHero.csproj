@@ -326,6 +326,7 @@
     <Compile Include="Actions\ImproveAdoptedHero.cs" />
     <Compile Include="Actions\JoinTournament.cs" />
     <Compile Include="Actions\KingdomManagement.cs" />
+    <Compile Include="Actions\Leaderboard.cs" />
     <Compile Include="Actions\NameItem.cs" />
     <Compile Include="Actions\Rejuvenate.cs" />
     <Compile Include="Actions\Retinue.cs" />
