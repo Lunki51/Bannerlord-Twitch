@@ -125,6 +125,10 @@ namespace BLTAdoptAHero
                 onFailure("Mercenary");
                 return;
             }
+            //if (adoptedHero.Clan == Clan.PlayerClan)
+            //{
+            //    onFailure("")
+            //}
 
             var splitArgs = context.Args.Split(' ');
             var mode = splitArgs[0];
@@ -132,49 +136,7 @@ namespace BLTAdoptAHero
             var kingdom = adoptedHero.Clan.Kingdom;
 
 
-            //int CalculateTribute(Kingdom kingdomA, Kingdom kingdomB, StanceLink stance)
-            //{
-            //    int cA = stance.GetCasualties(kingdomA);
-            //    int cB = stance.GetCasualties(kingdomB);
-            //    int rA = stance.GetSuccessfulRaids(kingdomA);
-            //    int rB = stance.GetSuccessfulRaids(kingdomB);
-            //    int sA = stance.GetSuccessfulSieges(kingdomA);
-            //    int sB = stance.GetSuccessfulSieges(kingdomB);
 
-            //    float scoreA = 2f * cA + 250f * rA + 1000f * sA;
-            //    float scoreB = 2f * cB + 250f * rB + 1000f * sB;
-
-            //    float scoreDiff = scoreB - scoreA;
-            //    if (scoreDiff == 0)
-            //        return 0;
-            //    bool A_lost = scoreDiff > 0;
-
-            //    Kingdom loser = A_lost ? kingdomA : kingdomB;
-            //    Kingdom winner = A_lost ? kingdomB : kingdomA;
-
-            //    float fiefMultiplier = (float)loser.Settlements.Count / Math.Max(winner.Settlements.Count, 1);
-            //    float strengthLoser = loser.TotalStrength;
-            //    float strengthWinner = winner.TotalStrength;
-            //    float strengthMultiplier = strengthLoser / Math.Max(strengthWinner, 1f);
-
-            //    float relativeMultiplier = 0.85f + 0.1f * fiefMultiplier + 0.05f * strengthMultiplier;
-            //    relativeMultiplier = Math.Max(0.5f, Math.Min(relativeMultiplier, 2f));
-
-            //    float baseTribute;
-            //    if (Math.Abs(scoreDiff) < 1000)
-            //    {
-            //        baseTribute = 50f + Math.Abs(scoreDiff) * 0.35f;
-            //    }
-            //    else
-            //    {
-            //        baseTribute = 250f + Math.Abs(scoreDiff) * 0.2f;
-            //    }
-            //    float tribute = baseTribute * relativeMultiplier;
-
-            //    tribute = Math.Max(1f, Math.Min(tribute, 10000f));
-            //    tribute *= Math.Sign(scoreDiff);
-            //    return (int)tribute;
-            //}
             var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
 
             switch (mode)
@@ -196,7 +158,8 @@ namespace BLTAdoptAHero
                             onFailure("{=TESTING}Not a king.".Translate());
                             return;
                         }
-                        if (adoptedHero.Clan.Influence < 200f)
+                        int influenceCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfProposingWar(adoptedHero.Clan);
+                        if (adoptedHero.Clan.Influence < influenceCost)
                         {
                             onFailure("Not enough influence.");
                             return;
@@ -241,7 +204,7 @@ namespace BLTAdoptAHero
                         else
                         {
                             DeclareWarAction.ApplyByDefault(kingdom, desiredKingdom);
-                            adoptedHero.Clan.Influence -= 200f;
+                            adoptedHero.Clan.Influence -= influenceCost;
                             onSuccess($"Declared war on {desiredKingdom}");
                         }
                         break;
@@ -329,7 +292,6 @@ namespace BLTAdoptAHero
                         //}
                         else
                         {
-                            //int tribute = CalculateTribute(kingdom, desiredKingdom, stance);
                             MakePeaceAction.Apply(kingdom, desiredKingdom, tributeValue);
 
                             adoptedHero.Clan.Influence -= influenceCost;
@@ -412,52 +374,24 @@ namespace BLTAdoptAHero
                             onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
-
-
-                        // Get parties eligible for joining (excluding the leader's party)
+                        var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
                         var sameClanParties = kingdom.AllParties
-                            .Where(p => p?.ActualClan == adoptedHero.Clan && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null)
+                            .Where(p => p?.ActualClan == adoptedHero.Clan && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
 
-                        var otherParties = kingdom.AllParties
-                            .Where(p => p != adoptedHero.PartyBelongedTo && p.LeaderHero != null && p.LeaderHero?.Clan != Hero.MainHero.Clan && p.LeaderHero?.Clan != adoptedHero.Clan && !p.IsCaravan && !p.IsGarrison && !p.IsMilitia && p.Army == null && p.AttachedTo == null)
-                            .OrderBy(p =>
-                            {
-                                float distance = adoptedHero.PartyBelongedTo.Position2D.DistanceSquared(p.Position2D);
-                                int relation = adoptedHero.Clan.Leader.GetRelation(p.LeaderHero);
-                                return distance - relation * 100;
-                            })
-                            .ToList();
-                        if ((sameClanParties.Count + otherParties.Count) < 1)
-                        {
-                            onFailure("Not enough parties to army.");
-                            return;
-                        }
-                        Army army = new Army(adoptedHero.Clan.Kingdom, adoptedHero.PartyBelongedTo, armyType);
+                        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
+                        Army army = adoptedHero.PartyBelongedTo.Army;
 
                         int armyLimit = Math.Max(2, (int)Math.Floor(adoptedHero.Clan.Influence / 50f));
-                        int addedPartiesCount = 0;
+                        //int addedPartiesCount = 0;
                         foreach (var party in sameClanParties)
                         {
                             party.Army = army;
                         }
-                        foreach (var party in otherParties)
-                        {
-                            if (addedPartiesCount >= armyLimit) break;
-
-                            party.Army = army;
-                            addedPartiesCount++;
-
-                        }
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
 
-
-
-                        var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
-                        army.Gather(pos);
-
-                        onSuccess($"Gathering {armyType} army at {pos}");
+                        onSuccess($"Gathering {armyType} army({army.Parties.Count}) at {pos}");
                         break;
                     }
                 default:
