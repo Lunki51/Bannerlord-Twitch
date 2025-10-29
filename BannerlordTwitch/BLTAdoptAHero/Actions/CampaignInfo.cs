@@ -23,7 +23,6 @@ namespace BLTAdoptAHero
 
         public void Execute(ReplyContext context, object config)
         {
-            // hero not required
             ExecuteInternal(context, config);
         }
 
@@ -166,15 +165,29 @@ namespace BLTAdoptAHero
             var sb = new StringBuilder();
             foreach (var k in Kingdom.All)
             {
+                int p1 = 0;
+                int p2 = 0;
+                foreach (var prisoner in desiredKingdom.Heroes)
+                {
+                    if (prisoner.IsPrisoner && prisoner.PartyBelongedToAsPrisoner?.MapFaction == k)
+                        p1++;
+                }
+                foreach (var prisoner in k.Heroes)
+                {
+                    if (prisoner.IsPrisoner && prisoner.PartyBelongedToAsPrisoner?.MapFaction == desiredKingdom)
+                        p2++;
+                }
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     var stance = desiredKingdom.GetStanceWith(k);
-                    sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"
+                    sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Prisoners: {p1}/{p2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"
                         .Translate(
                             ("k1", desiredKingdom.Name.ToString()),
                             ("k2", k.Name.ToString()),
                             ("c1", stance.GetCasualties(desiredKingdom)),
                             ("c2", stance.GetCasualties(k)),
+                            ("p1", p1),
+                            ("p2", p2),
                             ("r1", stance.GetSuccessfulRaids(desiredKingdom)),
                             ("r2", stance.GetSuccessfulRaids(k)),
                             ("s1", stance.GetSuccessfulSieges(desiredKingdom)),

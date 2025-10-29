@@ -10,52 +10,67 @@ using BannerlordTwitch.Helpers;
 using JetBrains.Annotations;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
-using TaleWorlds.CampaignSystem.Settlements;
-using TaleWorlds.CampaignSystem.CampaignBehaviors;
-using TaleWorlds.CampaignSystem.BarterSystem;
+using TaleWorlds.CampaignSystem.Election;
+using TaleWorlds.CampaignSystem.CharacterDevelopment;
+using TaleWorlds.CampaignSystem.GameComponents;
+using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
 using TaleWorlds.Core;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero
 {
     [LocDisplayName("{=TESTING}Diplomacy"),
-     LocDescription("{=TESTING}Manage your kingdom diplomacy"),
+     LocDescription("{=TESTING}Manage your kingdom diplomacy and other actions."),
      UsedImplicitly]
     class Diplomacy : HeroCommandHandlerBase
     {
         [CategoryOrder("War", 0),
- CategoryOrder("Peace", 1)]
+        CategoryOrder("Peace", 1),
+            CategoryOrder("Army", 2)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=TESTING}War"),
              LocCategory("War", "{=TESTING}War"),
-             LocDescription("{=TESTING}Enable joining kingdoms command"),
+             LocDescription("{=TESTING}Enable declaring war command"),
              PropertyOrder(1), UsedImplicitly]
             public bool WarEnabled { get; set; } = true;
 
             [LocDisplayName("{=TESTING}Price"),
              LocCategory("War", "{=TESTING}War"),
-             LocDescription("{=TESTING}Enable joining kingdoms command"),
+             LocDescription("{=TESTING}War command price"),
              PropertyOrder(2), UsedImplicitly]
             public int WarPrice { get; set; } = 250000;
 
             [LocDisplayName("{=TESTING}Peace"),
              LocCategory("Peace", "{=TESTING}Peace"),
-             LocDescription("{=TESTING}Enable joining kingdoms command"),
-             PropertyOrder(3), UsedImplicitly]
+             LocDescription("{=TESTING}Enable declaring war command"),
+             PropertyOrder(1), UsedImplicitly]
             public bool PeaceEnabled { get; set; } = true;
 
             [LocDisplayName("{=TESTING}Price"),
              LocCategory("Peace", "{=TESTING}Peace"),
-             LocDescription("{=TESTING}Enable joining kingdoms command"),
-             PropertyOrder(4), UsedImplicitly]
+             LocDescription("{=TESTING}Peace command price"),
+             PropertyOrder(2), UsedImplicitly]
             public int PeacePrice { get; set; } = 100000;
+
+            [LocDisplayName("{=TESTING}Army"),
+             LocCategory("Army", "{=TESTING}Army"),
+             LocDescription("{=TESTING}Enable creating army command"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool ArmyEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Price"),
+             LocCategory("Army", "{=TESTING}Army"),
+             LocDescription("{=TESTING}Army command price"),
+             PropertyOrder(2), UsedImplicitly]
+            public int ArmyPrice { get; set; } = 150000;
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var sb = new StringBuilder();
                 if (WarEnabled) sb.Append("{=TESTING}War, ".Translate());
                 if (PeaceEnabled) sb.Append("{=TESTING}Peace, ".Translate());
+                if (ArmyEnabled) sb.Append("{=TESTING}Army, ".Translate());
                 if (sb.Length > 0)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(
                         ("commands", sb.ToString(0, sb.Length - 2))));
@@ -66,6 +81,9 @@ namespace BLTAdoptAHero
                 if (PeaceEnabled)
                     generator.Value("<strong>Peace Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)));
+                if (ArmyEnabled)
+                    generator.Value("<strong>Army Config: </strong>" +
+                                    "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
             }
         }
 
@@ -78,7 +96,7 @@ namespace BLTAdoptAHero
             if (string.IsNullOrWhiteSpace(context.Args))
             {
                 ActionManager.SendReply(context,
-                    context.ArgsErrorMessage("{=TESTING}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom)".Translate()));
+                    context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), army (defend/siege/raid/patrol)".Translate()));
                 return;
             }
             if (adoptedHero.Clan == null)
@@ -96,68 +114,61 @@ namespace BLTAdoptAHero
                 onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
                 return;
             }
-            
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                onFailure("Mercenary");
+                return;
+            }
+
             var splitArgs = context.Args.Split(' ');
             var mode = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
             var kingdom = adoptedHero.Clan.Kingdom;
 
-            void ForceWar(Kingdom kingdomA, Kingdom kingdomB)
-            {
-                DeclareWarAction.ApplyByDefault(kingdomA, kingdomB);
-            }
-            //void VoteWar()
+
+            //int CalculateTribute(Kingdom kingdomA, Kingdom kingdomB, StanceLink stance)
             //{
-            //    DeclareWarDecision decision = new DeclareWarDecision(desiredKingdom, targetKingdom, desiredKingdom.Leader);
-            //    decision.Initiate();
+            //    int cA = stance.GetCasualties(kingdomA);
+            //    int cB = stance.GetCasualties(kingdomB);
+            //    int rA = stance.GetSuccessfulRaids(kingdomA);
+            //    int rB = stance.GetSuccessfulRaids(kingdomB);
+            //    int sA = stance.GetSuccessfulSieges(kingdomA);
+            //    int sB = stance.GetSuccessfulSieges(kingdomB);
+
+            //    float scoreA = 2f * cA + 250f * rA + 1000f * sA;
+            //    float scoreB = 2f * cB + 250f * rB + 1000f * sB;
+
+            //    float scoreDiff = scoreB - scoreA;
+            //    if (scoreDiff == 0)
+            //        return 0;
+            //    bool A_lost = scoreDiff > 0;
+
+            //    Kingdom loser = A_lost ? kingdomA : kingdomB;
+            //    Kingdom winner = A_lost ? kingdomB : kingdomA;
+
+            //    float fiefMultiplier = (float)loser.Settlements.Count / Math.Max(winner.Settlements.Count, 1);
+            //    float strengthLoser = loser.TotalStrength;
+            //    float strengthWinner = winner.TotalStrength;
+            //    float strengthMultiplier = strengthLoser / Math.Max(strengthWinner, 1f);
+
+            //    float relativeMultiplier = 0.85f + 0.1f * fiefMultiplier + 0.05f * strengthMultiplier;
+            //    relativeMultiplier = Math.Max(0.5f, Math.Min(relativeMultiplier, 2f));
+
+            //    float baseTribute;
+            //    if (Math.Abs(scoreDiff) < 1000)
+            //    {
+            //        baseTribute = 50f + Math.Abs(scoreDiff) * 0.35f;
+            //    }
+            //    else
+            //    {
+            //        baseTribute = 250f + Math.Abs(scoreDiff) * 0.2f;
+            //    }
+            //    float tribute = baseTribute * relativeMultiplier;
+
+            //    tribute = Math.Max(1f, Math.Min(tribute, 10000f));
+            //    tribute *= Math.Sign(scoreDiff);
+            //    return (int)tribute;
             //}
-            void ForcePeace(Kingdom kingdomA, Kingdom kingdomB, int dailyTributeFrom1To2)
-            {                
-                MakePeaceAction.Apply(kingdomA, kingdomB, dailyTributeFrom1To2);
-            }
-            int CalculateTribute(Kingdom kingdomA, Kingdom kingdomB, StanceLink stance)
-            {
-                int cA = stance.GetCasualties(kingdomA); 
-                int cB = stance.GetCasualties(kingdomB);  
-                int rA = stance.GetSuccessfulRaids(kingdomA);
-                int rB = stance.GetSuccessfulRaids(kingdomB);
-                int sA = stance.GetSuccessfulSieges(kingdomA);
-                int sB = stance.GetSuccessfulSieges(kingdomB);
-
-                float scoreA = 2f * cA + 250f * rA + 1000f * sA;
-                float scoreB = 2f * cB + 250f * rB + 1000f * sB;
-
-                float scoreDiff = scoreB - scoreA;
-                if (scoreDiff == 0)
-                    return 0;
-                bool A_lost = scoreDiff > 0;
-
-                Kingdom loser = A_lost ? kingdomA : kingdomB;
-                Kingdom winner = A_lost ? kingdomB : kingdomA;
-
-                float fiefMultiplier = (float)loser.Settlements.Count / Math.Max(winner.Settlements.Count, 1);
-                float strengthLoser = loser.TotalStrength;
-                float strengthWinner = winner.TotalStrength;
-                float strengthMultiplier = strengthLoser / Math.Max(strengthWinner, 1f);
-
-                float relativeMultiplier = 0.85f + 0.1f * fiefMultiplier + 0.05f * strengthMultiplier;
-                relativeMultiplier = Math.Max(0.5f, Math.Min(relativeMultiplier, 2f));
-
-                float baseTribute;
-                if (Math.Abs(scoreDiff) < 1000)
-                {
-                    baseTribute = 50f + Math.Abs(scoreDiff) * 0.35f;
-                }
-                else
-                {
-                    baseTribute = 250f + Math.Abs(scoreDiff) * 0.2f;
-                }
-                float tribute = baseTribute * relativeMultiplier;
-
-                tribute = Math.Max(1f, Math.Min(tribute, 10000f));
-                tribute *= Math.Sign(scoreDiff);
-                return (int)tribute;
-            }
             var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
 
             switch (mode)
@@ -169,7 +180,17 @@ namespace BLTAdoptAHero
                             onFailure("War disabled".Translate());
                             return;
                         }
-                        if (adoptedHero.Clan.Influence < 200f || adoptedHero.Clan.Kingdom.RulingClan != adoptedHero.Clan)
+                        if (desiredKingdom == null)
+                        {
+                            onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
+                            return;
+                        }
+                        if (!adoptedHero.IsKingdomLeader)
+                        {
+                            onFailure("{=TESTING}Not a king.".Translate());
+                            return;
+                        }
+                        if (adoptedHero.Clan.Influence < 200f)
                         {
                             onFailure("Not enough influence.");
                             return;
@@ -184,15 +205,39 @@ namespace BLTAdoptAHero
                             onFailure("Cant declare war on yourself!");
                             return;
                         }
+                        var stance = kingdom.GetStanceWith(desiredKingdom);
+                        if ((CampaignTime.Now - stance.PeaceDeclarationDate).ToDays < 20)
+                        {
+                            onFailure($"Cant war yet. {(int)(20 - (CampaignTime.Now - stance.PeaceDeclarationDate).ToDays)} days remaining.");
+                            return;
+                        }
                         if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.WarPrice)
                         {
                             onFailure(Naming.NotEnoughGold(settings.WarPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.WarPrice, true);
-                        ForceWar(kingdom, desiredKingdom);
-                        adoptedHero.Clan.Influence -= 200f;
-                        onSuccess($"Declared war on {desiredKingdom}");
+                        if (kingdom == Hero.MainHero.Clan.Kingdom)
+                        {
+                            bool isAlreadyProposed = kingdom.UnresolvedDecisions
+                            .Any(d => d is DeclareWarDecision warDecision &&
+                                      warDecision.FactionToDeclareWarOn == desiredKingdom);
+                            if (isAlreadyProposed)
+                            {
+                                Log.LogFeedMessage($"Vote already ongoing.");
+                                return;
+                            }
+
+                            DeclareWarDecision newWarProposal = new DeclareWarDecision(adoptedHero.Clan, desiredKingdom);
+                            adoptedHero.Clan.Kingdom.AddDecision(newWarProposal);
+                            onSuccess("Proposed war decision.");
+                        }
+                        else
+                        {
+                            DeclareWarAction.ApplyByDefault(kingdom, desiredKingdom);
+                            adoptedHero.Clan.Influence -= 200f;
+                            onSuccess($"Declared war on {desiredKingdom}");
+                        }
                         break;
                     }
                 case "peace":
@@ -202,14 +247,25 @@ namespace BLTAdoptAHero
                             onFailure("Peace disabled".Translate());
                             return;
                         }
+                        if (!adoptedHero.IsKingdomLeader)
+                        {
+                            onFailure("{=TESTING}Not a king.".Translate());
+                            return;
+                        }
+                        if (desiredKingdom == null)
+                        {
+                            onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
+                            return;
+                        }
                         if (kingdom == desiredKingdom)
                         {
                             onFailure("Cant peace yourself!");
                             return;
                         }
-                        if (adoptedHero.Clan.Influence < 200f || adoptedHero.Gold < 50000 || adoptedHero.Clan.Kingdom.RulingClan != adoptedHero.Clan)
+                        int influenceCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfProposingPeace(adoptedHero.Clan);
+                        if (adoptedHero.Clan.Influence < influenceCost)
                         {
-                            onFailure("Not enough influence or gold");
+                            onFailure("Not enough influence");
                             return;
                         }
 
@@ -219,32 +275,189 @@ namespace BLTAdoptAHero
                             onFailure($"Already at peace with {desiredKingdom}");
                             return;
                         }
+                        if ((stance.WarStartDate - CampaignTime.Now).ToDays < 20)
+                        {
+                            onFailure($"Cant peace yet. {(int)(20 - (CampaignTime.Now - stance.WarStartDate).ToDays)} days remaining.");
+                            return;
+                        }
                         if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PeacePrice)
                         {
                             onFailure(Naming.NotEnoughGold(settings.PeacePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);
-                        int tribute = CalculateTribute(kingdom, desiredKingdom, stance);
-                        ForcePeace(kingdom, desiredKingdom, tribute);
-                        adoptedHero.Gold -= 50000;
-                        adoptedHero.Clan.Influence -= 200f;
-                        tribute *= -1;
-                        onSuccess($"Made peace with {desiredKingdom} for {tribute}");
+
+                        Clan proposer = adoptedHero.Clan;
+                        var diplomacy = Campaign.Current.Models.DiplomacyModel;
+                        var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
+                        float valueForFaction = barter.GetValueForFaction(proposer);
+                        float wealthFactor = (proposer.Leader.Gold < 50000f)
+                        ? (1f + 0.5f * ((50000f - proposer.Leader.Gold) / 50000f))
+                        : ((proposer.Leader.Gold > 200000f)
+                        ? (float)Math.Max(0.66, Math.Pow(200000.0 / proposer.Leader.Gold, 0.4))
+                        : 1f);
+                        int generosityLevel = proposer.Leader.GetTraitLevel(DefaultTraits.Generosity);
+                        float generosityFactor = (true) // tribute payer
+                        ? (1f - 0.1f * Math.Max(-2, Math.Min(2, generosityLevel)))
+                        : 1f;
+                        int tributeValue = diplomacy.GetDailyTributeForValue((int)(valueForFaction / (wealthFactor * generosityFactor)));
+
+                        if (kingdom == Hero.MainHero.Clan.Kingdom)
+                        {
+                            bool isAlreadyProposed = kingdom.UnresolvedDecisions
+                            .Any(d => d is MakePeaceKingdomDecision peaceDecision &&
+                                      peaceDecision.FactionToMakePeaceWith == desiredKingdom);
+                            if (isAlreadyProposed)
+                            {
+                                Log.LogFeedMessage($"Vote already ongoing.");
+                                return;
+                            }
+
+                            MakePeaceKingdomDecision newPeaceProposal = new MakePeaceKingdomDecision(adoptedHero.Clan, desiredKingdom, tributeValue);
+                            adoptedHero.Clan.Kingdom.AddDecision(newPeaceProposal);
+                            onSuccess($"Proposed peace decision");
+                        }
+                        //else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader)
+                        //{
+                        //    PeaceOfferCampaignBehavior
+                        //}
+                        else
+                        {
+                            //int tribute = CalculateTribute(kingdom, desiredKingdom, stance);
+                            MakePeaceAction.Apply(kingdom, desiredKingdom, tributeValue);
+
+                            adoptedHero.Clan.Influence -= influenceCost;
+                            tributeValue *= -1;
+                            influenceCost *= -1;
+                            onSuccess($"Made peace with {desiredKingdom}. Tribute:{tributeValue}, Influence:{influenceCost}");
+                        }
+
                         break;
                     }
                 //case "policy":
                 //    {
-                        
+
                 //        break;
                 //    }
-                //case "army":
-                //    {
-                //        //if (kingdom.IsAtWarWith)
-                //        break;
-                //    }
+                case "army":
+                    {
+                        if (!settings.ArmyEnabled)
+                        {
+                            onFailure("Army disabled");
+                            return;
+                        }
+                        if (!kingdom.Stances.Any(s => s.IsAtWar && (s.Faction1 is Kingdom && s.Faction2 is Kingdom) && (s.Faction1 == kingdom || s.Faction2 == kingdom)))
+                        {
+                            onFailure("No wars");
+                            return;
+                        }
+                        if (adoptedHero.IsPrisoner)
+                        {
+                            onFailure("{=TESTING}You are prisoner!".Translate());
+                            return;
+                        }
+                        if (!adoptedHero.IsPartyLeader)
+                        {
+                            onFailure("{=LVFh1Pd5}Your hero is not leading a party".Translate());
+                            return;
+                        }
+                        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty != adoptedHero.PartyBelongedTo)
+                        {
+                            onFailure("Already in an army!");
+                            return;
+                        }
+                        if (adoptedHero.PartyBelongedTo.MapEvent != null)
+                        {
+                            onFailure("Your party is busy.");
+                            return;
+                        }
+                        Army.ArmyTypes armyType;
+                        if (splitArgs.Length < 2)
+                        {
+                            onFailure("Specify an army type: defend/siege/raid/patrol");
+                            return;
+                        }
+                        switch (desiredName)
+                        {
+                            case "siege":
+                                armyType = Army.ArmyTypes.Besieger;
+                                break;
+                            case "raid":
+                                armyType = Army.ArmyTypes.Raider;
+                                break;
+                            case "defend":
+                                armyType = Army.ArmyTypes.Defender;
+                                break;
+                            case "patrol":
+                                armyType = Army.ArmyTypes.Patrolling;
+                                break;
+                            default:
+                                onFailure($"Invalid army type: {desiredName}");
+                                return;
+                        }
+                        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty == adoptedHero.PartyBelongedTo)
+                        {
+                            adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
+                            onSuccess($"Changed army type to {armyType}");
+                            return;
+                        }
+                        if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ArmyPrice)
+                        {
+                            onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                            return;
+                        }
+
+
+                        // Get parties eligible for joining (excluding the leader's party)
+                        var sameClanParties = kingdom.AllParties
+                            .Where(p => p?.ActualClan == adoptedHero.Clan && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null)
+                            .ToList();
+
+                        var otherParties = kingdom.AllParties
+                            .Where(p => p != adoptedHero.PartyBelongedTo && p.LeaderHero != null && p.LeaderHero?.Clan != Hero.MainHero.Clan && p.LeaderHero?.Clan != adoptedHero.Clan && !p.IsCaravan && !p.IsGarrison && !p.IsMilitia && p.Army == null && p.AttachedTo == null)
+                            .OrderBy(p =>
+                            {
+                                float distance = adoptedHero.PartyBelongedTo.Position2D.DistanceSquared(p.Position2D);
+                                int relation = adoptedHero.Clan.Leader.GetRelation(p.LeaderHero);
+                                return distance - relation * 100;
+                            })
+                            .ToList();
+                        if ((sameClanParties.Count + otherParties.Count) < 1)
+                        {
+                            onFailure("Not enough parties to army.");
+                            return;
+                        }
+                        Army army = new Army(adoptedHero.Clan.Kingdom, adoptedHero.PartyBelongedTo, armyType);
+
+                        int armyLimit = Math.Max(2, (int)Math.Floor(adoptedHero.Clan.Influence / 50f));
+                        int addedPartiesCount = 0;
+                        foreach (var party in sameClanParties)
+                        {
+                            party.Army = army;
+                        }
+                        foreach (var party in otherParties)
+                        {
+                            if (addedPartiesCount >= armyLimit) break;
+
+                            party.Army = army;
+                            addedPartiesCount++;
+
+                        }
+
+                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
+
+
+
+                        var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
+                        army.Gather(pos);
+
+                        onSuccess($"Gathering {armyType} army at {pos}");
+                        break;
+                    }
                 default:
                     {
+                        ActionManager.SendReply(context,
+                        context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), army (defend/siege/raid/patrol)".Translate()));
                         break;
                     }
             }

@@ -276,15 +276,13 @@ namespace BLTAdoptAHero
                     return;
 
                 bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && (CampaignTime.Now - party.StationaryStartTime).ToHours > CampaignTime.HoursInDay;
-
-                bool isDisabled = ai.IsDisabled;
                 bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
 
 
-                if (isHolding || isDisabled || isStuck)
+                if (isHolding || isStuck)
                 {
                     Log.LogFeedEvent(
-                        $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Disabled: {ai.IsDisabled})");
+                        $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {(CampaignTime.Now - party.StationaryStartTime).ToHours} hours)");
 
                     ai.DisableAi();
                     ai.EnableAi();

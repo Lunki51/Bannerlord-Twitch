@@ -101,7 +101,7 @@ namespace BLTAdoptAHero
         [LocDisplayName("{=bXdC2trk}Retinue Use Heroes Formation"),
          LocCategory("Battle", "{=9qAD6eZR}Battle"),
          LocDescription("{=D8uDzXlV}Whether an adopted heroes retinue should spawn in the same formation as the hero (otherwise they will go into default formations)"),
-         PropertyOrder(13), Document, UsedImplicitly]
+         PropertyOrder(7), Document, UsedImplicitly]
         public bool RetinueUseHeroesFormation { get; set; }
 
         [LocDisplayName("{=OlJrCEyE}Summon Cooldown In Seconds"),
@@ -126,10 +126,41 @@ namespace BLTAdoptAHero
         [LocDisplayName("{=ViLoy0k3}Summon Cooldown Example"),
          LocCategory("Battle", "{=9qAD6eZR}Battle"),
          LocDescription("{=xZoSFrAb}Shows the consecutive cooldowns (in seconds) for 10 summons"),
-         PropertyOrder(7), YamlIgnore, ReadOnly(true), UsedImplicitly]
+         PropertyOrder(8), YamlIgnore, ReadOnly(true), UsedImplicitly]
         public string SummonCooldownExample => string.Join(", ",
             Enumerable.Range(1, 10)
                 .Select(i => $"{i}: {GetCooldownTime(i):0}s"));
+
+        [LocDisplayName("{=TESTING}Nametags"),
+         LocCategory("Battle", "{=9qAD6eZR}Battle"),
+         LocDescription("{=TESTING}Shows the consecutive cooldowns (in seconds) for 10 summons"),
+         PropertyOrder(9), Document, UsedImplicitly]
+
+        public bool NametagEnabled { get; set; } = true;
+
+        [LocDisplayName("{=TESTING}Nametag width"),
+         LocCategory("Battle", "{=9qAD6eZR}Battle"),
+         LocDescription("{=TESTING}Nametag width"),
+         PropertyOrder(10),
+         Range(50, float.MaxValue),
+         Document, UsedImplicitly]
+        public float NametagWidth { get; set; } = 200f;
+
+        [LocDisplayName("{=TESTING}Nametag height"),
+                LocCategory("Battle", "{=9qAD6eZR}Battle"),
+                LocDescription("{=TESTING}Nametag height"),
+                PropertyOrder(10),
+                Range(10, float.MaxValue),
+                Document, UsedImplicitly]
+        public float NametagHeight { get; set; } = 50f;
+
+        [LocDisplayName("{=TESTING}Nametag fontsize"),
+                 LocCategory("Battle", "{=9qAD6eZR}Battle"),
+                 LocDescription("{=TESTING}Nametag fontsize"),
+                 PropertyOrder(11),
+                 Range(15, float.MaxValue),
+                 Document, UsedImplicitly]
+        public float NametagFontsize { get; set; } = 24f;
         #endregion
 
         #region Death

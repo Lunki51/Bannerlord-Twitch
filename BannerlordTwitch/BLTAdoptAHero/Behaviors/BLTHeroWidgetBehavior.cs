@@ -30,9 +30,14 @@ namespace BLTAdoptAHero
         private Camera _camera;
         private readonly Dictionary<Hero, HeroIconVM> _heroToVM = new();
         private bool _isInitialized = false;
+        private readonly float configWidth = GlobalCommonConfig.Get().NametagWidth;
+        private readonly float configHeight = GlobalCommonConfig.Get().NametagHeight;
+        private readonly float configFontsize = GlobalCommonConfig.Get().NametagFontsize;
 
         public override void OnMissionScreenTick(float dt)
         {
+            if (!GlobalCommonConfig.Get().NametagEnabled)
+                return;
             var heroBehavior = Mission.Current?.GetMissionBehavior<BLTAdoptAHeroCommonMissionBehavior>();
             var combatMission = Mission.Current.CombatType;
             if (heroBehavior == null || MissionScreen == null || combatMission == Mission.MissionCombatType.NoCombat)
@@ -103,9 +108,9 @@ namespace BLTAdoptAHero
                             scale = MBMath.ClampFloat(scale, 0.5f, 1f);
 
                             vm.IsVisible = true;
-                            vm.Width = 200f * scale;
-                            vm.Height = 50f * scale;
-                            vm.FontSize = Math.Max(15, (int)(24f * scale));
+                            vm.Width = configWidth * scale;
+                            vm.Height = configHeight * scale;
+                            vm.FontSize = Math.Max(15, (int)(configFontsize * scale));
                             vm.PositionX = x - vm.Width * 0.5f;
                             vm.PositionY = y - vm.Height * 0.5f - 5f;
 

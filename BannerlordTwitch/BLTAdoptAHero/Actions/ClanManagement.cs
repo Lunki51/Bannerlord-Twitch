@@ -616,17 +616,25 @@ namespace BLTAdoptAHero.Actions
             var partyStats = new StringBuilder();
             void partyCreate(Hero adoptedHero)
             {
-                if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && adoptedHero.GovernorOf == null && !adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
+                if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && !adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
                 {
-                    if (adoptedHero.Clan.Kingdom != null && !Kingdom.All.Any(k => k != adoptedHero.Clan.Kingdom && adoptedHero.Clan.Kingdom.IsAtWarWith(k)))
+                    if (!adoptedHero.IsClanLeader && adoptedHero.Clan.WarPartyComponents.Count >= adoptedHero.Clan.CommanderLimit)
                     {
-                        partyStats.Append("{=TESTING} | No wars".Translate());
+                        partyStats.Append("{=sKbTZzds} | Party limit reached".Translate());
                         return;
                     }
-                    if (!adoptedHero.IsClanLeader && adoptedHero.Clan.WarPartyComponents.Count >= adoptedHero.Clan.CommanderLimit)
-                        partyStats.Append("{=sKbTZzds} | Party limit reached".Translate());
+                    //if (adoptedHero.Clan.Kingdom != null && !Kingdom.All.Any(k => k != adoptedHero.Clan.Kingdom && adoptedHero.Clan.Kingdom.IsAtWarWith(k)) && !adoptedHero.Clan.IsUnderMercenaryService)
+                    //{
+                    //    partyStats.Append("{=TESTING} | No wars".Translate());
+                    //    return;
+                    //}
                     else
                     {
+                        if (adoptedHero.GovernorOf != null)
+                        {
+                            var govFief = adoptedHero.GovernorOf;
+                            ChangeGovernorAction.RemoveGovernorOfIfExists(govFief);
+                        }
                         try
                         {
                             //adoptedHero.ChangeState(Hero.CharacterStates.Active);
@@ -661,10 +669,11 @@ namespace BLTAdoptAHero.Actions
             }
             else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
                 partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
-            else if (adoptedHero.GovernorOf != null)
+            else if (adoptedHero.GovernorOf != null && adoptedHero.Clan.Settlements.Count > 0)
             {
-                var govFief = Settlement.FindFirst(s => s.Town != null && s.Town.Governor == adoptedHero);
+                var govFief = adoptedHero.Clan.Settlements.Find(s => s.Town != null && s.Town.Governor == adoptedHero);
                 partyStats.Append("{=ocrxKWUF}Governor: {governor}".Translate(("governor", govFief.Name.ToString())));
+                partyCreate(adoptedHero);
             }
             else if (adoptedHero.IsPartyLeader)
             {

@@ -214,7 +214,7 @@ namespace BLTAdoptAHero
             CampaignEvents.MapEventStarted.AddNonSerializedListener(this,
             (mapEvent, attackerParty, defenderParty) =>
             {
-                if (mapEvent == null || mapEvent.IsPlayerMapEvent) return;
+                if (mapEvent == null || mapEvent.IsPlayerMapEvent || mapEvent.BattleState == 0) return;
                 string eventType = mapEvent.EventType switch
                 {
                     MapEvent.BattleTypes.FieldBattle => "field battle",
@@ -249,7 +249,7 @@ namespace BLTAdoptAHero
 
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, mapEvent =>
             {
-                if (mapEvent == null || mapEvent.IsPlayerMapEvent) return;
+                if (mapEvent == null || mapEvent.IsPlayerMapEvent || mapEvent.BattleState == 0) return;
                 string eventType = mapEvent.EventType switch
                 {
                     MapEvent.BattleTypes.FieldBattle => "field battle",
@@ -278,11 +278,16 @@ namespace BLTAdoptAHero
                             ("HeroName", hero.PartyBelongedTo.Name.ToString()),
                             ("Result", result ? "won" : "lost"),
                             ("EventType", mapEvent),
-                            ("Opponent", opponentName))); 
+                            ("Opponent", opponentName)));
                     }
                 }
             });
 
+            CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, siegeEvent =>
+            {
+                if (siegeEvent == null || !siegeEvent.BesiegedSettlement.Owner.IsAdopted()) return;
+                else Log.LogFeedEvent("{=TESTING}@{HeroName} settlement {sett} is under siege!".Translate(("HeroName", siegeEvent.BesiegedSettlement.Owner.Name.ToString()), ("sett", siegeEvent.BesiegedSettlement.Name.ToString())));
+            });
 
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, JoinTournament.SetupGameMenus);
         }
