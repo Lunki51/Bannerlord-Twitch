@@ -15,6 +15,7 @@ using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
 using TaleWorlds.Core;
+using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero
@@ -97,6 +98,11 @@ namespace BLTAdoptAHero
             {
                 ActionManager.SendReply(context,
                     context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), army (defend/siege/raid/patrol)".Translate()));
+                return;
+            }
+            if (Mission.Current != null)
+            {
+                onFailure("Mission is active!");
                 return;
             }
             if (adoptedHero.Clan == null)
