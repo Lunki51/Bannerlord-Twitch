@@ -388,14 +388,20 @@ namespace BLTAdoptAHero
                                     ("WonGold", BLTAdoptAHeroModule.CommonConfig.WinGold),
                                     ("GoldIcon", Naming.Gold)));
                         }
-                        else if (BLTAdoptAHeroModule.CommonConfig.LoseGold > 0)
+                        else if (BLTAdoptAHeroModule.CommonConfig.LoseGold != 0)
                         {
-                            Hero.MainHero.ChangeHeroGold(BLTAdoptAHeroModule.CommonConfig.LoseGold);
-                            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero,
-                                -BLTAdoptAHeroModule.CommonConfig.LoseGold);
+                            var delta = BLTAdoptAHeroModule.CommonConfig.LoseGold;
+
+                            Hero.MainHero.ChangeHeroGold(delta);
+                            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -delta);
+
+                            var sign = delta > 0 ? "{=UI7XX8GC}lost".Translate() : "{=aKy60dQc}won".Translate();
+                            var amount = Math.Abs(delta);
+
                             ActionManager.SendReply(context,
-                                "{=ajhKKeEo}You lost {LostGold}{GoldIcon}!".Translate(
-                                    ("LostGold", BLTAdoptAHeroModule.CommonConfig.WinGold),
+                                "{=ajhKKeEo}You {Sign} {Amount}{GoldIcon}!".Translate(
+                                    ("Sign", sign),
+                                    ("Amount", amount),
                                     ("GoldIcon", Naming.Gold)));
                         }
                     });
@@ -574,11 +580,15 @@ namespace BLTAdoptAHero
                             }
                             else
                             {
-                                if (BLTAdoptAHeroModule.CommonConfig.LoseGold > 0)
+                                if (BLTAdoptAHeroModule.CommonConfig.LoseGold != 0)
                                 {
-                                    BLTAdoptAHeroCampaignBehavior.Current
-                                        .ChangeHeroGold(adoptedHero, -BLTAdoptAHeroModule.CommonConfig.LoseGold);
-                                    results.Add($"{Naming.Dec}{BLTAdoptAHeroModule.CommonConfig.LoseGold}{Naming.Gold}");
+                                    var delta = BLTAdoptAHeroModule.CommonConfig.LoseGold;
+                                    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -delta);
+
+                                    var sign = delta > 0 ? Naming.Dec : Naming.Inc;
+                                    var amount = Math.Abs(delta);
+
+                                    results.Add($"{sign}{amount}{Naming.Gold}");
                                 }
 
                                 int xp = (int)(finalRewardScaling * BLTAdoptAHeroModule.CommonConfig.LoseXP);

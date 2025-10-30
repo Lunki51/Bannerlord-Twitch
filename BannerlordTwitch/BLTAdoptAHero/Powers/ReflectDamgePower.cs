@@ -50,7 +50,7 @@ namespace BLTAdoptAHero.Powers
             int damage = (int)(blowParams.blow.InflictedDamage * ReflectPercent / 100f);
             if (damage > 0 && attackerAgent != null && attackerAgent != agent)
             {
-                var blow = new Blow(attackerAgent.Index)
+                var blow = new Blow(agent.Index)
                 {
                     AttackType = attackerAgent.IsMount ? AgentAttackType.Collision : AgentAttackType.Standard,
                     DamageType = attackerAgent.IsMount ? DamageTypes.Blunt : blowParams.blow.DamageType,
