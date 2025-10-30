@@ -38,7 +38,7 @@ namespace BLTAdoptAHero.Actions
             }
             if (int.TryParse(splitArgs[1], out int amount))
             {
-                if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < amount)
+                if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < amount || amount <=0)
                 {
                     onFailure("You don't have that much gold to send");
                     return;

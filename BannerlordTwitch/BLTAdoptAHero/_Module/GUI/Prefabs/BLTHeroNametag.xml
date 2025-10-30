@@ -1,0 +1,45 @@
+﻿<Prefab>
+  <Window>
+    <Widget WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent">
+      <Children>
+        <!-- Bind to the Heroes list -->
+        <Widget DataSource="{Heroes}" WidthSizePolicy="StretchToParent" HeightSizePolicy="StretchToParent">
+          <ItemTemplate>
+            <!-- Each hero entry -->
+            <Widget DataSource="{.}" 
+                    IsVisible="@IsVisible"
+					WidthSizePolicy="Fixed"
+					HeightSizePolicy="Fixed"
+					SuggestedWidth="@Width"
+					SuggestedHeight="@Height"
+					HorizontalAlignment="Left"
+					VerticalAlignment="Top"
+					ScaledPositionXOffset="@PositionX"
+					ScaledPositionYOffset="@PositionY">
+              <Children>
+                <ListPanel WidthSizePolicy="Fixed"
+				   SuggestedWidth="@Width"
+				   HeightSizePolicy="Fixed"
+				   SuggestedHeight="@Height"
+				   LayoutImp.LayoutMethod="HorizontalLeftToRight"
+				   HorizontalAlignment="Left"
+				   VerticalAlignment="Top">
+				  <Children>
+					<TextWidget WidthSizePolicy="StretchToParent"
+								HeightSizePolicy="StretchToParent"
+								VerticalAlignment="Center"
+								Brush="FiraSansExtraCondensed-Regular"
+								Brush.TextHorizontalAlignment="Center"
+								Brush.FontSize="@FontSize"
+								Text="@HeroName"
+								Brush.FontColor="@Color"/>
+				  </Children>
+				</ListPanel>
+              </Children>
+            </Widget>
+          </ItemTemplate>
+        </Widget>
+      </Children>
+    </Widget>
+  </Window>
+</Prefab>

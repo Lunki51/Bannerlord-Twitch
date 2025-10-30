@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -11,6 +11,7 @@ using BannerlordTwitch.Util;
 using BLTAdoptAHero.Achievements;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.MapEvents;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -210,6 +211,84 @@ namespace BLTAdoptAHero
                             ("ToClanName", hero.Clan?.Name.ToString() ?? "no clan")));
             });
 
+            CampaignEvents.MapEventStarted.AddNonSerializedListener(this,
+            (mapEvent, attackerParty, defenderParty) =>
+            {
+                if (mapEvent == null || mapEvent.IsPlayerMapEvent || mapEvent.BattleState == 0) return;
+                string eventType = mapEvent.EventType switch
+                {
+                    MapEvent.BattleTypes.FieldBattle => "field battle",
+                    MapEvent.BattleTypes.Raid => "raid",
+                    MapEvent.BattleTypes.Siege => "siege",
+                    MapEvent.BattleTypes.Hideout => "hideout battle",
+                    MapEvent.BattleTypes.SallyOut => "sally out",
+                    MapEvent.BattleTypes.SiegeOutside => "outside siege",
+                    _ => "unknown battle"
+                };
+
+                foreach (var side in mapEvent.InvolvedParties)
+                {
+                    var hero = side.MobileParty?.LeaderHero;
+                    if (hero != null && hero.IsAdopted())
+                    {
+
+                        var adoptedSide = hero.PartyBelongedTo.MapEventSide;
+                        var enemySide = hero.PartyBelongedTo.MapEventSide.OtherSide;
+
+                        string opponentName = enemySide.LeaderParty.Name.ToString();
+
+                        Log.LogFeedEvent("{=fFW54iwx}@{HeroParty} is involved in a {EventType} against {Opponent}!"
+                            .Translate(
+                                ("HeroParty", hero.PartyBelongedTo.Name.ToString()),
+                                ("EventType", eventType),
+                                ("Opponent", opponentName)
+                            ));
+                    }
+                }
+            });
+
+            CampaignEvents.MapEventEnded.AddNonSerializedListener(this, mapEvent =>
+            {
+                if (mapEvent == null || mapEvent.IsPlayerMapEvent || mapEvent.BattleState == 0) return;
+                string eventType = mapEvent.EventType switch
+                {
+                    MapEvent.BattleTypes.FieldBattle => "field battle",
+                    MapEvent.BattleTypes.Raid => "raid",
+                    MapEvent.BattleTypes.Siege => "siege",
+                    MapEvent.BattleTypes.Hideout => "hideout battle",
+                    MapEvent.BattleTypes.SallyOut => "sally out",
+                    MapEvent.BattleTypes.SiegeOutside => "outside siege",
+                    _ => "unknown battle"
+                };
+                foreach (var side in mapEvent.InvolvedParties)
+                {
+                    var hero = side.MobileParty?.LeaderHero;
+                    if (hero != null && hero.IsAdopted())
+                    {
+
+                        var adoptedSide = hero.PartyBelongedTo.MapEventSide;
+
+                        bool result = mapEvent.Winner == hero.PartyBelongedTo.MapEventSide;
+
+                        var enemySide = hero.PartyBelongedTo.MapEventSide.OtherSide;
+                        string opponentName = enemySide.LeaderParty.Name.ToString();
+
+                        Log.LogFeedEvent("{=Bsfc1uYG}@{HeroName} has {Result} a {EventType} against {Opponent}!"
+                        .Translate(
+                            ("HeroName", hero.PartyBelongedTo.Name.ToString()),
+                            ("Result", result ? "won" : "lost"),
+                            ("EventType", mapEvent),
+                            ("Opponent", opponentName)));
+                    }
+                }
+            });
+
+            CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(this, siegeEvent =>
+            {
+                if (siegeEvent == null || !siegeEvent.BesiegedSettlement.Owner.IsAdopted()) return;
+                else Log.LogFeedEvent("{=TESTING}@{HeroName} settlement {sett} is under siege!".Translate(("HeroName", siegeEvent.BesiegedSettlement.Owner.Name.ToString()), ("sett", siegeEvent.BesiegedSettlement.Name.ToString())));
+            });
+
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, JoinTournament.SetupGameMenus);
         }
 
@@ -372,22 +451,77 @@ namespace BLTAdoptAHero
             var data = GetHeroData(hero, suppressAutoRetire: true);
             if (data.IsRetiredOrDead) return;
 
-            string desc = hero.IsDead ? "{=ZtZL0lbX}deceased".Translate() : "{=ISrFBorj}retired".Translate();
-            var oldName = hero.Name;
-            CampaignHelpers.SetHeroName(hero, new TextObject(data.LegacyName));
-            CampaignHelpers.RemoveEncyclopediaBookmarkFromItem(hero);
+            string desc = hero.IsDead ? "deceased" : "retired";
+            string oldName = hero.Name.ToString();
+            string baseName = oldName.Replace(" [BLT]", "").Trim();
+            var all = Hero.AllAliveHeroes.Concat(Hero.DeadOrDisabledHeroes);
+            int highest = 0;
 
-            // Don't leave retired heroes in the tournament queue 
+            foreach (var h in all)
+            {
+                if (h == hero || h.Name == null) continue;
+                var t = h.Name.ToString().Split(' ');
+                int di = Array.FindIndex(t, x => x.Equals("retired", StringComparison.OrdinalIgnoreCase) || x.Equals("deceased", StringComparison.OrdinalIgnoreCase));
+                if (di < 1) continue;
+                string rn = "", mn = "";
+                if (di >= 2 && t[di - 1].All(c => "IVXLCDM".Contains(char.ToUpper(c))))
+                {
+                    rn = t[di - 1];
+                    mn = t[di - 2];
+                }
+                else
+                {
+                    mn = t[di - 1];
+                }
+                if (!mn.Equals(baseName, StringComparison.OrdinalIgnoreCase)) continue;
+                int val = 0;
+                if (!string.IsNullOrEmpty(rn))
+                {
+                    for (int i = 0; i < rn.Length; i++)
+                    {
+                        int cur = "IVXLCDM".IndexOf(char.ToUpper(rn[i])) switch
+                        {
+                            0 => 1,
+                            1 => 5,
+                            2 => 10,
+                            3 => 50,
+                            4 => 100,
+                            5 => 500,
+                            6 => 1000,
+                            _ => 0
+                        };
+                        int next = i + 1 < rn.Length ? "IVXLCDM".IndexOf(char.ToUpper(rn[i + 1])) switch
+                        {
+                            0 => 1,
+                            1 => 5,
+                            2 => 10,
+                            3 => 50,
+                            4 => 100,
+                            5 => 500,
+                            6 => 1000,
+                            _ => 0
+                        } : 0;
+                        val += cur < next ? -cur : cur;
+                    }
+                }
+
+                if (val > highest) highest = val;
+            }
+
+            string finalName = $"{baseName} {ToRoman(highest + 1)} {desc}";
+            CampaignHelpers.SetHeroName(hero, new TextObject(finalName));
+            CampaignHelpers.RemoveEncyclopediaBookmarkFromItem(hero);
             BLTTournamentQueueBehavior.Current.RemoveFromQueue(hero);
 
             Log.LogFeedEvent("{=2PHPNmuv}{OldName} is {RetireType}!"
                 .Translate(("OldName", oldName), ("RetireType", desc)));
+
             Log.Info("{=wzpkEmTL}Dead or retired hero {OldName} renamed to {HeroName}"
                 .Translate(("OldName", oldName), ("HeroName", hero.Name)));
 
             data.IsRetiredOrDead = true;
-            //heroData.Remove(hero);
         }
+
         #endregion
 
         #region Gold
@@ -1250,7 +1384,6 @@ namespace BLTAdoptAHero
                 >= 1 => "I" + ToRoman(number - 1)
             };
         }
-
         #endregion
 
         #region Console Commands

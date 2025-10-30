@@ -238,7 +238,8 @@ namespace BLTAdoptAHero
                             BLTAdoptAHeroModule.CommonConfig.RetinueHealPerKill,
                             0, 1,
                             BLTAdoptAHeroModule.CommonConfig.RelativeLevelScaling,
-                            BLTAdoptAHeroModule.CommonConfig.LevelScalingCap
+                            BLTAdoptAHeroModule.CommonConfig.LevelScalingCap,
+                            BLTAdoptAHeroModule.CommonConfig.MinimumGoldPerKill
                         );
                     }
                 );

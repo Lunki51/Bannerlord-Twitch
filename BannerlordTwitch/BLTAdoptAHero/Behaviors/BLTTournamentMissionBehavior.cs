@@ -25,6 +25,8 @@ namespace BLTAdoptAHero
         private readonly List<BLTTournamentQueueBehavior.TournamentQueueEntry> activeTournament = new();
 
         private bool isPlayerParticipating;
+        private bool hasGeneratedParticipants = false;
+        private List<CharacterObject> cachedParticipants = null;
 
         public BLTTournamentMissionBehavior(bool isPlayerParticipating, TournamentGame tournamentGame)
         {
@@ -34,7 +36,16 @@ namespace BLTAdoptAHero
 
         public List<CharacterObject> GetParticipants()
         {
+            if (hasGeneratedParticipants)
+            {
+                Log.Trace($"[BLT] Returning cached participants. Count: {cachedParticipants.Count}");
+                return cachedParticipants;
+            }
+
+            hasGeneratedParticipants = true;
+
             var tournamentQueue = BLTTournamentQueueBehavior.Current.TournamentQueue;
+            Log.Trace($"[Tournament] Starting GetParticipants. Queue count = {tournamentQueue.Count}"); // debug
 
             var participants = new List<CharacterObject>();
             if (isPlayerParticipating)
@@ -43,9 +54,15 @@ namespace BLTAdoptAHero
             int viewersToAddCount = Math.Min(16 - participants.Count, tournamentQueue.Count);
 
             var viewersToAdd = tournamentQueue.Take(viewersToAddCount).ToList();
+            foreach (var entry in viewersToAdd) // debug
+            {
+                Log.Trace($"[BLT] Adding viewer hero to tournament: {entry.Hero?.Name}");
+            }
+
             participants.AddRange(viewersToAdd.Select(q => q.Hero.CharacterObject));
             activeTournament.AddRange(viewersToAdd);
             tournamentQueue.RemoveRange(0, viewersToAddCount);
+            Log.Trace($"[BLT] Removed {viewersToAddCount} heroes from queue. New Queue Count: {BLTTournamentQueueBehavior.Current.TournamentQueue.Count}"); // debug
 
             var basicTroops = CampaignHelpers.AllCultures
                 .SelectMany(c => new[] { c.BasicTroop, c.EliteBasicTroop })
@@ -74,7 +91,10 @@ namespace BLTAdoptAHero
                 }
             }
 
-            return participants;
+            Log.Trace($"[BLT] Total Participants: {participants.Count}"); // debug
+
+            cachedParticipants = participants;
+            return cachedParticipants;
         }
 
         private static int GetModifiedSkill(Hero hero, SkillObject skill, int baseModifiedSkill)
@@ -296,6 +316,9 @@ namespace BLTAdoptAHero
             }
 
             activeTournament.Clear();
+            hasGeneratedParticipants = false;
+            cachedParticipants = null;
+            Log.Trace("[BLT] Reset participant cache after tournament end.");
         }
 
         private void EndCurrentMatchPrefixImpl(TournamentBehavior tournamentBehavior)

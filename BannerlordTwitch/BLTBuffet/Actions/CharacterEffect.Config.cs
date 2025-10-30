@@ -135,53 +135,58 @@ namespace BLTBuffet
              PropertyOrder(8), UsedImplicitly]
             public float HealPerSecond { get; set; }
 
+            [LocDisplayName("{=TESTING}Heal Percentage"),
+             LocDescription("{=TESTING}Heal a percentage of max hp per second.Can be used with heal per second."),
+             PropertyOrder(9), UsedImplicitly]
+            public float HealPercent { get; set; }
+
             [LocDisplayName("{=6Ikuo9Yl}Damage Per Second"),
              LocDescription("{=cQBHZWwK}Damage amount per second"),
-             PropertyOrder(9), UsedImplicitly]
+             PropertyOrder(10), UsedImplicitly]
             public float DamagePerSecond { get; set; }
 
             [LocDisplayName("{=KxP51isR}Duration"),
              LocDescription("{=1pG6eydt}Duration the effect will last for, if not specified the effect will last until the end of the mission"),
-             DefaultValue(null), PropertyOrder(10), UsedImplicitly]
+             DefaultValue(null), PropertyOrder(11), UsedImplicitly]
             public float? Duration { get; set; }
 
             [LocDisplayName("{=rFxwAzgd}Force Drop Weapons"),
              LocDescription("{=ZW0x13Y8}Force agent to drop weapons"),
-             PropertyOrder(11), UsedImplicitly]
+             PropertyOrder(12), UsedImplicitly]
             public bool ForceDropWeapons { get; set; }
 
             [LocDisplayName("{=vZIAY076}Remove Armor"),
              LocDescription("{=4kiY7cUb}Remove all armor"),
-             PropertyOrder(13), UsedImplicitly]
+             PropertyOrder(14), UsedImplicitly]
             public bool RemoveArmor { get; set; }
 
             [LocDisplayName("{=jJpRuWKR}Damage Multiplier"),
              LocDescription("{=FlfyDMlc}Raw damage multiplier"),
-             PropertyOrder(14), UsedImplicitly]
+             PropertyOrder(15), UsedImplicitly]
             public float? DamageMultiplier { get; set; }
 
             [LocDisplayName("{=qWGAG5l8}Activate Particle Effect"),
              LocDescription("{=6HT3lQbV}One shot vfx to apply when the effect is activated"),
              ItemsSource(typeof(OneShotParticleEffectItemSource)),
-             PropertyOrder(15), UsedImplicitly]
+             PropertyOrder(16), UsedImplicitly]
             public string ActivateParticleEffect { get; set; }
 
             [LocDisplayName("{=deboEOcD}Activate Sound"),
              LocDescription("{=zZskrilN}Sound to play when effect is activated, see Sounds.txt for the full vanilla list"),
              ItemsSource(typeof(SoundEffectItemSource)),
-             PropertyOrder(16), UsedImplicitly]
+             PropertyOrder(17), UsedImplicitly]
             public string ActivateSound { get; set; }
 
             [LocDisplayName("{=FBH0P3a9}Deactivate Particle Effect"),
              LocDescription("{=u1eFzwLY}One shot vfx to apply when the effect is deactivated, see ParticleEffects.txt for the full vanilla list"),
              ItemsSource(typeof(OneShotParticleEffectItemSource)),
-             PropertyOrder(17), UsedImplicitly]
+             PropertyOrder(18), UsedImplicitly]
             public string DeactivateParticleEffect { get; set; }
 
             [LocDisplayName("{=zfSYXHms}Deactivate Sound"),
              LocDescription("{=ziMmWmmY}Sound to play when effect is deactivated, see Sounds.txt for the full vanilla list"),
              ItemsSource(typeof(SoundEffectItemSource)),
-             PropertyOrder(18), UsedImplicitly]
+             PropertyOrder(19), UsedImplicitly]
             public string DeactivateSound { get; set; }
         }
     }

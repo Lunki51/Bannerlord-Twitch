@@ -21,7 +21,7 @@ namespace BLTAdoptAHero
     [HarmonyPatch]
     internal class BLTAdoptAHeroCommonMissionBehavior : AutoMissionBehavior<BLTAdoptAHeroCommonMissionBehavior>
     {
-        private readonly List<Hero> activeHeroes = new();
+        public readonly List<Hero> activeHeroes = new();
 
         private class HeroMissionState
         {
@@ -249,7 +249,8 @@ namespace BLTAdoptAHero
                             (int)(BLTAdoptAHeroModule.CommonConfig.XPPerKill * horseFactor),
                             Math.Max(BLTAdoptAHeroModule.CommonConfig.SubBoost, 1),
                             BLTAdoptAHeroModule.CommonConfig.RelativeLevelScaling,
-                            BLTAdoptAHeroModule.CommonConfig.LevelScalingCap
+                            BLTAdoptAHeroModule.CommonConfig.LevelScalingCap,
+                            BLTAdoptAHeroModule.CommonConfig.MinimumGoldPerKill
                         );
                     }
 
@@ -324,7 +325,7 @@ namespace BLTAdoptAHero
             return state;
         }
 
-        private static bool IsHeroOnPlayerSide(Hero hero)
+        public static bool IsHeroOnPlayerSide(Hero hero)
             => hero.PartyBelongedTo?.MapEventSide?.MissionSide == PlayerEncounter.Current?.PlayerSide;
 
         private void UpdateHeroVM(Hero hero)
@@ -433,7 +434,7 @@ namespace BLTAdoptAHero
             }
         }
 
-        public void ApplyKillEffects(Hero hero, Agent killer, Agent killed, AgentState state, int goldPerKill, int healPerKill, int xpPerKill, float subBoost, float? relativeLevelScaling, float? levelScalingCap)
+        public void ApplyKillEffects(Hero hero, Agent killer, Agent killed, AgentState state, int goldPerKill, int healPerKill, int xpPerKill, float subBoost, float? relativeLevelScaling, float? levelScalingCap, float MinimumGoldPerKill)
         {
             goldPerKill = (int)(goldPerKill * subBoost);
             healPerKill = (int)(healPerKill * subBoost);
@@ -444,7 +445,12 @@ namespace BLTAdoptAHero
                 // More reward for killing higher level characters
                 float levelBoost = RelativeLevelScaling(hero.Level, killed.Character.Level, relativeLevelScaling.Value, levelScalingCap ?? 5);
 
-                goldPerKill = (int)(goldPerKill * levelBoost);
+                // Apply minimum scaling only to gold
+                float goldLevelBoost = MathF.Max(MathF.Max(0f, levelBoost), MinimumGoldPerKill);
+                    if (!killed.IsHuman) //Ignore if horse
+                    goldLevelBoost=levelBoost;
+                
+                goldPerKill = (int)(goldPerKill * goldLevelBoost);
                 healPerKill = (int)(healPerKill * levelBoost);
                 xpPerKill = (int)(xpPerKill * levelBoost);
             }
