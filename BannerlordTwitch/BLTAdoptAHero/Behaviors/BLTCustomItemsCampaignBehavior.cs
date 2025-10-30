@@ -130,21 +130,6 @@ namespace BLTAdoptAHero
                 MountHitPoints = mountHitPointsModifier,
             });
 
-        public ItemModifier CreateDummyModifier(string baseName) =>
-            RegisterModifier(new()
-            {
-                Name = baseName,
-                Armor = 0,
-                Damage = 0,
-                MissileSpeed = 0,
-                Speed = 0,
-                StackCount = 0,
-                Maneuver = 0,
-                MountSpeed = 0,
-                ChargeDamage = 0,
-                MountHitPoints = 0,
-            });
-
         public bool IsRegistered(ItemModifier modifier) => modifier != null && customItemModifiers.ContainsKey(modifier);
 
         public bool ItemCanBeNamed(ItemModifier itemModifier) => itemModifier != null && customItemModifiers.ContainsKey(itemModifier);

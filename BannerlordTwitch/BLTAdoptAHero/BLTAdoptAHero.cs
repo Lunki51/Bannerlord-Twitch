@@ -6,7 +6,6 @@ using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.UI;
-using BLTAdoptAHero;
 using HarmonyLib;
 using JetBrains.Annotations;
 using SandBox.GauntletUI.Missions;
@@ -61,10 +60,6 @@ namespace BLTAdoptAHero
                 mission.AddMissionBehavior(new BLTSummonBehavior());
                 mission.AddMissionBehavior(new BLTRemoveAgentsBehavior());
                 mission.AddMissionBehavior(new BLTHeroPowersMissionBehavior());
-                //if (mission.CombatType == Mission.MissionCombatType.Combat && mission.PlayerTeam != null && mission.HasMissionBehavior<BLTAdoptAHeroCommonMissionBehavior>())
-                //{
-                //    mission.AddMissionBehavior(new HeroWidgetMissionView());
-                //}
             }
             catch (Exception e)
             {
@@ -83,6 +78,7 @@ namespace BLTAdoptAHero
                 __instance.AddMissionView(SandBoxViewCreator.CreateMissionNameMarkerUIHandler(__instance.Mission));
             }
         }
+
 
         [UsedImplicitly, HarmonyPostfix,
          HarmonyPatch(typeof(MissionNameMarkerTargetVM), MethodType.Constructor, typeof(Agent), typeof(bool))]
@@ -153,8 +149,6 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTAdoptAHeroCampaignBehavior());
                     campaignStarter.AddBehavior(new BLTTournamentQueueBehavior());
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
-                    campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
-                    campaignStarter.AddBehavior(new BLTClanBehavior());
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models
                         .OfType<AgentApplyDamageModel>().FirstOrDefault()));

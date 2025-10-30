@@ -435,7 +435,6 @@ namespace BLTAdoptAHero
                     EnterSettlementAction.ApplyForCharacterOnly(newHero, targetSettlement);
                     Log.Info($"Created and placed new hero {newHero.Name} at {targetSettlement.Name}");
                 }
-                else { Log.Error($"No wanderer template for {desiredCulture}"); }
             }
             else
             {

@@ -8,8 +8,6 @@ using BannerlordTwitch.Rewards;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.Achievements;
 using BLTAdoptAHero.Powers;
-using TaleWorlds.Core;
-using TaleWorlds.CampaignSystem;
 using JetBrains.Annotations;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
@@ -78,10 +76,7 @@ namespace BLTAdoptAHero
              LocDescription("{=YW8HsNEF}Shows the heroes unlocked powers"),
              PropertyOrder(12), UsedImplicitly]
             public bool ShowPowers { get; set; }
-            [LocDisplayName("{=XN95uDm8}Show Family"),
-             LocDescription("{=nqgafTYp}Shows hero family"),
-             PropertyOrder(13), UsedImplicitly]
-            public bool ShowFamily { get; set; }
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var shows = new List<string>();
@@ -98,52 +93,12 @@ namespace BLTAdoptAHero
                 if (ShowAchievements) shows.Add("{=ZW9XlwY7}Achievements".Translate());
                 if (ShowTrackedStats) shows.Add("{=Xmo7pOpj}Tracked stats".Translate());
                 if (ShowPowers) shows.Add("{=xVDOsWPq}Powers".Translate());
-                if (ShowFamily) shows.Add("{=PyDGfwhk}Family".Translate());
                 generator.PropertyValuePair("{=UB1bAtSI}Shows".Translate(), string.Join(", ", shows));
             }
         }
 
         // One Handed, Two Handed, Polearm, Bow, Crossbow, Throwing, Riding, Athletics, Smithing
         // Scouting, Tactics, Roguery, Charm, Leadership, Trade, Steward, Medicine, Engineering
-        private static string GetIcon(ItemObject item)
-        {
-            if (item == null) return "❔";
-            switch (item.ItemType)
-            {
-                case ItemObject.ItemTypeEnum.OneHandedWeapon:
-                case ItemObject.ItemTypeEnum.TwoHandedWeapon:
-                case ItemObject.ItemTypeEnum.Polearm:
-                    return "🗡";
-                case ItemObject.ItemTypeEnum.Bow:
-                case ItemObject.ItemTypeEnum.Crossbow:
-                case ItemObject.ItemTypeEnum.Thrown:
-                    return "🏹";
-                case ItemObject.ItemTypeEnum.Shield:
-                    return "🛡";
-                case ItemObject.ItemTypeEnum.Arrows:
-                case ItemObject.ItemTypeEnum.Bolts:
-                    return "➶";
-                case ItemObject.ItemTypeEnum.Horse:
-                    return "🐴";
-                case ItemObject.ItemTypeEnum.HorseHarness:
-                    return "🐎";
-                case ItemObject.ItemTypeEnum.HeadArmor:
-                    return "⛑️";
-                case ItemObject.ItemTypeEnum.BodyArmor:
-                case ItemObject.ItemTypeEnum.ChestArmor:
-                    return "👕";
-                case ItemObject.ItemTypeEnum.LegArmor:
-                    return "🥾";
-                case ItemObject.ItemTypeEnum.HandArmor:
-                    return "🧤";
-                case ItemObject.ItemTypeEnum.Cape:
-                    return "🧣";
-                case ItemObject.ItemTypeEnum.Banner:
-                    return "⚑";
-                default:
-                    return "⚙️";
-            }
-        }
 
         Type ICommandHandler.HandlerConfigType => typeof(Settings);
         void ICommandHandler.Execute(ReplyContext context, object config)
@@ -185,16 +140,16 @@ namespace BLTAdoptAHero
                 if (settings.ShowTopSkills)
                 {
                     infoStrings.Add($"{"{=fRwyY6ms}[LVL]".Translate()} {adoptedHero.Level}");
-
+                
                     var skillsList = CampaignHelpers.AllSkillObjects
                         .Where(s => adoptedHero.GetSkillValue(s) >= settings.MinSkillToShow)
                         .OrderByDescending(s => adoptedHero.GetSkillValue(s))
                         .Select(skill =>
                             $"{SkillXP.GetShortSkillName(skill)} {adoptedHero.GetSkillValue(skill)} " +
                             $"[" +
-                            $"{"{=lHRDKsUT}f".Translate()}" +
-                            $"{adoptedHero.HeroDeveloper.GetFocus(skill)}]");
-
+                            $"{"{=lHRDKsUT}f ".Translate()}" +
+                            $"{adoptedHero.HeroDeveloper.GetFocus(skill)}]" );
+                
                     infoStrings.Add($"{"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
                 }
 
@@ -218,54 +173,31 @@ namespace BLTAdoptAHero
                 if (settings.ShowInventory)
                 {
                     infoStrings.Add("{=YVVlcDSK}[BATTLE]".Translate() +
-                                    " " + string.Join(Naming.Sep,
-                                        adoptedHero.BattleEquipment
-                                            .YieldFilledEquipmentSlots()
-                                            .Select(e =>
-                                                $"{GetIcon(e.element.Item)} {e.element.GetModifiedItemName()}")
-                                    ));
+                                    " " + string.Join(Naming.Sep, adoptedHero.BattleEquipment
+                        .YieldFilledEquipmentSlots().Select(e => e.element)
+                        .Select(e => $"{e.GetModifiedItemName()}")
+                    ));
                 }
 
                 if (settings.ShowCivilianInventory)
                 {
                     infoStrings.Add("{=zaVtcDWB}[CIV]".Translate() +
-                                    " " + string.Join(Naming.Sep,
-                                        adoptedHero.CivilianEquipment
-                                            .YieldFilledEquipmentSlots()
-                                            .Select(e =>
-                                                $"{GetIcon(e.element.Item)} {e.element.GetModifiedItemName()}")
-                                    ));
+                                    " " + string.Join(Naming.Sep, adoptedHero.CivilianEquipment
+                        .YieldFilledEquipmentSlots().Select(e => e.element)
+                        .Select(e => $"{e.GetModifiedItemName()}")
+                    ));
                 }
 
                 if (settings.ShowStorage)
                 {
-                    var customItems = BLTAdoptAHeroCampaignBehavior.Current.GetCustomItems(adoptedHero);
-
+                    var customItems
+                        = BLTAdoptAHeroCampaignBehavior.Current.GetCustomItems(adoptedHero);
                     infoStrings.Add("{=}[CUSTOMS]".Translate() + " " +
-                        (customItems.Any()
-                            ? string.Join(Naming.Sep, customItems
-                                .Select((e, idx) =>
-                                {
-                                    string name = RewardHelpers.GetItemNameAndModifiers(e);
-
-                // remove no-modifiers marker
-                name = name.Replace("(no modifiers)", "").Trim();
-
-                // shorten common terms
-                name = name
-                                        .Replace("Damage", "Dmg")
-                                        .Replace("Missile Speed", "Speed")
-                                        .Replace("Swing Speed", "Speed")
-                                        .Replace("Mount Speed", "Speed")
-                                        .Replace("Stack Count", "Stack")
-                                        .Replace("Hit Points", "Hp")
-                                        .Replace("Mount HP", "HP")
-                                        .Replace("Mount Charge", "Charge")
-                                        .Replace("Mount Maneuver", "Maneuver");
-
-                                    return $"#{idx + 1} {name}";
-                                }))
-                            : "{=4IOefqsW}(nothing)".Translate()));
+                                    (customItems.Any()
+                                        ? string.Join(Naming.Sep, customItems
+                                            .Select((e, idx) =>
+                                                $"#{idx + 1} " + RewardHelpers.GetItemNameAndModifiers(e)))
+                                        : "{=4IOefqsW}(nothing)".Translate()));
                 }
 
                 if (settings.ShowRetinue)
@@ -368,83 +300,8 @@ namespace BLTAdoptAHero
                                         ));
                     }
                 }
-                if (settings.ShowFamily)
-                {
-                    string strOutpu = "";
-                    string CleanName(string name)
-                    {
-                        return name.StartsWith("{=") ? name.Substring(name.IndexOf("}") + 1) : name;
-                    }
-
-                    if (adoptedHero.ExSpouses.Count > 0 && adoptedHero.Spouse == null)
-                    {
-                        strOutpu += "{=TGdqsQSP}Your spouse has died or divorced you |".Translate();
-                    }
-
-                    if (adoptedHero.Spouse != null)
-                    {
-                        strOutpu += adoptedHero.Spouse.IsFemale
-                            ? "{=G6HbpqA8}Wife:".Translate()
-                            : "{=ouo9vhXQ}Husband:".Translate();
-
-                        strOutpu += CleanName(adoptedHero.Spouse.FirstName.Value) + ", ";
-                        strOutpu += ((int)adoptedHero.Spouse.Age).ToString();
-
-                        if (adoptedHero.IsPregnant || adoptedHero.Spouse.IsPregnant)
-                        {
-                            strOutpu += "{=uc0OVGuT}, Pregnancy | ".Translate();
-                        }
-                        else
-                        {
-                            strOutpu += " | ";
-                        }
-                    }
-
-                    if (adoptedHero.Children.Count != 0)
-                    {
-                        strOutpu += "{=kTgY4UOK}Children:".Translate();
-                        foreach (Hero c in adoptedHero.Children)
-                        {
-                            string kids = "";
-
-                            kids += CleanName(c.FirstName.Value) + ", ";
-                            kids += c.IsFemale
-                                ? "{=Ve0MnA3y}Daughter, ".Translate()
-                                : "{=RfTn6PsS}Son, ".Translate();
-                            kids += ((int)c.Age).ToString();
-
-                            if (c.IsDead)
-                            {
-                                kids += "{=abarE7q2}, Dead".Translate();
-                            }
-                            if (c.Spouse != null)
-                            {
-                                kids += "{=sf2lvgLN}, Married:".Translate();
-                                kids += CleanName(c.Spouse.FirstName.Value) + " - ";
-                            }
-                            else
-                            {
-                                kids += " - ";
-                            }
-
-                            strOutpu += kids;
-                        }
-
-                        strOutpu = strOutpu.Substring(0, strOutpu.Length - 3);
-                    }
-                    if (adoptedHero.Children.Count == 0 && adoptedHero.Spouse != null)
-                    {
-                        strOutpu += "{=flwvh8pU}You have no children".Translate();
-                    }
-                    if (adoptedHero.Children.Count == 0 && adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count == 0)
-                    {
-                        strOutpu += "{=1E2rDky4}You have no family".Translate();
-                    }
-                    infoStrings.Add("{=XWxg1QRc}Family |".Translate() + " " + strOutpu);
-                }
-
-                ActionManager.SendReply(context, infoStrings.ToArray());
             }
+            ActionManager.SendReply(context, infoStrings.ToArray());
         }
     }
 }

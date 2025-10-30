@@ -69,9 +69,12 @@ namespace BLTAdoptAHero
 				})
 			});
 			adoptedHero.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
-            int newAge = (int)adoptedHero.Age;
-			onSuccess("{=XidEZXAO}Your rejuvenated of {Age} years you are now {newAge}".Translate(("Age", settings.Age), ("newAge", newAge)));
-            }
+			onSuccess("{=XidEZXAO}Your rejuvenated of {Age} years you are now {newAge}".Translate(new ValueTuple<string, object>[]
+			{
+				new ValueTuple<string, object>("Age", settings.Age),
+				new ValueTuple<string, object>("newAge", num)
+			}));
+		}
   
   		public Rejuvenate()
 		{

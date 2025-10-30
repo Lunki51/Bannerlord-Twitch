@@ -6,7 +6,6 @@ using BannerlordTwitch.Util;
 using TaleWorlds.Core;
 using TaleWorlds.Engine;
 using TaleWorlds.MountAndBlade;
-using BLTAdoptAHero;
 
 namespace BLTBuffet
 {
@@ -33,19 +32,9 @@ namespace BLTBuffet
 
             public void Apply(float dt)
             {
-                if (config.HealPerSecond != 0 && config.HealPercent != 0)
-                {
-                    agent.Health = Math.Min(agent.HealthLimit, agent.Health + Math.Abs(config.HealPerSecond+config.HealPercent*agent.HealthLimit/100) * dt);
-                }
-
-                if (config.HealPerSecond != 0 && config.HealPercent == 0)
+                if (config.HealPerSecond != 0)
                 {
                     agent.Health = Math.Min(agent.HealthLimit, agent.Health + Math.Abs(config.HealPerSecond) * dt);
-                }
-
-                if (config.HealPercent != 0 && config.HealPerSecond == 0)
-                {
-                    agent.Health = Math.Min(agent.HealthLimit, agent.Health + Math.Abs(config.HealPercent * agent.HealthLimit/100) * dt);
                 }
 
                 if (config.DamagePerSecond != 0 && agent.CurrentMortalityState == Agent.MortalityState.Mortal && Mission.Current?.DisableDying != true)

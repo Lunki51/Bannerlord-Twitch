@@ -101,10 +101,6 @@
         <string id="BDk1G4nc" text="Level Scaling Cap"/>
         <!-- Caps the maximum multiplier for the level difference, defaults to 5 if not specified -->
         <string id="Vod0pJEN" text="Caps the maximum multiplier for the level difference, defaults to 5 if not specified"/>
-		<!-- Minimum Gold Per Kill -->
-        <string id="EYXeYMQo" text="Minimum Gold Per Kill"/>
-		<!-- Minimum percent gold earned per kill -->
-        <string id="J2GKeUI9" text="Minimum percent gold earned per kill"/>
 
         <!-- Win Gold -->
         <string id="IQTT5vYE" text="Win Gold"/>
@@ -119,8 +115,8 @@
         <string id="pc3G0W39" text="Gold won if the heroes side wins"/>
         <!-- XP the hero gets if the heroes side wins -->
         <string id="F7Tw4D07" text="XP the hero gets if the heroes side wins"/>
-        <!-- Gold lost if the heroes side loses(negative to win gold) -->
-        <string id="E209XRml" text="Gold lost if the heroes side loses(negative to win gold)"/>
+        <!-- Gold lost if the heroes side loses -->
+        <string id="E209XRml" text="Gold lost if the heroes side loses"/>
         <!-- XP the hero gets if the heroes side loses -->
         <string id="itAfYdmO" text="XP the hero gets if the heroes side loses"/>
         <!-- Difficulty Scaling On Players Side -->

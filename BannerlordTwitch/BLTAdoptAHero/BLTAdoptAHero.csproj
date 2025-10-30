@@ -282,7 +282,6 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
-    <Reference Include="System.Net.Http" />
     <Reference Include="System.Security" />
     <Reference Include="System.Xaml">
       <Private>False</Private>
@@ -308,9 +307,6 @@
     <Compile Include="Achievements\StatisticClassSpecificRequirement.cs" />
     <Compile Include="Achievements\StatisticTotalRequirement.cs" />
     <Compile Include="Actions\AddGoldToHero.cs" />
-    <Compile Include="Actions\CampaignInfo.cs" />
-    <Compile Include="Actions\Diplomacy.cs" />
-    <Compile Include="Actions\ItemStats.cs" />
     <Compile Include="Actions\HeroToHeroGold.cs" />
     <Compile Include="Actions\AdoptAHero.cs" />
     <Compile Include="Actions\AttributePoints.cs" />
@@ -326,7 +322,6 @@
     <Compile Include="Actions\ImproveAdoptedHero.cs" />
     <Compile Include="Actions\JoinTournament.cs" />
     <Compile Include="Actions\KingdomManagement.cs" />
-    <Compile Include="Actions\Leaderboard.cs" />
     <Compile Include="Actions\NameItem.cs" />
     <Compile Include="Actions\Rejuvenate.cs" />
     <Compile Include="Actions\Retinue.cs" />
@@ -346,7 +341,6 @@
     <Compile Include="Behaviors\BLTAdoptAHeroCampaignBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCommonMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCustomMissionBehavior.cs" />
-    <Compile Include="Behaviors\BLTHeroWidgetBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentBetMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTCustomItemsCampaignBehavior.cs" />
     <Compile Include="Behaviors\BLTHeroPowersMissionBehavior.cs" />
@@ -355,9 +349,6 @@
     <Compile Include="Behaviors\BLTTournamentMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentQueueBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
-    <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
-    <Compile Include="Behaviors\BLTClanBehavior.cs" />
-    <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />
@@ -418,7 +409,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="std_module_strings_xml.xml" />
-    <Content Include="_Module\GUI\Prefabs\BLTHeroNametag.xml" />
     <Content Include="_Module\ModuleData\Languages\BR\language_data.xml" />
     <Content Include="_Module\ModuleData\Languages\BR\strings-actions-BR.xml" />
     <Content Include="_Module\ModuleData\Languages\BR\strings-behaviors-BR.xml" />
@@ -516,7 +506,6 @@
       <Name>BannerlordTwitch</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)BLTBuildTargets.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

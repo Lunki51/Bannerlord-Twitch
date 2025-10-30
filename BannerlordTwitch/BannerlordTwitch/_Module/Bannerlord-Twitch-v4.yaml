@@ -8,7 +8,6 @@ Commands:
     ShowAttributes: false
     ShowCivilianInventory: false
     ShowEquipment: false
-    ShowFamily: false
     ShowGeneral: false
     ShowGold: false
     ShowInventory: false
@@ -21,7 +20,6 @@ Commands:
   Help: '{=aGPoAaM9}achievements'
   HideHelp: false
   ID: 6b05f682-afe1-45e2-ba68-e6ee086ee412
-  ModeratorOnly: false
   Name: '{=woTpsqyV}ach'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -41,11 +39,11 @@ Commands:
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
-    StartingGold: 50000
+    StartingGold: 250000
     StartingSkills:
     - MaxLevel: 125
       MinLevel: 50
@@ -64,12 +62,11 @@ Commands:
   Help: ''
   HideHelp: false
   ID: e317c63a-5a1f-455c-b953-6dcb92dc9424
-  ModeratorOnly: false
   Name: '{=0grO6hB5}adopt'
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero, filtered by Clan
-  Enabled: false
+  Enabled: true
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -84,7 +81,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -98,7 +95,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 749a1d9f-516c-4c1c-9603-f22586c06818
-  ModeratorOnly: false
   Name: adoptByClan
   RespondInOverlay: true
   RespondInTwitch: true
@@ -107,18 +103,18 @@ Commands:
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
-    AllowNoble: false
+    AllowNoble: true
     AllowPartyLeader: false
     AllowPlayerCompanion: false
     AllowWanderer: true
-    CreateNew: true
+    CreateNew: false
     Inheritance: 0.25
     MaxInheritedCustomItems: 2
     MinSubscribedMonths: 
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -132,12 +128,11 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 25aaa31b-f456-4629-9b0d-95088d079ce9
-  ModeratorOnly: false
   Name: adoptByCulture
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero, filtered by Faction <br> Can do "!adoptByFaction list" for a list of factions
-  Enabled: false
+  Enabled: true
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -152,7 +147,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -166,12 +161,11 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 8186522f-8087-4e8b-8be8-2cccf7b33aca
-  ModeratorOnly: false
   Name: adoptByFaction
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero, filtered by Hero Name
-  Enabled: false
+  Enabled: true
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -186,7 +180,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -200,12 +194,11 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 34d71a7c-dd7a-4449-93ce-128e360f6712
-  ModeratorOnly: false
   Name: adoptByName
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a newly created Hero
-  Enabled: false
+  Enabled: true
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -220,7 +213,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -234,12 +227,11 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 12306f90-ad7a-4016-b7c1-5c334d6d9f61
-  ModeratorOnly: false
   Name: adoptNew
   RespondInOverlay: true
   RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero
-  Enabled: false
+  Enabled: true
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -254,7 +246,7 @@ Commands:
     Notifications: false
     OverrideAge: false
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
@@ -268,7 +260,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 4cbefb28-4d74-45f2-8e26-a23e8729eab1
-  ModeratorOnly: false
   Name: adoptRandom
   RespondInOverlay: true
   RespondInTwitch: true
@@ -288,11 +279,10 @@ Commands:
     OnPlayerSide: false
     PreferredFormation: Infantry
     ShoutPercent: 0.25
-    WithRetinue: true
+    WithRetinue: false
   Help: ''
   HideHelp: false
   ID: 9082614c-46a3-47f9-b198-e56babde5745
-  ModeratorOnly: false
   Name: attack
   RespondInOverlay: true
   RespondInTwitch: false
@@ -305,7 +295,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 303342d6-c3c3-4f58-8d0d-0daee20677f8
-  ModeratorOnly: false
   Name: '{=QQX2aboq}auction'
   RespondInOverlay: true
   RespondInTwitch: true
@@ -316,7 +305,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 95bcd31c-154b-4d70-a3e6-cb247efe9fb4
-  ModeratorOnly: false
   Name: '{=taI6SRSG}bid'
   RespondInOverlay: true
   RespondInTwitch: true
@@ -327,11 +315,10 @@ Commands:
   Help: '{=xBgLXaf7}bet on tournament'
   HideHelp: false
   ID: 7cbdbc43-660c-4500-9029-d06e81c89f04
-  ModeratorOnly: false
   Name: '{=haKiwbsR}bltbet'
   RespondInOverlay: true
   RespondInTwitch: true
-- Documentation: Buy a randomly tiered mount for your Hero.Only for mounted classes.(1250000 gold)
+- Documentation: Buy a randomly tiered mount for your Hero.
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
@@ -342,19 +329,15 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 87bed827-fbe4-472e-a300-f6f85e46dd28
-  ModeratorOnly: false
   Name: buymount
   RespondInOverlay: true
   RespondInTwitch: true
-- Documentation: 'Use to manage clan actions <br> Usage is <code>!clan (join/create/lead/rename/stats/leave/buy title/banner) name </code> <br> Example: !clan join Banu Tammar or !clan stats'
+- Documentation: 'Use to manage clan actions <br> Usage is <code>!clan (join/create/lead/rename/stats) name </code> <br> Example: !clan join Banu Tammar or !clan stats'
   Enabled: true
   Handler: ClanManagement
   HandlerConfig:
-    BuyTitleEnabled: true
     CreateEnabled: true
-    CreatePrice: 1500000
-    EditBannerEnabled: true
-    FiefsEnabled: true
+    CreatePrice: 2500000
     JoinAllowPlayer: false
     JoinEnabled: true
     JoinMaxHeroes: 50
@@ -362,19 +345,15 @@ Commands:
     LeadChallengeHeroes: true
     LeadEnabled: true
     LeadPrice: 1000000
-    LeaveEnabled: true
     RenameEnabled: true
-    RenamePrice: 100000
-    Renown: 50
+    RenamePrice: 1000000
     StatsEnabled: true
-    TitlePrice: 200000
   Help: ''
   HideHelp: false
   ID: 203d9d85-4004-40d3-9f6b-19ffa1ba41b2
-  ModeratorOnly: false
   Name: clan
   RespondInOverlay: true
-  RespondInTwitch: true
+  RespondInTwitch: false
 - Documentation: '{=K3297TEM}Selects a new class for your hero, updating your existing equipment to match the class requirements.<br>Usage is <code>!class (new class name)</code>, e.g. <code>!class archer</code>.'
   Enabled: true
   Handler: SetHeroClass
@@ -390,7 +369,6 @@ Commands:
   Help: '{=uN82Y7hR}select new class'
   HideHelp: false
   ID: da8416ca-e59b-458a-8953-31291d03c835
-  ModeratorOnly: false
   Name: '{=nV9iIsDC}class'
   RespondInOverlay: false
   RespondInTwitch: true
@@ -403,7 +381,6 @@ Commands:
     ShowAttributes: false
     ShowCivilianInventory: false
     ShowEquipment: false
-    ShowFamily: false
     ShowGeneral: false
     ShowGold: false
     ShowInventory: false
@@ -416,7 +393,6 @@ Commands:
   Help: ''
   HideHelp: false
   ID: a0b89b07-f834-43e2-92df-51e975c2c829
-  ModeratorOnly: false
   Name: customitems
   RespondInOverlay: true
   RespondInTwitch: false
@@ -427,7 +403,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 752eb016-7df1-465c-83c7-80cc88f8c02d
-  ModeratorOnly: false
   Name: discarditem
   RespondInOverlay: true
   RespondInTwitch: true
@@ -446,7 +421,6 @@ Commands:
   Help: '{=vTo0NowP}upgrade equipment'
   HideHelp: false
   ID: 90b571d1-dba8-4006-860c-a0401b6f8fd2
-  ModeratorOnly: false
   Name: '{=wHqxd4kb}equip'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -457,7 +431,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 0e255e77-4c17-44ad-aeb8-ff01bbbe0bee
-  ModeratorOnly: false
   Name: '{=osvl34my}giveitem'
   RespondInOverlay: true
   RespondInTwitch: true
@@ -470,7 +443,6 @@ Commands:
     ShowAttributes: false
     ShowCivilianInventory: false
     ShowEquipment: false
-    ShowFamily: false
     ShowGeneral: false
     ShowGold: true
     ShowInventory: false
@@ -483,7 +455,6 @@ Commands:
   Help: '{=zdRj4blL}show gold'
   HideHelp: false
   ID: 42e45ee9-647f-486f-9764-5e765507a70d
-  ModeratorOnly: false
   Name: '{=W5uX9HCJ}gold'
   RespondInOverlay: true
   RespondInTwitch: true
@@ -499,8 +470,7 @@ Commands:
     DeactivateSound: 
     Duration: 10
     ForceDropWeapons: false
-    HealPercent: 2
-    HealPerSecond: 3
+    HealPerSecond: 6
     Name: healing
     ParticleEffects: []
     Properties: []
@@ -510,26 +480,19 @@ Commands:
   Help: ''
   HideHelp: false
   ID: 895736e0-4584-4f61-b97f-fc062264d151
-  ModeratorOnly: false
   Name: heal
   RespondInOverlay: true
   RespondInTwitch: false
-- Documentation: 'Use to adjust hero physical features <br> Usage is <code>!hero gender (male/female) / !hero looks (appearance string) / !hero marry (culture/clan/name)</code> <br> Example: !hero gender male'
+- Documentation: 'Use to adjust hero physical features <br> Usage is <code>!hero (gender) (male/female) </code> <br> Example: !hero gender male'
   Enabled: true
   Handler: HeroFeatures
   HandlerConfig:
-    AppearanceEnabled: true
-    ClanorName: true
     GenderCost: 50000
     GenderDisabledonNative: true
     GenderEnabled: true
-    MarriageCost: 50000
-    MarriageEnabled: true
-    OnlySpawnSpouse: false
   Help: ''
   HideHelp: true
   ID: 8443567a-70cb-4073-bb00-b00cc150ab81
-  ModeratorOnly: false
   Name: hero
   RespondInOverlay: true
   RespondInTwitch: false
@@ -542,7 +505,6 @@ Commands:
     ShowAttributes: false
     ShowCivilianInventory: false
     ShowEquipment: true
-    ShowFamily: false
     ShowGeneral: false
     ShowGold: true
     ShowInventory: true
@@ -555,21 +517,17 @@ Commands:
   Help: '{=oVNKTdOy}show equipment'
   HideHelp: false
   ID: 7b6caafc-0246-47c2-8622-e091b10b8897
-  ModeratorOnly: false
   Name: '{=UbklIEGh}inv'
   RespondInOverlay: true
   RespondInTwitch: false
-- Documentation: 'Use to manage clan actions <br> Usage is <code>!kingdom (join/rebel/leave/stats) name </code> <br> Example: !kingdom join Aserai or !clan stats'
+- Documentation: 'Use to manage clan actions <br> Usage is <code>!kingdom (join/rebel/stats) name </code> <br> Example: !kingdom join Aserai or !clan stats'
   Enabled: true
   Handler: KingdomManagement
   HandlerConfig:
-    JoinAllowPlayer: true
+    JoinAllowPlayer: false
     JoinEnabled: true
     JoinMaxClans: 20
     JoinPrice: 150000
-    LeaveEnabled: true
-    MercenaryEnabled: true
-    MercPrice: 50000
     RebelClanTierMinimum: 2
     RebelEnabled: true
     RebelPrice: 2500000
@@ -577,7 +535,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: a87232d0-93a7-4123-9981-892b3d19c832
-  ModeratorOnly: false
   Name: kingdom
   RespondInOverlay: false
   RespondInTwitch: true
@@ -588,7 +545,6 @@ Commands:
   Help: name a custom item
   HideHelp: true
   ID: aef1ded6-f8dd-4b9a-9d70-96e96d17cb12
-  ModeratorOnly: false
   Name: nameitem
   RespondInOverlay: true
   RespondInTwitch: true
@@ -599,7 +555,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 4aa62cc4-9ac2-4920-b921-c641f6ad0e24
-  ModeratorOnly: false
   Name: '{=NUQ5PsjF}power'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -612,7 +567,6 @@ Commands:
     ShowAttributes: false
     ShowCivilianInventory: false
     ShowEquipment: false
-    ShowFamily: false
     ShowGeneral: false
     ShowGold: false
     ShowInventory: false
@@ -625,7 +579,6 @@ Commands:
   Help: ''
   HideHelp: false
   ID: b595b0f2-ad40-409c-a286-c7f58ac87e13
-  ModeratorOnly: false
   Name: '{=GHCxNIaR}powers'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -644,7 +597,6 @@ Commands:
   Help: '{=3KYGJ0Mu}reroll equipment'
   HideHelp: true
   ID: d4fb255c-4bb3-454e-9e26-39b4d7a321f0
-  ModeratorOnly: false
   Name: '{=fGfTaAoD}reequip'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -668,7 +620,6 @@ Commands:
   Help: upgrade retinue
   HideHelp: false
   ID: 38eed507-87b9-47f4-b235-af921cef00c4
-  ModeratorOnly: false
   Name: '{=mge9rH9J}retinue'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -681,7 +632,6 @@ Commands:
     ShowAttributes: false
     ShowCivilianInventory: false
     ShowEquipment: false
-    ShowFamily: false
     ShowGeneral: false
     ShowGold: false
     ShowInventory: false
@@ -694,7 +644,6 @@ Commands:
   Help: ''
   HideHelp: false
   ID: afd51f50-caaf-40a8-bf29-d75447e34ef4
-  ModeratorOnly: false
   Name: '{=kG6yjBBR}retinuelist'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -706,11 +655,10 @@ Commands:
   Help: ''
   HideHelp: false
   ID: dd5268c5-3732-4c27-b990-6e364e66cc84
-  ModeratorOnly: false
   Name: retire
   RespondInOverlay: false
   RespondInTwitch: true
-- Documentation: Smith a custom armor item(500000 gold)
+- Documentation: Smith a custom armor item
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
@@ -721,11 +669,10 @@ Commands:
   Help: ''
   HideHelp: true
   ID: 2d829c81-f451-4b59-b9b2-ae12962986e9
-  ModeratorOnly: false
   Name: smitharmor
   RespondInOverlay: false
   RespondInTwitch: true
-- Documentation: Smith a custom weapon(1000000 gold)
+- Documentation: Smith a custom weapon
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
@@ -736,7 +683,6 @@ Commands:
   Help: ''
   HideHelp: true
   ID: a2b33796-a5f0-4bc9-be7c-8e887d3f00c4
-  ModeratorOnly: false
   Name: smithweapon
   RespondInOverlay: false
   RespondInTwitch: true
@@ -749,7 +695,6 @@ Commands:
     ShowAttributes: true
     ShowCivilianInventory: false
     ShowEquipment: false
-    ShowFamily: false
     ShowGeneral: true
     ShowGold: true
     ShowInventory: false
@@ -762,7 +707,6 @@ Commands:
   Help: ''
   HideHelp: false
   ID: 1cf3abfd-3310-4a51-808e-e14d454eed05
-  ModeratorOnly: false
   Name: '{=J2AqvpeF}stats'
   RespondInOverlay: true
   RespondInTwitch: false
@@ -782,11 +726,10 @@ Commands:
     OnPlayerSide: true
     PreferredFormation: Infantry
     ShoutPercent: 0.25
-    WithRetinue: true
+    WithRetinue: false
   Help: ''
   HideHelp: false
   ID: 01a497f3-d529-4780-80dd-41343b3e05ad
-  ModeratorOnly: false
   Name: summon
   RespondInOverlay: true
   RespondInTwitch: false
@@ -798,84 +741,7 @@ Commands:
   Help: ''
   HideHelp: false
   ID: 7cd05224-859e-41b0-beaa-739907ffc4e0
-  ModeratorOnly: false
   Name: tournament
-  RespondInOverlay: true
-  RespondInTwitch: false
-- Documentation: Show your heroes family information
-  Enabled: true
-  Handler: HeroInfoCommand
-  HandlerConfig:
-    MinSkillToShow: 100
-    ShowAchievements: false
-    ShowAttributes: false
-    ShowCivilianInventory: false
-    ShowEquipment: false
-    ShowFamily: true
-    ShowGeneral: false
-    ShowGold: false
-    ShowInventory: false
-    ShowPowers: false
-    ShowRetinue: false
-    ShowRetinueList: false
-    ShowStorage: false
-    ShowTopSkills: false
-    ShowTrackedStats: false
-  Help: ''
-  HideHelp: true
-  ID: d94add4a-28a7-4cf7-bd26-8f0f9c3ac6b3
-  ModeratorOnly: false
-  Name: family
-  RespondInOverlay: true
-  RespondInTwitch: true
-- Documentation: ''
-  Enabled: true
-  Handler: ItemStats
-  HandlerConfig: 
-  Help: ''
-  HideHelp: false
-  ID: 68ddc127-7829-405d-8f4e-b2fb3a7999da
-  ModeratorOnly: false
-  Name: itemstats
-  RespondInOverlay: true
-  RespondInTwitch: false
-- Documentation: ''
-  Enabled: true
-  Handler: AttributePoints
-  HandlerConfig:
-    AmountHigh: 1
-    AmountLow: 1
-    GoldCost: 250000
-    Random: false
-  Help: ''
-  HideHelp: true
-  ID: bd1fb6e6-1c01-4be1-b41e-eaa92c457542
-  ModeratorOnly: false
-  Name: buyattribute
-  RespondInOverlay: true
-  RespondInTwitch: true
-- Documentation: ''
-  Enabled: true
-  Handler: CampaignInfo
-  HandlerConfig: 
-  Help: ''
-  HideHelp: false
-  ID: f57bc344-22e1-4df3-be2e-877d0da278ca
-  ModeratorOnly: false
-  Name: info
-  RespondInOverlay: true
-  RespondInTwitch: true
-- Documentation: ''
-  Enabled: true
-  Handler: Rejuvenate
-  HandlerConfig:
-    Age: 1
-    Price: 10000
-  Help: ''
-  HideHelp: false
-  ID: 1a8ec0e1-f46b-4c09-9102-09577b238047
-  ModeratorOnly: false
-  Name: rejuvenate
   RespondInOverlay: true
   RespondInTwitch: false
 DisableAutomaticFulfillment: false
@@ -1993,7 +1859,6 @@ GlobalConfigs:
     LevelScalingCap: 5
     LoseGold: 5000
     LoseXP: 5000
-    MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5
     RawXPSkillCap: 330
     ReferenceLevelReward: 15
@@ -3828,26 +3693,35 @@ Rewards:
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
-    AllowNoble: false
+    AllowNoble: true
     AllowPartyLeader: false
     AllowPlayerCompanion: false
     AllowWanderer: true
-    CreateNew: true
+    CreateNew: false
     Inheritance: 0.25
     MaxInheritedCustomItems: 2
     MinSubscribedMonths: 
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
     StartingGold: 0
     StartingSkills:
-    - MaxLevel: 75
+    - MaxLevel: 50
       MinLevel: 25
-      Skill: All
+      Skill: Melee
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Ranged
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Athletics
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Riding
     SubscriberOnly: false
     ViewerSelects: Culture
   ID: eafbd312-1127-4930-bca0-47b83e205c7b
@@ -3865,7 +3739,7 @@ Rewards:
     Prompt: '{=6amYI1lf}Get a hero in game with a specific culture. Almost all other actions require an adopted hero. Enter part of the culture name:'
     Title: Adopt a Hero by Culture
 - Documentation: Adopt a randomly selected Hero, filtered by Faction.  Enter "list" to get a list of factions
-  Enabled: false
+  Enabled: true
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
@@ -3880,15 +3754,24 @@ Rewards:
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
     StartingGold: 0
     StartingSkills:
-    - MaxLevel: 75
+    - MaxLevel: 50
       MinLevel: 25
-      Skill: All
+      Skill: Melee
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Ranged
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Athletics
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Riding
     SubscriberOnly: false
     ViewerSelects: Faction
   ID: 55918467-fe58-49a0-a354-57af0be6cd24
@@ -3910,26 +3793,35 @@ Rewards:
   Handler: AdoptAHero
   HandlerConfig:
     AllowMinorFactionHero: false
-    AllowNoble: false
+    AllowNoble: true
     AllowPartyLeader: false
     AllowPlayerCompanion: false
     AllowWanderer: true
-    CreateNew: true
+    CreateNew: false
     Inheritance: 0.25
     MaxInheritedCustomItems: 2
     MinSubscribedMonths: 
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 25
+      Max: 35
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
     StartingGold: 0
     StartingSkills:
-    - MaxLevel: 75
+    - MaxLevel: 50
       MinLevel: 25
-      Skill: All
+      Skill: Melee
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Ranged
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Athletics
+    - MaxLevel: 50
+      MinLevel: 25
+      Skill: Riding
     SubscriberOnly: false
     ViewerSelects: Nothing
   ID: e072adb0-83a2-4408-87bb-b2cff3f12ee2
@@ -3952,8 +3844,8 @@ Rewards:
   HandlerConfig:
     AlertSound: None
     AllowFieldBattle: true
-    AllowFriendlyMission: false
-    AllowHideOut: false
+    AllowFriendlyMission: true
+    AllowHideOut: true
     AllowSiegeBattle: true
     AllowVillageBattle: true
     AllowWhenDepleted: false
@@ -3962,7 +3854,7 @@ Rewards:
     OnPlayerSide: false
     PreferredFormation: LightCavalry
     ShoutPercent: 0.25
-    WithRetinue: true
+    WithRetinue: false
   ID: 422cc8d9-84cb-4cc9-afdf-889e615fdea6
   RespondInOverlay: true
   RespondInTwitch: false
@@ -3989,7 +3881,6 @@ Rewards:
     DeactivateSound: 
     Duration: 30
     ForceDropWeapons: false
-    HealPercent: 0
     HealPerSecond: 0
     Name: Burn Player
     ParticleEffects:
@@ -4094,8 +3985,7 @@ Rewards:
     DeactivateSound: 
     Duration: 10
     ForceDropWeapons: false
-    HealPercent: 2
-    HealPerSecond: 3
+    HealPerSecond: 6
     Name: Healing
     ParticleEffects: 
     Properties: 
@@ -4128,8 +4018,7 @@ Rewards:
     DeactivateSound: 
     Duration: 15
     ForceDropWeapons: false
-    HealPercent: 0
-    HealPerSecond: 4
+    HealPerSecond: 2
     Name: Healing
     ParticleEffects:
     - AttachPoint: OnBody
@@ -4206,7 +4095,7 @@ Rewards:
     OnPlayerSide: true
     PreferredFormation: LightCavalry
     ShoutPercent: 0.25
-    WithRetinue: true
+    WithRetinue: false
   ID: 77c1dbd8-02cb-47d7-9796-7308e989b7f3
   RespondInOverlay: true
   RespondInTwitch: false

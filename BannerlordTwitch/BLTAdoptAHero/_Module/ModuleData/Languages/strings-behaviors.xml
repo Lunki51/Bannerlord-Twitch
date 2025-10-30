@@ -25,10 +25,6 @@
         <string id="MQslOwr0" text="@{HeroName} is no longer a prisoner!"/>
         <!-- @{HeroName} moved from {FromClanName} to {ToClanName}! -->
         <string id="SUdnIyfw" text="@{HeroName} moved from {FromClanName} to {ToClanName}!"/>
-		<!-- @{HeroParty} is involved in a {EventType} against {Opponent}! -->
-		<string id="fFW54iwx" text="@{HeroParty} is involved in a {EventType} against {Opponent}!"/>
-		<!-- @{HeroName} has {Result} a {EventType} against {Opponent} -->
-		<string id="Bsfc1uYG" text="@{HeroName} has {Result} a {EventType} against {Opponent}"/>
         
         <!-- deceased -->
         <string id="ZtZL0lbX" text="deceased"/>
