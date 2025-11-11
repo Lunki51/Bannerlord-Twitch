@@ -42,6 +42,12 @@ namespace BLTAdoptAHero
              PropertyOrder(2), UsedImplicitly]
             public int WarPrice { get; set; } = 250000;
 
+            [LocDisplayName("{=TESTING}Cooldown"),
+             LocCategory("War", "{=TESTING}War"),
+             LocDescription("{=TESTING}War cooldown"),
+             PropertyOrder(3), UsedImplicitly]
+            public int WarCooldown { get; set; } = 21;
+
             [LocDisplayName("{=TESTING}Peace"),
              LocCategory("Peace", "{=TESTING}Peace"),
              LocDescription("{=TESTING}Enable declaring war command"),
@@ -53,6 +59,12 @@ namespace BLTAdoptAHero
              LocDescription("{=TESTING}Peace command price"),
              PropertyOrder(2), UsedImplicitly]
             public int PeacePrice { get; set; } = 100000;
+
+            [LocDisplayName("{=TESTING}Cooldown"),
+             LocCategory("War", "{=TESTING}Peace"),
+             LocDescription("{=TESTING}Peace cooldown"),
+             PropertyOrder(3), UsedImplicitly]
+            public int PeaceCooldown { get; set; } = 21;
 
             [LocDisplayName("{=TESTING}Army"),
              LocCategory("Army", "{=TESTING}Army"),
@@ -78,10 +90,12 @@ namespace BLTAdoptAHero
 
                 if (WarEnabled)
                     generator.Value("<strong>War Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold)));
+                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Cooldown={cd}".Translate(("cd", WarCooldown.ToString())));
                 if (PeaceEnabled)
                     generator.Value("<strong>Peace Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)));
+                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Cooldown={cd}".Translate(("cd", PeaceCooldown.ToString())));
                 if (ArmyEnabled)
                     generator.Value("<strong>Army Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
@@ -161,7 +175,7 @@ namespace BLTAdoptAHero
                         int influenceCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfProposingWar(adoptedHero.Clan);
                         if (adoptedHero.Clan.Influence < influenceCost)
                         {
-                            onFailure("Not enough influence.");
+                            onFailure($"Not enough influence:{influenceCost}");
                             return;
                         }
                         if (kingdom.IsAtWarWith(desiredKingdom))
@@ -175,7 +189,7 @@ namespace BLTAdoptAHero
                             return;
                         }
                         var stance = kingdom.GetStanceWith(desiredKingdom);
-                        if ((CampaignTime.Now - stance.PeaceDeclarationDate).ToDays < 20)
+                        if ((stance.PeaceDeclarationDate != CampaignTime.Zero || stance.PeaceDeclarationDate != null) && (CampaignTime.Now - stance.PeaceDeclarationDate).ToDays < settings.WarCooldown)
                         {
                             onFailure($"Cant war yet. {(int)(20 - (CampaignTime.Now - stance.PeaceDeclarationDate).ToDays)} days remaining.");
                             return;
@@ -185,24 +199,25 @@ namespace BLTAdoptAHero
                             onFailure(Naming.NotEnoughGold(settings.WarPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
-                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.WarPrice, true);
-                        if (kingdom == Hero.MainHero.Clan.Kingdom)
-                        {
-                            bool isAlreadyProposed = kingdom.UnresolvedDecisions
-                            .Any(d => d is DeclareWarDecision warDecision &&
-                                      warDecision.FactionToDeclareWarOn == desiredKingdom);
-                            if (isAlreadyProposed)
-                            {
-                                Log.LogFeedMessage($"Vote already ongoing.");
-                                return;
-                            }
+                        //BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.WarPrice, true);
+                        //if (kingdom == Hero.MainHero.Clan.Kingdom)
+                        //{
+                        //    bool isAlreadyProposed = kingdom.UnresolvedDecisions
+                        //    .Any(d => d is DeclareWarDecision warDecision &&
+                        //              warDecision.FactionToDeclareWarOn == desiredKingdom);
+                        //    if (isAlreadyProposed)
+                        //    {
+                        //        Log.LogFeedMessage($"Vote already ongoing.");
+                        //        return;
+                        //    }
 
-                            DeclareWarDecision newWarProposal = new DeclareWarDecision(adoptedHero.Clan, desiredKingdom);
-                            adoptedHero.Clan.Kingdom.AddDecision(newWarProposal);
-                            onSuccess("Proposed war decision.");
-                        }
+                        //    DeclareWarDecision newWarProposal = new DeclareWarDecision(adoptedHero.Clan, desiredKingdom);
+                        //    adoptedHero.Clan.Kingdom.AddDecision(newWarProposal);
+                        //    onSuccess("Proposed war decision.");
+                        //}
                         else
                         {
+                            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.WarPrice, true);
                             DeclareWarAction.ApplyByDefault(kingdom, desiredKingdom);
                             adoptedHero.Clan.Influence -= influenceCost;
                             onSuccess($"Declared war on {desiredKingdom}");
@@ -234,7 +249,7 @@ namespace BLTAdoptAHero
                         int influenceCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfProposingPeace(adoptedHero.Clan);
                         if (adoptedHero.Clan.Influence < influenceCost)
                         {
-                            onFailure("Not enough influence");
+                            onFailure($"Not enough influence:{influenceCost}");
                             return;
                         }
 
@@ -244,7 +259,7 @@ namespace BLTAdoptAHero
                             onFailure($"Already at peace with {desiredKingdom}");
                             return;
                         }
-                        if ((stance.WarStartDate - CampaignTime.Now).ToDays < 20)
+                        if ((stance.PeaceDeclarationDate != CampaignTime.Zero || stance.PeaceDeclarationDate != null) && (stance.WarStartDate - CampaignTime.Now).ToDays < settings.PeaceCooldown)
                         {
                             onFailure($"Cant peace yet. {(int)(20 - (CampaignTime.Now - stance.WarStartDate).ToDays)} days remaining.");
                             return;
@@ -254,44 +269,60 @@ namespace BLTAdoptAHero
                             onFailure(Naming.NotEnoughGold(settings.PeacePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
-                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);
+                        //BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);
 
-                        Clan proposer = adoptedHero.Clan;
-                        var diplomacy = Campaign.Current.Models.DiplomacyModel;
-                        var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
-                        float valueForFaction = barter.GetValueForFaction(proposer);
-                        float wealthFactor = (proposer.Leader.Gold < 50000f)
-                        ? (1f + 0.5f * ((50000f - proposer.Leader.Gold) / 50000f))
-                        : ((proposer.Leader.Gold > 200000f)
-                        ? (float)Math.Max(0.66, Math.Pow(200000.0 / proposer.Leader.Gold, 0.4))
-                        : 1f);
-                        int generosityLevel = proposer.Leader.GetTraitLevel(DefaultTraits.Generosity);
-                        float generosityFactor = (true) // tribute payer
-                        ? (1f - 0.1f * Math.Max(-2, Math.Min(2, generosityLevel)))
-                        : 1f;
-                        int tributeValue = diplomacy.GetDailyTributeForValue((int)(valueForFaction / (wealthFactor * generosityFactor)));
+                        //Clan proposer = adoptedHero.Clan;
+                        //var diplomacy = Campaign.Current.Models.DiplomacyModel;
+                        //var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
+                        //float valueForFaction = barter.GetValueForFaction(proposer);
+                        //float wealthFactor = (proposer.Leader.Gold < 50000f)
+                        //? (1f + 0.5f * ((50000f - proposer.Leader.Gold) / 50000f))
+                        //: ((proposer.Leader.Gold > 200000f)
+                        //? (float)Math.Max(0.66, Math.Pow(200000.0 / proposer.Leader.Gold, 0.4))
+                        //: 1f);
+                        //int generosityLevel = proposer.Leader.GetTraitLevel(DefaultTraits.Generosity);
+                        //float generosityFactor = (true) // tribute payer
+                        //? (1f - 0.1f * Math.Max(-2, Math.Min(2, generosityLevel)))
+                        //: 1f;
+                        //int tributeValue = diplomacy.GetDailyTributeForValue((int)(valueForFaction / (wealthFactor * generosityFactor)));
 
-                        if (kingdom == Hero.MainHero.Clan.Kingdom)
-                        {
-                            bool isAlreadyProposed = kingdom.UnresolvedDecisions
-                            .Any(d => d is MakePeaceKingdomDecision peaceDecision &&
-                                      peaceDecision.FactionToMakePeaceWith == desiredKingdom);
-                            if (isAlreadyProposed)
-                            {
-                                Log.LogFeedMessage($"Vote already ongoing.");
-                                return;
-                            }
+                        //if (kingdom == Hero.MainHero.Clan.Kingdom)
+                        //{
+                        //    bool isAlreadyProposed = kingdom.UnresolvedDecisions
+                        //    .Any(d => d is MakePeaceKingdomDecision peaceDecision &&
+                        //              peaceDecision.FactionToMakePeaceWith == desiredKingdom);
+                        //    if (isAlreadyProposed)
+                        //    {
+                        //        Log.LogFeedMessage($"Vote already ongoing.");
+                        //        return;
+                        //    }
 
-                            MakePeaceKingdomDecision newPeaceProposal = new MakePeaceKingdomDecision(adoptedHero.Clan, desiredKingdom, tributeValue);
-                            adoptedHero.Clan.Kingdom.AddDecision(newPeaceProposal);
-                            onSuccess($"Proposed peace decision");
-                        }
+                        //    MakePeaceKingdomDecision newPeaceProposal = new MakePeaceKingdomDecision(adoptedHero.Clan, desiredKingdom, tributeValue);
+                        //    adoptedHero.Clan.Kingdom.AddDecision(newPeaceProposal);
+                        //    onSuccess($"Proposed peace decision");
+                        //}
                         //else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader)
                         //{
                         //    PeaceOfferCampaignBehavior
                         //}
                         else
                         {
+                            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);
+
+                            Clan proposer = adoptedHero.Clan;
+                            var diplomacy = Campaign.Current.Models.DiplomacyModel;
+                            var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
+                            float valueForFaction = barter.GetValueForFaction(proposer);
+                            float wealthFactor = (proposer.Leader.Gold < 50000f)
+                            ? (1f + 0.5f * ((50000f - proposer.Leader.Gold) / 50000f))
+                            : ((proposer.Leader.Gold > 200000f)
+                            ? (float)Math.Max(0.66, Math.Pow(200000.0 / proposer.Leader.Gold, 0.4))
+                            : 1f);
+                            int generosityLevel = proposer.Leader.GetTraitLevel(DefaultTraits.Generosity);
+                            float generosityFactor = (true) // tribute payer
+                            ? (1f - 0.1f * Math.Max(-2, Math.Min(2, generosityLevel)))
+                            : 1f;
+                            int tributeValue = diplomacy.GetDailyTributeForValue((int)(valueForFaction / (wealthFactor * generosityFactor)));
                             MakePeaceAction.Apply(kingdom, desiredKingdom, tributeValue);
 
                             adoptedHero.Clan.Influence -= influenceCost;
@@ -402,6 +433,5 @@ namespace BLTAdoptAHero
                     }
             }
         }
-
     }
 }

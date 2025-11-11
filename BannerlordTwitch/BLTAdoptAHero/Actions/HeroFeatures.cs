@@ -166,6 +166,7 @@ namespace BLTAdoptAHero.Actions
                         onSuccess("{=kANu9D6d}Your hero has changed their gender to female".Translate());
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.GenderCost);
                         adoptedHero.UpdatePlayerGender(true);
+                        if (adoptedHero.Spouse != null && adoptedHero.Spouse.IsFemale) adoptedHero.Spouse.UpdatePlayerGender(true);
                         Log.ShowInformation(
                             "{=byvm3h6C}{Name} has changed their gender to female!".Translate(("Name", adoptedHero.Name)),
                             adoptedHero.CharacterObject);
@@ -178,9 +179,15 @@ namespace BLTAdoptAHero.Actions
                             onFailure("{=aG7rIjnV}Your hero is already male".Translate());
                             return;
                         }
+                        if (adoptedHero.IsPregnant)
+                        {
+                            onFailure("{=TESTING}Your hero is pregnant!");
+                            return;
+                        }
                         onSuccess("{=FlGjts5K}Your hero has changed their gender to male".Translate());
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.GenderCost);
                         adoptedHero.UpdatePlayerGender(false);
+                        if (adoptedHero.Spouse != null && !adoptedHero.Spouse.IsFemale) adoptedHero.Spouse.UpdatePlayerGender(true);
                         Log.ShowInformation(
                             "{=MgcrSo56}{Name} has changed their gender to male!".Translate(("Name", adoptedHero.Name)),
                             adoptedHero.CharacterObject);

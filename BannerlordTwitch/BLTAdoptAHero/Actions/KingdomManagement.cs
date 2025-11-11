@@ -26,6 +26,7 @@ namespace BLTAdoptAHero.Actions
         [CategoryOrder("Join", 0),
          CategoryOrder("Rebel", 1),
          CategoryOrder("Leave", 2),
+         CategoryOrder("Create", 3),
          CategoryOrder("Stats", 4)]
         private class Settings : IDocumentable
         {
@@ -90,6 +91,30 @@ namespace BLTAdoptAHero.Actions
             public bool LeaveEnabled { get; set; } = true;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Create", "{=TESTING}Create"),
+             LocDescription("{=TESTING}Enable viewer clan to create a kingdom"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool CreateKEnabled { get; set; } = true;
+
+            [LocDisplayName("{=9rmGjERc}Minimum Clan Tier"),
+             LocCategory("Create", "{=TESTING}Create"),
+             LocDescription("{=TESTING}Minimum clan tier to create a kingdom"),
+             PropertyOrder(2), UsedImplicitly]
+            public int CreateKTierMinimum { get; set; } = 3;
+
+            [LocDisplayName("{=TESTING}Minimum Clan Fiefs"),
+             LocCategory("Create", "{=TESTING}Create"),
+             LocDescription("{=TESTING}Minimum clan fiefs to create a kingdom"),
+             PropertyOrder(3), UsedImplicitly]
+            public int CreateKFiefMinimum { get; set; } = 2;
+
+            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
+             LocCategory("Create", "{=TESTING}Create"),
+             LocDescription("{=TESTING}Cost of creating a kingdom"),
+             PropertyOrder(4), UsedImplicitly]
+            public int CreateKPrice { get; set; } = 25000000;
+
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
              LocDescription("{=CFBJIpux}Enable stats command"),
              PropertyOrder(1), UsedImplicitly]
@@ -107,6 +132,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Rebel, ");
                 if (LeaveEnabled)
                     EnabledCommands.Append("Leave, ");
+                if (CreateKEnabled)
+                    EnabledCommands.Append("Create, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
 
@@ -132,7 +159,13 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "Price={price}{icon}, ".Translate(("price", RebelPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}".Translate(("tier", RebelClanTierMinimum.ToString())));
-
+                if (CreateKEnabled)
+                    generator.Value("<strong>" +
+                                    "Create Config: " +
+                                    "</strong>" +
+                                    "Price={price}{icon}, ".Translate(("price", CreateKPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Minimum Clan Tier={tier}".Translate(("tier", CreateKTierMinimum.ToString())) +
+                                    "Minimum fiefs amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -190,6 +223,9 @@ namespace BLTAdoptAHero.Actions
                     break;
                 case "leave":
                     HandleLeaveCommand(settings, adoptedHero, onSuccess, onFailure);
+                    break;
+                case "create":
+                    HandleKCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "stats":
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
@@ -487,6 +523,65 @@ namespace BLTAdoptAHero.Actions
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MercPrice, true);
             ChangeKingdomAction.ApplyByJoinFactionAsMercenary(adoptedHero.Clan, desiredKingdom);
             Log.ShowInformation("{=tpwW6Ix8}{clanName} is now under contract with {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
+        }
+        private void HandleKCreateCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.CreateKEnabled)
+            {
+                onFailure("Kingdom creation is disabled");
+                return;
+            }
+            if (adoptedHero.Clan.Fiefs.Count < settings.CreateKFiefMinimum)
+            {
+                onFailure($"Not enough fiefs{adoptedHero.Clan.Fiefs.Count}/{settings.CreateKFiefMinimum}");
+                return;
+            }
+            if (adoptedHero.Clan.Tier < settings.CreateKTierMinimum)
+            {
+                onFailure("Your clan is not high enough tier to create a kingdom");
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom != null)
+            {
+                onFailure("{=GEGrsLPm}Your clan is already in a kingdom, in order to leave you must rebel against them".Translate());
+                return;
+            }
+            if (!adoptedHero.IsClanLeader)
+            {
+                onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(desiredName))
+            {
+                onFailure("{=ETfJQatX}(create) (kingdom name)".Translate());
+                return;
+            }
+            var existingKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
+            if (existingKingdom != null)
+            {
+                onFailure("{=TESTING}A kingdom with the name {name} already exists".Translate(("name", desiredName)));
+                return;
+            }
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.CreateKPrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.CreateKPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
+            var newKingdom = Kingdom.CreateKingdom(desiredName);
+            var culture = adoptedHero.Culture;
+            var banner = adoptedHero.Clan.Banner;
+            var color1 = adoptedHero.Clan.Banner.GetPrimaryColor();
+            var color2 = adoptedHero.Clan.Banner.GetSecondaryColor();
+            var home = adoptedHero.Clan.HomeSettlement;
+            string title = adoptedHero.IsFemale ? "Queen" : "King";
+            string descText = adoptedHero.Name.ToString();
+
+            newKingdom.InitializeKingdom(new TextObject(desiredName), new TextObject(desiredName), culture, banner, color1, color2, home, new TextObject(descText), new TextObject(desiredName), new TextObject(title));
+            adoptedHero.Clan.Kingdom = newKingdom;
+            newKingdom.RulingClan = adoptedHero.Clan;
+            newKingdom.KingdomBudgetWallet = 2000000;
+            onSuccess("{=TESTING}Created kingdom {name}".Translate(("name", desiredName)));
+            Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
     }
 }

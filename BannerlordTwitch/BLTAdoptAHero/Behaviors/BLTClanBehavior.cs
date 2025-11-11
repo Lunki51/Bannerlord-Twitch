@@ -275,7 +275,10 @@ namespace BLTAdoptAHero
                 if (ai == null)
                     return;
 
-                bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && (CampaignTime.Now - party.StationaryStartTime).ToHours > CampaignTime.HoursInDay;
+                double hoursStationary = 0;
+                if (party.StationaryStartTime != CampaignTime.Zero || party.StationaryStartTime != null)
+                    hoursStationary = Math.Max(0, (CampaignTime.Now - party.StationaryStartTime).ToHours);
+                bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && hoursStationary > CampaignTime.HoursInDay;
                 bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
 
 

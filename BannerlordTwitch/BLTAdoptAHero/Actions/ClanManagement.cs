@@ -445,7 +445,7 @@ namespace BLTAdoptAHero.Actions
             var clanBanner = Banner.CreateRandomBanner();
             newClan.InitializeClan(new TextObject(fullClanName), new TextObject(fullClanName), clanCulture, clanBanner);
             newClan.UpdateHomeSettlement(Settlement.All.SelectRandom());
-            //BLTClanBehavior.Current?.RegisterBLTClan(newClan);
+
             adoptedHero.Clan = newClan;
             newClan.AddRenown(settings.Renown, false);
             adoptedHero.Gold = 50000;
@@ -924,51 +924,81 @@ namespace BLTAdoptAHero.Actions
             foreach (Town f in adoptedHero.Clan.Fiefs)
             {
 
-                if (f.IsCastle)
-                {
-                    int profit = (int)(
+                //if (f.IsCastle)
+                //{
+                //    int profit = (int)(
+                //    Campaign.Current.Models.SettlementTaxModel.CalculateTownTax(f, false).ResultNumber +
+                //    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromTariffs(adoptedHero.Clan, f, false).ResultNumber +
+                //    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromProjects(f) +    
+                //    f.Settlement.BoundVillages.Sum(v => Campaign.Current.Models.ClanFinanceModel.CalculateVillageIncome(adoptedHero.Clan, v, false)) -
+                //    (f.GarrisonParty?.TotalWage ?? 0)
+                //    );
+
+                //    castleInfo = castleInfo + f.Name.ToString() + "[";
+                //    castleInfo = castleInfo + "P📈:" + ((int)f.Prosperity).ToString();
+                //    castleInfo = castleInfo + ", L🤝:" + ((int)f.Loyalty).ToString();
+                //    castleInfo = castleInfo + ", G💰:" + profit.ToString();
+                //    castleInfo = castleInfo + ", M/G⚔:" + ((int)f.Militia).ToString() + "/" + (f.GarrisonParty?.LimitedPartySize.ToString() ?? "0");
+                //    castleInfo = castleInfo + ", F🌾:" + ((int)f.FoodStocks).ToString();
+                //    if (f.IsUnderSiege && f.Settlement.SiegeEvent != null)
+                //    {
+                //        castleInfo += ", UnderSiege] ";
+                //    }
+                //    else castleInfo += "] ";
+                //}
+
+                //if (!f.IsCastle)
+                //{
+                //    int profit = (int)(
+                //    Campaign.Current.Models.SettlementTaxModel.CalculateTownTax(f, false).ResultNumber +
+                //    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromTariffs(adoptedHero.Clan, f, false).ResultNumber +
+                //    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromProjects(f) +
+                //    f.Settlement.BoundVillages.Sum(v => Campaign.Current.Models.ClanFinanceModel.CalculateVillageIncome(adoptedHero.Clan, v, false)) -
+                //    (f.GarrisonParty?.TotalWage ?? 0)
+                //    );
+                //    townInfo = townInfo + f.Name.ToString() + "[";
+                //    townInfo = townInfo + "P📈:" + ((int)f.Prosperity).ToString();
+                //    townInfo = townInfo + ", L🤝:" + ((int)f.Loyalty).ToString();
+                //    townInfo = townInfo + ", G💰:" + profit.ToString();
+                //    townInfo = townInfo + ", M/G⚔:" + ((int)f.Militia).ToString() + "/" + (f.GarrisonParty.MemberRoster.TotalHealthyCount.ToString() ?? "0");
+                //    townInfo = townInfo + ", F🌾:" + ((int)f.FoodStocks).ToString();
+                //    if (f.IsUnderSiege && f.Settlement.SiegeEvent != null)
+                //    {
+                //        townInfo += ", UnderSiege] ";
+                //    }
+                //    else townInfo += "] ";
+                //}
+                int profit = (int)(
                     Campaign.Current.Models.SettlementTaxModel.CalculateTownTax(f, false).ResultNumber +
                     Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromTariffs(adoptedHero.Clan, f, false).ResultNumber +
                     Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromProjects(f) +
                     f.Settlement.BoundVillages.Sum(v => Campaign.Current.Models.ClanFinanceModel.CalculateVillageIncome(adoptedHero.Clan, v, false)) -
                     (f.GarrisonParty?.TotalWage ?? 0)
                     );
-
+                if (f.IsCastle)
+                {
                     castleInfo = castleInfo + f.Name.ToString() + "[";
-                    castleInfo = castleInfo + "P📈:" + ((int)f.Prosperity).ToString();
-                    castleInfo = castleInfo + ", L🤝:" + ((int)f.Loyalty).ToString();
-                    castleInfo = castleInfo + ", G💰:" + profit.ToString();
-                    castleInfo = castleInfo + ", M/G⚔:" + ((int)f.Militia).ToString() + "/" + (f.GarrisonParty?.LimitedPartySize.ToString() ?? "0");
-                    castleInfo = castleInfo + ", F🌾:" + ((int)f.FoodStocks).ToString();
+                    castleInfo = castleInfo + "Governor:" + (f?.Governor?.Name?.ToString() ?? "None");
+                    castleInfo = castleInfo + ", Income💰:" + profit.ToString();
+                    castleInfo = castleInfo + ", M/G⚔:" + ((int)f.Militia).ToString() + "/" + (f.GarrisonParty.MemberRoster.TotalHealthyCount.ToString() ?? "0");
                     if (f.IsUnderSiege && f.Settlement.SiegeEvent != null)
                     {
                         castleInfo += ", UnderSiege] ";
                     }
                     else castleInfo += "] ";
                 }
-
                 if (!f.IsCastle)
                 {
-                    int profit = (int)(
-                    Campaign.Current.Models.SettlementTaxModel.CalculateTownTax(f, false).ResultNumber +
-                    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromTariffs(adoptedHero.Clan, f, false).ResultNumber +
-                    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromProjects(f) +
-                    f.Settlement.BoundVillages.Sum(v => Campaign.Current.Models.ClanFinanceModel.CalculateVillageIncome(adoptedHero.Clan, v, false)) -
-                    (f.GarrisonParty?.TotalWage ?? 0)
-                    );
                     townInfo = townInfo + f.Name.ToString() + "[";
-                    townInfo = townInfo + "P📈:" + ((int)f.Prosperity).ToString();
-                    townInfo = townInfo + ", L🤝:" + ((int)f.Loyalty).ToString();
-                    townInfo = townInfo + ", G💰:" + profit.ToString();
-                    townInfo = townInfo + ", M/G⚔:" + ((int)f.Militia).ToString() + "/" + (f.GarrisonParty?.LimitedPartySize.ToString() ?? "0");
-                    townInfo = townInfo + ", F🌾:" + ((int)f.FoodStocks).ToString();
+                    townInfo = townInfo + "Governor:" + (f?.Governor?.Name?.ToString() ?? "None");
+                    townInfo = townInfo + ", Income💰:" + profit.ToString();
+                    townInfo = townInfo + ", M/G⚔:" + ((int)f.Militia).ToString() + "/" + (f.GarrisonParty.MemberRoster.TotalHealthyCount.ToString() ?? "0");
                     if (f.IsUnderSiege && f.Settlement.SiegeEvent != null)
                     {
                         townInfo += ", UnderSiege] ";
                     }
                     else townInfo += "] ";
                 }
-
             }
             fiefList.Append("{=BwuFSJU1}Towns: {towns} | ".Translate(("towns", (object)townInfo)));
             fiefList.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleInfo)));

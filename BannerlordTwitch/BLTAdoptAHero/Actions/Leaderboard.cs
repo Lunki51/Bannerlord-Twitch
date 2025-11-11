@@ -57,13 +57,13 @@ namespace BLTAdoptAHero
                     .OrderByDescending(x => x.Value)
                     .ToList();
 
-                var top3 = sorted.Take(3).Select((x, i) => $"{i + 1}-{x.Hero.Name}({x.Value})").ToList();
+                var top3 = sorted.Take(3).Select((x, i) => $"{i + 1}-@{x.Hero.Name}({x.Value})").ToList();
 
                 int userRank = sorted.FindIndex(x => x.Hero == userHero) + 1;
                 if (userRank > 3)
                 {
                     int userValue = sorted[userRank - 1].Value;
-                    top3.Add($"{userRank}.{userHero.Name}({userValue})");
+                    top3.Add($"{userRank}-@{userHero.Name}({userValue})");
                 }
 
                 return $"{label}: {string.Join(" ", top3)}";
@@ -76,13 +76,13 @@ namespace BLTAdoptAHero
                     .OrderByDescending(x => x.FamilySize)
                     .ToList();
 
-                var top3 = sorted.Take(3).Select((x, i) => $"{i + 1}-{x.Hero.Name}({x.FamilySize})").ToList();
+                var top3 = sorted.Take(3).Select((x, i) => $"{i + 1}-@{x.Hero.Name}({x.FamilySize})").ToList();
 
                 int userRank = sorted.FindIndex(x => x.Hero == userHero) + 1;
                 if (userRank > 3)
                 {
                     int userFamily = sorted[userRank - 1].FamilySize;
-                    top3.Add($"{userRank}.{userHero.Name}({userFamily})");
+                    top3.Add($"{userRank}-@{userHero.Name}({userFamily})");
                 }
 
                 return $"Family: {string.Join(" ", top3)}";
@@ -136,7 +136,7 @@ namespace BLTAdoptAHero
             sb.Append(" | ");
             sb.Append(BuildClanStatLine("Members", c => c.Heroes.Count));
             sb.Append(" | ");
-            sb.Append(BuildClanStatLine("Fiefs", c => c.Settlements.Count));
+            sb.Append(BuildClanStatLine("Fiefs", c => c.Fiefs.Count));
             sb.Append(" | ");
             sb.Append(BuildClanStatLine("Gold", c => (int)c.Gold));
 

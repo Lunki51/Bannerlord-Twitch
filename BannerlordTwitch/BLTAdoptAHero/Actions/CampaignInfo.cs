@@ -62,6 +62,10 @@ namespace BLTAdoptAHero
                     ShowWar(desiredName, context);
                     break;
 
+                case "fief":
+                    ShowFief(desiredName, context);
+                    break;
+
                 default:
                     ActionManager.SendReply(context,
                         "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))".Translate());
@@ -78,7 +82,7 @@ namespace BLTAdoptAHero
             }
 
             var desiredKingdom = Kingdom.All.FirstOrDefault(c =>
-                c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
+                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
 
             if (desiredKingdom == null)
             {
@@ -146,7 +150,7 @@ namespace BLTAdoptAHero
             }
 
             var desiredKingdom = Kingdom.All.FirstOrDefault(c =>
-                c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
+                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
 
             if (desiredKingdom == null)
             {
@@ -199,6 +203,77 @@ namespace BLTAdoptAHero
             }
 
             ActionManager.SendReply(context, sb.ToString().TrimEnd('|', ' '));
+        }
+        private void ShowFief(string desiredName, ReplyContext context)
+        {
+            if (string.IsNullOrWhiteSpace(desiredName))
+            {
+                ActionManager.SendReply(context, "{=TESTING}Need fief name".Translate());
+                return;
+            }
+            var desiredFief = Settlement.All.FirstOrDefault(c =>
+                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (desiredFief == null)
+            {
+                ActionManager.SendReply(context,
+                   "{=TESTING}Could not find a fief with the name {name}".Translate(("name", desiredName)));
+                return;
+            }
+            var sb = new StringBuilder();
+            if (desiredFief.IsVillage)
+            {
+                Village vill = Village.All.FirstOrDefault(v => v.Name.ToString() == desiredFief.Name.ToString());
+                sb.Append("{=TESTING}{Name} ".Translate(("Name", vill.Name)));
+                if (desiredFief.IsUnderRaid)
+                    sb.Append("⚔️");
+                if (desiredFief.IsRaided)
+                    sb.Append("🔥");
+                sb.Append(" | ");
+                sb.Append("{=TESTING}Village | ".Translate());
+                sb.Append("{=TESTING}Culture: {culture} | ".Translate(("culture", desiredFief.Culture.ToString())));
+                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth), ("change", (vill.HearthChange >= 0 ? "+" : "") + Math.Round(vill.HearthChange, 2))));
+                var parent = Settlement.All.FirstOrDefault(s => s.BoundVillages.Any(v => v.Name.ToString() == desiredFief.Name.ToString()));
+                sb.Append("{=TESTING}Bound to {parent}".Translate(("parent", parent.Name)));
+                ActionManager.SendReply(context, sb.ToString());
+            }
+            else if (desiredFief.IsTown || desiredFief.IsCastle)
+            {
+                Town town = Town.AllTowns.FirstOrDefault(v => v.Name.ToString() == desiredFief.Name.ToString());
+                int profit = (int)(
+                    Campaign.Current.Models.SettlementTaxModel.CalculateTownTax(town, false).ResultNumber +
+                    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromTariffs(town.OwnerClan, town, false).ResultNumber +
+                    Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromProjects(town) +
+                    town.Settlement.BoundVillages.Sum(v => Campaign.Current.Models.ClanFinanceModel.CalculateVillageIncome(town.OwnerClan, v, false)) -
+                    (town.GarrisonParty?.TotalWage ?? 0)
+                    );
+                sb.Append("{=TESTING}{Name} ".Translate(("Name", town.Name)));
+                if (desiredFief.IsUnderSiege)
+                    sb.Append("⚔️");
+                sb.Append(" | ");
+                if (!town.IsCastle)
+                    sb.Append("{=TESTING}Town | ".Translate());
+                else
+                    sb.Append("{=TESTING}Castle | ".Translate());
+                sb.Append("{=TESTING}Culture: {culture} | ".Translate(("culture", desiredFief.Culture.ToString())));
+                if (town.OwnerClan != null)
+                    sb.Append("{=TESTING}Owner:{own} | ".Translate(("own", town.OwnerClan.Name)));
+                if (town.OwnerClan.Kingdom != null)
+                    sb.Append("{=TESTING}Kingdom:{kingdom} | ".Translate(("kingdom", town.OwnerClan.Kingdom.Name)));
+                if (town.Governor != null)
+                    sb.Append("{=TESTING}Governor:{gove} | ".Translate(("gove", town.Governor.Name)));
+                sb.Append("{=TESTING}Prosperity:{pros}({change}) | ".Translate(("pros", (int)town.ProsperityChange), ("change", (town.ProsperityChange > 0 ? "+" : "") + Math.Round(town.ProsperityChange, 2))));
+                sb.Append("{=TESTING}Loyalty:{loy}({change}) | ".Translate(("loy", (int)town.Loyalty), ("change", (town.LoyaltyChange > 0 ? "+" : "") + Math.Round(town.LoyaltyChange, 2))));
+                sb.Append("{=TESTING}Security:{sec}({change}) | ".Translate(("sec", (int)town.Security), ("change", (town.SecurityChange > 0 ? "+" : "") + Math.Round(town.SecurityChange, 2))));
+                sb.Append("{=TESTING}Food:{food}({change}) | ".Translate(("food", (int)town.FoodStocks), ("change", (town.FoodChange > 0 ? "+" : "") + Math.Round(town.FoodChange, 2))));
+                sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));
+                sb.Append("{=TESTING}Militia:{mil}({change}) | ".Translate(("mil", (int)town.Militia), ("change", (town.MilitiaChange > 0 ? "+" : "") + Math.Round(town.MilitiaChange, 2))));
+                sb.Append("{=TESTING}Garrison:{gar}({change}) | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("change", (town.GarrisonChange > 0 ? "+" : "") + town.GarrisonChange)));
+                var villList = town.Settlement.BoundVillages.Select(v => v.Name.ToString()).ToList();
+                var villNames = string.Join(", ", villList);
+                sb.Append("{=TESTING}Villages:{villNames}".Translate(("villNames", villNames)));
+
+                ActionManager.SendReply(context, sb.ToString());
+            }
         }
     }
 }
