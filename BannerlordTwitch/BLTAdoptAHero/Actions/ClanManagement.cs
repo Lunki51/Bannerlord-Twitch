@@ -449,7 +449,7 @@ namespace BLTAdoptAHero.Actions
             adoptedHero.Clan = newClan;
             newClan.AddRenown(settings.Renown, false);
             adoptedHero.Gold = 50000;
-            newClan.SetLeader(adoptedHero);
+            newClan.SetLeader(adoptedHero);           
             if (!CampaignHelpers.IsEncyclopediaBookmarked(newClan))
                 CampaignHelpers.AddEncyclopediaBookmarkToItem(newClan);
             onSuccess("{=omDrEeDx}Created and leading clan {name}".Translate(("name", fullClanName)));
@@ -897,7 +897,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             onSuccess("{=TESTING}{party}".Translate(("party", partyStats.ToString())));
-
+ 
         }
 
         private void HandleFiefsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
@@ -921,7 +921,7 @@ namespace BLTAdoptAHero.Actions
             string townInfo = "";
             string castleInfo = "";
 
-            foreach (Town f in adoptedHero.Clan.Fiefs)
+            foreach(Town f in adoptedHero.Clan.Fiefs)
             {
 
                 //if (f.IsCastle)
@@ -978,7 +978,7 @@ namespace BLTAdoptAHero.Actions
                 if (f.IsCastle)
                 {
                     castleInfo = castleInfo + f.Name.ToString() + "[";
-                    castleInfo = castleInfo + "Governor:" + (f?.Governor?.Name?.ToString() ?? "None");
+                    castleInfo =castleInfo + "Governor:" + (f?.Governor?.Name?.ToString() ?? "None");
                     castleInfo = castleInfo + ", Income💰:" + profit.ToString();
                     castleInfo = castleInfo + ", M/G⚔:" + ((int)f.Militia).ToString() + "/" + (f.GarrisonParty.MemberRoster.TotalHealthyCount.ToString() ?? "0");
                     if (f.IsUnderSiege && f.Settlement.SiegeEvent != null)

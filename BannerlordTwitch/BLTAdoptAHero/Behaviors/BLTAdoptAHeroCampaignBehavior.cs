@@ -278,7 +278,7 @@ namespace BLTAdoptAHero
                             ("HeroName", hero.PartyBelongedTo.Name.ToString()),
                             ("Result", result ? "won" : "lost"),
                             ("EventType", mapEvent),
-                            ("Opponent", opponentName)));
+                            ("Opponent", opponentName))); 
                     }
                 }
             });
@@ -1252,6 +1252,20 @@ namespace BLTAdoptAHero
             {
                 Log.Error($"Couldn't find matching retinue type {retinueCharacterObject} " +
                           $"for {retinueOwnerHero} to remove");
+            }
+        }
+
+        public void KillRetinueAtIndex(Hero retinueOwnerHero, int index)
+        {
+            var heroRetinue = GetHeroData(retinueOwnerHero).Retinue;
+
+            if (index >= 0 && index < heroRetinue.Count)
+            {
+                heroRetinue.RemoveAt(index);
+            }
+            else
+            {
+                Log.Error($"Invalid retinue index {index} for {retinueOwnerHero}. Retinue count: {heroRetinue.Count}");
             }
         }
 

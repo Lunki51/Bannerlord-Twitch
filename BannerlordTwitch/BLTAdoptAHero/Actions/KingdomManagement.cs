@@ -161,8 +161,8 @@ namespace BLTAdoptAHero.Actions
                                     "Minimum Clan Tier={tier}".Translate(("tier", RebelClanTierMinimum.ToString())));
                 if (CreateKEnabled)
                     generator.Value("<strong>" +
-                                    "Create Config: " +
-                                    "</strong>" +
+                                    "Create Config: "+
+                                    "</strong>"+
                                     "Price={price}{icon}, ".Translate(("price", CreateKPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}".Translate(("tier", CreateKTierMinimum.ToString())) +
                                     "Minimum fiefs amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
@@ -575,6 +575,7 @@ namespace BLTAdoptAHero.Actions
             var home = adoptedHero.Clan.HomeSettlement;
             string title = adoptedHero.IsFemale ? "Queen" : "King";
             string descText = adoptedHero.Name.ToString();
+            //Keep clan wars HERE
 
             newKingdom.InitializeKingdom(new TextObject(desiredName), new TextObject(desiredName), culture, banner, color1, color2, home, new TextObject(descText), new TextObject(desiredName), new TextObject(title));
             adoptedHero.Clan.Kingdom = newKingdom;

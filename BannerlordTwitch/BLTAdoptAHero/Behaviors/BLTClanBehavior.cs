@@ -266,7 +266,7 @@ namespace BLTAdoptAHero
 
                     CheckAndFixParty(party);
                 }
-
+                
             }
 
             private void CheckAndFixParty(MobileParty party)
@@ -277,7 +277,7 @@ namespace BLTAdoptAHero
 
                 double hoursStationary = 0;
                 if (party.StationaryStartTime != CampaignTime.Zero || party.StationaryStartTime != null)
-                    hoursStationary = Math.Max(0, (CampaignTime.Now - party.StationaryStartTime).ToHours);
+                    hoursStationary = (CampaignTime.Now.ToHours - party.StationaryStartTime.ToHours);
                 bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && hoursStationary > CampaignTime.HoursInDay;
                 bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
 
@@ -285,7 +285,7 @@ namespace BLTAdoptAHero
                 if (isHolding || isStuck)
                 {
                     Log.LogFeedEvent(
-                        $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {(CampaignTime.Now - party.StationaryStartTime).ToHours} hours)");
+                        $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {hoursStationary} hours)");
 
                     ai.DisableAi();
                     ai.EnableAi();

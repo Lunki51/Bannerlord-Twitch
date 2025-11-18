@@ -309,6 +309,8 @@
     <Compile Include="Achievements\StatisticTotalRequirement.cs" />
     <Compile Include="Actions\AddGoldToHero.cs" />
     <Compile Include="Actions\CampaignInfo.cs" />
+    <Compile Include="Actions\BattleInfo.cs" />
+    <Compile Include="Actions\Leaderboard.cs" />
     <Compile Include="Actions\Diplomacy.cs" />
     <Compile Include="Actions\ItemStats.cs" />
     <Compile Include="Actions\HeroToHeroGold.cs" />
@@ -326,7 +328,6 @@
     <Compile Include="Actions\ImproveAdoptedHero.cs" />
     <Compile Include="Actions\JoinTournament.cs" />
     <Compile Include="Actions\KingdomManagement.cs" />
-    <Compile Include="Actions\Leaderboard.cs" />
     <Compile Include="Actions\NameItem.cs" />
     <Compile Include="Actions\Rejuvenate.cs" />
     <Compile Include="Actions\Retinue.cs" />

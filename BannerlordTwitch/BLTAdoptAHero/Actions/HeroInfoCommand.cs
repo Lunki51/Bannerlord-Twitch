@@ -289,14 +289,34 @@ namespace BLTAdoptAHero
 
                 if (settings.ShowRetinueList)
                 {
-                    var retinue = BLTAdoptAHeroCampaignBehavior.Current
-                        .GetRetinue(adoptedHero)
-                        .GroupBy(r => r)
-                        .OrderBy(r => r.Key.Tier)
-                        .ToList();
-                    foreach (var r in retinue)
+                    // Convert IEnumerable to List so we can index
+                    var retinue = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
+
+                    int count = 1;
+                    int startIndex = 0;
+
+                    for (int i = 0; i < retinue.Count; i++) // retinue.Count() -> retinue.Count
                     {
-                        infoStrings.Add(r.Count() > 1 ? $"{r.Key.Name} x {r.Count()}" : $"{r.Key.Name}");
+                        // Check if next troop exists and is the same
+                        if (i + 1 < retinue.Count && retinue[i + 1] == retinue[i])
+                        {
+                            count++;
+                        }
+                        else
+                        {
+                            string indexDisplay = count > 1
+                                ? $"[{startIndex + 1}-{i + 1}]"
+                                : $"[{i + 1}]";
+
+                            string troopDisplay = count > 1
+                                ? $"{retinue[i].Name} x {count}"
+                                : $"{retinue[i].Name}";
+
+                            infoStrings.Add($"{indexDisplay} {troopDisplay}");
+
+                            count = 1;
+                            startIndex = i + 1;
+                        }
                     }
                 }
 

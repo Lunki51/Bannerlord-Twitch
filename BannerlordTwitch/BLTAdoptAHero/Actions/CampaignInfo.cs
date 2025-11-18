@@ -30,7 +30,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))".Translate());
+                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village))".Translate());
                 return;
             }
 
@@ -68,7 +68,7 @@ namespace BLTAdoptAHero
 
                 default:
                     ActionManager.SendReply(context,
-                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))".Translate());
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village))".Translate());
                     break;
             }
         }
@@ -231,14 +231,16 @@ namespace BLTAdoptAHero
                 sb.Append(" | ");
                 sb.Append("{=TESTING}Village | ".Translate());
                 sb.Append("{=TESTING}Culture: {culture} | ".Translate(("culture", desiredFief.Culture.ToString())));
-                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth), ("change", (vill.HearthChange >= 0 ? "+" : "") + Math.Round(vill.HearthChange, 2))));
+                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth),("change", (vill.HearthChange >= 0 ? "+" : "") + Math.Round(vill.HearthChange, 2))));
                 var parent = Settlement.All.FirstOrDefault(s => s.BoundVillages.Any(v => v.Name.ToString() == desiredFief.Name.ToString()));
                 sb.Append("{=TESTING}Bound to {parent}".Translate(("parent", parent.Name)));
                 ActionManager.SendReply(context, sb.ToString());
             }
             else if (desiredFief.IsTown || desiredFief.IsCastle)
             {
-                Town town = Town.AllTowns.FirstOrDefault(v => v.Name.ToString() == desiredFief.Name.ToString());
+                Town town = Town.AllTowns.FirstOrDefault(t => t.Name.ToString() == desiredFief.Name.ToString())
+                ?? Town.AllCastles.FirstOrDefault(c => c.Name.ToString() == desiredFief.Name.ToString());
+
                 int profit = (int)(
                     Campaign.Current.Models.SettlementTaxModel.CalculateTownTax(town, false).ResultNumber +
                     Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromTariffs(town.OwnerClan, town, false).ResultNumber +
@@ -261,8 +263,8 @@ namespace BLTAdoptAHero
                     sb.Append("{=TESTING}Kingdom:{kingdom} | ".Translate(("kingdom", town.OwnerClan.Kingdom.Name)));
                 if (town.Governor != null)
                     sb.Append("{=TESTING}Governor:{gove} | ".Translate(("gove", town.Governor.Name)));
-                sb.Append("{=TESTING}Prosperity:{pros}({change}) | ".Translate(("pros", (int)town.ProsperityChange), ("change", (town.ProsperityChange > 0 ? "+" : "") + Math.Round(town.ProsperityChange, 2))));
-                sb.Append("{=TESTING}Loyalty:{loy}({change}) | ".Translate(("loy", (int)town.Loyalty), ("change", (town.LoyaltyChange > 0 ? "+" : "") + Math.Round(town.LoyaltyChange, 2))));
+                sb.Append("{=TESTING}Prosperity:{pros}({change}) | ".Translate(("pros", (int)town.Prosperity), ("change", (town.ProsperityChange > 0 ? "+" : "") + Math.Round(town.ProsperityChange, 2))));
+                sb.Append("{=TESTING}Loyalty:{loy}({change}) | ".Translate(("loy", (int)town.Loyalty), ("change", (town.LoyaltyChange> 0 ? "+" : "") + Math.Round(town.LoyaltyChange, 2))));
                 sb.Append("{=TESTING}Security:{sec}({change}) | ".Translate(("sec", (int)town.Security), ("change", (town.SecurityChange > 0 ? "+" : "") + Math.Round(town.SecurityChange, 2))));
                 sb.Append("{=TESTING}Food:{food}({change}) | ".Translate(("food", (int)town.FoodStocks), ("change", (town.FoodChange > 0 ? "+" : "") + Math.Round(town.FoodChange, 2))));
                 sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));

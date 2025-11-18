@@ -26,8 +26,9 @@ namespace BLTAdoptAHero
     class Diplomacy : HeroCommandHandlerBase
     {
         [CategoryOrder("War", 0),
-        CategoryOrder("Peace", 1),
-            CategoryOrder("Army", 2)]
+         CategoryOrder("Peace", 1),
+         CategoryOrder("Army", 2),
+         CategoryOrder("Policy", 3)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=TESTING}War"),
@@ -78,27 +79,43 @@ namespace BLTAdoptAHero
              PropertyOrder(2), UsedImplicitly]
             public int ArmyPrice { get; set; } = 150000;
 
+            [LocDisplayName("{=TESTING}Policy"),
+             LocCategory("Policy", "{=TESTING}Policy"),
+             LocDescription("{=TESTING}Enable viewing,adding and removing policies"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool PolicyEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Price"),
+             LocCategory("Policy", "{=TESTING}Policy"),
+             LocDescription("{=TESTING}Policy command price"),
+             PropertyOrder(2), UsedImplicitly]
+            public int PolicyPrice { get; set; } = 50000;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var sb = new StringBuilder();
                 if (WarEnabled) sb.Append("{=TESTING}War, ".Translate());
                 if (PeaceEnabled) sb.Append("{=TESTING}Peace, ".Translate());
                 if (ArmyEnabled) sb.Append("{=TESTING}Army, ".Translate());
+                if (PolicyEnabled) sb.Append("{=TESTING}Policy".Translate());
                 if (sb.Length > 0)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(
                         ("commands", sb.ToString(0, sb.Length - 2))));
 
                 if (WarEnabled)
                     generator.Value("<strong>War Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold))+
                                     "Cooldown={cd}".Translate(("cd", WarCooldown.ToString())));
                 if (PeaceEnabled)
                     generator.Value("<strong>Peace Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold))+
                                     "Cooldown={cd}".Translate(("cd", PeaceCooldown.ToString())));
                 if (ArmyEnabled)
                     generator.Value("<strong>Army Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
+                if (PolicyEnabled)
+                    generator.Value("<strong>Policy Config: </strong>" +
+                                    "Price={price}{icon}".Translate(("price", PolicyPrice.ToString()), ("icon", Naming.Gold)));
             }
         }
 
@@ -151,7 +168,7 @@ namespace BLTAdoptAHero
 
 
 
-            var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
+            var desiredKingdom = Kingdom.All.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
 
             switch (mode)
             {
@@ -259,7 +276,7 @@ namespace BLTAdoptAHero
                             onFailure($"Already at peace with {desiredKingdom}");
                             return;
                         }
-                        if ((stance.PeaceDeclarationDate != CampaignTime.Zero || stance.PeaceDeclarationDate != null) && (stance.WarStartDate - CampaignTime.Now).ToDays < settings.PeaceCooldown)
+                        if ((stance.WarStartDate != CampaignTime.Zero || stance.WarStartDate != null) && (stance.WarStartDate - CampaignTime.Now).ToDays < settings.PeaceCooldown)
                         {
                             onFailure($"Cant peace yet. {(int)(20 - (CampaignTime.Now - stance.WarStartDate).ToDays)} days remaining.");
                             return;
@@ -270,7 +287,7 @@ namespace BLTAdoptAHero
                             return;
                         }
                         //BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);
-
+                        
                         //Clan proposer = adoptedHero.Clan;
                         //var diplomacy = Campaign.Current.Models.DiplomacyModel;
                         //var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
@@ -333,11 +350,54 @@ namespace BLTAdoptAHero
 
                         break;
                     }
-                //case "policy":
-                //    {
-
-                //        break;
-                //    }
+                case "policy":
+                    {
+                        var desiredPolicy = PolicyObject.All.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                        int policyCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfPolicyProposalAndDisavowal(adoptedHero.Clan);
+                        if (!settings.PolicyEnabled)
+                        {
+                            onFailure("Policy disabled".Translate());
+                            return;
+                        }
+                        if (!adoptedHero.IsKingdomLeader)
+                        {
+                            onFailure("{=TESTING}Not a king.".Translate());
+                            return;
+                        }
+                        
+                        if (string.IsNullOrEmpty(desiredName) || splitArgs.Count() <= 2)
+                        {
+                            var listString = string.Join(", ", kingdom.ActivePolicies.Select(p => p.ToString()));
+                            onSuccess(listString);
+                            return;
+                        }
+                        if(desiredPolicy != null)
+                        {
+                            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PolicyPrice)
+                            {
+                                onFailure(Naming.NotEnoughGold(settings.PeacePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                                return;
+                            }
+                            if (adoptedHero.Clan.Influence < policyCost)
+                            {
+                                onFailure($"Not enough influence:{policyCost}");
+                                return;
+                            }
+                            if (kingdom.ActivePolicies.Contains(desiredPolicy))
+                            {
+                                kingdom.RemovePolicy(desiredPolicy);
+                                onSuccess($"Removed {desiredPolicy}");
+                                return;
+                            }
+                            else
+                            {
+                                kingdom.AddPolicy(desiredPolicy);
+                                onSuccess($"Added {desiredPolicy}");
+                                return;
+                            }
+                        }
+                        break;
+                    }
                 case "army":
                     {
                         if (!settings.ArmyEnabled)
@@ -397,6 +457,7 @@ namespace BLTAdoptAHero
                         if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty == adoptedHero.PartyBelongedTo)
                         {
                             adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
+                            adoptedHero.PartyBelongedTo.Army.ThinkAboutTravelingToAssignment();
                             onSuccess($"Changed army type to {armyType}");
                             return;
                         }
@@ -413,15 +474,14 @@ namespace BLTAdoptAHero
                         adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
                         Army army = adoptedHero.PartyBelongedTo.Army;
 
-                        int armyLimit = Math.Max(2, (int)Math.Floor(adoptedHero.Clan.Influence / 50f));
                         //int addedPartiesCount = 0;
                         foreach (var party in sameClanParties)
                         {
-                            party.Army = army;
+                                party.Army = army;
                         }
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
-
+                        
                         onSuccess($"Gathering {armyType} army({army.Parties.Count}) at {pos}");
                         break;
                     }

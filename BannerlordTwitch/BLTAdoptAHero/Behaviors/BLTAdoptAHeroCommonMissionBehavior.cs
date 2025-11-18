@@ -23,7 +23,7 @@ namespace BLTAdoptAHero
     {
         public readonly List<Hero> activeHeroes = new();
 
-        private class HeroMissionState
+        public class HeroMissionState
         {
             public AgentState LastAgentState { get; set; } = AgentState.Active;
             public int LastTeamIndex { get; set; }
@@ -501,5 +501,10 @@ namespace BLTAdoptAHero
         {
             GetHeroMissionState(hero).WonXP += xp;
         }
+        public HeroMissionState GetMissionState(Hero hero)
+        {
+            return GetHeroMissionState(hero);
+        }
+
     }
 }

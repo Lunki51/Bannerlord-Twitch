@@ -166,7 +166,8 @@ namespace BLTAdoptAHero.Actions
                         onSuccess("{=kANu9D6d}Your hero has changed their gender to female".Translate());
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.GenderCost);
                         adoptedHero.UpdatePlayerGender(true);
-                        if (adoptedHero.Spouse != null && adoptedHero.Spouse.IsFemale) adoptedHero.Spouse.UpdatePlayerGender(true);
+                        if (adoptedHero.Spouse != null && adoptedHero.Spouse.IsFemale) 
+                            adoptedHero.Spouse.UpdatePlayerGender(true);
                         Log.ShowInformation(
                             "{=byvm3h6C}{Name} has changed their gender to female!".Translate(("Name", adoptedHero.Name)),
                             adoptedHero.CharacterObject);
@@ -187,7 +188,8 @@ namespace BLTAdoptAHero.Actions
                         onSuccess("{=FlGjts5K}Your hero has changed their gender to male".Translate());
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.GenderCost);
                         adoptedHero.UpdatePlayerGender(false);
-                        if (adoptedHero.Spouse != null && !adoptedHero.Spouse.IsFemale) adoptedHero.Spouse.UpdatePlayerGender(true);
+                        if (adoptedHero.Spouse != null && !adoptedHero.Spouse.IsFemale) 
+                            adoptedHero.Spouse.UpdatePlayerGender(true);
                         Log.ShowInformation(
                             "{=MgcrSo56}{Name} has changed their gender to male!".Translate(("Name", adoptedHero.Name)),
                             adoptedHero.CharacterObject);
@@ -304,7 +306,7 @@ namespace BLTAdoptAHero.Actions
                             {
                                 character = CampaignHelpers.AllWandererTemplates.SelectRandom();
                                 fallback = true;
-                            }
+                            }                                
 
                             if (character == null)
                             {
@@ -335,7 +337,7 @@ namespace BLTAdoptAHero.Actions
 
                             newHero.SetNewOccupation(Occupation.Lord);
                             newHero.Clan = adoptedHero.Clan;
-
+      
                             var randAge = new Random();
                             newHero.SetBirthDay(CampaignTime.YearsFromNow(-Math.Max(Campaign.Current.Models.AgeModel.HeroComesOfAge, adoptedHero.Age + randAge.Next(-3, +3))));
 
@@ -373,7 +375,7 @@ namespace BLTAdoptAHero.Actions
 
                             adoptedHero.Spouse = newHero;
                             newHero.Spouse = adoptedHero;
-
+                            
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MarriageCost);
                             onSuccess("{=JW5L4lvt}Marriage successful with spawned spouse".Translate());
                             Log.ShowInformation("{=h6AHfoVx}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(newHero.Name.ToString()))),
@@ -411,7 +413,7 @@ namespace BLTAdoptAHero.Actions
                             if (!string.IsNullOrEmpty(spouseArg))
                             {
                                 string argLower = spouseArg.ToLowerInvariant().Trim();
-
+                                
 
                                 if (settings.ClanorName)
                                 {

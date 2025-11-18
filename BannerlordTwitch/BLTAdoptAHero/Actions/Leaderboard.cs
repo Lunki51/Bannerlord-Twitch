@@ -89,13 +89,13 @@ namespace BLTAdoptAHero
             }
 
             var sb = new StringBuilder();
-            sb.Append(BuildStatLine("Kills", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalKills)));
+            sb.Append(BuildStatLine("KILLS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalKills)));
             sb.Append(" | ");
-            sb.Append(BuildStatLine("Deaths", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalDeaths)));
+            sb.Append(BuildStatLine("DEATHS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalDeaths)));
             sb.Append(" | ");
-            sb.Append(BuildStatLine("Battles", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Battles)));
+            sb.Append(BuildStatLine("BATTLES", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Battles)));
             sb.Append(" | ");
-            sb.Append(BuildStatLine("TournamentWins", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalTournamentFinalWins)));
+            sb.Append(BuildStatLine("TOURNAMENTS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalTournamentFinalWins)));
             sb.Append(" | ");
             sb.Append(BuildFamilyLine());
 
@@ -105,12 +105,20 @@ namespace BLTAdoptAHero
         // --- Clan leaderboard ---
         private string BuildClanLeaderboard(Hero userHero)
         {
-            if (userHero.Clan == null || !userHero.IsClanLeader)
-                return "You are not leading a BLT clan.";
+            if (userHero.Clan == null)
+                return "You have no clan.";
 
             var bltClans = Clan.All
                 .Where(c => c != null && c.Leader != null && c.Leader.IsAdopted())
                 .ToList();
+
+            // Shortens numbers for display (Gold)
+            string FormatGold(int value)
+            {
+                return value >= 1_000_000 ? $"{value / 1_000_000D:0.#}M"
+                     : value >= 1_000 ? $"{value / 1_000D:0.#}K"
+                     : value.ToString();
+            }
 
             string BuildClanStatLine(string label, Func<Clan, int> statFunc)
             {
@@ -119,26 +127,30 @@ namespace BLTAdoptAHero
                     .OrderByDescending(x => x.Value)
                     .ToList();
 
-                var top3 = sorted.Take(3).Select((x, i) => $"{i + 1}-{x.Clan.Name}({x.Value})").ToList();
+                var top3 = sorted.Take(3)
+                    .Select((x, i) => $"{i + 1}-{x.Clan.Name}({(label == "GOLD" ? FormatGold(x.Value) : x.Value.ToString())})")
+                    .ToList();
 
                 int userRank = sorted.FindIndex(x => x.Clan == userHero.Clan) + 1;
                 if (userRank > 3)
                 {
-                    int userValue = sorted[userRank - 1].Value;
-                    top3.Add($"{userRank}-{userHero.Clan.Name}({userValue})");
+                    var userValue = sorted[userRank - 1].Value;
+                    top3.Add($"{userRank}-{userHero.Clan.Name}({(label == "GOLD" ? FormatGold(userValue) : userValue.ToString())})");
                 }
 
                 return $"{label}: {string.Join(" ", top3)}";
             }
 
             var sb = new StringBuilder();
-            sb.Append(BuildClanStatLine("Power", c => (int)c.TotalStrength));
+            sb.Append(BuildClanStatLine("POWER", c => (int)c.TotalStrength));
             sb.Append(" | ");
-            sb.Append(BuildClanStatLine("Members", c => c.Heroes.Count));
+            sb.Append(BuildClanStatLine("RENOWN", c => (int)c.Renown));
             sb.Append(" | ");
-            sb.Append(BuildClanStatLine("Fiefs", c => c.Fiefs.Count));
+            sb.Append(BuildClanStatLine("MEMBERS", c => c.Heroes.Count));
             sb.Append(" | ");
-            sb.Append(BuildClanStatLine("Gold", c => (int)c.Gold));
+            sb.Append(BuildClanStatLine("FIEFS", c => c.Fiefs.Count));
+            sb.Append(" | ");
+            sb.Append(BuildClanStatLine("GOLD", c => c.Gold));
 
             return sb.ToString();
         }
