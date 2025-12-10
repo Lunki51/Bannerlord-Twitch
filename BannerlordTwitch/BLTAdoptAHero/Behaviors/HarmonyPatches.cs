@@ -141,6 +141,7 @@ namespace BLTAdoptAHero
     }
     #endregion
 
+    #region ChangeKingdomAction
     [HarmonyPatch(typeof(ChangeKingdomAction))]
     internal static class ChangeKingdomActionPatches
     {
@@ -186,4 +187,32 @@ namespace BLTAdoptAHero
             return true;
         }
     }
+    #endregion
+
+    #region ClanPatches
+    [HarmonyPatch(typeof(Clan))]
+    internal static class ClanPatches
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch("UpdateBannerColorsAccordingToKingdom")]
+        private static bool Prefix_UpdateBannerColorsAccordingToKingdom(Clan __instance)
+        {
+            if (__instance?.Leader != null && __instance.Leader.IsAdopted())
+            {
+                try
+                {
+#if DEBUG
+                    Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
+#endif
+                    return false; // skip original
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
+                }
+            }
+            return true; // run original if not blocked
+        }
+    }
+    #endregion
 }

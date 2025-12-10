@@ -9,6 +9,7 @@ using BannerlordTwitch.Util;
 using BLTAdoptAHero.Annotations;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -349,50 +350,64 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
                 return;
             }
-
+            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();           
             bool war = false;
+            bool ally = adoptedHero.Clan.Kingdom.AlliedKingdoms.Count > 0;
+            bool trade = false;
             bool tribute = false;
-            TextObject warList = new TextObject();
-            TextObject tributeList = new TextObject();
+            TextObject warList = new TextObject("");
+            TextObject tributeList = new TextObject("");
+            TextObject tradeList = new TextObject("");
             foreach (Kingdom k in Kingdom.All)
             {
                 if (adoptedHero.Clan.Kingdom == k)
                     continue;
 
                 StanceLink stance = adoptedHero.Clan.Kingdom.GetStanceWith(k);
-
+                if (tradeBehavior.HasTradeAgreement(adoptedHero.Clan.Kingdom, k))
+                {
+                    var tradeDate = tradeBehavior.GetTradeAgreementEndDate(adoptedHero.Clan.Kingdom, k);
+                    int tradeDays = (int)(tradeDate - CampaignTime.Now).ToDays;
+                    trade = true;
+                    tradeList.Value += k.Name.Value + $"({tradeDays}), ";
+                }
                 if (adoptedHero.Clan.Kingdom.IsAtWarWith(k))
                 {
                     war = true;
-                    warList.Value += k.Name.Value + ":" + ((int)k.TotalStrength).ToString() + ", ";
+                    warList.Value += k.Name.Value + ":" + ((int)k.CurrentTotalStrength).ToString() + ", ";
                 }
                 else
                 {
-                    int dailyTributeFromUs = stance.GetDailyTributePaid(adoptedHero.Clan.Kingdom);
-                    int dailyTributeFromThem = stance.GetDailyTributePaid(k);
+                    int dailyTributeFromUs = stance.GetDailyTributeToPay(adoptedHero.Clan.Kingdom);
+                    int dailyTributeFromThem = stance.GetDailyTributeToPay(k);
+                    int daysUs = k.GetStanceWith(adoptedHero.Clan.Kingdom).GetRemainingTributePaymentCount();
+                    int daysThem = stance.GetRemainingTributePaymentCount();
+
 
                     if (dailyTributeFromUs > 0)
                     {
                         tribute = true;
                         tributeList.Value +=
-                            $"{k.Name}:-{dailyTributeFromUs}, ";
+                            $"{k.Name}:-{dailyTributeFromUs}({daysUs}), ";
                     }
                     else if (dailyTributeFromThem > 0)
                     {
                         tribute = true;
                         tributeList.Value +=
-                            $"{k.Name}:+{dailyTributeFromThem}, ";
+                            $"{k.Name}:+{dailyTributeFromThem}({daysThem}), ";
                     }
                 }
             }
             warList.Value = warList.Value.TrimEnd(',', ' ');
+            var allyList = string.Join(", ", adoptedHero.Clan.Kingdom.AlliedKingdoms.Select(k => k.Name.ToString()));
+            tradeList.Value = tradeList.Value.TrimEnd(',', ' ');
             tributeList.Value = tributeList.Value.TrimEnd(',', ' ');
 
             var clanStats = new StringBuilder();
             clanStats.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
             clanStats.Append("{=Ss588M9l}Ruling Clan: {rulingClan} | ".Translate(("rulingClan", adoptedHero.Clan.Kingdom.RulingClan.Name.ToString())));
             clanStats.Append("{=T1FhhCH9}Clan Count: {clanCount} | ".Translate(("clanCount", adoptedHero.Clan.Kingdom.Clans.Count.ToString())));
-            clanStats.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.Kingdom.TotalStrength).ToString())));
+            clanStats.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.Kingdom.CurrentTotalStrength).ToString())));
             clanStats.Append("{=6VFGXqRe}Influence: {influence} | ".Translate(("influence", Math.Round(adoptedHero.Clan.Influence).ToString())));
             if (adoptedHero.Clan.IsUnderMercenaryService)
             {
@@ -401,6 +416,10 @@ namespace BLTAdoptAHero.Actions
             }
             if (war)
                 clanStats.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
+            if (ally)
+                clanStats.Append("{=TESTING}Alliances: {allies} | ".Translate(("allies", allyList)));
+            if (trade)
+                clanStats.Append("{=TESTING}Trades: {trade} | ".Translate(("trade", tradeList.ToString())));
             if (tribute)
                 clanStats.Append("{=0GhTvF3K}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
             if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)

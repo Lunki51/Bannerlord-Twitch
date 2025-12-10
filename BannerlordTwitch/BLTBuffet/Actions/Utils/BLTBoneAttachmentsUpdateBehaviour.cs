@@ -38,7 +38,7 @@ namespace BLTBuffet
                 foreach (var a in attachments)
                 {
                     var frame = skeleton.GetBoneEntitialFrame((sbyte)a.boneIdx) * a.localFrame;
-                    a.particleSystem.SetLocalFrame(ref frame);
+                    a.particleSystem.SetLocalFrame(frame);
                 }
             }
         }

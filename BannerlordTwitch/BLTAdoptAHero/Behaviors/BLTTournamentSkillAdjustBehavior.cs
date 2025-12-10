@@ -15,7 +15,7 @@ namespace BLTAdoptAHero
     {
         public bool UnarmedRound { get; set; }
 
-        public override void OnRegisterBlow(Agent attacker, Agent victim, GameEntity realHitEntity, Blow b,
+        public override void OnRegisterBlow(Agent attacker, Agent victim, WeakGameEntity realHitEntity, Blow b,
             ref AttackCollisionData collisionData, in MissionWeapon attackerWeapon)
         {
             if (UnarmedRound && victim != null && attacker != null)

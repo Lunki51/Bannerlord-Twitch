@@ -14,7 +14,7 @@ namespace BLTBuffet.Util
              {
                  typeof(Agent), // attackerAgent
                  typeof(Agent), // victimAgent
-                 typeof(GameEntity), // hitObject
+                 typeof(WeakGameEntity), // hitObject
                  typeof(float), // momentumRemaining
                  typeof(MissionWeapon), // attackerWeapon
                  typeof(bool), // crushedThrough

@@ -188,7 +188,7 @@ namespace BLTAdoptAHero
                 }
             });
 
-            CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, (hero, party, _, _) =>
+            CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, (hero, party, faction, endDetail, capturedDuringBattle) =>
             {
                 if (hero.IsAdopted())
                 {
@@ -200,6 +200,7 @@ namespace BLTAdoptAHero
                             .Translate(("HeroName", hero.Name)));
                 }
             });
+
 
             CampaignEvents.OnHeroChangedClanEvent.AddNonSerializedListener(this, (hero, clan) =>
             {
@@ -444,6 +445,43 @@ namespace BLTAdoptAHero
             }
 
             return foundHero;
+        }
+
+        public Hero GetHeirHero(string name)
+        {
+            var foundHero = heroData.FirstOrDefault(h
+                    => !h.Value.IsRetiredOrDead
+                       && (string.Equals(h.Key.FirstName?.Raw(), name, StringComparison.CurrentCultureIgnoreCase)
+                           || string.Equals(h.Value.Owner, name, StringComparison.CurrentCultureIgnoreCase)))
+                .Key;
+            if (foundHero == null)
+            {
+                foundHero = heroData.FirstOrDefault(h
+                    => h.Value.IsRetiredOrDead
+                       && (string.Equals(h.Key.FirstName?.Raw(), name, StringComparison.CurrentCultureIgnoreCase)
+                           || string.Equals(h.Value.Owner, name, StringComparison.CurrentCultureIgnoreCase)))
+                .Key;
+            }
+            if (foundHero != null)
+            {
+                var heir = CampaignHelpers.AllHeroes
+                    .Where(c => !c.IsAdopted() &&
+                                (c.Father == foundHero || c.Mother == foundHero) &&
+                                (c.Name?.ToString() ?? "").Contains("Heir"))
+                    .FirstOrDefault();
+
+
+                if (heir?.IsDead == true)
+                {
+                    var oldName = heir.FirstName;
+                    heir.SetName(oldName, oldName);
+                    heir = null;
+                }
+                return heir;
+            }
+            
+
+            return null;
         }
 
         public void RetireHero(Hero hero)

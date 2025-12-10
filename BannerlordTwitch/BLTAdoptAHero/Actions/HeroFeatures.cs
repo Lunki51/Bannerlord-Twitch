@@ -165,9 +165,9 @@ namespace BLTAdoptAHero.Actions
                         }
                         onSuccess("{=kANu9D6d}Your hero has changed their gender to female".Translate());
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.GenderCost);
-                        adoptedHero.UpdatePlayerGender(true);
+                        adoptedHero.IsFemale= true;
                         if (adoptedHero.Spouse != null && adoptedHero.Spouse.IsFemale) 
-                            adoptedHero.Spouse.UpdatePlayerGender(true);
+                            adoptedHero.Spouse.IsFemale = false;
                         Log.ShowInformation(
                             "{=byvm3h6C}{Name} has changed their gender to female!".Translate(("Name", adoptedHero.Name)),
                             adoptedHero.CharacterObject);
@@ -187,9 +187,9 @@ namespace BLTAdoptAHero.Actions
                         }
                         onSuccess("{=FlGjts5K}Your hero has changed their gender to male".Translate());
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.GenderCost);
-                        adoptedHero.UpdatePlayerGender(false);
+                        adoptedHero.IsFemale = false;
                         if (adoptedHero.Spouse != null && !adoptedHero.Spouse.IsFemale) 
-                            adoptedHero.Spouse.UpdatePlayerGender(true);
+                            adoptedHero.Spouse.IsFemale = true;
                         Log.ShowInformation(
                             "{=MgcrSo56}{Name} has changed their gender to male!".Translate(("Name", adoptedHero.Name)),
                             adoptedHero.CharacterObject);
@@ -252,7 +252,7 @@ namespace BLTAdoptAHero.Actions
 
                         adoptedHero.CharacterObject.UpdatePlayerCharacterBodyProperties(updatedBodyProperties, race, isFemale);
 
-                        onSuccess("{=GjKCaf8c}Appearance updated successfully!".Translate());
+                        Log.ShowInformation("{=GjKCaf8c}Appearance updated successfully!".Translate(), adoptedHero.CharacterObject);
                         return;
                     }
 
@@ -325,8 +325,8 @@ namespace BLTAdoptAHero.Actions
 
                             if (heroSettlement != null)
                             {
-                                var heroPos = heroSettlement.Position2D;
-                                targetSettlement = towns.OrderBy(town => town.Position2D.DistanceSquared(heroPos)).FirstOrDefault();
+                                var heroPos = heroSettlement.Position;
+                                targetSettlement = towns.OrderBy(town => town.Position.DistanceSquared(heroPos)).FirstOrDefault();
                             }
                             targetSettlement ??= towns.SelectRandom();
 
@@ -343,7 +343,7 @@ namespace BLTAdoptAHero.Actions
 
                             if (adoptedHero.IsFemale == newHero.IsFemale)
                             {
-                                newHero.UpdatePlayerGender(!newHero.IsFemale);
+                                newHero.IsFemale = !newHero.IsFemale;
                             }
                             // Now randomize and assign the name based on new gender
                             bool isFemale = newHero.IsFemale;

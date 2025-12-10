@@ -18,7 +18,7 @@ namespace BannerlordTwitch.Helpers
                 Mission.Current?.Agents.Any(a => a.Character == hero.CharacterObject) == true;
 
         public static bool InHideOutMission()
-            => Mission.Current?.GetMissionBehavior<HideoutMissionController>() != null;
+            => Mission.Current?.GetMissionBehavior<StealthMissionController>() != null;
 
         public static bool InFieldBattleMission()
             => Mission.Current?.IsFieldBattle == true;

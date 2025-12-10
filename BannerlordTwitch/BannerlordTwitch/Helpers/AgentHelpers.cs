@@ -18,12 +18,12 @@ namespace BannerlordTwitch.Helpers
 
         public static void DropWeapons(Agent agent)
         {
-            var index = agent.GetWieldedItemIndex(Agent.HandIndex.MainHand);
+            var index = agent.GetPrimaryWieldedItemIndex();
             if (index != EquipmentIndex.None)
             {
                 agent.DropItem(index);
             }
-            var index2 = agent.GetWieldedItemIndex(Agent.HandIndex.OffHand);
+            var index2 = agent.GetOffhandWieldedItemIndex();
             if (index2 != EquipmentIndex.None)
             {
                 agent.DropItem(index2);

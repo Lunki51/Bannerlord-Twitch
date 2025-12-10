@@ -26,7 +26,7 @@ namespace BLTAdoptAHero
     {
         private GauntletLayer _layer;
         private HeroWidgetVM _vm;
-        private IGauntletMovie _gauntletMovie;
+        private GauntletMovieIdentifier _gauntletMovie;
         private Camera _camera;
         private readonly Dictionary<Hero, HeroIconVM> _heroToVM = new();
         private bool _isInitialized = false;
@@ -61,19 +61,19 @@ namespace BLTAdoptAHero
         {
             //Log.Trace("BLTAdoptAHero: Initializing UI.");
             this._vm = new HeroWidgetVM();
-            this._layer = new GauntletLayer(111, "BLTHeroWidgetLayer", false);
-            this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);
+            this._layer = new GauntletLayer("BLTHeroWidgetLayer", 111, false);
+            this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);            
             this.MissionScreen.AddLayer(_layer);
             //Log.Trace("BLTAdoptAHero: Layer added to MissionScreen.");
             //Log.Trace($"BLTAdoptAHero: Movie loaded. RootWidget is Null? {_gauntletMovie.RootWidget == null}");
-            this._camera = MissionScreen.CombatCamera;
+            this._camera = MissionScreen.CombatCamera;           
         }
 
         internal void UpdateHeroIcons(BLTAdoptAHeroCommonMissionBehavior heroBehavior)
         {
             bool inTournament = MissionHelpers.InTournament();
             if (!_isInitialized || _camera == null) return;
-
+            
             var heroVMs = new List<(Hero hero, HeroIconVM vm, float dist)>();
 
             var heroTeamCache = new Dictionary<Hero, string>();
@@ -146,9 +146,9 @@ namespace BLTAdoptAHero
                 .OrderBy(h => h.dist)
                 .ToList();
 
-            float minOverlapY = 4f;
-            float paddingY = 2f;
-            float slideFactor = 0.5f;
+            float minOverlapY = 4f;  
+            float paddingY = 2f;     
+            float slideFactor = 0.5f; 
 
             for (int i = 0; i < sorted.Count - 1; i++)
             {
@@ -228,10 +228,10 @@ namespace BLTAdoptAHero
         {
             _heroToVM.Clear();
             _vm?.Heroes.Clear();
-
-            if (_layer != null && MissionScreen != null)
+            
+            if (_layer != null && MissionScreen != null)            
                 MissionScreen.RemoveLayer(_layer);
-
+                
             _layer = null;
             _vm = null;
             _camera = null;

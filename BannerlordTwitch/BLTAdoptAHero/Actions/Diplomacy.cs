@@ -11,6 +11,7 @@ using JetBrains.Annotations;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Election;
+using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.CharacterDevelopment;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.BarterSystem.Barterables;
@@ -165,7 +166,7 @@ namespace BLTAdoptAHero
             var mode = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
             var kingdom = adoptedHero.Clan.Kingdom;
-
+            bool atWar = Kingdom.All.Any(k => k.IsAtWarWith(kingdom));
 
 
             var desiredKingdom = Kingdom.All.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
@@ -327,25 +328,25 @@ namespace BLTAdoptAHero
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);
 
                             Clan proposer = adoptedHero.Clan;
-                            var diplomacy = Campaign.Current.Models.DiplomacyModel;
-                            var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
-                            float valueForFaction = barter.GetValueForFaction(proposer);
-                            float wealthFactor = (proposer.Leader.Gold < 50000f)
-                            ? (1f + 0.5f * ((50000f - proposer.Leader.Gold) / 50000f))
-                            : ((proposer.Leader.Gold > 200000f)
-                            ? (float)Math.Max(0.66, Math.Pow(200000.0 / proposer.Leader.Gold, 0.4))
-                            : 1f);
-                            int generosityLevel = proposer.Leader.GetTraitLevel(DefaultTraits.Generosity);
-                            float generosityFactor = (true) // tribute payer
-                            ? (1f - 0.1f * Math.Max(-2, Math.Min(2, generosityLevel)))
-                            : 1f;
-                            int tributeValue = diplomacy.GetDailyTributeForValue((int)(valueForFaction / (wealthFactor * generosityFactor)));
-                            MakePeaceAction.Apply(kingdom, desiredKingdom, tributeValue);
+                            Clan recipient = desiredKingdom.RulingClan;
+
+                            // Get daily tribute and the duration in days automatically
+                            int tributeDurationInDays;
+                            int dailyTribute = Campaign.Current.Models.DiplomacyModel
+                                .GetDailyTributeToPay(proposer, recipient, out tributeDurationInDays);
+
+                            // Apply peace with the calculated tribute
+                            MakePeaceAction.ApplyByKingdomDecision(proposer, recipient, dailyTribute, tributeDurationInDays);
 
                             adoptedHero.Clan.Influence -= influenceCost;
-                            tributeValue *= -1;
                             influenceCost *= -1;
-                            onSuccess($"Made peace with {desiredKingdom}. Tribute:{tributeValue}, Influence:{influenceCost}");
+                            onSuccess("{=BLTTribute}Peace applied between {Proposer} and {Recipient}. Daily tribute: {DailyTribute}, Duration: {Days} days."
+                                .Translate(
+                                    ("Proposer", proposer.Name),
+                                    ("Recipient", recipient.Name),
+                                    ("DailyTribute", dailyTribute),
+                                    ("Days", tributeDurationInDays)
+                                ));
                         }
 
                         break;
@@ -368,6 +369,12 @@ namespace BLTAdoptAHero
                         if (string.IsNullOrEmpty(desiredName) || splitArgs.Count() <= 2)
                         {
                             var listString = string.Join(", ", kingdom.ActivePolicies.Select(p => p.ToString()));
+                            onSuccess(listString);
+                            return;
+                        }
+                        if (desiredName == "list")
+                        {
+                            var listString = string.Join(", ", PolicyObject.All.ToList().ToString());
                             onSuccess(listString);
                             return;
                         }
@@ -396,6 +403,7 @@ namespace BLTAdoptAHero
                                 return;
                             }
                         }
+                        else { onFailure("Invalid action"); }
                         break;
                     }
                 case "army":
@@ -404,8 +412,8 @@ namespace BLTAdoptAHero
                         {
                             onFailure("Army disabled");
                             return;
-                        }
-                        if (!kingdom.Stances.Any(s => s.IsAtWar && (s.Faction1 is Kingdom && s.Faction2 is Kingdom) && (s.Faction1 == kingdom || s.Faction2 == kingdom)))
+                        }                      
+                        if (!atWar)
                         {
                             onFailure("No wars");
                             return;
@@ -441,9 +449,9 @@ namespace BLTAdoptAHero
                             case "siege":
                                 armyType = Army.ArmyTypes.Besieger;
                                 break;
-                            case "raid":
-                                armyType = Army.ArmyTypes.Raider;
-                                break;
+                            //case "raid":
+                            //    armyType = Army.ArmyTypes.Raider;
+                            //    break;
                             case "defend":
                                 armyType = Army.ArmyTypes.Defender;
                                 break;
@@ -457,7 +465,6 @@ namespace BLTAdoptAHero
                         if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty == adoptedHero.PartyBelongedTo)
                         {
                             adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
-                            adoptedHero.PartyBelongedTo.Army.ThinkAboutTravelingToAssignment();
                             onSuccess($"Changed army type to {armyType}");
                             return;
                         }
@@ -483,6 +490,18 @@ namespace BLTAdoptAHero
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
                         
                         onSuccess($"Gathering {armyType} army({army.Parties.Count}) at {pos}");
+                        break;
+                    }
+                case "alliance":
+                    {
+                        AllianceCampaignBehavior allianceBehavior = Campaign.Current.GetCampaignBehavior<AllianceCampaignBehavior>();
+                        allianceBehavior.StartAlliance(kingdom, desiredKingdom);
+                        break;
+                    }
+                case "trade":
+                    {
+                        TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
+                        tradeBehavior.MakeTradeAgreement(kingdom, desiredKingdom, CampaignTime.Years(1));
                         break;
                     }
                 default:

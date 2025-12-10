@@ -11,13 +11,17 @@ using BannerlordTwitch.Util;
 using BLTAdoptAHero;
 using BLTAdoptAHero.Annotations;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
+using NavalDLC.CharacterDevelopment;
+using NavalDLC.CampaignBehaviors;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero.Actions
@@ -441,24 +445,29 @@ namespace BLTAdoptAHero.Actions
 
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.CreatePrice, true);
             var newClan = Clan.CreateClan(fullClanName);
-            var clanCulture = adoptedHero.Culture;
-            var clanBanner = Banner.CreateRandomBanner();
-            newClan.InitializeClan(new TextObject(fullClanName), new TextObject(fullClanName), clanCulture, clanBanner);
-            newClan.UpdateHomeSettlement(Settlement.All.SelectRandom());
-
+            newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
+            newClan.Culture = adoptedHero.Culture;
+            newClan.Banner = Banner.CreateRandomBanner();
+            //newClan.Initialize(new TextObject(fullClanName), new TextObject(fullClanName), clanCulture, clanBanner);
+            newClan.Kingdom = null;
             adoptedHero.Clan = newClan;
-            newClan.AddRenown(settings.Renown, false);
-            adoptedHero.Gold = 50000;
-            newClan.SetLeader(adoptedHero);           
-            if (!CampaignHelpers.IsEncyclopediaBookmarked(newClan))
-                CampaignHelpers.AddEncyclopediaBookmarkToItem(newClan);
-            onSuccess("{=omDrEeDx}Created and leading clan {name}".Translate(("name", fullClanName)));
-            Log.ShowInformation("{=TsmDfvuz}{heroName} has created and is leading clan {clanName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("clanName", adoptedHero.Clan.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
             if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
             {
                 onSuccess("{=vBmuM0Hn}{heroName} has become a noble!".Translate(("heroName", adoptedHero.Name.ToString())));
                 adoptedHero.SetNewOccupation(Occupation.Lord);
             }
+            newClan.SetLeader(adoptedHero);
+            newClan.IsNoble = true;
+            newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
+            CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
+            newClan.AddRenown(settings.Renown, false);
+            adoptedHero.Gold = 50000;
+                   
+            if (!CampaignHelpers.IsEncyclopediaBookmarked(newClan))
+                CampaignHelpers.AddEncyclopediaBookmarkToItem(newClan);
+            onSuccess("{=omDrEeDx}Created and leading clan {name}".Translate(("name", fullClanName)));
+            Log.ShowInformation("{=TsmDfvuz}{heroName} has created and is leading clan {clanName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("clanName", adoptedHero.Clan.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
+            ChangeClanLeaderAction.ApplyWithSelectedNewLeader(newClan, adoptedHero);
         }
 
         private void HandleLeadCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
@@ -572,7 +581,7 @@ namespace BLTAdoptAHero.Actions
             if (adoptedHero.Clan.Kingdom != null)
                 clanStats.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())));
             clanStats.Append("{=Sg11nEUe}Tier: {tier}({renown}) | ".Translate(("tier", adoptedHero.Clan.Tier.ToString()), ("renown", Math.Round(adoptedHero.Clan.Renown).ToString())));
-            clanStats.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.TotalStrength).ToString())));
+            clanStats.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.CurrentTotalStrength).ToString())));
             if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
                 clanStats.Append("{=zVDODxiN}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
             if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
@@ -614,6 +623,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
             var partyStats = new StringBuilder();
+            
             void partyCreate(Hero adoptedHero)
             {
                 if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPrisoner && !adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
@@ -637,8 +647,27 @@ namespace BLTAdoptAHero.Actions
                         }
                         try
                         {
-                            //adoptedHero.ChangeState(Hero.CharacterStates.Active);
-                            adoptedHero.Clan.CreateNewMobileParty(adoptedHero);
+                            string partyId = Campaign.Current.CampaignObjectManager.FindNextUniqueStringId<MobileParty>($"lord_party_{adoptedHero.StringId}");
+
+                            Settlement spawnSettlement = adoptedHero.HomeSettlement;
+                            CampaignVec2 spawnPos = spawnSettlement.GatePosition;
+                            float spawnRadius = 2f;
+                             // optional
+
+                            // Create InitializationArgs for LordPartyComponent
+                            var initArgs = new LordPartyComponent.InitializationArgs(spawnPos, spawnRadius, spawnSettlement);
+
+                            // Create LordPartyComponent via reflection (constructor is protected)
+                            var lordComponent = (LordPartyComponent)Activator.CreateInstance(
+                                typeof(LordPartyComponent),
+                                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                                null,
+                                new object[] { adoptedHero, adoptedHero, initArgs }, // owner and leader
+                                null
+                            );
+
+                            MobileParty newParty = MobileParty.CreateParty(partyId, lordComponent);
+
                             partyStats.Append("{=wNXoOa5K} | Create party".Translate());
                         }
                         catch
@@ -652,6 +681,7 @@ namespace BLTAdoptAHero.Actions
                             adoptedHero.Clan.SetLeader(adoptedHero);
                             if (leader)
                                 adoptedHero.Clan.SetLeader(adoptedHero);
+                            adoptedHero.Clan.IsNoble = true;
                         }
                     }
                 }
@@ -675,9 +705,10 @@ namespace BLTAdoptAHero.Actions
                 partyStats.Append("{=ocrxKWUF}Governor: {governor}".Translate(("governor", govFief.Name.ToString())));
                 partyCreate(adoptedHero);
             }
+            
             else if (adoptedHero.IsPartyLeader)
             {
-                partyStats.Append("{=sN2NzoA7}Party(Strength: {party_strength} - ".Translate(("party_strength", Math.Round(adoptedHero.PartyBelongedTo.Party.TotalStrength).ToString())));
+                partyStats.Append("{=sN2NzoA7}Party(Strength: {party_strength} - ".Translate(("party_strength", Math.Round(adoptedHero.PartyBelongedTo.Party.EstimatedStrength).ToString())));
                 string partySizeStr = $"{adoptedHero.PartyBelongedTo.MemberRoster.TotalHealthyCount}/{adoptedHero.PartyBelongedTo.Party.PartySizeLimit}";
                 if (adoptedHero.PartyBelongedTo.PrisonRoster.Count > 0)
                 {
@@ -733,7 +764,7 @@ namespace BLTAdoptAHero.Actions
                             partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", party.ShortTermTargetParty.MemberRoster.TotalManCount)));
                         }
 
-                        if (party.TargetSettlement != null && party.IsCurrentlyGoingToSettlement)
+                        if (party.TargetSettlement != null && party.ShortTermTargetSettlement == null)
                         {
                             partyStats.Append("{=SER2eRHo}Travelling: {travelling} | ".Translate(("travelling", party.TargetSettlement.Name.ToString())));
                         }
@@ -784,7 +815,7 @@ namespace BLTAdoptAHero.Actions
                 else
                 {
                     partyStats.Append("{=CVzSgXhT}Army: {army}".Translate(("army", adoptedHero.PartyBelongedTo.Army.Name.ToString())));
-                    partyStats.Append("{=d76wc5iS}[Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.PartyBelongedTo.Army.TotalStrength).ToString())));
+                    partyStats.Append("{=d76wc5iS}[Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.PartyBelongedTo.Army.EstimatedStrength).ToString())));
                     partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", adoptedHero.PartyBelongedTo.Army.TotalHealthyMembers.ToString())));
                     partyStats.Append("{=7p5j5Mlx}Party nº: {count}] ".Translate(("count", adoptedHero.PartyBelongedTo.Army.LeaderPartyAndAttachedPartiesCount.ToString())));
                     //if ((int)adoptedHero.PartyBelongedTo.Army.AIBehavior > 0 && (int)adoptedHero.PartyBelongedTo.Army.AIBehavior < 11)
@@ -837,7 +868,7 @@ namespace BLTAdoptAHero.Actions
                             partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", party.ShortTermTargetParty.MemberRoster.TotalManCount)));
                         }
 
-                        if (party.TargetSettlement != null && party.IsCurrentlyGoingToSettlement)
+                        if (party.TargetSettlement != null && party.ShortTermTargetSettlement == null)
                         {
                             partyStats.Append("{=SER2eRHo}Travelling: {travelling} | ".Translate(("travelling", party.TargetSettlement.Name.ToString())));
                         }
@@ -888,7 +919,7 @@ namespace BLTAdoptAHero.Actions
             else if (adoptedHero.StayingInSettlement != null)
             {
                 partyStats.Append("{=dMOlobea}Your hero is staying at {place}".Translate(("place", adoptedHero.StayingInSettlement.Name.ToString())));
-                partyCreate(adoptedHero);
+                partyCreate(adoptedHero);               
             }
             else
             {
@@ -1121,53 +1152,70 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=PSDbhv3a}Make your banner at https://bannerlord.party/banner and paste it directly".Translate());
                 return;
             }
-            if (bannerCode == "clear")
-            {
-                try
-                {
-                    var behavior = Campaign.Current?.GetCampaignBehavior<BLTClanBannerSaveBehavior>();
-                    if (behavior != null && adoptedHero?.Clan != null)
-                    {
-                        behavior._banners.Remove(adoptedHero.Clan.StringId);
-                        onSuccess("Clan banner cleared from saved data.");
-                    }
-                    else
-                    {
-                        onFailure("No clan or behavior found to clear.");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    onFailure($"Failed to clear saved banner: {ex.Message}");
-                }
-                return;
-            }
+            //if (bannerCode == "clear")
+            //{
+            //    try
+            //    {
+            //        var behavior = Campaign.Current?.GetCampaignBehavior<BLTClanBannerSaveBehavior>();
+            //        if (behavior != null && adoptedHero?.Clan != null)
+            //        {
+            //            behavior._banners.Remove(adoptedHero.Clan.StringId);
+            //            onSuccess("Clan banner cleared from saved data.");
+            //        }
+            //        else
+            //        {
+            //            onFailure("No clan or behavior found to clear.");
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        onFailure($"Failed to clear saved banner: {ex.Message}");
+            //    }
+            //    return;
+            //}
             try
             {
-                var newData = Banner.GetBannerDataFromBannerCode(bannerCode);
-                if (newData == null || newData.Count == 0)
+                if (Banner.TryGetBannerDataFromCode(bannerCode, out var bannerDataList))
                 {
-                    onFailure("Invalid banner code.");
-                    return;
+                    var newBanner = new Banner(bannerCode);  // creates a Banner object directly from the code                  
+                    var color1 = newBanner.GetPrimaryColor();
+                    var color2 = newBanner.GetSecondaryColor();
+                    
+
+                    adoptedHero.Clan.Banner = newBanner;
+                    adoptedHero.Clan.Banner.ChangeBackgroundColor(color1, color2);
+                    adoptedHero.Clan.Color = color1;
+                    adoptedHero.Clan.Color2 = color2;
+                    if (adoptedHero.IsKingdomLeader)
+                    {
+                        adoptedHero.Clan.Kingdom.Banner = newBanner;
+                        adoptedHero.Clan.Kingdom.Banner.ChangeBackgroundColor(color1, color2);                       
+                    }
                 }
+                    //var newData = Banner.TryGetBannerDataFromCode(bannerCode);
+                    //if (newData == null || newData.Count == 0)
+                    //{
+                    //    onFailure("Invalid banner code.");
+                    //    return;
+                    //}
 
-                Banner clanBanner = adoptedHero.Clan.Banner;
-                clanBanner.Deserialize(bannerCode);
+                    //Banner clanBanner = adoptedHero.Clan.Banner;
+                    //clanBanner.Deserialize(bannerCode);
 
-                clanBanner.SetBannerVisual(null);
+                    //clanBanner.SetBannerVisual(null);
 
-                IBannerVisual visual = clanBanner.BannerVisual;
+                    //IBannerVisual visual = clanBanner.BannerVisual;
+                   
+                    //if (visual != null)
+                    //{
+                    //    var convert = visual.GetType().GetMethod("ConvertToMultiMesh",
+                    //        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+                    //    convert?.Invoke(visual, null);
+                    //}
+                    //var behavior = Campaign.Current?.GetCampaignBehavior<BLTClanBannerSaveBehavior>();
+                    //behavior?.SaveBanner(adoptedHero.Clan.StringId, bannerCode);
 
-                if (visual != null)
-                {
-                    var convert = visual.GetType().GetMethod("ConvertToMultiMesh",
-                        System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
-                    convert?.Invoke(visual, null);
-                }
-                var behavior = Campaign.Current?.GetCampaignBehavior<BLTClanBannerSaveBehavior>();
-                behavior?.SaveBanner(adoptedHero.Clan.StringId, bannerCode);
-
-                onSuccess("{=BiiO7KQx}Banner updated successfully!".Translate());
+                    onSuccess("{=BiiO7KQx}Banner updated successfully!".Translate());
             }
             catch (Exception ex)
             {

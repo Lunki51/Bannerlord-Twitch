@@ -276,6 +276,7 @@ namespace BLTAdoptAHero
         {
             return Mission.Current.Mode != MissionMode.Stealth
                    && !MissionHelpers.InSiegeMission()
+                   && Mission.Current?.IsNavalBattle == false
                    && formationClass is
                        FormationClass.Cavalry or
                        FormationClass.LightCavalry or

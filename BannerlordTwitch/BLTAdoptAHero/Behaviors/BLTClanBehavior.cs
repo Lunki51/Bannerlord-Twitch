@@ -41,6 +41,7 @@ namespace BLTAdoptAHero
                     }
 
                     _bltFamily.GiveDailyXpToFamily();
+                    _bltFamily.AgeBLTChildren();
                 }
             });
         }
@@ -55,7 +56,7 @@ namespace BLTAdoptAHero
             public void RegisterEvents()
             {
                 CampaignEvents.OnHeroChangedClanEvent.AddNonSerializedListener(this, OnHeroChangedClanEvent);
-                CampaignEvents.HeroesMarried.AddNonSerializedListener(this, OnHeroesMarried);
+                CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnHeroesMarried);
             }
             private void OnHeroChangedClanEvent(Hero hero, Clan oldClan)
             {
@@ -199,6 +200,32 @@ namespace BLTAdoptAHero
                 public Hero BltHero { get; set; }
                 public List<Hero> FamilyMembers { get; set; } = new List<Hero>();
             }
+
+            public void AgeBLTChildren()
+            {
+                int growthRatePerDay = GlobalCommonConfig.Get().BLTChildAgeMult;
+                growthRatePerDay -= 1;
+                if (growthRatePerDay < 1)
+                {
+                    return;
+                }
+                var bltHeroes = Hero.AllAliveHeroes
+                    .Where(h => h != null && h.IsAdopted())
+                    .ToList();
+
+                foreach (var bltHero in bltHeroes)
+                {
+
+                    foreach (var child in bltHero.Children)
+                    {
+                        if (child == null || child.IsDead || child.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                            continue;
+
+                        // Apply growth rate
+                        child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+                    }
+                }
+            }
         }
 
         public class BLTSocialSecurity
@@ -264,36 +291,35 @@ namespace BLTAdoptAHero
                     if (!HeroExtensions.IsAdopted(leader))
                         continue;
 
-                    CheckAndFixParty(party);
+                    //CheckAndFixParty(party);
                 }
-                
+
             }
 
-            private void CheckAndFixParty(MobileParty party)
-            {
-                var ai = party.Ai;
-                if (ai == null)
-                    return;
+            //private void CheckAndFixParty(MobileParty party)
+            //{
+            //    var ai = party.Ai;
+            //    if (ai == null)
+            //        return;
 
-                double hoursStationary = 0;
-                if (party.StationaryStartTime != CampaignTime.Zero || party.StationaryStartTime != null)
-                    hoursStationary = (CampaignTime.Now.ToHours - party.StationaryStartTime.ToHours);
-                bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && hoursStationary > CampaignTime.HoursInDay;
-                bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
+            //    double hoursStationary = 0;
+            //    if (party.StationaryStartTime != CampaignTime.Zero || party.StationaryStartTime != null)
+            //        hoursStationary = (CampaignTime.Now.ToHours - party.StationaryStartTime.ToHours);
+            //    bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && hoursStationary > CampaignTime.HoursInDay;
+            //    bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
 
 
-                if (isHolding || isStuck)
-                {
-                    Log.LogFeedEvent(
-                        $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {hoursStationary} hours)");
+            //    if (isHolding || isStuck)
+            //    {
+            //        Log.LogFeedEvent(
+            //            $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {hoursStationary} hours)");
 
-                    ai.DisableAi();
-                    ai.EnableAi();
-                    ai.RethinkAtNextHourlyTick = true;
-                    ai.CheckPartyNeedsUpdate();
-                }
-            }
-
+            //        ai.DisableAi();
+            //        ai.EnableAi();
+            //        ai.RethinkAtNextHourlyTick = true;
+            //        ai.CheckPartyNeedsUpdate();
+            //    }
+            //}
         }
     }
 }

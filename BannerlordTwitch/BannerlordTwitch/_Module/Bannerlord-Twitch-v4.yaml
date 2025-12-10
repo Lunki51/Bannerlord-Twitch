@@ -204,40 +204,6 @@ Commands:
   Name: adoptByName
   RespondInOverlay: true
   RespondInTwitch: true
-- Documentation: Adopt a newly created Hero
-  Enabled: false
-  Handler: AdoptAHero
-  HandlerConfig:
-    AllowMinorFactionHero: false
-    AllowNoble: false
-    AllowPartyLeader: false
-    AllowPlayerCompanion: false
-    AllowWanderer: false
-    CreateNew: true
-    Inheritance: 0.25
-    MaxInheritedCustomItems: 2
-    MinSubscribedMonths: 
-    Notifications: false
-    OverrideAge: false
-    StartingAgeRange:
-      Max: 25
-      Min: 18
-    StartingClass: 00000000-0000-0000-0000-000000000000
-    StartingEquipmentTier: 1
-    StartingGold: 50000
-    StartingSkills:
-    - MaxLevel: 75
-      MinLevel: 25
-      Skill: All
-    SubscriberOnly: false
-    ViewerSelects: Nothing
-  Help: ''
-  HideHelp: true
-  ID: 12306f90-ad7a-4016-b7c1-5c334d6d9f61
-  ModeratorOnly: false
-  Name: adoptNew
-  RespondInOverlay: true
-  RespondInTwitch: true
 - Documentation: Adopt a randomly selected Hero
   Enabled: false
   Handler: AdoptAHero
@@ -563,6 +529,10 @@ Commands:
   Enabled: true
   Handler: KingdomManagement
   HandlerConfig:
+    CreateKEnabled: true
+    CreateKFiefMinimum: 2
+    CreateKPrice: 25000000
+    CreateKTierMinimum: 3
     JoinAllowPlayer: true
     JoinEnabled: true
     JoinMaxClans: 20
@@ -878,6 +848,70 @@ Commands:
   Name: rejuvenate
   RespondInOverlay: true
   RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: Leaderboard
+  HandlerConfig: 
+  Help: ''
+  HideHelp: false
+  ID: e1f1ac41-095e-4d3d-af94-eb4c98431d54
+  ModeratorOnly: false
+  Name: leaderboard
+  RespondInOverlay: true
+  RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: HeirCommand
+  HandlerConfig:
+    Inheritance: 0.5
+    MaxInheritedCustomItems: 10
+    Notifications: true
+    OverrideAge: false
+    StartingAgeRange:
+      Max: 35
+      Min: 18
+    StartingEquipmentTier: 
+    StartingGold: 0
+    StartingSkills: []
+  Help: ''
+  HideHelp: false
+  ID: 9f5f5c57-be76-4389-a138-e14f2f3a898c
+  ModeratorOnly: false
+  Name: heir
+  RespondInOverlay: true
+  RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: Diplomacy
+  HandlerConfig:
+    ArmyEnabled: true
+    ArmyPrice: 150000
+    PeaceCooldown: 21
+    PeaceEnabled: true
+    PeacePrice: 100000
+    PolicyEnabled: true
+    PolicyPrice: 50000
+    WarCooldown: 21
+    WarEnabled: true
+    WarPrice: 250000
+  Help: ''
+  HideHelp: false
+  ID: b7b02d70-f943-4f60-9cea-e6c1ae1437c8
+  ModeratorOnly: false
+  Name: diplomacy
+  RespondInOverlay: true
+  RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: BattleInfo
+  HandlerConfig: 
+  Help: ''
+  HideHelp: false
+  ID: 84f063ca-3c3d-4839-b981-d7ded370609d
+  ModeratorOnly: false
+  Name: battle
+  RespondInOverlay: false
+  RespondInTwitch: true
 DisableAutomaticFulfillment: false
 GlobalConfigs:
 - Config:
@@ -1934,6 +1968,7 @@ GlobalConfigs:
       XPGain: 0
     AllowDeath: true
     ApplyDeathChanceToAllHeroes: true
+    BLTChildAgeMult: 3
     CustomCompanionLimit: 7
     CustomItemLimit: 8
     CustomRewardModifiers:
@@ -1995,6 +2030,10 @@ GlobalConfigs:
     LoseXP: 5000
     MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5
+    NametagEnabled: true
+    NametagFontsize: 24
+    NametagHeight: 50
+    NametagWidth: 200
     RawXPSkillCap: 330
     ReferenceLevelReward: 15
     RelativeLevelScaling: 0.5
@@ -2212,6 +2251,7 @@ GlobalConfigs:
       StaggerChancePercent: 0
       UnblockableChancePercent: 0
     - !ReflectDamagePower
+      DamageToAdd: 0
       HitBehavior:
         DismountChance: 0
         KnockBackChancePercent: 0
@@ -2225,6 +2265,7 @@ GlobalConfigs:
       ReflectedDamageIsSubtracted: false
       ReflectPercent: 10
     - !ReflectDamagePower
+      DamageToAdd: 0
       HitBehavior:
         DismountChance: 0
         KnockBackChancePercent: 0
@@ -2238,6 +2279,7 @@ GlobalConfigs:
       ReflectedDamageIsSubtracted: false
       ReflectPercent: 25
     - !ReflectDamagePower
+      DamageToAdd: 0
       HitBehavior:
         DismountChance: 0
         KnockBackChancePercent: 0

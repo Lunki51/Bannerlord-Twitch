@@ -5,6 +5,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Extensions;
 // using TaleWorlds.CampaignSystem.SandBox.CampaignBehaviors;
 using TaleWorlds.Core;
+using TaleWorlds.Engine;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.ObjectSystem;
@@ -107,7 +108,7 @@ namespace BannerlordTwitch.Helpers
         public static IEnumerable<IFaction> MainFactions => Campaign.Current.Kingdoms; //MBObjectManager.Instance.GetObjectTypeList<Kingdom>();
 
         public static IEnumerable<CharacterObject> GetWandererTemplates(CultureObject culture) =>
-            culture.NotableAndWandererTemplates.Where(w => w.Occupation == Occupation.Wanderer);
+            CharacterObject.FindAll(c => c.IsTemplate && c.Culture == culture && c.Occupation == Occupation.Wanderer);
 
         public static IEnumerable<CharacterObject> AllWandererTemplates => MainCultures.SelectMany(GetWandererTemplates);
 
@@ -148,5 +149,13 @@ namespace BannerlordTwitch.Helpers
                 , new[] { t.GetType() })?.Invoke(Campaign.Current.EncyclopediaManager.ViewDataTracker, new object[] { t });
             return result != null && (bool)result;
         }
+
+        public static bool NavalDLC()
+        {
+            string[] modulesNames = Utilities.GetModulesNames();
+
+            return modulesNames.Any(m => m == "NavalDLC" || m == "War Sails");
+        }
+        
     }
 }

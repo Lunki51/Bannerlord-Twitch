@@ -27,17 +27,24 @@ namespace BLTAdoptAHero.Powers
          PropertyOrder(1), UsedImplicitly]
         public float ReflectPercent { get; set; }
 
+        [LocDisplayName("{=4XgEPe3Q}Damage To Add"),
+         LocCategory("Power Config", "{=75UOuDM}Power Config"),
+         LocDescription("{=wuOM9C4l}How much damage to add or subtract"),
+         PropertyOrder(2), UsedImplicitly]
+        public int DamageToAdd { get; set; }
+
         [LocDisplayName("{=IxiHjT1Z}Reflected Damage Is Subtracted"),
          LocCategory("Power Config", "{=75UOuDM}Power Config"),
          LocDescription("{=Pdg6mCPA}Whether the damage that is reflected is also subtracted from the damage the hero takes (this is 'classic' damage reflection)"),
-         PropertyOrder(2), UsedImplicitly]
+         PropertyOrder(3), UsedImplicitly]
         public bool ReflectedDamageIsSubtracted { get; set; } = true;
 
         [LocDisplayName("{=WDRb4mQ3}Hit Behavior"),
          LocCategory("Power Config", "{=75UOuDM}Power Config"),
          LocDescription("{=SHlCPdpp}Hit behavior for the reflected damage"),
-         PropertyOrder(3), UsedImplicitly, ExpandableObject]
+         PropertyOrder(4), UsedImplicitly, ExpandableObject]
         public HitBehavior HitBehavior { get; set; }
+  
         #endregion
 
         #region Implementation Details
@@ -47,7 +54,7 @@ namespace BLTAdoptAHero.Powers
 
         private void OnTakeDamage(Agent agent, Agent attackerAgent, BLTHeroPowersMissionBehavior.RegisterBlowParams blowParams)
         {
-            int damage = (int)(blowParams.blow.InflictedDamage * ReflectPercent / 100f);
+            int damage = (int)(blowParams.blow.InflictedDamage * ReflectPercent / 100f) + DamageToAdd;
             if (damage > 0 && attackerAgent != null && attackerAgent != agent)
             {
                 var blow = new Blow(agent.Index)
@@ -76,7 +83,7 @@ namespace BLTAdoptAHero.Powers
 
         #region Public Interface
         [YamlIgnore, Browsable(false)]
-        public bool IsEnabled => ReflectPercent != 0;
+        public bool IsEnabled => ReflectPercent != 0 || DamageToAdd != 0;
         [YamlIgnore, Browsable(false)]
         public override LocString Description => !IsEnabled
             ? "{=41sZdkDw}(disabled)"

@@ -142,7 +142,7 @@ namespace BLTAdoptAHero
             }
 
             var sb = new StringBuilder();
-            sb.Append(BuildClanStatLine("POWER", c => (int)c.TotalStrength));
+            sb.Append(BuildClanStatLine("POWER", c => (int)c.CurrentTotalStrength));
             sb.Append(" | ");
             sb.Append(BuildClanStatLine("RENOWN", c => (int)c.Renown));
             sb.Append(" | ");

@@ -65,6 +65,13 @@ namespace BLTAdoptAHero
          LocDescription("{=}Flat number increase to companion limit"),
          PropertyOrder(4), UsedImplicitly]
         public int CustomCompanionLimit { get; set; } = 7;
+
+        [LocDisplayName("{=}BLT children aging multiplier"),
+         LocCategory("General", "{=C5T6nnix}General"),
+         LocDescription("{=}Multiplier to BLT children age"),
+         PropertyOrder(5), UsedImplicitly]
+        public int BLTChildAgeMult { get; set; } = 1;
+
         #endregion
 
         #region Battle

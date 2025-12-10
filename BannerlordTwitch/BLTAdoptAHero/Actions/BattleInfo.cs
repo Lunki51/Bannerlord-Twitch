@@ -40,20 +40,31 @@ namespace BLTAdoptAHero
             }
 
             var agent = adoptedHero.GetAgent();
+            var state = BLTAdoptAHeroCommonMissionBehavior.Current.GetMissionState(adoptedHero);
+            var state2 = BLTSummonBehavior.Current.GetHeroSummonState(adoptedHero);
 
             if (agent == null)
             {
-                onFailure("Hero is not currently in battle!");
+                onFailure($"Hero is not currently in battle!({state2.CooldownRemaining}s)");
                 return;
             }
 
-            var state = BLTAdoptAHeroCommonMissionBehavior.Current.GetMissionState(adoptedHero);
+           
+            
 
-            static float ActivePowerFractionRemaining(Hero hero)
+            static float ActivePowerFraction(Hero hero)
             {
                 var classDef = BLTAdoptAHeroCampaignBehavior.Current?.GetClass(hero);
-                (float duration, float remaining) = classDef?.ActivePower?.DurationRemaining(hero) ?? (1, 0);
-                return duration == 0 ? 0 : remaining / duration;
+                if (classDef?.ActivePower == null)
+                    return 0f;
+
+                // Check if power is active
+                if (!classDef.ActivePower.IsActive(hero))
+                    return 0f;
+
+                var (duration, remaining) = classDef.ActivePower.DurationRemaining(hero);
+
+                return duration > 0 ? remaining / duration : 0f;
             }
 
 
@@ -98,18 +109,18 @@ namespace BLTAdoptAHero
             }
 
             string message =
-                $"Hero {adoptedHero.Name} Battle Info:\n" +
-                $"HP: {agent.Health}/{agent.HealthLimit}\n";
+                $"Class: {adoptedHero.GetClass()?.Name.ToString() ?? "No class"}\n"+
+                $"- HP: {(int)agent.Health}/{(int)agent.HealthLimit}\n";
             if (agent.MountAgent != null)
-                message += $"- Mounted: {mountInfo}\n";
+                message += $"- Mount HP: {mountInfo}\n";
 
             message +=
                 $"- Weapon: {weaponInfo}\n" +
                 $"- Kills: {state.Kills}\n" +
-                $"- Retinue: {state.RetinueKills}\n" +
+                $"- Retinue({state2.ActiveRetinue}): {state.RetinueKills}\n" +
                 $"- Gold: {state.WonGold}\n" +
                 $"- XP: {state.WonXP}\n" +
-                $"- Power: {ActivePowerFractionRemaining(adoptedHero):0}";
+                $"- Power: { ActivePowerFraction(adoptedHero) * 100:0}% ";
 
             onSuccess(message);
         }

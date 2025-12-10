@@ -522,6 +522,10 @@ namespace BLTAdoptAHero
             {
                 CampaignHelpers.AddEncyclopediaBookmarkToItem(newHero);
             }
+            if (!newHero.IsKnownToPlayer)
+            {
+                newHero.IsKnownToPlayer = true;
+            }
 
             BLTAdoptAHeroCampaignBehavior.Current.SetHeroGold(newHero, settings.StartingGold);
 

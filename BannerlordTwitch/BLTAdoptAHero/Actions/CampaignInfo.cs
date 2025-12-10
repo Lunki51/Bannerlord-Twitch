@@ -98,7 +98,7 @@ namespace BLTAdoptAHero
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     war = true;
-                    warList.Append($"{k.Name}:{(int)k.TotalStrength}, ");
+                    warList.Append($"{k.Name}:{(int)k.CurrentTotalStrength}, ");
                 }
             }
             if (war) warList.Length -= 2;
@@ -107,7 +107,7 @@ namespace BLTAdoptAHero
             sb.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", desiredKingdom.Name.ToString())));
             sb.Append("{=Ss588M9l}Ruling Clan: {rulingClan} | ".Translate(("rulingClan", desiredKingdom.RulingClan.Name.ToString())));
             sb.Append("{=T1FhhCH9}Clan Count: {count} | ".Translate(("count", desiredKingdom.Clans.Count)));
-            sb.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(desiredKingdom.TotalStrength).ToString())));
+            sb.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(desiredKingdom.CurrentTotalStrength).ToString())));
             if (war)
                 sb.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
             if (desiredKingdom.RulingClan.HomeSettlement != null)
@@ -133,7 +133,7 @@ namespace BLTAdoptAHero
                         continue;
 
                     if (k1.IsAtWarWith(k2))
-                        sb.Append($"{k1.Name}({Math.Round(k1.TotalStrength)}) VS {k2.Name}({Math.Round(k2.TotalStrength)}) | ");
+                        sb.Append($"{k1.Name}({Math.Round(k1.CurrentTotalStrength)}) VS {k2.Name}({Math.Round(k2.CurrentTotalStrength)}) | ");
                 }
                 seen.Add(k1.StringId);
             }
@@ -269,7 +269,7 @@ namespace BLTAdoptAHero
                 sb.Append("{=TESTING}Food:{food}({change}) | ".Translate(("food", (int)town.FoodStocks), ("change", (town.FoodChange > 0 ? "+" : "") + Math.Round(town.FoodChange, 2))));
                 sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));
                 sb.Append("{=TESTING}Militia:{mil}({change}) | ".Translate(("mil", (int)town.Militia), ("change", (town.MilitiaChange > 0 ? "+" : "") + Math.Round(town.MilitiaChange, 2))));
-                sb.Append("{=TESTING}Garrison:{gar}({change}) | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("change", (town.GarrisonChange > 0 ? "+" : "") + town.GarrisonChange)));
+                sb.Append("{=TESTING}Garrison:{gar} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount)));
                 var villList = town.Settlement.BoundVillages.Select(v => v.Name.ToString()).ToList();
                 var villNames = string.Join(", ", villList);
                 sb.Append("{=TESTING}Villages:{villNames}".Translate(("villNames", villNames)));

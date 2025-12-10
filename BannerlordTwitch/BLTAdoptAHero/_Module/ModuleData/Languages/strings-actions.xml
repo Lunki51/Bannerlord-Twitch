@@ -381,7 +381,7 @@
 		<string id="tk7R3uwg" text="invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom))"/>
 		<string id="DSNx7CFT" text="Need kingdom name"/>
 		<string id="Lk1NDpuQ" text="{kingdom} is not at war"/>
-		<string id="N9b5k8FR" text="{k1} VS {k2} = Casualties: {c1}/{c2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"/>
+		<string id="N9b5k8FR" text="{k1} VS {k2} = Casualties: {c1}/{c2} - Prisoners: {p1}/{p2}- Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"/>
 		
         
         <!-- Subscriber Only -->

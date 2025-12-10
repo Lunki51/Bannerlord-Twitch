@@ -135,8 +135,8 @@ namespace BLTBuffet
              PropertyOrder(8), UsedImplicitly]
             public float HealPerSecond { get; set; }
 
-            [LocDisplayName("{=TESTING}Heal Percentage"),
-             LocDescription("{=TESTING}Heal a percentage of max hp per second.Can be used with heal per second."),
+            [LocDisplayName("{=Wf6Z4YQ1}Heal Percentage"),
+             LocDescription("{=4WEz3GyX}Heal a percentage of max hp per second.Can be used with heal per second."),
              PropertyOrder(9), UsedImplicitly]
             public float HealPercent { get; set; }
 

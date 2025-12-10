@@ -100,6 +100,17 @@ namespace BLTAdoptAHero
             Action<string> onSuccess,
             Action<string> onFailure)
         {
+            var splitArgs = context.Args.Split(' ');
+            var mode = splitArgs[0];
+            var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
+
+            CultureObject selectedCulture = null;
+            if (!string.IsNullOrWhiteSpace(desiredName))
+            {
+                selectedCulture = CampaignHelpers.AllCultures
+                    .FirstOrDefault(c => c.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase));
+            }
+
             var settings = (Settings)config;
             var adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(context.UserName);
             if (adoptedHero == null)
@@ -143,7 +154,7 @@ namespace BLTAdoptAHero
                 onFailure("{=FZh7ZtGp}Character class not found.".Translate());
                 return;
             }
-            UpgradeEquipment(adoptedHero, targetTier, charClass, replaceSameTier: settings.ReequipInsteadOfUpgrade);
+            UpgradeEquipment(adoptedHero, targetTier, charClass, replaceSameTier: settings.ReequipInsteadOfUpgrade, cultureFilter: selectedCulture);
 
             BLTAdoptAHeroCampaignBehavior.Current.SetEquipmentTier(adoptedHero, targetTier);
             BLTAdoptAHeroCampaignBehavior.Current.SetEquipmentClass(adoptedHero, charClass);
@@ -154,7 +165,7 @@ namespace BLTAdoptAHero
 
             onSuccess((settings.ReequipInsteadOfUpgrade
                 ? "{=0KHxea5e}Re-equipped Tier {ArmorTier} ({ClassName})"
-                : "{=fYksbZJp}Re-equipped Tier {ArmorTier} ({ClassName})")
+                : "{=fYksbZJp}Equipped Tier {ArmorTier} ({ClassName})")
                 .Translate(
                     ("ArmorTier", targetTier + 1),
                     ("ClassName", (charClass?.Name ?? "{=VlnXNPYS}No Class").ToString())
@@ -194,7 +205,7 @@ namespace BLTAdoptAHero
             || o.Type == ItemObject.ItemTypeEnum.Crossbow && hero?.CharacterObject?.GetPerkValue(DefaultPerks.Crossbow.MountedCrossbowman) == true
             ;
 
-        public static void UpgradeEquipment(Hero adoptedHero, int targetTier, HeroClassDef classDef, bool replaceSameTier, Func<EquipmentElement, bool> customKeepFilter = null)
+        public static void UpgradeEquipment(Hero adoptedHero, int targetTier, HeroClassDef classDef, bool replaceSameTier, CultureObject cultureFilter = null, Func<EquipmentElement, bool> customKeepFilter = null)
         {
             customKeepFilter ??= _ => true;
 
@@ -216,8 +227,7 @@ namespace BLTAdoptAHero
                 var oldEquipment = availableItems.FirstOrDefault(i => filter?.Invoke(i.Item) != false);
                 if (!oldEquipment.IsEmpty)
                     return oldEquipment;
-                var foundItem = FindRandomTieredEquipment(targetTier, adoptedHero,
-                    classDef?.Mounted == true, flags, o => filter?.Invoke(o) != false);
+                var foundItem = FindRandomTieredEquipment(targetTier, adoptedHero, classDef?.Mounted == true, flags, o => filter?.Invoke(o) != false, cultureFilter);
                 if (foundItem == null)
                     return default;
                 return new(foundItem);
@@ -449,31 +459,26 @@ namespace BLTAdoptAHero
             HeroIsMounted = 1 << 3,
         }
 
-        public static ItemObject FindRandomTieredEquipment(int tier, Hero hero, bool mustBeUsableMounted, FindFlags flags = FindFlags.None,
-            Func<ItemObject, bool> filter = null)
+        public static ItemObject FindRandomTieredEquipment(int tier, Hero hero, bool mustBeUsableMounted, FindFlags flags = FindFlags.None, Func<ItemObject, bool> filter = null, CultureObject cultureFilter = null)
         {
-            var items =
-                CampaignHelpers.AllItems.Where(item =>
-                    // Non-merchandise includes some weird items like testing ones in some cases
-                    (!item.NotMerchandise || flags.HasFlag(FindFlags.AllowNonMerchandise))
-                    // Usable
-                    && CanUseItem(hero, item, flags.HasFlag(FindFlags.IgnoreAbility), mustBeUsableMounted)
-                    // Custom filter
-                    && filter?.Invoke(item) != false
-                    )
-                .ToList();
+            var items = CampaignHelpers.AllItems
+        .Where(item =>
+            (!item.NotMerchandise || flags.HasFlag(FindFlags.AllowNonMerchandise)) &&
+            CanUseItem(hero, item, flags.HasFlag(FindFlags.IgnoreAbility), mustBeUsableMounted) &&
+            (filter?.Invoke(item) != false) &&
+            (cultureFilter == null || item.Culture == cultureFilter) // apply culture filter only if specified
+        )
+        .ToList();
 
-            if (flags.HasFlag(FindFlags.RequireExactTier))
-            {
-                return items
-                    .Where(item => (int)item.Tier == tier)
-                    .SelectRandom();
-            }
-            else
-            {
-                return SelectRandomItemNearestTier(items, tier);
-            }
-        }
+    if (flags.HasFlag(FindFlags.RequireExactTier))
+    {
+        return items.Where(item => (int)item.Tier == tier).SelectRandom();
+    }
+    else
+    {
+        return SelectRandomItemNearestTier(items, tier);
+    }
+}
 
         public static ItemObject SelectRandomItemNearestTier(IEnumerable<ItemObject> items, int tier)
         {

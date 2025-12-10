@@ -238,9 +238,9 @@ namespace BannerlordTwitch
             TableauCacheManager.Current.BeginCreateItemTexture(item, 
                 texture => TextureComplete(item.Name.ToString(), localPath, texture));
 #else
-            TableauCacheManager.Current.BeginCreateItemTexture(item,
-                Hero.MainHero.ClanBanner.Serialize(),
-                texture => TextureComplete(item.Name.ToString(), localPath, texture));
+            //TableauCacheManager.Current.BeginCreateItemTexture(item,
+            //    Hero.MainHero.ClanBanner.Serialize(),
+            //    texture => TextureComplete(item.Name.ToString(), localPath, texture));
 #endif
             return this;
         }
@@ -268,8 +268,8 @@ namespace BannerlordTwitch
                 camera.SetFovHorizontal(camera.GetFovHorizontal(), 120f / 256f, 0.1f, 1000f);
                 return (120, 256);
             };
-            TableauCacheManager.Current.BeginCreateCharacterTexture(cc,
-                texture => TextureComplete(altText, localPath, texture), true);
+            //TableauCacheManager.Current.BeginCreateCharacterTexture(cc,
+            //    texture => TextureComplete(altText, localPath, texture), true);
             return this;
         }
 
@@ -377,15 +377,15 @@ namespace BannerlordTwitch
 
         private static Func<Camera, (int, int)> overrideRenderSettings;
 
-        [HarmonyPatch(typeof(ThumbnailCreatorView), nameof(ThumbnailCreatorView.RegisterEntityWithoutTexture)), HarmonyPrefix, UsedImplicitly]
-        private static void RegisterEntityWithoutTexturePrefix(Camera camera, ref int width, ref int height)
-        {
-            if (overrideRenderSettings != null)
-            {
-                (width, height) = overrideRenderSettings(camera);
-                overrideRenderSettings = null;
-            }
-        }
+        //[HarmonyPatch(typeof(ThumbnailRenderRequest), nameof(ThumbnailRenderRequest.CreateForCachedEntityWithoutTexture)), HarmonyPrefix, UsedImplicitly]
+        //private static void CreateForCachedEntityWithoutTexture(Camera camera, ref int width, ref int height)
+        //{
+        //    if (overrideRenderSettings != null)
+        //    {
+        //        (width, height) = overrideRenderSettings(camera);
+        //        overrideRenderSettings = null;
+        //    }
+        //}
 
         //
         // private static GameEntity CreateCharacterBaseEntityPostfix(

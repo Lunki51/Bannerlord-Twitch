@@ -27,7 +27,7 @@ namespace BannerlordTwitch.Helpers
 #endif
         }
 
-        protected static void SafeCallStatic(Action a, [CallerMemberName] string fnName = "")
+        public static void SafeCallStatic(Action a, [CallerMemberName] string fnName = "")
         {
 #if !DEBUG
             try
