@@ -28,8 +28,10 @@ namespace BLTAdoptAHero
     {
         [CategoryOrder("War", 0),
          CategoryOrder("Peace", 1),
-         CategoryOrder("Army", 2),
-         CategoryOrder("Policy", 3)]
+         CategoryOrder("Alliance", 2),
+         CategoryOrder("Trade", 3),
+         CategoryOrder("Army", 4),
+         CategoryOrder("Policy", 5)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=TESTING}War"),
@@ -68,6 +70,30 @@ namespace BLTAdoptAHero
              PropertyOrder(3), UsedImplicitly]
             public int PeaceCooldown { get; set; } = 21;
 
+            [LocDisplayName("{=TESTING}Ally"),
+             LocCategory("Alliance", "{=TESTING}Alliance"),
+             LocDescription("{=TESTING}Enable alliance command"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool AllyEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Price"),
+             LocCategory("Alliance", "{=TESTING}Alliance"),
+             LocDescription("{=TESTING}Ally command price"),
+             PropertyOrder(2), UsedImplicitly]
+            public int AllyPrice { get; set; } = 100000;
+
+            [LocDisplayName("{=TESTING}Trade"),
+             LocCategory("Trade", "{=TESTING}Trade"),
+             LocDescription("{=TESTING}Enable trade alliance command"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool TradeEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Price"),
+             LocCategory("Trade", "{=TESTING}Trade"),
+             LocDescription("{=TESTING}Trade command price"),
+             PropertyOrder(2), UsedImplicitly]
+            public int TradePrice { get; set; } = 50000;
+
             [LocDisplayName("{=TESTING}Army"),
              LocCategory("Army", "{=TESTING}Army"),
              LocDescription("{=TESTING}Enable creating army command"),
@@ -97,6 +123,8 @@ namespace BLTAdoptAHero
                 var sb = new StringBuilder();
                 if (WarEnabled) sb.Append("{=TESTING}War, ".Translate());
                 if (PeaceEnabled) sb.Append("{=TESTING}Peace, ".Translate());
+                if (AllyEnabled) sb.Append("{=TESTING}Alliance, ".Translate());
+                if (TradeEnabled) sb.Append("{=TESTING}Trade, ".Translate());
                 if (ArmyEnabled) sb.Append("{=TESTING}Army, ".Translate());
                 if (PolicyEnabled) sb.Append("{=TESTING}Policy".Translate());
                 if (sb.Length > 0)
@@ -105,12 +133,18 @@ namespace BLTAdoptAHero
 
                 if (WarEnabled)
                     generator.Value("<strong>War Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold))+
+                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Cooldown={cd}".Translate(("cd", WarCooldown.ToString())));
                 if (PeaceEnabled)
                     generator.Value("<strong>Peace Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold))+
+                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)) +
                                     "Cooldown={cd}".Translate(("cd", PeaceCooldown.ToString())));
+                if (AllyEnabled)
+                    generator.Value("<strong>Alliance Config: </strong>" +
+                                    "Price={price}{icon}".Translate(("price", AllyPrice.ToString()), ("icon", Naming.Gold)));
+                if (TradeEnabled)
+                    generator.Value("<strong>Trade Config: </strong>" +
+                                    "Price={price}{icon}".Translate(("price", TradePrice.ToString()), ("icon", Naming.Gold)));
                 if (ArmyEnabled)
                     generator.Value("<strong>Army Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
@@ -129,7 +163,7 @@ namespace BLTAdoptAHero
             if (string.IsNullOrWhiteSpace(context.Args))
             {
                 ActionManager.SendReply(context,
-                    context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), army (defend/siege/raid/patrol)".Translate()));
+                    context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), alliance (kingdom), trade (kingdom), army (defend/siege/patrol)".Translate()));
                 return;
             }
             if (Mission.Current != null)
@@ -167,7 +201,8 @@ namespace BLTAdoptAHero
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
             var kingdom = adoptedHero.Clan.Kingdom;
             bool atWar = Kingdom.All.Any(k => k.IsAtWarWith(kingdom));
-
+            AllianceCampaignBehavior allianceBehavior = Campaign.Current.GetCampaignBehavior<AllianceCampaignBehavior>();
+            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
 
             var desiredKingdom = Kingdom.All.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
 
@@ -236,9 +271,18 @@ namespace BLTAdoptAHero
                         else
                         {
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.WarPrice, true);
+                            if (allianceBehavior.IsAllyWithKingdom(kingdom, desiredKingdom))
+                            {
+                                allianceBehavior.EndAlliance(kingdom, desiredKingdom);
+                            }
+                            if (tradeBehavior.HasTradeAgreement(kingdom, desiredKingdom))
+                            {
+                                tradeBehavior.EndTradeAgreement(kingdom, desiredKingdom);
+                            }
                             DeclareWarAction.ApplyByDefault(kingdom, desiredKingdom);
                             adoptedHero.Clan.Influence -= influenceCost;
                             onSuccess($"Declared war on {desiredKingdom}");
+
                         }
                         break;
                     }
@@ -288,7 +332,7 @@ namespace BLTAdoptAHero
                             return;
                         }
                         //BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);
-                        
+
                         //Clan proposer = adoptedHero.Clan;
                         //var diplomacy = Campaign.Current.Models.DiplomacyModel;
                         //var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
@@ -365,20 +409,20 @@ namespace BLTAdoptAHero
                             onFailure("{=TESTING}Not a king.".Translate());
                             return;
                         }
-                        
+
+                        if (desiredName == "list")
+                        {
+                            var listString = string.Join(", ", PolicyObject.All.Select(k => k.Name.ToString()));
+                            onSuccess(listString);
+                            return;
+                        }
                         if (string.IsNullOrEmpty(desiredName) || splitArgs.Count() <= 2)
                         {
                             var listString = string.Join(", ", kingdom.ActivePolicies.Select(p => p.ToString()));
                             onSuccess(listString);
                             return;
                         }
-                        if (desiredName == "list")
-                        {
-                            var listString = string.Join(", ", PolicyObject.All.ToList().ToString());
-                            onSuccess(listString);
-                            return;
-                        }
-                        if(desiredPolicy != null)
+                        if (desiredPolicy != null)
                         {
                             if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PolicyPrice)
                             {
@@ -412,7 +456,7 @@ namespace BLTAdoptAHero
                         {
                             onFailure("Army disabled");
                             return;
-                        }                      
+                        }
                         if (!atWar)
                         {
                             onFailure("No wars");
@@ -484,30 +528,126 @@ namespace BLTAdoptAHero
                         //int addedPartiesCount = 0;
                         foreach (var party in sameClanParties)
                         {
-                                party.Army = army;
+                            party.Army = army;
                         }
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
-                        
+
                         onSuccess($"Gathering {armyType} army({army.Parties.Count}) at {pos}");
                         break;
                     }
                 case "alliance":
                     {
-                        AllianceCampaignBehavior allianceBehavior = Campaign.Current.GetCampaignBehavior<AllianceCampaignBehavior>();
-                        allianceBehavior.StartAlliance(kingdom, desiredKingdom);
+
+                        if (!settings.AllyEnabled)
+                        {
+                            onFailure("Alliance disabled".Translate());
+                            return;
+                        }
+                        if (desiredKingdom == null)
+                        {
+                            onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
+                            return;
+                        }
+                        if (!adoptedHero.IsKingdomLeader)
+                        {
+                            onFailure("{=TESTING}Not a king.".Translate());
+                            return;
+                        }
+
+                        if (kingdom.IsAtWarWith(desiredKingdom))
+                        {
+                            onFailure($"At war with {desiredKingdom}");
+                            return;
+                        }
+                        if (allianceBehavior.IsAllyWithKingdom(kingdom, desiredKingdom))
+                        {
+                            onFailure($"Already allied with {desiredKingdom}");
+                            return;
+                        }
+                        if (kingdom == desiredKingdom)
+                        {
+                            onFailure("Cant ally on yourself!");
+                            return;
+                        }
+                        int influenceCost = Campaign.Current.Models.AllianceModel.GetInfluenceCostOfProposingStartingAlliance(adoptedHero.Clan);
+                        if (adoptedHero.Clan.Influence < influenceCost)
+                        {
+                            onFailure($"Not enough influence:{influenceCost}");
+                            return;
+                        }
+                        if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.AllyPrice)
+                        {
+                            onFailure(Naming.NotEnoughGold(settings.AllyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                            return;
+                        }
+                        else
+                        {
+                            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.AllyPrice, true);
+                            allianceBehavior.StartAlliance(kingdom, desiredKingdom);
+                            adoptedHero.Clan.Influence -= influenceCost;
+                            onSuccess($"Allied with {desiredKingdom}");
+                        }
                         break;
                     }
                 case "trade":
                     {
-                        TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
-                        tradeBehavior.MakeTradeAgreement(kingdom, desiredKingdom, CampaignTime.Years(1));
+
+                        if (!settings.TradeEnabled)
+                        {
+                            onFailure("Trade alliances disabled".Translate());
+                            return;
+                        }
+                        if (desiredKingdom == null)
+                        {
+                            onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
+                            return;
+                        }
+                        if (!adoptedHero.IsKingdomLeader)
+                        {
+                            onFailure("{=TESTING}Not a king.".Translate());
+                            return;
+                        }
+
+                        if (kingdom.IsAtWarWith(desiredKingdom))
+                        {
+                            onFailure($"At war with {desiredKingdom}");
+                            return;
+                        }
+                        if (tradeBehavior.HasTradeAgreement(kingdom, desiredKingdom))
+                        {
+                            onFailure($"Already trading with {desiredKingdom}");
+                            return;
+                        }
+                        if (kingdom == desiredKingdom)
+                        {
+                            onFailure("Cant trade with yourself!");
+                            return;
+                        }
+                        int influenceCost = Campaign.Current.Models.TradeAgreementModel.GetInfluenceCostOfProposingTradeAgreement(adoptedHero.Clan);
+                        if (adoptedHero.Clan.Influence < influenceCost)
+                        {
+                            onFailure($"Not enough influence:{influenceCost}");
+                            return;
+                        }
+                        if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.TradePrice)
+                        {
+                            onFailure(Naming.NotEnoughGold(settings.TradePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                            return;
+                        }
+                        else
+                        {
+                            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.TradePrice, true);
+                            tradeBehavior.MakeTradeAgreement(kingdom, desiredKingdom, CampaignTime.Years(1));
+                            adoptedHero.Clan.Influence -= influenceCost;
+                            onSuccess($"Allied with {desiredKingdom}");
+                        }
                         break;
                     }
                 default:
                     {
                         ActionManager.SendReply(context,
-                        context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), army (defend/siege/raid/patrol)".Translate()));
+                        context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), alliance (kingdom), trade (kingdom), army (defend/siege/patrol)".Translate()));
                         break;
                     }
             }

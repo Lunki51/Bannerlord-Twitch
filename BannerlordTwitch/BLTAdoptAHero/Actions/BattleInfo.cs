@@ -49,8 +49,8 @@ namespace BLTAdoptAHero
                 return;
             }
 
-           
-            
+
+
 
             static float ActivePowerFraction(Hero hero)
             {
@@ -69,47 +69,86 @@ namespace BLTAdoptAHero
 
 
             // Mounted info
-            string mountInfo ="";
+            string mountInfo = "";
             if (agent.MountAgent != null)
             {
                 mountInfo = $"{agent.MountAgent.Health}/{agent.MountAgent.HealthLimit}";
             }
 
-            string weaponInfo = "Unarmed";
+
             var equipment = agent.Equipment;
+            // --- Main hand ---
+            var mainIndex = agent.GetPrimaryWieldedItemIndex();
+            var mainItemObj = mainIndex != EquipmentIndex.None ? equipment[mainIndex].Item : null;
+            string weaponInfo = "Unarmed";
 
-            // Try Weapon0 first, then Weapon1
-            EquipmentIndex usedSlot = EquipmentIndex.None;
-            if (equipment[EquipmentIndex.Weapon0].Item != null)
-                usedSlot = EquipmentIndex.Weapon0;
-            else if (equipment[EquipmentIndex.Weapon1].Item != null)
-                usedSlot = EquipmentIndex.Weapon1;
-
-            if (usedSlot != EquipmentIndex.None)
+            if (mainItemObj != null)
             {
-                var currentWeapon = equipment[usedSlot];
-                var item = currentWeapon.Item; // <-- Get the actual ItemObject
-                if (item != null)
+                string ammoInfo = "";
+                if (mainItemObj.ItemType == ItemObject.ItemTypeEnum.Bow
+                    || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Crossbow
+                    || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Pistol
+                    || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Musket
+                    || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Thrown)
                 {
-                    var itemType = item.ItemType;
-                    string ammoInfo = "";
+                    int ammo = equipment.GetAmmoAmount(mainIndex);
+                    int maxAmmo = equipment.GetMaxAmmo(mainIndex);
+                    ammoInfo = $" - Ammo: {ammo}/{maxAmmo}";
+                }
 
-                    // Check for ranged/thrown weapons
-                    if (itemType is ItemObject.ItemTypeEnum.Bow or ItemObject.ItemTypeEnum.Crossbow
-                                    or ItemObject.ItemTypeEnum.Pistol or ItemObject.ItemTypeEnum.Musket
-                                    or ItemObject.ItemTypeEnum.Thrown)
-                    {
-                        int ammo = equipment.GetAmmoAmount(usedSlot);
-                        int maxAmmo = equipment.GetMaxAmmo(usedSlot);
-                        ammoInfo = $" - Ammo: {ammo}/{maxAmmo}";
-                    }
+                weaponInfo = $"{mainItemObj.Name} ({mainItemObj.ItemType}){ammoInfo}";
+            }
 
-                    weaponInfo = $"{item.Name} ({itemType}){ammoInfo}";
+            // --- Off-hand ---
+            var offIndex = agent.GetOffhandWieldedItemIndex();
+            var offItemObj = offIndex != EquipmentIndex.None ? equipment[offIndex].Item : null;
+
+            if (offItemObj != null)
+                //if (offItemObj.ItemType == ItemObject.ItemTypeEnum.Shield)
+                //{
+                //    int shp = offItemObj.ItemComponent..
+                //}
+                weaponInfo += $" + {offItemObj.Name} ({offItemObj.ItemType})";
+            var weaponSlots = new[]
+            {
+                EquipmentIndex.Weapon0,
+                EquipmentIndex.Weapon1,
+                EquipmentIndex.Weapon2,
+                EquipmentIndex.Weapon3,
+                EquipmentIndex.ExtraWeaponSlot
+            };
+            // --- Other ranged/thrown weapons not in main-hand ---
+            foreach (EquipmentIndex slot in weaponSlots)
+            {
+                if (slot == mainIndex || slot == offIndex)
+                    continue;
+
+                var element = equipment[slot];
+                if (element.Item == null)
+                    continue;
+
+                var item = element.Item;
+
+                // Only consider ranged or thrown weapons
+                switch (item.ItemType)
+                {
+                    case ItemObject.ItemTypeEnum.Bow:
+                    case ItemObject.ItemTypeEnum.Crossbow:
+                    case ItemObject.ItemTypeEnum.Sling:
+                    case ItemObject.ItemTypeEnum.Pistol:
+                    case ItemObject.ItemTypeEnum.Musket:
+                    case ItemObject.ItemTypeEnum.Thrown:
+                        {
+                            int ammo = equipment.GetAmmoAmount(slot);
+                            int maxAmmo = equipment.GetMaxAmmo(slot);
+                            weaponInfo += $" + {item.Name} ({item.ItemType}) - Ammo: {ammo}/{maxAmmo}";
+                            break;
+                        }
                 }
             }
 
             string message =
-                $"Class: {adoptedHero.GetClass()?.Name.ToString() ?? "No class"}\n"+
+                $"Class: {adoptedHero.GetClass()?.Name.ToString() ?? "No class"}\n" +
                 $"- HP: {(int)agent.Health}/{(int)agent.HealthLimit}\n";
             if (agent.MountAgent != null)
                 message += $"- Mount HP: {mountInfo}\n";

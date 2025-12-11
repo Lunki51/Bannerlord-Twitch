@@ -5,6 +5,10 @@ using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
+using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Core;
+using NavalDLC.CampaignBehaviors;
 using BannerlordTwitch.Util;
 
 namespace BLTAdoptAHero
@@ -118,7 +122,7 @@ namespace BLTAdoptAHero
                     }
                     else
                     {
-                        
+
                         ChangeKingdomAction.ApplyByLeaveByKingdomDestruction(clan, true);
                     }
                 }
@@ -214,5 +218,53 @@ namespace BLTAdoptAHero
             return true; // run original if not blocked
         }
     }
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
+    internal static class ShipTradeCampaignBehaviorPatches
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch("ConsiderPurchasingShip")]
+        private static bool Prefix_ConsiderPurchasingShip(Clan clan)
+        {
+            try
+            {
+                // skip if clan is null or eliminated
+                if (clan == null || clan.IsEliminated)
+                {
+#if DEBUG
+                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: invalid clan");
+#endif
+                    return false;
+                }
+
+                bool hasValidParty = false;
+                foreach (var partyComponent in clan.WarPartyComponents)
+                {
+                    MobileParty party = partyComponent?.MobileParty;
+                    if (party != null && party.IsActive)
+                    {
+                        hasValidParty = true;
+                        break;
+                    }
+                }
+
+                if (!hasValidParty)
+                {
+#if DEBUG
+                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: no valid mobile parties found");
+#endif
+                    return false; // skip original method
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] Prefix_ConsiderPurchasingShip error: {ex}");
+                return false; // skip original safely
+            }
+
+            // all good, run original method
+            return true;
+        }
+    }
+
     #endregion
 }

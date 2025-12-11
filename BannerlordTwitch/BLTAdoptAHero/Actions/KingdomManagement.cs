@@ -162,8 +162,8 @@ namespace BLTAdoptAHero.Actions
                                     "Minimum Clan Tier={tier}".Translate(("tier", RebelClanTierMinimum.ToString())));
                 if (CreateKEnabled)
                     generator.Value("<strong>" +
-                                    "Create Config: "+
-                                    "</strong>"+
+                                    "Create Config: " +
+                                    "</strong>" +
                                     "Price={price}{icon}, ".Translate(("price", CreateKPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}".Translate(("tier", CreateKTierMinimum.ToString())) +
                                     "Minimum fiefs amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
@@ -350,7 +350,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
                 return;
             }
-            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();           
+            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
             bool war = false;
             bool ally = adoptedHero.Clan.Kingdom.AlliedKingdoms.Count > 0;
             bool trade = false;
@@ -586,20 +586,27 @@ namespace BLTAdoptAHero.Actions
                 onFailure(Naming.NotEnoughGold(settings.CreateKPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
-            var newKingdom = Kingdom.CreateKingdom(desiredName);
-            var culture = adoptedHero.Culture;
-            var banner = adoptedHero.Clan.Banner;
-            var color1 = adoptedHero.Clan.Banner.GetPrimaryColor();
-            var color2 = adoptedHero.Clan.Banner.GetSecondaryColor();
-            var home = adoptedHero.Clan.HomeSettlement;
-            string title = adoptedHero.IsFemale ? "Queen" : "King";
-            string descText = adoptedHero.Name.ToString();
-            //Keep clan wars HERE
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.CreateKPrice, true);
+            var creator = Campaign.Current.KingdomManager;
 
-            newKingdom.InitializeKingdom(new TextObject(desiredName), new TextObject(desiredName), culture, banner, color1, color2, home, new TextObject(descText), new TextObject(desiredName), new TextObject(title));
-            adoptedHero.Clan.Kingdom = newKingdom;
-            newKingdom.RulingClan = adoptedHero.Clan;
+            //var newKingdom = Kingdom.CreateKingdom(desiredName);
+            var culture = adoptedHero.Culture;
+            //var banner = adoptedHero.Clan.Banner;
+            //var color1 = adoptedHero.Clan.Banner.GetPrimaryColor();
+            //var color2 = adoptedHero.Clan.Banner.GetSecondaryColor();
+            //var home = adoptedHero.Clan.HomeSettlement;
+            //string title = adoptedHero.IsFemale ? "Queen" : "King";
+            //string descText = adoptedHero.Name.ToString();
+            //Keep clan wars HERE
+            //var warTargets = adoptedHero.Clan.FactionsAtWarWith;
+
+            creator.CreateKingdom(new TextObject(desiredName), new TextObject(desiredName), culture, adoptedHero.Clan, null, null, null, null);
+            var newKingdom = adoptedHero.Clan.Kingdom;
             newKingdom.KingdomBudgetWallet = 2000000;
+            //foreach(Kingdom target in warTargets)
+            //{
+            //    DeclareWarAction.ApplyByRebellion(newKingdom, target);
+            //}
             onSuccess("{=TESTING}Created kingdom {name}".Translate(("name", desiredName)));
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }

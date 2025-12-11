@@ -241,7 +241,7 @@ namespace BLTAdoptAHero
             new("{=F9WUaqdj}Now for wrath, now for ruin and a red nightfall!") { EnemySide = false, Weight = 0.05f },
             //          Very rare
             new("{=ZQiRFkFU}n") { EnemySide = false, Weight = 0.01f },
-            
+
             //      Siege Attack
             new("{=JlZ9pRbq}Those are brave men knocking at our door, let's go kill them!") { EnemySide = false, General = false, SiegeAttack = false, FieldBattle = false },
             new("{=5gg0BcKk}Lets take this city!") { EnemySide = false, General = false, SiegeDefend = false, FieldBattle = false },
@@ -262,10 +262,10 @@ namespace BLTAdoptAHero
             new("{=42Fuy9pm}Never should have come here!") { PlayerSide = false },
             new("{=dClbnb2q}Your money or your life!") { PlayerSide = false },
             new("{=uyjy1geA}I'm sorry, but I must stop you.") { PlayerSide = false },
-            
+
             //          Rare
             new("{=dh0c96lo}I have the high ground!") { PlayerSide = false, Weight = 0.05f },
-            
+
             //          Ultra rare
             new("{=EcD5q9th}DAMN IT DAVE!") { PlayerSide = false, Weight = 0.01f },
             new("{=4yUH9sfX}I'll mount your pike on a head!") { PlayerSide = false, Weight = 0.01f },
@@ -415,7 +415,7 @@ namespace BLTAdoptAHero
                     .Translate(("CoolDown", heroSummonState.CooldownRemaining.ToString("0"))));
                 return;
             }
-            
+
             Team targetTeam = settings.OnPlayerSide ? Mission.Current.PlayerTeam : Mission.Current.PlayerEnemyTeam;
             if (targetTeam == null)
             {
@@ -539,7 +539,7 @@ namespace BLTAdoptAHero
                     },
                     onMissionOver: () =>
                     {
-                        
+
                         if (adoptedHero.PartyBelongedTo != originalParty)
                         {
                             party.AddMember(adoptedHero.CharacterObject, -1);
@@ -652,15 +652,7 @@ namespace BLTAdoptAHero
                 onFailure("{=YMiZAluP}You cannot be summoned, player is not there!");
                 return;
             }
-            bool stealthBehavior = Mission.Current.Agents.Any(agent =>
-                agent.CurrentWatchState == Agent.WatchState.Cautious ||
-                agent.CurrentWatchState == Agent.WatchState.Alarmed || agent.CurrentWatchState == Agent.WatchState.Patrolling
-                    ) && MissionHelpers.InHideOutMission() == true;
-            if (stealthBehavior)
-            {
-                onFailure("No");
-                return;
-            }
+
             var locationCharacter = LocationCharacter.CreateBodyguardHero(adoptedHero,
                 MobileParty.MainParty,
                 SandBoxManager.Instance.AgentBehaviorManager.AddBodyguardBehaviors);
@@ -668,10 +660,10 @@ namespace BLTAdoptAHero
             var worldFrame = missionAgentHandler.Mission.MainAgent.GetWorldFrame();
             worldFrame.Origin.SetVec2(worldFrame.Origin.AsVec2 + (worldFrame.Rotation.f * 10f + worldFrame.Rotation.s).AsVec2);
 
-            
-            
-                CampaignMission.Current.Location.AddCharacter(locationCharacter);
-            
+
+
+            CampaignMission.Current.Location.AddCharacter(locationCharacter);
+
 
             Agent agent;
             if (MissionHelpers.InArenaPracticeMission())
@@ -797,10 +789,10 @@ namespace BLTAdoptAHero
                     .Translate(("CoolDown", heroSummonState.CooldownRemaining.ToString("0"))));
                 return;
             }
-            
+
             var team = settings.OnPlayerSide ? Mission.Current.PlayerTeam : Mission.Current.PlayerEnemyTeam;
 
-            
+
 
 
             // If all agents in all ally teams are adopted heroes then the team is depleted 
@@ -811,7 +803,7 @@ namespace BLTAdoptAHero
             }
 
             var heroClass = BLTAdoptAHeroCampaignBehavior.Current.GetClass(adoptedHero);
-            
+
             // We don't support Unset, or General formations, and implement custom behaviour for Bodyguard
             if (!Enum.TryParse(heroClass?.Formation ?? settings.PreferredFormation, out FormationClass formationClass)
                 || formationClass >= FormationClass.NumberOfRegularFormations)
@@ -845,7 +837,7 @@ namespace BLTAdoptAHero
                     originalParty?.Party?.AddMember(adoptedHero.CharacterObject, -1);
                     party.AddMember(adoptedHero.CharacterObject, 1);
                 }
-                
+
                 BLTAdoptAHeroCustomMissionBehavior.Current.AddListeners(adoptedHero,
                     onSlowTick: dt =>
                     {
@@ -947,7 +939,7 @@ namespace BLTAdoptAHero
 
                 heroSummonState = BLTSummonBehavior.Current.AddHeroSummonState(adoptedHero, settings.OnPlayerSide, party, forced: false, settings.WithRetinue);
             }
-            
+
             if (settings.OnPlayerSide)
             {
                 Campaign.Current.SetPlayerFormationPreference(adoptedHero.CharacterObject, formationClass);
