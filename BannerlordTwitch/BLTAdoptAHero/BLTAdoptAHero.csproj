@@ -409,6 +409,8 @@
     <Compile Include="Rewards\GeneratedRewardDef.cs" />
     <Compile Include="Rewards\RandomItemModifierDef.cs" />
     <Compile Include="Rewards\RewardHelpers.cs" />
+    <None Include="Templates\ActionTemplate.cs" />
+    <None Include="Templates\BehaviorTemplate.cs" />
     <Compile Include="Util\AgentExtensions.cs" />
     <Compile Include="Util\ConsoleCommands.cs" />
     <Compile Include="Util\HeroExtensions.cs" />
