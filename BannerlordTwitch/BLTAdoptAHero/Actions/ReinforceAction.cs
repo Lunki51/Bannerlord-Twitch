@@ -23,7 +23,8 @@ namespace BLTAdoptAHero.Actions
     {
         [CategoryOrder("General", 0),
          CategoryOrder("Militia", 1),
-         CategoryOrder("Restrictions", 2)]
+         CategoryOrder("EliteMilitia", 2),
+         CategoryOrder("Restrictions", 3)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=ReinforceEnable}Enabled"),
@@ -32,6 +33,7 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool Enabled { get; set; } = true;
 
+            // Militia Settings
             [LocDisplayName("{=MilitiaEnabled}Militia Enabled"),
              LocCategory("Militia", "{=MilitiaCat}Militia"),
              LocDescription("{=MilitiaEnabledDesc}Allow adding militia to settlements"),
@@ -42,7 +44,7 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Militia", "{=MilitiaCat}Militia"),
              LocDescription("{=MilitiaCostDesc}Gold cost per militia unit added"),
              PropertyOrder(2), UsedImplicitly]
-            public int MilitiaCostPerUnit { get; set; } = 15000; // default 15k as requested
+            public int MilitiaCostPerUnit { get; set; } = 15000;
 
             [LocDisplayName("{=MilitiaMin}Minimum Militia"),
              LocCategory("Militia", "{=MilitiaCat}Militia"),
@@ -60,11 +62,42 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Militia", "{=MilitiaCat}Militia"),
              LocDescription("{=MilitiaCapDesc}Maximum total BLT reinforcements a settlement can have (0 = no cap)"),
              PropertyOrder(5), UsedImplicitly]
-            public int MilitiaCap { get; set; } = 50;
+            public int MilitiaCap { get; set; } = 100;
+
+            // Elite Militia Settings (carbon copy)
+            [LocDisplayName("{=EliteEnabled}Elite Militia Enabled"),
+             LocCategory("EliteMilitia", "{=EliteCat}EliteMilitia"),
+             LocDescription("{=EliteEnabledDesc}Allow adding elite militia to settlements"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool EliteEnabled { get; set; } = true;
+
+            [LocDisplayName("{=EliteCostPerUnit}Gold Cost Per Elite Militia"),
+             LocCategory("EliteMilitia", "{=EliteCat}EliteMilitia"),
+             LocDescription("{=EliteCostDesc}Gold cost per elite militia unit added"),
+             PropertyOrder(2), UsedImplicitly]
+            public int EliteCostPerUnit { get; set; } = 30000;
+
+            [LocDisplayName("{=EliteMin}Minimum Elite Militia"),
+             LocCategory("EliteMilitia", "{=EliteCat}EliteMilitia"),
+             LocDescription("{=EliteMinDesc}Minimum elite militia that can be added at once"),
+             PropertyOrder(3), UsedImplicitly]
+            public int MinEliteMilitia { get; set; } = 1;
+
+            [LocDisplayName("{=EliteMax}Maximum Elite Militia"),
+             LocCategory("EliteMilitia", "{=EliteCat}EliteMilitia"),
+             LocDescription("{=EliteMaxDesc}Maximum elite militia that can be added at once"),
+             PropertyOrder(4), UsedImplicitly]
+            public int MaxEliteMilitia { get; set; } = 100;
+
+            [LocDisplayName("{=EliteCap}Settlement Elite Reinforcement Cap"),
+             LocCategory("EliteMilitia", "{=EliteCat}EliteMilitia"),
+             LocDescription("{=EliteCapDesc}Maximum total BLT elite reinforcements a settlement can have (0 = no cap)"),
+             PropertyOrder(5), UsedImplicitly]
+            public int EliteMilitiaCap { get; set; } = 50;
 
             [LocDisplayName("{=RequireClanLeader}Require Clan Leader"),
              LocCategory("Restrictions", "{=RestrictionsCat}Restrictions"),
-             LocDescription("{=RequireClanLeaderDesc}Only clan leaders can add reinforcements"),
+             LocDescription("{=RequireClanLeaderDesc}Only clan leaders can add reinforcements, or anyone in clan"),
              PropertyOrder(1), UsedImplicitly]
             public bool RequireClanLeader { get; set; } = true;
 
@@ -73,6 +106,12 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=OnlyUnderSiegeDesc}Only allow adding reinforcements when settlement is under siege"),
              PropertyOrder(2), UsedImplicitly]
             public bool OnlyUnderSiege { get; set; } = false;
+
+            [LocDisplayName("{=AllowKingdomLeaders}Allow Kingdom Leaders"),
+             LocCategory("Restrictions", "{=RestrictionsCat}Restrictions"),
+             LocDescription("{=AllowKingdomLeadersDesc}Allow kingdom rulers to reinforce any settlement owned by their kingdom"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool AllowKingdomLeaders { get; set; } = false;
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
@@ -83,8 +122,11 @@ namespace BLTAdoptAHero.Actions
                 }
 
                 generator.Value("<strong>Enabled:</strong> Yes");
-                generator.Value("<strong>Cost per militia:</strong> {cost}{icon}".Translate(("cost", MilitiaCostPerUnit), ("icon", Naming.Gold)));
-                generator.Value("<strong>Cap per settlement:</strong> {cap}".Translate(("cap", MilitiaCap)));
+                generator.Value("<strong>Militia cost per unit:</strong> {cost}{icon}".Translate(("cost", MilitiaCostPerUnit), ("icon", Naming.Gold)));
+                generator.Value("<strong>Militia cap per settlement:</strong> {cap}".Translate(("cap", MilitiaCap)));
+                generator.Value("<strong>Elite cost per unit:</strong> {cost}{icon}".Translate(("cost", EliteCostPerUnit), ("icon", Naming.Gold)));
+                generator.Value("<strong>Elite cap per settlement:</strong> {cap}".Translate(("cap", EliteMilitiaCap)));
+                if (AllowKingdomLeaders) generator.Value("<strong>Kingdom leaders allowed to reinforce kingdom settlements.</strong>".Translate(("kingallow", AllowKingdomLeaders)));
             }
         }
 
@@ -114,7 +156,7 @@ namespace BLTAdoptAHero.Actions
 
             if (context.Args.IsEmpty())
             {
-                onFailure("Usage: reinforce militia <settlement> <#|all>  OR  reinforce info <settlement>");
+                onFailure("Usage: reinforce militia|elitemilitia <settlement> <#|all>  OR  reinforce info <settlement>");
                 return;
             }
 
@@ -137,28 +179,31 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                int stored = ReinforcementBehavior.Current?.GetReinforcements(settlement) ?? 0;
-                int cap = settings.MilitiaCap;
-                int remaining = cap > 0 ? Math.Max(0, cap - stored) : -1;
+                int militiaStored = ReinforcementBehavior.Current?.GetReinforcements(settlement) ?? 0;
+                int eliteStored = ReinforcementBehavior.Current?.GetEliteReinforcements(settlement) ?? 0;
+                int militiaCap = settings.MilitiaCap;
+                int eliteCap = settings.EliteMilitiaCap;
+                int militiaRemaining = militiaCap > 0 ? Math.Max(0, militiaCap - militiaStored) : -1;
+                int eliteRemaining = eliteCap > 0 ? Math.Max(0, eliteCap - eliteStored) : -1;
 
-                if (remaining >= 0)
-                    onSuccess($"{settlement.Name} has {stored} BLT reinforcements (cap {cap}, remaining {remaining})");
+                if (militiaRemaining >= 0)
+                    onSuccess($"{settlement.Name} has {militiaStored} BLT militia (cap {militiaCap}, remaining {militiaRemaining}); {eliteStored} elite militia (cap {eliteCap}, remaining {eliteRemaining})");
                 else
-                    onSuccess($"{settlement.Name} has {stored} BLT reinforcements (no cap)");
+                    onSuccess($"{settlement.Name} has {militiaStored} BLT militia (no cap); {eliteStored} elite militia (no cap)");
 
                 return;
             }
 
-            // must be militia for now
-            if (arg != "militia")
+            // must be militia or elitemilitia for now
+            if (arg != "militia" && arg != "elitemilitia")
             {
-                onFailure("Invalid argument. Use 'militia' or 'info'.");
+                onFailure("Invalid argument. Use 'militia', 'elitemilitia' or 'info'.");
                 return;
             }
 
             if (split.Length < 3)
             {
-                onFailure("Usage: reinforce militia <settlement> <#|all>");
+                onFailure("Usage: reinforce militia|elitemilitia <settlement> <#|all>");
                 return;
             }
 
@@ -197,7 +242,20 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (targetSettlement.OwnerClan != adoptedHero.Clan)
+            // ownership/kingdom-leader permission check
+            bool isOwnerClan = targetSettlement.OwnerClan == adoptedHero.Clan;
+
+            bool isKingdomLeaderAllowed = false;
+            if (settings.AllowKingdomLeaders && adoptedHero.Clan != null && adoptedHero.Clan.Kingdom != null)
+            {
+                // hero is the kingdom ruler?
+                bool heroIsKingdomLeader = adoptedHero.Clan.Kingdom.Leader == adoptedHero;
+                // settlement belongs to the same kingdom?
+                bool settlementInSameKingdom = targetSettlement.OwnerClan != null && targetSettlement.OwnerClan.Kingdom == adoptedHero.Clan.Kingdom;
+                isKingdomLeaderAllowed = heroIsKingdomLeader && settlementInSameKingdom;
+            }
+
+            if (!isOwnerClan && !isKingdomLeaderAllowed)
             {
                 onFailure($"Your clan does not own {targetSettlement.Name}.");
                 return;
@@ -209,11 +267,16 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // compute amount
+            // compute amount and cost depending on type
+            bool isElite = arg == "elitemilitia";
             int amountRequested = 0;
+            int perCost = isElite ? settings.EliteCostPerUnit : settings.MilitiaCostPerUnit;
+            int minAmount = isElite ? settings.MinEliteMilitia : settings.MinMilitia;
+            int maxAmount = isElite ? settings.MaxEliteMilitia : settings.MaxMilitia;
+            int cap = isElite ? settings.EliteMilitiaCap : settings.MilitiaCap;
+
             if (useAll)
             {
-                // Purchase as many as can be afforded and fit under cap & per-command max
                 int heroGold = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero);
                 if (heroGold <= 0)
                 {
@@ -221,13 +284,9 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                int perCost = settings.MilitiaCostPerUnit;
-                // compute available by gold
                 int maxByGold = heroGold / perCost;
-                // clamp by per-command max
-                maxByGold = Math.Min(maxByGold, settings.MaxMilitia);
-                // clamp by cap remaining
-                int capRem = settings.MilitiaCap > 0 ? ReinforcementBehavior.Current.GetRemainingCapacity(targetSettlement, settings.MilitiaCap) : int.MaxValue;
+                maxByGold = Math.Min(maxByGold, maxAmount);
+                int capRem = cap > 0 ? (isElite ? ReinforcementBehavior.Current.GetRemainingEliteCapacity(targetSettlement, cap) : ReinforcementBehavior.Current.GetRemainingCapacity(targetSettlement, cap)) : int.MaxValue;
                 amountRequested = Math.Min(maxByGold, capRem);
                 if (amountRequested <= 0)
                 {
@@ -245,30 +304,29 @@ namespace BLTAdoptAHero.Actions
             }
 
             // enforce min/max per command
-            if (amountRequested < settings.MinMilitia)
+            if (amountRequested < minAmount)
             {
-                onFailure($"Minimum amount is {settings.MinMilitia}.");
+                onFailure($"Minimum amount is {minAmount}.");
                 return;
             }
-            if (amountRequested > settings.MaxMilitia)
+            if (amountRequested > maxAmount)
             {
-                onFailure($"Maximum per-command is {settings.MaxMilitia}.");
+                onFailure($"Maximum per-command is {maxAmount}.");
                 return;
             }
 
             // cap / partial-add
-            int capRemaining = ReinforcementBehavior.Current.GetRemainingCapacity(targetSettlement, settings.MilitiaCap);
-            if (settings.MilitiaCap > 0 && capRemaining <= 0)
+            int capRemaining = isElite ? ReinforcementBehavior.Current.GetRemainingEliteCapacity(targetSettlement, cap) : ReinforcementBehavior.Current.GetRemainingCapacity(targetSettlement, cap);
+            if (cap > 0 && capRemaining <= 0)
             {
-                onFailure($"{targetSettlement.Name} has reached its BLT reinforcement cap.");
+                onFailure($"{targetSettlement.Name} has reached its BLT reinforcement cap for this tier.");
                 return;
             }
 
             int toAdd = amountRequested;
-            if (settings.MilitiaCap > 0) toAdd = Math.Min(toAdd, capRemaining);
+            if (cap > 0) toAdd = Math.Min(toAdd, capRemaining);
 
-            int costPerUnit = settings.MilitiaCostPerUnit;
-            int totalCost = toAdd * costPerUnit;
+            int totalCost = toAdd * perCost;
 
             // gold check
             int heroCurrentGold = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero);
@@ -278,12 +336,15 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // Deduct gold and add reinforcements (partial-add semantics: if AddReinforcements returns less than toAdd, refund difference)
+            // Deduct gold and add reinforcements (partial-add semantics)
             try
             {
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -totalCost, true);
 
-                int actuallyAdded = ReinforcementBehavior.Current.AddReinforcements(targetSettlement, toAdd, settings.MilitiaCap);
+                int actuallyAdded = isElite
+                    ? ReinforcementBehavior.Current.AddEliteReinforcements(targetSettlement, toAdd, cap)
+                    : ReinforcementBehavior.Current.AddReinforcements(targetSettlement, toAdd, cap);
+
                 if (actuallyAdded <= 0)
                 {
                     // refund
@@ -292,16 +353,17 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                int charged = actuallyAdded * costPerUnit;
+                int charged = actuallyAdded * perCost;
                 int refund = totalCost - charged;
                 if (refund > 0)
                 {
                     BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, refund, true);
                 }
 
-                onSuccess($"Added {actuallyAdded} BLT reinforcements to {targetSettlement.Name} for {charged}{Naming.Gold}.");
+                string tierName = isElite ? "elite militia" : "BLT reinforcements";
+                onSuccess($"Added {actuallyAdded} {tierName} to {targetSettlement.Name} for {charged}{Naming.Gold}.");
 
-                Log.ShowInformation($"{adoptedHero.Name} added {actuallyAdded} BLT reinforcements to {targetSettlement.Name}.", adoptedHero.CharacterObject, Log.Sound.Notification1);
+                Log.ShowInformation($"{adoptedHero.Name} added {actuallyAdded} {tierName} to {targetSettlement.Name}.", adoptedHero.CharacterObject, Log.Sound.Notification1);
             }
             catch (Exception ex)
             {
