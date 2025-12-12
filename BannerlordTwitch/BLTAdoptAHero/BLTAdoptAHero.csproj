@@ -352,6 +352,7 @@
     <Compile Include="Actions\JoinTournament.cs" />
     <Compile Include="Actions\KingdomManagement.cs" />
     <Compile Include="Actions\NameItem.cs" />
+    <Compile Include="Actions\ReinforceAction.cs" />
     <Compile Include="Actions\Rejuvenate.cs" />
     <Compile Include="Actions\Retinue.cs" />
     <Compile Include="Actions\RetireMyHero.cs" />
@@ -383,6 +384,8 @@
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
+    <Compile Include="Behaviors\ReinforcementBehavior.cs" />
+    <Compile Include="Behaviors\ReinforcementPatches.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
