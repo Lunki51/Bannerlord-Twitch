@@ -263,6 +263,19 @@ namespace BLTAdoptAHero.Actions
                     newParty.MemberRoster.AddToCounts(retinueTroop, 1);
                 }
             }
+            
+            PartyTemplateObject template = adoptedHero.Culture?.DefaultPartyTemplate;
+
+            if (template != null)
+            {
+                foreach (var stack in template.Stacks)
+                {
+                    int amount = MBRandom.RandomInt(stack.MinValue, stack.MaxValue + 1);
+
+                    if (amount > 0)
+                        newParty.MemberRoster.AddToCounts(stack.Character, amount);
+                }
+            }
         }
 
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
