@@ -6,6 +6,8 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
+using TaleWorlds.CampaignSystem.Party.PartyComponents;
+using TaleWorlds.CampaignSystem.Siege;
 
 namespace BLTAdoptAHero
 {
@@ -24,8 +26,8 @@ namespace BLTAdoptAHero
         private Dictionary<string, int> _eliteReinforcements = new();
 
         // runtime-only bookkeeping to map settlement -> list of party string ids we created for its current siege
-        private readonly Dictionary<string, List<string>> _openSiegeParties = new();
-        private readonly Dictionary<string, List<string>> _openEliteSiegeParties = new();
+        private Dictionary<string, List<string>> _openSiegeParties = new();
+        private Dictionary<string, List<string>> _openEliteSiegeParties = new();
 
         public ReinforcementBehavior()
         {
@@ -37,14 +39,21 @@ namespace BLTAdoptAHero
         {
             _eliteReinforcements ??= new Dictionary<string, int>();
             _reinforcements ??= new Dictionary<string, int>();
+            _openSiegeParties ??= new Dictionary<string, List<string>>();
+            _openEliteSiegeParties ??= new Dictionary<string, List<string>>();
         }
 
         public override void RegisterEvents()
         {
             Initialize();
-            // Use AfterSiegeCompletedEvent (IMbEvent<Settlement, MobileParty, bool, MapEvent.BattleTypes>)
-            CampaignEvents.AfterSiegeCompletedEvent.AddNonSerializedListener(this, OnAfterSiegeCompleted);
+
+            CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(
+                this, OnSiegeEventStarted);
+
+            CampaignEvents.AfterSiegeCompletedEvent.AddNonSerializedListener(
+                this, OnAfterSiegeCompleted);
         }
+
 
         public override void SyncData(IDataStore dataStore)
         {
@@ -53,6 +62,12 @@ namespace BLTAdoptAHero
             dataStore.SyncData("BLT_EliteReinforcements", ref _eliteReinforcements);
             // After load, dictionaries may still be null
             Initialize();
+        }
+
+        public void ClearOpenSiegeParties(Settlement settlement)
+        {
+            if (settlement == null) return;
+            _openSiegeParties.Remove(settlement.StringId);
         }
 
         private string KeyFor(Settlement settlement)
@@ -64,6 +79,95 @@ namespace BLTAdoptAHero
         // ----------------------
         // Persistence API - Militia
         // ----------------------
+
+        private void SpawnMilitiaParty(
+    SiegeEvent siegeEvent,
+    Settlement settlement,
+    int count,
+    CharacterObject meleeTroop, CharacterObject rangedTroop,
+    string idSuffix,
+    bool isElite)
+        {
+            if (count <= 0) return;
+
+            string partyId =
+                Campaign.Current.CampaignObjectManager
+                    .FindNextUniqueStringId<MobileParty>(
+                        $"blt_{idSuffix}_{settlement.StringId}");
+
+            var party = MilitiaPartyComponent.CreateMilitiaParty(partyId, settlement);
+            if (party == null) return;
+
+            int meleeCount = count / 2 + (count % 2);
+            int rangedCount = count - meleeCount;
+
+            if (meleeTroop != null && meleeCount > 0)
+                party.MemberRoster.AddToCounts(meleeTroop, meleeCount);
+
+            if (rangedTroop != null && rangedCount > 0)
+                party.MemberRoster.AddToCounts(rangedTroop, rangedCount);
+
+            RegisterSiegeParty(settlement, party.StringId, isElite);
+        }
+
+
+        private void OnSiegeEventStarted(SiegeEvent siegeEvent)
+        {
+            try
+            {
+                if (siegeEvent == null) return;
+
+                var settlement = siegeEvent.BesiegedSettlement;
+                if (settlement == null) return;
+
+                var culture = settlement.Culture;
+                if (culture == null) return;
+
+                // Prevent duplicate spawning (save/load safety)
+                if (_openSiegeParties.ContainsKey(settlement.StringId))
+                    return;
+
+                // -------------------------
+                // NORMAL BLT MILITIA
+                // -------------------------
+                int normalCount = GetReinforcements(settlement);
+                if (normalCount > 0)
+                {
+                    SpawnMilitiaParty(
+                    siegeEvent,
+                    settlement,
+                    normalCount,
+                    culture.MeleeMilitiaTroop,
+                    culture.RangedMilitiaTroop,
+                    "reinforce",
+                    isElite: false
+                    );
+                }
+
+                // -------------------------
+                // ELITE BLT MILITIA
+                // -------------------------
+                int eliteCount = GetEliteReinforcements(settlement);
+                if (eliteCount > 0)
+                {
+                    SpawnMilitiaParty(
+                    siegeEvent,
+                    settlement,
+                    normalCount,
+                    culture.MeleeEliteMilitiaTroop,
+                    culture.RangedEliteMilitiaTroop,
+                    "elite_reinforce",
+                    isElite: true
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                InformationManager.DisplayMessage(
+                    new InformationMessage($"[BLT Reinforcement] OnSiegeEventStarted failed: {ex.Message}")
+                );
+            }
+        }
 
         public int GetReinforcements(Settlement settlement)
         {
@@ -266,6 +370,7 @@ namespace BLTAdoptAHero
                 // cleanup runtime records
                 _openSiegeParties.Remove(key);
                 _openEliteSiegeParties.Remove(key);
+
             }
             catch (Exception ex)
             {
