@@ -30,10 +30,18 @@ namespace BLTAdoptAHero
         public ReinforcementBehavior()
         {
             Current = this;
+            Initialize();
+        }
+
+        private void Initialize()
+        {
+            _eliteReinforcements ??= new Dictionary<string, int>();
+            _reinforcements ??= new Dictionary<string, int>();
         }
 
         public override void RegisterEvents()
         {
+            Initialize();
             // Use AfterSiegeCompletedEvent (IMbEvent<Settlement, MobileParty, bool, MapEvent.BattleTypes>)
             CampaignEvents.AfterSiegeCompletedEvent.AddNonSerializedListener(this, OnAfterSiegeCompleted);
         }
@@ -43,6 +51,8 @@ namespace BLTAdoptAHero
             // Persist reinforcement counts keyed by settlement.StringId
             dataStore.SyncData("BLT_Reinforcements", ref _reinforcements);
             dataStore.SyncData("BLT_EliteReinforcements", ref _eliteReinforcements);
+            // After load, dictionaries may still be null
+            Initialize();
         }
 
         private string KeyFor(Settlement settlement)
@@ -58,6 +68,9 @@ namespace BLTAdoptAHero
         public int GetReinforcements(Settlement settlement)
         {
             if (settlement == null) return 0;
+
+            _reinforcements ??= new Dictionary<string, int>();
+
             _reinforcements.TryGetValue(KeyFor(settlement), out int val);
             return Math.Max(0, val);
         }
@@ -120,6 +133,9 @@ namespace BLTAdoptAHero
         public int GetEliteReinforcements(Settlement settlement)
         {
             if (settlement == null) return 0;
+
+            _eliteReinforcements ??= new Dictionary<string, int>();
+
             _eliteReinforcements.TryGetValue(KeyFor(settlement), out int val);
             return Math.Max(0, val);
         }
