@@ -10,6 +10,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
+using NavalDLC.Missions.MissionLogics;
 
 namespace BLTAdoptAHero
 {
@@ -285,5 +286,16 @@ namespace BLTAdoptAHero
         }
 
         public static bool RetinueAllowed() => MissionHelpers.InSiegeMission() || MissionHelpers.InFieldBattleMission();
+
+        [HarmonyPatch(typeof(ShipAgentSpawnLogic), "IsAnyTeamsUnfilled")]
+        public static class Patch_IsAnyTeamsUnfilled
+        {
+            static bool Prefix(ref bool __result)
+            {
+                // Always return true, ignoring original logic
+                __result = true;
+                return false; // skip original method
+            }
+        }
     }
 }

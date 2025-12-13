@@ -17,13 +17,15 @@ namespace BLTAdoptAHero
         private BLTFamily _bltFamily;
         private CampaignTime _lastFamilyInitTime;
         public BLTSocialSecurity SocialSecurity { get; } = new BLTSocialSecurity();
-        public BLTPartyCheck PartyCheck { get; } = new BLTPartyCheck();
+        //public BLTPartyCheck PartyCheck { get; } = new BLTPartyCheck();
+        public BLTPrisoner _Prisoner { get; } = new BLTPrisoner();
 
         public override void RegisterEvents()
         {
             MarriageBehavior.RegisterEvents();
             SocialSecurity.RegisterEvents();
-            PartyCheck.RegisterEvents();
+            //PartyCheck.RegisterEvents();
+            _Prisoner.RegisterEvents();
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, () =>
             {
                 if (_bltFamily == null)
@@ -268,58 +270,78 @@ namespace BLTAdoptAHero
         //{
         //    ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail
         //}
-        public class BLTPartyCheck
+        //public class BLTPartyCheck
+        //{
+        //    public void RegisterEvents()
+        //    {
+        //        CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+        //    }
+
+        //public override void SyncData(IDataStore dataStore) { }
+
+        //private void OnDailyTick()
+        //{
+
+        //    foreach (var party in MobileParty.All)
+        //    {
+        //        if (party?.LeaderHero == null)
+        //            continue;
+
+        //        Hero leader = party.LeaderHero;
+
+        //        // Only apply to adopted heroes
+        //        if (!HeroExtensions.IsAdopted(leader))
+        //            continue;
+
+        //        //CheckAndFixParty(party);
+        //    }
+
+        //}
+
+        //private void CheckAndFixParty(MobileParty party)
+        //{
+        //    var ai = party.Ai;
+        //    if (ai == null)
+        //        return;
+
+        //    double hoursStationary = 0;
+        //    if (party.StationaryStartTime != CampaignTime.Zero || party.StationaryStartTime != null)
+        //        hoursStationary = (CampaignTime.Now.ToHours - party.StationaryStartTime.ToHours);
+        //    bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && hoursStationary > CampaignTime.HoursInDay;
+        //    bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
+
+
+        //    if (isHolding || isStuck)
+        //    {
+        //        Log.LogFeedEvent(
+        //            $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {hoursStationary} hours)");
+
+        //        ai.DisableAi();
+        //        ai.EnableAi();
+        //        ai.RethinkAtNextHourlyTick = true;
+        //        ai.CheckPartyNeedsUpdate();
+        //    }
+        //}
+        //}
+        public class BLTPrisoner
         {
             public void RegisterEvents()
             {
                 CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
             }
-
-            //public override void SyncData(IDataStore dataStore) { }
-
             private void OnDailyTick()
             {
-
-                foreach (var party in MobileParty.All)
+                foreach (Hero hero in Hero.AllAliveHeroes)
                 {
-                    if (party?.LeaderHero == null)
-                        continue;
-
-                    Hero leader = party.LeaderHero;
-
-                    // Only apply to adopted heroes
-                    if (!HeroExtensions.IsAdopted(leader))
-                        continue;
-
-                    //CheckAndFixParty(party);
+                    if (hero.IsAdopted() && hero.IsPrisoner)
+                    {
+                        if ((CampaignTime.Now - hero.CaptivityStartTime).ToDays >= 10)
+                        {
+                            EndCaptivityAction.ApplyByEscape(hero);
+                        }
+                    }
                 }
-
             }
-
-            //private void CheckAndFixParty(MobileParty party)
-            //{
-            //    var ai = party.Ai;
-            //    if (ai == null)
-            //        return;
-
-            //    double hoursStationary = 0;
-            //    if (party.StationaryStartTime != CampaignTime.Zero || party.StationaryStartTime != null)
-            //        hoursStationary = (CampaignTime.Now.ToHours - party.StationaryStartTime.ToHours);
-            //    bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && hoursStationary > CampaignTime.HoursInDay;
-            //    bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
-
-
-            //    if (isHolding || isStuck)
-            //    {
-            //        Log.LogFeedEvent(
-            //            $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {hoursStationary} hours)");
-
-            //        ai.DisableAi();
-            //        ai.EnableAi();
-            //        ai.RethinkAtNextHourlyTick = true;
-            //        ai.CheckPartyNeedsUpdate();
-            //    }
-            //}
         }
     }
 }

@@ -338,7 +338,29 @@ namespace BLTAdoptAHero
                 // crashes seem to happen in the engine...
                 BLTSummonBehavior.Current.DoNextTick(() =>
                 {
-                    SummonInBattle(adoptedHero, settings, context, onSuccess, onFailure);
+                    int maxRetries = 5;
+                    int retryCount = 0;
+
+                    void TrySpawn()
+                    {
+                        try
+                        {
+                            SummonInBattle(adoptedHero, settings, context, onSuccess, onFailure);
+                        }
+                        catch (IndexOutOfRangeException)
+                        {
+                            retryCount++;
+                            if (retryCount <= maxRetries)
+                            {
+                                BLTSummonBehavior.Current.DoNextTick(TrySpawn);
+                            }
+                            else
+                            {
+                                onFailure("Failed to spawn hero.");
+                            }
+                        }
+                    }
+                    TrySpawn();
                 });
             }
         }
@@ -430,12 +452,13 @@ namespace BLTAdoptAHero
                 onFailure("Naval spawn logic not available on this mission.");
                 return;
             }
-            agentsLogic.SetIgnoreTroopCapacities(true);
-            agentsLogic.SetIgnoreTroopCapacities(targetTeam.TeamSide, true);
+            //agentsLogic.SetIgnoreTroopCapacities(true);
+            //agentsLogic.SetIgnoreTroopCapacities(targetTeam.TeamSide, true);
 
             var ships = Mission.Current.MissionObjects
                 .OfType<NavalDLC.Missions.Objects.MissionShip>()
                 .Where(s => s.Team == targetTeam)
+                .OrderBy(s => s.TotalCrewCapacity)
                 .ToList();
 
             if (!ships.Any())
@@ -443,44 +466,52 @@ namespace BLTAdoptAHero
                 onFailure("No deployable ships available for that side.");
                 return;
             }
-
-            var targetShip = ships
-                .OrderBy(s => (s.CrewSizeOnMainDeck + s.CrewSizeOnLowerDeck))
-                .ThenBy(_ => MBRandom.RandomInt(0, int.MaxValue))
-                .First();
-            agentsLogic.SetIgnoreTroopCapacities(targetShip, true);
-            agentsLogic.SetDesiredTroopCountOfShip(targetShip, (targetShip.TotalCrewCapacity + 100));
-
-            TeamSideEnum teamSide = targetTeam.TeamSide;
-            IAgentOriginBase heroOrigin = agentsLogic.FindTroopOrigin(teamSide,
-                origin => origin.Troop != null);
-
-            if (heroOrigin == null)
+            Agent spawnedAgent;
+            foreach (var ship in ships)
             {
-                heroOrigin = agentsLogic.FindTroopOrigin(teamSide,
-                    origin => origin.Troop != null && origin.Troop.IsHero);
-            }
+                try
+                {
 
-            if (heroOrigin == null)
-            {
-                onFailure("Could not locate an agent origin for the hero in this mission's naval troop pool.");
-                return;
+                    agentsLogic.SetIgnoreTroopCapacities(ship, true);
+                    agentsLogic.SetDesiredTroopCountOfShip(ship, ship.TotalCrewCapacity + 100);
+
+
+                    TeamSideEnum teamSide = targetTeam.TeamSide;
+
+                    IAgentOriginBase heroOrigin =
+                        agentsLogic.FindTroopOrigin(teamSide, o => o.Troop != null)
+                        ?? agentsLogic.FindTroopOrigin(teamSide, o => o.Troop != null && o.Troop.IsHero);
+
+                    if (heroOrigin == null)
+                    {
+#if DEBUG
+                        Log.Trace("Missing origin");
+#endif
+                        continue;
+                    }
+
+                    AddHeroToShip(ship, adoptedHero.CharacterObject, settings.OnPlayerSide);
+                    agentsLogic.SpawnNextBatch(teamSide, false, null);
+                    spawnedAgent = adoptedHero.GetAgent();
+                    if (spawnedAgent == null)
+                    {
+#if DEBUG
+                        Log.Trace("Failed to spawn hero on the ship.");
+#endif
+                        continue;
+                    }
+                    break;
+                }
+                catch
+                {
+
+                    continue;
+                }
             }
 
             try
             {
-                AddHeroToShip(targetShip, adoptedHero.CharacterObject, settings.OnPlayerSide);
-                agentsLogic.SpawnNextBatch(teamSide, false, null);
-            }
-            catch (Exception ex)
-            {
-                onFailure($"Failed to reserve hero for ship: {ex.Message}");
-                return;
-            }
-
-            try
-            {
-                agentsLogic.AssignTroops(teamSide, true);
+                agentsLogic.AssignTroops(targetTeam.TeamSide, true);
             }
             catch (Exception ex)
             {
@@ -488,7 +519,7 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            Agent spawnedAgent = adoptedHero.GetAgent();
+            spawnedAgent = adoptedHero.GetAgent();
             if (spawnedAgent == null)
             {
                 onFailure("Failed to spawn hero on the ship.");
@@ -625,7 +656,24 @@ namespace BLTAdoptAHero
                 heroSummonState = BLTSummonBehavior.Current.AddHeroSummonState(adoptedHero, settings.OnPlayerSide, party, forced: false, settings.WithRetinue);
             }
 
-            BLTRemoveAgentsBehavior.Current.Add(adoptedHero);
+            //BLTRemoveAgentsBehavior.Current.Add(adoptedHero);
+
+            foreach (var t in Mission.Current.Teams)
+            {
+                t.QuerySystem.Expire();
+            }
+            foreach (var formation in Mission.Current.Teams.SelectMany(t => t.FormationsIncludingSpecialAndEmpty))
+            {
+                formation.SetSpawnIndex(0);
+            }
+
+            if (MBRandom.RandomInt(0, 100) < (int)Math.Round(settings.ShoutPercent * 100))
+            {
+                Log.ShowInformation(!string.IsNullOrEmpty(context.Args)
+                    ? context.Args
+                    : GetShouts(settings).SelectRandomWeighted(shout => shout.Weight)?.Text?.ToString() ?? "...",
+                adoptedHero.CharacterObject, settings.AlertSound);
+            }
 
             if (settings.GoldCost != 0)
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.GoldCost);

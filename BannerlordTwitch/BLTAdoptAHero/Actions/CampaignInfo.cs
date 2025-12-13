@@ -165,7 +165,7 @@ namespace BLTAdoptAHero
                     "{=Lk1NDpuQ}{kingdom} is not at war".Translate(("kingdom", desiredKingdom.Name.ToString())));
                 return;
             }
-
+            var diplo = Campaign.Current.Models.DiplomacyModel;
             var sb = new StringBuilder();
             foreach (var k in Kingdom.All)
             {
@@ -184,7 +184,7 @@ namespace BLTAdoptAHero
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     var stance = desiredKingdom.GetStanceWith(k);
-                    sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Prisoners: {p1}/{p2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Started: {date}"
+                    sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Prisoners: {p1}/{p2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Progress: {p1%}/{p2%} Started: {date}"
                         .Translate(
                             ("k1", desiredKingdom.Name.ToString()),
                             ("k2", k.Name.ToString()),
@@ -196,6 +196,8 @@ namespace BLTAdoptAHero
                             ("r2", stance.GetSuccessfulRaids(k)),
                             ("s1", stance.GetSuccessfulSieges(desiredKingdom)),
                             ("s2", stance.GetSuccessfulSieges(k)),
+                            ("p1%", diplo.GetWarProgressScore(desiredKingdom, k)),
+                            ("p2%", diplo.GetWarProgressScore(k, desiredKingdom)),
                             ("date", stance.WarStartDate.ToString())
                         ));
                     sb.Append(" | ");
@@ -231,7 +233,7 @@ namespace BLTAdoptAHero
                 sb.Append(" | ");
                 sb.Append("{=TESTING}Village | ".Translate());
                 sb.Append("{=TESTING}Culture: {culture} | ".Translate(("culture", desiredFief.Culture.ToString())));
-                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth),("change", (vill.HearthChange >= 0 ? "+" : "") + Math.Round(vill.HearthChange, 2))));
+                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth), ("change", (vill.HearthChange >= 0 ? "+" : "") + Math.Round(vill.HearthChange, 2))));
                 var parent = Settlement.All.FirstOrDefault(s => s.BoundVillages.Any(v => v.Name.ToString() == desiredFief.Name.ToString()));
                 sb.Append("{=TESTING}Bound to {parent}".Translate(("parent", parent.Name)));
                 ActionManager.SendReply(context, sb.ToString());
@@ -264,7 +266,7 @@ namespace BLTAdoptAHero
                 if (town.Governor != null)
                     sb.Append("{=TESTING}Governor:{gove} | ".Translate(("gove", town.Governor.Name)));
                 sb.Append("{=TESTING}Prosperity:{pros}({change}) | ".Translate(("pros", (int)town.Prosperity), ("change", (town.ProsperityChange > 0 ? "+" : "") + Math.Round(town.ProsperityChange, 2))));
-                sb.Append("{=TESTING}Loyalty:{loy}({change}) | ".Translate(("loy", (int)town.Loyalty), ("change", (town.LoyaltyChange> 0 ? "+" : "") + Math.Round(town.LoyaltyChange, 2))));
+                sb.Append("{=TESTING}Loyalty:{loy}({change}) | ".Translate(("loy", (int)town.Loyalty), ("change", (town.LoyaltyChange > 0 ? "+" : "") + Math.Round(town.LoyaltyChange, 2))));
                 sb.Append("{=TESTING}Security:{sec}({change}) | ".Translate(("sec", (int)town.Security), ("change", (town.SecurityChange > 0 ? "+" : "") + Math.Round(town.SecurityChange, 2))));
                 sb.Append("{=TESTING}Food:{food}({change}) | ".Translate(("food", (int)town.FoodStocks), ("change", (town.FoodChange > 0 ? "+" : "") + Math.Round(town.FoodChange, 2))));
                 sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));

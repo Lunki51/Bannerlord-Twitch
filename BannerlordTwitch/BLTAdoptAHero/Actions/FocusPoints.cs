@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Linq;
 using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using JetBrains.Annotations;
+using TaleWorlds.Core;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Extensions;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero
@@ -12,67 +15,115 @@ namespace BLTAdoptAHero
     [LocDisplayName("{=WihQZ5uq}Focus Points"),
      LocDescription("{=01L8w1ZW}Add focus points to heroes skills"),
      UsedImplicitly]
-    internal class FocusPoints : ImproveAdoptedHero
+    internal class FocusPoints : HeroCommandHandlerBase
     {
-        protected class FocusPointsSettings : SettingsBase, IDocumentable
+        [CategoryOrder("Costs", 0)]
+        protected class FocusPointsSettings : IDocumentable
         {
-            [LocDisplayName("{=QwuyvXBg}Skills"),
-             LocDescription("{=w9liWZ9A}What skill to add focus to"),
-             PropertyOrder(10), UsedImplicitly]
-            public SkillsEnum Skills { get; set; } = SkillsEnum.None;
+            [LocDisplayName("{=TESTING}Focus 1"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=TESTING}Gold cost"),
+             PropertyOrder(1), UsedImplicitly]
+            public int Focus1 { get; set; } = 30000;
 
-            [LocDisplayName("{=RiUjwmS5}Auto"),
-             LocDescription("{=EA4jsUhm}Chooses a random skill to add focus to, prefering class skills, then skills for current equipment, then other skills. Skills setting is ignored when auto is used."),
-             PropertyOrder(12), UsedImplicitly]
-            public bool Auto { get; set; } = true;
+            [LocDisplayName("{=TESTING}Focus 2"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=TESTING}Gold cost"),
+             PropertyOrder(2), UsedImplicitly]
+            public int Focus2 { get; set; } = 40000;
+
+            [LocDisplayName("{=TESTING}Focus 3"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=TESTING}Gold cost"),
+             PropertyOrder(3), UsedImplicitly]
+            public int Focus3 { get; set; } = 50000;
+
+            [LocDisplayName("{=TESTING}Focus 4"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=TESTING}Gold cost"),
+             PropertyOrder(4), UsedImplicitly]
+            public int Focus4 { get; set; } = 60000;
+
+            [LocDisplayName("{=TESTING}Focus 5"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=TESTING}Gold cost"),
+             PropertyOrder(5), UsedImplicitly]
+            public int Focus5 { get; set; } = 75000;
+
+            public int GetFocusCost(int tier)
+            {
+                return tier switch
+                {
+                    0 => Focus1,
+                    1 => Focus2,
+                    2 => Focus3,
+                    3 => Focus4,
+                    4 => Focus5,
+                    _ => Focus5
+                };
+            }
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.PropertyValuePair(
-                    "{=QwuyvXBg}Skills".Translate(),
-                    Auto
-                        ? "{=SIM2l7ta}Automatic, based on class, equipment, and existing skills".Translate()
-                        : Skills.GetDisplayName());
-                generator.PropertyValuePair("{=UpHpjzFk}Focus points".Translate(),
-                    AmountLow == AmountHigh
-                        ? AmountLow.ToString()
-                        : "{=yVydxRHh}{From} to {To}".Translate(("From", AmountLow), ("To", AmountHigh)));
-                if (GoldCost != 0)
-                {
-                    generator.PropertyValuePair("{=LnQoMDLT}Cost".Translate(), $"{GoldCost}{Naming.Gold}");
-                }
+
             }
         }
 
-        protected override Type ConfigType => typeof(FocusPointsSettings);
+        public override Type HandlerConfigType => typeof(FocusPointsSettings);
 
-        protected override (bool success, string description) Improve(string userName,
-            Hero adoptedHero, int amount, SettingsBase baseSettings, string args)
+        protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
-            var settings = (FocusPointsSettings)baseSettings;
+            if (config is not FocusPointsSettings settings) return;
 
-            return FocusSkill(adoptedHero, amount, settings.Skills, settings.Auto);
+            if (adoptedHero == null)
+            {
+                onFailure(AdoptAHero.NoHeroMessage);
+                return;
+            }
+            var splitArgs = context.Args.Split(' ');
+            string args = splitArgs[0];
+            Focus(settings, adoptedHero, args, onSuccess, onFailure);
         }
 
-        public static (bool success, string description) FocusSkill(Hero adoptedHero, int amount, SkillsEnum skills, bool auto)
+        private void Focus(FocusPointsSettings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
         {
-            var skill = GetSkill(adoptedHero, skills, auto, s => adoptedHero.HeroDeveloper.GetFocus(s) < 5);
+
+            if (string.IsNullOrWhiteSpace(args))
+            {
+                onFailure(
+                     "{=i9ziqTXG}Provide the skill name to improve (or part of it)".Translate());
+                return;
+            }
+            var skill = Skills.All.Find(c =>
+                c.Name.ToString().IndexOf(args, StringComparison.OrdinalIgnoreCase) >= 0);
+
 
             if (skill == null)
             {
-                return (false, "{=VXvS5xji}Couldn't find a valid skill to add focus points to!".Translate());
+                onFailure(
+                    "{=LE3POzUs}Couldn't find skill matching '{Args}'!"
+                        .Translate(("Args", args)));
+                return;
+            }
+            int focus = adoptedHero.HeroDeveloper.GetFocus(skill);
+            int cost = settings.GetFocusCost(focus);
+            if (focus >= 5)
+            {
+                onFailure($"Max focus for {skill.Name}");
+                return;
+            }
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < cost)
+            {
+                onFailure(Naming.NotEnoughGold(cost, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
             }
 
-            amount = Math.Min(amount, 5 - adoptedHero.HeroDeveloper.GetFocus(skill));
-            adoptedHero.HeroDeveloper.AddFocus(skill, amount, checkUnspentFocusPoints: false);
-            return (true,
-                (amount > 1
-                    ? "{=6tcVqRIs}You have gained {Amount} focus points in {Skill}, you now have {NewAmount}!"
-                    : "{=HLFMWOJA}You have gained a focus point in {Skill}, you now have {NewAmount}!")
-                .Translate(
-                    ("Amount", amount),
-                    ("Skill", skill.Name.ToString()),
-                    ("NewAmount", adoptedHero.HeroDeveloper.GetFocus(skill))));
+            adoptedHero.HeroDeveloper.AddFocus(skill, 1, checkUnspentFocusPoints: false);
+            int newFocus = adoptedHero.HeroDeveloper.GetFocus(skill);
+            onSuccess(
+                ("{=HLFMWOJA}You have gained a focus point in {Skill}, you now have {NewAmount}!")
+                .Translate(("Skill", skill.Name), ("NewAmount", newFocus)));
+            return;
         }
     }
 }

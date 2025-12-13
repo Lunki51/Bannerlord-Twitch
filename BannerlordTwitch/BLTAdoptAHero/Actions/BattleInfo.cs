@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
@@ -118,6 +119,7 @@ namespace BLTAdoptAHero
                 EquipmentIndex.ExtraWeaponSlot
             };
             // --- Other ranged/thrown weapons not in main-hand ---
+            var addedThrownNames = new HashSet<string>();
             foreach (EquipmentIndex slot in weaponSlots)
             {
                 if (slot == mainIndex || slot == offIndex)
@@ -139,8 +141,19 @@ namespace BLTAdoptAHero
                     case ItemObject.ItemTypeEnum.Musket:
                     case ItemObject.ItemTypeEnum.Thrown:
                         {
+                            string nameKey = item.Name.ToString();
+
+                            // If thrown and same name already added → skip
+                            if (item.ItemType == ItemObject.ItemTypeEnum.Thrown &&
+                                addedThrownNames.Contains(nameKey))
+                                break;
+
+                            if (item.ItemType == ItemObject.ItemTypeEnum.Thrown)
+                                addedThrownNames.Add(nameKey);
+
                             int ammo = equipment.GetAmmoAmount(slot);
                             int maxAmmo = equipment.GetMaxAmmo(slot);
+
                             weaponInfo += $" + {item.Name} ({item.ItemType}) - Ammo: {ammo}/{maxAmmo}";
                             break;
                         }
