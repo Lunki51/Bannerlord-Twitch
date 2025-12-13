@@ -70,10 +70,10 @@ namespace BLTAdoptAHero
              PropertyOrder(3), UsedImplicitly]
             public int PeaceCooldown { get; set; } = 21;
 
-            [LocDisplayName("{=TESTING}Cooldown"),
+            [LocDisplayName("{=TESTING}Peace"),
              LocCategory("War", "{=TESTING}Peace"),
-             LocDescription("{=TESTING}Peace cooldown"),
-             PropertyOrder(3), UsedImplicitly]
+             LocDescription("{=TESTING}Allow peace against player"),
+             PropertyOrder(4), UsedImplicitly]
             public bool AllowPeaceOutPlayer { get; set; } = false;
 
             [LocDisplayName("{=TESTING}Ally"),
