@@ -74,6 +74,11 @@ namespace BLTAdoptAHero
          PropertyOrder(12), UsedImplicitly]
         public RangeFloat MountHitPoints { get; set; } = new(1.25f, 2f);
 
+        [LocDisplayName("{=M8drveMF}Shield Hit Points"),
+         LocDescription("{=ewC5EV3Q}Hitpoints multiplier for custom shield prize"),
+         PropertyOrder(13), UsedImplicitly]
+        public RangeInt HitPoints { get; set; } = new(40, 80);
+
         public override string ToString()
         {
             return $"{nameof(Power)}: {Power}, " +
@@ -87,7 +92,8 @@ namespace BLTAdoptAHero
                    $"{nameof(MountManeuver)}: {MountManeuver}, " +
                    $"{nameof(MountSpeed)}: {MountSpeed}, " +
                    $"{nameof(MountChargeDamage)}: {MountChargeDamage}, " +
-                   $"{nameof(MountHitPoints)}: {MountHitPoints}";
+                   $"{nameof(MountHitPoints)}: {MountHitPoints}" +
+                   $"{nameof(HitPoints)}: {HitPoints}";
         }
 
         public ItemModifier Generate(ItemObject item, string customItemName, float customItemPower)
@@ -129,6 +135,13 @@ namespace BLTAdoptAHero
                     MountSpeed.RandomInRange() * modifierPower,
                     MountChargeDamage.RandomInRange() * modifierPower,
                     MountHitPoints.RandomInRange() * modifierPower
+                );
+            }
+            else if (item.Type == ItemObject.ItemTypeEnum.Shield)
+            {
+                return BLTCustomItemsCampaignBehavior.Current.CreateShieldModifier(
+                    customItemName,
+                    (short)Mathf.Ceil(HitPoints.RandomInRange() * modifierPower)
                 );
             }
             else

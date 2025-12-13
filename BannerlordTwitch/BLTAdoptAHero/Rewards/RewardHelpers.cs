@@ -15,7 +15,8 @@ namespace BLTAdoptAHero
         {
             Weapon,
             Armor,
-            Mount
+            Mount,
+            Shield
         }
 
         public static (ItemObject item, ItemModifier modifier, EquipmentIndex slot) GenerateRewardType(
@@ -27,6 +28,7 @@ namespace BLTAdoptAHero
                 RewardType.Weapon => GenerateRewardTypeWeapon(tier, hero, heroClass, allowDuplicates, modifierDef, customItemName, customItemPower),
                 RewardType.Armor => GenerateRewardTypeArmor(tier, hero, heroClass, allowDuplicates, modifierDef, customItemName, customItemPower),
                 RewardType.Mount => GenerateRewardTypeMount(tier, hero, heroClass, allowDuplicates, modifierDef, customItemName, customItemPower),
+                RewardType.Shield => GenerateRewardTypeShield(tier, hero, heroClass, allowDuplicates, modifierDef, customItemName, customItemPower),
                 _ => throw new ArgumentOutOfRangeException(nameof(rewardType), rewardType, null)
             };
         }
@@ -245,6 +247,95 @@ namespace BLTAdoptAHero
                 ? modifierDef.Generate(mount, customItemName, customItemPower)
                 : null;
             return (mount, modifier, EquipmentIndex.Horse);
+        }
+
+        private static (ItemObject item, ItemModifier modifier, EquipmentIndex slot) GenerateRewardTypeShield(
+            int tier, Hero hero, HeroClassDef heroClass, bool allowDuplicateTypes, RandomItemModifierDef modifierDef,
+            string customItemName, float customItemPower)
+        {
+            // List of heroes custom items, so we can avoid giving duplicates (it will include what they are carrying,
+            // as all custom items are registered)
+            var heroCustomWeapons = BLTAdoptAHeroCampaignBehavior.Current.GetCustomItems(hero);
+
+            // List of heroes current weapons
+            var heroWeapons = hero.BattleEquipment.YieldFilledWeaponSlots().ToList();
+
+            var replaceableHeroWeapons = heroWeapons
+                .Where(w =>
+                    // Must be lower than the desired tier
+                    (int)w.element.Item.Tier < tier
+                    // Must not be a custom item
+                    && !BLTCustomItemsCampaignBehavior.Current.IsRegistered(w.element.ItemModifier))
+                .Select(w => (w.index, w.element.Item.GetEquipmentType()));
+
+
+            // Weapon classes we can generate a reward for, with some heuristics to avoid some edge cases, and getting
+            // duplicates
+            var weaponClasses =
+                (heroClass?.IndexedWeapons ?? replaceableHeroWeapons)
+                .Where(s =>
+                    s.type == EquipmentType.Shield
+                    // Exclude any weapons we already have enough custom versions of (if we have class then we can
+                    // match the class count, otherwise we just limit it to 1), unless we are allowing duplicates
+                    && (allowDuplicateTypes
+                        || heroCustomWeapons.Count(i => i.Item.IsEquipmentType(s.type))
+                        < (heroClass?.Weapons.Count(w => w == s.type) ?? 1))
+                )
+                .Shuffle()
+                .ToList();
+
+            if (!weaponClasses.Any())
+            {
+                return default;
+            }
+
+            // Tier > 5 indicates custom weapons with modifiers
+            if (tier > 5)
+            {
+                // Custom "modified" item
+                var (item, index) = weaponClasses
+                    .Select(c => (
+                        item: CreateCustomShield(hero, heroClass),
+                        index: c.index))
+                    .FirstOrDefault(w => w.item != null);
+                return item == null
+                        ? default
+                        : (item, modifierDef.Generate(item, customItemName, customItemPower), index)
+                    ;
+            }
+            else
+            {
+                // Find a random item fitting the weapon class requirements
+                var (item, index) = weaponClasses
+                    .Select(c => (
+                        item: EquipHero.FindRandomTieredEquipment(tier, hero,
+                            heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
+                            EquipHero.FindFlags.IgnoreAbility | EquipHero.FindFlags.RequireExactTier,
+                            i => i.IsEquipmentType(c.type)),
+                        index: c.index))
+                    .FirstOrDefault(w => w.item != null);
+                return item == null || hero.BattleEquipment[index].Item?.Tier >= item.Tier
+                    ? default
+                    : (item, null, index);
+            }
+        }
+
+        private static ItemObject CreateCustomShield(Hero hero, HeroClassDef heroClass)
+        {
+            // Get the highest tier we can for the weapon type
+            var item = EquipHero.FindRandomTieredEquipment(6, hero,
+                heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
+                EquipHero.FindFlags.IgnoreAbility,
+                o => o.IsEquipmentType(EquipmentType.Shield));
+
+            if (item == null)
+            {
+                item = EquipHero.FindRandomTieredEquipment(5, hero,
+                heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
+                EquipHero.FindFlags.IgnoreAbility,
+                o => o.IsEquipmentType(EquipmentType.Shield));
+            }
+            return item;
         }
 
         private static ItemObject CreateCustomWeapon(Hero hero, HeroClassDef heroClass, EquipmentType weaponType)

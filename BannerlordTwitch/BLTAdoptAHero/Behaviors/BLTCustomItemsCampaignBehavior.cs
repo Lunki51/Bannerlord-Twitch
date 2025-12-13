@@ -130,6 +130,13 @@ namespace BLTAdoptAHero
                 MountHitPoints = mountHitPointsModifier,
             });
 
+        public ItemModifier CreateShieldModifier(string modifiedName, short HitPointsModifier) =>
+            RegisterModifier(new()
+            {
+                Name = modifiedName,
+                HitPoints = HitPointsModifier,
+            });
+
         public ItemModifier CreateDummyModifier(string baseName) =>
             RegisterModifier(new()
             {
