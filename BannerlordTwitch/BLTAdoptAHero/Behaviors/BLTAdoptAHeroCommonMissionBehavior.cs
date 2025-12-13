@@ -260,7 +260,7 @@ namespace BLTAdoptAHero
                     {
                         GetHeroMissionState(affectorHero).Kills++;
                         AddKillStreak(affectorHero);
-                        BLTAdoptAHeroCampaignBehavior.Current.IncreaseKills(affectorHero, affectedAgent);
+                        BLTAdoptAHeroCampaignBehavior.Current.IncreaseKills(affectorHero, affectedAgent, (WeaponClass)blow.WeaponClass);
                     }
                 }
 

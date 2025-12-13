@@ -47,6 +47,40 @@ namespace BLTAdoptAHero.Achievements
             TotalTournamentRoundLosses,
             [LocDisplayName("{=WdZWU9GV}TotalTournament Final Wins")]
             TotalTournamentFinalWins,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Dagger")]
+            TotalDaggerKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}One Handed Sword")]
+            Total1HSwordKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Two Handed Sword")]
+            Total2HSwordKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}One Handed Axe")]
+            Total1HAxeKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Two Handed Axe")]
+            Total2HAxeKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}One Handed Mace")]
+            Total1HMaceKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Two Handed Mace")]
+            Total2HMaceKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Pick")]
+            TotalPickKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}OneHandedPolearm")]
+            Total1HPoleKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}TwoHandedPolearm")]
+            Total2HPoleKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Stone")]
+            TotalStoneKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Bow")]
+            TotalBowKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Crossbow")]
+            TotalXBowKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Sling")]
+            TotalSlingKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}ThrowingAxe")]
+            TotalThrowAxeKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}ThrowingKnife")]
+            TotalThrowKnifeKills,
+            [LocDisplayName("{=NEWTRACKEDSTAT}Javelin")]
+            TotalJavelinKills
         }
 
         public Dictionary<Statistic, int> TotalStats { get; set; } = new();

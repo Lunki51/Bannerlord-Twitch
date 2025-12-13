@@ -609,7 +609,7 @@ namespace BLTAdoptAHero
         #endregion
 
         #region Stats and achievements
-        public void IncreaseKills(Hero hero, Agent killed)
+        public void IncreaseKills(Hero hero, Agent killed, WeaponClass WeaponClass = 0)
         {
             if (killed?.IsAdopted() == true)
             {
@@ -628,6 +628,79 @@ namespace BLTAdoptAHero
                 IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalMountKills, 1);
             }
             IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalKills, 1);
+
+            var Weapon = WeaponClass.ToString();
+            if (Weapon == "Undefined")
+            {
+                if (Weapon == "Dagger")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalDaggerKills, 1);
+                    }
+                else if (Weapon == "OneHandedSword")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total1HSwordKills, 1);
+                    }
+                else if (Weapon == "TwoHandedSword")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total2HSwordKills, 1);
+                    }
+                else if (Weapon == "OneHandedAxe")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total1HAxeKills, 1);
+                    }
+                else if (Weapon == "TwoHandedAxe")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total2HAxeKills, 1);
+                    }
+                else if (Weapon == "Mace")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total1HMaceKills, 1);
+                    }
+                else if (Weapon == "Pick")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalPickKills, 1);
+                    }
+                else if (Weapon == "TwoHandedMace")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total2HMaceKills, 1);
+                    }
+                else if (Weapon == "OneHandedPolearm")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total1HPoleKills, 1);
+                    }
+                else if (Weapon == "TwoHandedPolearm")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.Total2HPoleKills, 1);
+                    }
+                else if (Weapon == "Stone")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalStoneKills, 1);
+                    }
+                else if (Weapon == "Bow" || Weapon == "Arrow")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalBowKills, 1);
+                    }
+                else if (Weapon == "Crossbow" || Weapon == "Bolt")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalXBowKills, 1);
+                    }
+                else if (Weapon == "Sling" || Weapon == "SlingStone")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalSlingKills, 1);
+                    }
+                else if (Weapon == "ThrowingAxe")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalThrowAxeKills, 1);
+                    }
+                else if (Weapon == "ThrowingKnife")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalThrowKnifeKills, 1);
+                    }
+                else if (Weapon == "Javelin")
+                    {
+                        IncreaseStatistic(hero, AchievementStatsData.Statistic.TotalJavelinKills, 1);
+                    }
+            }
         }
 
         public void IncreaseParticipationCount(Hero hero, bool playerSide, bool forced)
