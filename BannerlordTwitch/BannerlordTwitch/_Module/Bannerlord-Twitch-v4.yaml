@@ -884,14 +884,18 @@ Commands:
   Enabled: true
   Handler: Diplomacy
   HandlerConfig:
+    AllyEnabled: true
+    AllyPrice: 100000
     ArmyEnabled: true
     ArmyPrice: 150000
-    PeaceCooldown: 21
+    PeaceCooldown: 10
     PeaceEnabled: true
     PeacePrice: 100000
     PolicyEnabled: true
     PolicyPrice: 50000
-    WarCooldown: 21
+    TradeEnabled: true
+    TradePrice: 50000
+    WarCooldown: 20
     WarEnabled: true
     WarPrice: 250000
   Help: ''
@@ -912,6 +916,60 @@ Commands:
   Name: battle
   RespondInOverlay: false
   RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: ReinforceAction
+  HandlerConfig:
+    AllowKingdomLeaders: false
+    EliteCostPerUnit: 30000
+    EliteEnabled: true
+    EliteMilitiaCap: 50
+    Enabled: true
+    MaxEliteMilitia: 100
+    MaxMilitia: 100
+    MilitiaCap: 100
+    MilitiaCostPerUnit: 15000
+    MilitiaEnabled: true
+    MinEliteMilitia: 1
+    MinMilitia: 1
+    OnlyUnderSiege: false
+    RequireClanLeader: true
+  Help: ''
+  HideHelp: false
+  ID: 4e9393c0-e9f9-4045-b1a4-1a6ba58f0fba
+  ModeratorOnly: false
+  Name: reinforce
+  RespondInOverlay: false
+  RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: TransferAction
+  HandlerConfig:
+    AllowKingsToForceTransfers: true
+    Enabled: true
+  Help: ''
+  HideHelp: false
+  ID: 37127dc4-6d2c-4fd2-9f70-c8198a5047b4
+  ModeratorOnly: false
+  Name: transfer
+  RespondInOverlay: false
+  RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: FocusPoints
+  HandlerConfig:
+    Focus1: 30000
+    Focus2: 40000
+    Focus3: 50000
+    Focus4: 60000
+    Focus5: 75000
+  Help: ''
+  HideHelp: false
+  ID: 54a3a8e7-529c-440a-8667-fe78c595b1a7
+  ModeratorOnly: false
+  Name: buyfocus
+  RespondInOverlay: true
+  RespondInTwitch: false
 DisableAutomaticFulfillment: false
 GlobalConfigs:
 - Config:
@@ -1981,6 +2039,9 @@ GlobalConfigs:
       ArrowStack:
         Max: 20
         Min: 5
+      HitPoints:
+        Max: 80
+        Min: 40
       MountChargeDamage:
         Max: 5
         Min: 2
