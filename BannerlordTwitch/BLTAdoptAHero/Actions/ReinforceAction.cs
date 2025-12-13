@@ -10,6 +10,7 @@ using BLTAdoptAHero.Annotations;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
+using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
@@ -316,7 +317,17 @@ namespace BLTAdoptAHero.Actions
             }
 
             // cap / partial-add
-            int capRemaining = isElite ? ReinforcementBehavior.Current.GetRemainingEliteCapacity(targetSettlement, cap) : ReinforcementBehavior.Current.GetRemainingCapacity(targetSettlement, cap);
+            var behavior = ReinforcementBehavior.Current;
+            if (behavior == null)
+            {
+                InformationManager.DisplayMessage(new InformationMessage("[BLT Reinforcement] ReinforcementBehavior not initialized."));
+                return;
+            }
+
+            int capRemaining = isElite
+                ? behavior.GetRemainingEliteCapacity(targetSettlement, cap)
+                : behavior.GetRemainingCapacity(targetSettlement, cap);
+
             if (cap > 0 && capRemaining <= 0)
             {
                 onFailure($"{targetSettlement.Name} has reached its BLT reinforcement cap for this tier.");

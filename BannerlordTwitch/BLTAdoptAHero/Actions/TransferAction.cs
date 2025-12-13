@@ -202,19 +202,27 @@ namespace BLTAdoptAHero.Actions
             if (kingdomsDiffer)
             {
                 // If 'force' is used, ensure only owner kingdom rulers may force a transfer between kingdoms when config forbids non-forced cross-kingdom transfers.
-                if (isForce && !settings.AllowKingsToForceTransfers && !issuerIsOwnerKing)
+                if (!settings.AllowKingsToForceTransfers && !issuerIsOwnerKing)
                 {
                     onFailure("Only the owner kingdom ruler can force a cross-kingdom transfer.");
                     return;
+                }
+                if (!isForce)
+                {
+                    onFailure("Cross-kingdom transfers require force transfers, use !transfer force.");
                 }
             }
             else
             {
                 // same kingdom: 'force' may be used by owner king to override normal restrictions
-                if (isForce && !issuerIsOwnerKing)
+                if (!issuerIsOwnerKing)
                 {
                     onFailure("Only the owner kingdom ruler may use 'force' when moving settlements.");
                     return;
+                }
+                if (!isForce)
+                {
+                    onFailure("Cross-kingdom transfers require force transfers, use !transfer force.");
                 }
             }
 
