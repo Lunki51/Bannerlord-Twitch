@@ -211,7 +211,7 @@ namespace BLTAdoptAHero
             public CombatLogData combatLogData;
         }
 
-        private void RegisterBlow(Agent attackerAgent, Agent victimAgent, Blow blow,
+        private void RegisterBlow(Agent attackerAgent, Agent victimAgent, ref Blow blow,
             ref AttackCollisionData collisionData, in MissionWeapon attackerWeapon, ref CombatLogData combatLogData)
         {
             var param = new RegisterBlowParams
@@ -317,10 +317,10 @@ namespace BLTAdoptAHero
         // }
 
         [UsedImplicitly, HarmonyPrefix, HarmonyPatch(typeof(Mission), "RegisterBlow")]
-        private static void RegisterBlowPrefix(Agent attacker, Agent victim, WeakGameEntity realHitEntity, Blow b,
-            ref AttackCollisionData collisionData, in MissionWeapon attackerWeapon, ref CombatLogData combatLogData)
+        private static void RegisterBlowPrefix(Agent attacker, Agent victim, WeakGameEntity realHitEntity, ref Blow b,
+    ref AttackCollisionData collisionData, in MissionWeapon attackerWeapon, ref CombatLogData combatLogData)
         {
-            Current?.RegisterBlow(attacker, victim, b, ref collisionData,
+            Current?.RegisterBlow(attacker, victim, ref b, ref collisionData,
                 in attackerWeapon, ref combatLogData);
         }
 

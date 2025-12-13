@@ -247,7 +247,7 @@
     </Reference>
     <Reference Include="0Harmony, Version=2.3.3.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>F:\SteamLibrary\steamapps\common\Mount &amp; Blade II Bannerlord\Modules\Bannerlord.Harmony\bin\Win64_Shipping_Client\0Harmony.dll</HintPath>
+      <HintPath>$(BANNERLORD_GAME_DIR)\Modules\Bannerlord.Harmony\bin\Win64_Shipping_Client\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="FontAwesome.WPF, Version=4.7.0.37774, Culture=neutral, PublicKeyToken=0758b07a11a4f466">
       <HintPath>..\packages\FontAwesome.WPF.4.7.0.9\lib\net40\FontAwesome.WPF.dll</HintPath>
@@ -352,6 +352,7 @@
     <Compile Include="Actions\JoinTournament.cs" />
     <Compile Include="Actions\KingdomManagement.cs" />
     <Compile Include="Actions\NameItem.cs" />
+    <Compile Include="Actions\ReinforceAction.cs" />
     <Compile Include="Actions\Rejuvenate.cs" />
     <Compile Include="Actions\Retinue.cs" />
     <Compile Include="Actions\RetireMyHero.cs" />
@@ -361,6 +362,7 @@
     <Compile Include="Actions\SmithItem.cs" />
     <Compile Include="Actions\SummonHero.cs" />
     <Compile Include="Actions\TournamentBet.cs" />
+    <Compile Include="Actions\TransferAction.cs" />
     <Compile Include="Actions\UsePower.cs" />
     <Compile Include="Actions\Util\CustomItems.cs" />
     <Compile Include="Actions\Util\HeroClassDef.cs" />
@@ -383,6 +385,8 @@
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
+    <Compile Include="Behaviors\ReinforcementBehavior.cs" />
+    <Compile Include="Behaviors\ReinforcementPatches.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
@@ -409,6 +413,8 @@
     <Compile Include="Rewards\GeneratedRewardDef.cs" />
     <Compile Include="Rewards\RandomItemModifierDef.cs" />
     <Compile Include="Rewards\RewardHelpers.cs" />
+    <None Include="Templates\ActionTemplate.cs" />
+    <None Include="Templates\BehaviorTemplate.cs" />
     <Compile Include="Util\AgentExtensions.cs" />
     <Compile Include="Util\ConsoleCommands.cs" />
     <Compile Include="Util\HeroExtensions.cs" />

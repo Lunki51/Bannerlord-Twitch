@@ -313,11 +313,11 @@ namespace BLTAdoptAHero.Powers
             {
                 float additionalDamage = blowParams.blow.AbsorbedByArmor * armorToIgnorePercent / 100f;
                 blowParams.collisionData.AbsorbedByArmor =
-                    (int)(blowParams.blow.AbsorbedByArmor = blowParams.blow.AbsorbedByArmor - additionalDamage);
+                    (int)(blowParams.blow.AbsorbedByArmor -= additionalDamage);
                 blowParams.collisionData.BaseMagnitude =
-                    blowParams.blow.BaseMagnitude = blowParams.blow.BaseMagnitude + additionalDamage;
+                    blowParams.blow.BaseMagnitude += additionalDamage;
                 blowParams.collisionData.InflictedDamage =
-                    blowParams.blow.InflictedDamage = blowParams.blow.InflictedDamage + (int)additionalDamage;
+                    blowParams.blow.InflictedDamage += (int)additionalDamage;
             }
 
             if (damageModifierPercent != 100)
