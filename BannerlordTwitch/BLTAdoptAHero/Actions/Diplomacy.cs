@@ -50,7 +50,7 @@ namespace BLTAdoptAHero
              LocCategory("War", "{=TESTING}War"),
              LocDescription("{=TESTING}War cooldown"),
              PropertyOrder(3), UsedImplicitly]
-            public int WarCooldown { get; set; } = 21;
+            public int WarCooldown { get; set; } = 20;
 
             [LocDisplayName("{=TESTING}Peace"),
              LocCategory("Peace", "{=TESTING}Peace"),
@@ -68,13 +68,7 @@ namespace BLTAdoptAHero
              LocCategory("War", "{=TESTING}Peace"),
              LocDescription("{=TESTING}Peace cooldown"),
              PropertyOrder(3), UsedImplicitly]
-            public int PeaceCooldown { get; set; } = 21;
-
-            [LocDisplayName("{=TESTING}Peace"),
-             LocCategory("War", "{=TESTING}Peace"),
-             LocDescription("{=TESTING}Allow peace against player"),
-             PropertyOrder(4), UsedImplicitly]
-            public bool AllowPeaceOutPlayer { get; set; } = false;
+            public int PeaceCooldown { get; set; } = 10;         
 
             [LocDisplayName("{=TESTING}Ally"),
              LocCategory("Alliance", "{=TESTING}Alliance"),
@@ -247,8 +241,8 @@ namespace BLTAdoptAHero
                             onFailure("Cant declare war on yourself!");
                             return;
                         }
-                        var stance = kingdom.GetStanceWith(desiredKingdom);
-                        if ((stance.PeaceDeclarationDate != CampaignTime.Zero || stance.PeaceDeclarationDate != null) && (CampaignTime.Now - stance.PeaceDeclarationDate).ToDays < settings.WarCooldown)
+                        var stance = kingdom.GetStanceWith(desiredKingdom);                       
+                        if (stance.PeaceDeclarationDate.ElapsedDaysUntilNow < settings.WarCooldown)
                         {
                             onFailure($"Cant war yet. {(int)(20 - (CampaignTime.Now - stance.PeaceDeclarationDate).ToDays)} days remaining.");
                             return;
@@ -299,11 +293,6 @@ namespace BLTAdoptAHero
                             onFailure("Peace disabled".Translate());
                             return;
                         }
-                        if (!settings.AllowPeaceOutPlayer && (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader))
-                        { 
-                            onFailure("Peacing out the Streamer is disabled. Good Luck".Translate());
-                            return;
-                        }
                         if (!adoptedHero.IsKingdomLeader)
                         {
                             onFailure("{=TESTING}Not a king.".Translate());
@@ -332,7 +321,7 @@ namespace BLTAdoptAHero
                             onFailure($"Already at peace with {desiredKingdom}");
                             return;
                         }
-                        if ((stance.WarStartDate != CampaignTime.Zero || stance.WarStartDate != null) && (CampaignTime.Now - stance.WarStartDate).ToDays < settings.PeaceCooldown)
+                        if (stance.WarStartDate.ElapsedDaysUntilNow < settings.PeaceCooldown)
                         {
                             onFailure($"Cant peace yet. {(int)(20 - (CampaignTime.Now - stance.WarStartDate).ToDays)} days remaining.");
                             return;
@@ -346,19 +335,7 @@ namespace BLTAdoptAHero
 
                         Clan proposer = adoptedHero.Clan;
                         var diplomacy = Campaign.Current.Models.DiplomacyModel;
-                        //var barter = new PeaceBarterable(kingdom, desiredKingdom, CampaignTime.Years(1f));
-                        //float valueForFaction = barter.GetValueForFaction(proposer);
-                        //float wealthFactor = (proposer.Leader.Gold < 50000f)
-                        //? (1f + 0.5f * ((50000f - proposer.Leader.Gold) / 50000f))
-                        //: ((proposer.Leader.Gold > 200000f)
-                        //? (float)Math.Max(0.66, Math.Pow(200000.0 / proposer.Leader.Gold, 0.4))
-                        //: 1f);
-                        //int generosityLevel = proposer.Leader.GetTraitLevel(DefaultTraits.Generosity);
-                        //float generosityFactor = (true) // tribute payer
-                        //? (1f - 0.1f * Math.Max(-2, Math.Min(2, generosityLevel)))
-                        //: 1f;
                         Clan recipient = desiredKingdom.RulingClan;
-                        // Get daily tribute and the duration in days automatically
                         int dailyTribute = Campaign.Current.Models.DiplomacyModel.GetDailyTributeToPay(proposer, recipient, out int tributeDurationInDays);
 
                         if (kingdom == Hero.MainHero.Clan.Kingdom)
@@ -372,14 +349,16 @@ namespace BLTAdoptAHero
                                 return;
                             }
 
-                            MakePeaceKingdomDecision newPeaceProposal = new MakePeaceKingdomDecision(adoptedHero.Clan, desiredKingdom, dailyTribute);
+                            MakePeaceKingdomDecision newPeaceProposal = new MakePeaceKingdomDecision(adoptedHero.Clan, desiredKingdom, dailyTribute, tributeDurationInDays);
                             adoptedHero.Clan.Kingdom.AddDecision(newPeaceProposal);
                             onSuccess($"Proposed peace decision");
                         }
-                        //else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader)
-                        //{
-                        //    PeaceOfferCampaignBehavior (GL Kanboru)
-                        //}
+                        else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader)
+                        {
+                            CampaignEventDispatcher.Instance.OnPeaceOfferedToPlayer(kingdom, dailyTribute, tributeDurationInDays);
+
+                            onSuccess("Peace offer sent to the player.");
+                        }
                         else
                         {
                             // Apply peace with the calculated tribute

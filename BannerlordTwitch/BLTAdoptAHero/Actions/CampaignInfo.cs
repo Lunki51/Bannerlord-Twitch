@@ -184,7 +184,7 @@ namespace BLTAdoptAHero
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     var stance = desiredKingdom.GetStanceWith(k);
-                    sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Prisoners: {p1}/{p2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Progress: {p1%}/{p2%} Started: {date}"
+                    sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Prisoners: {p1}/{p2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Progress: {pr1}/{pr2} Started: {date}"
                         .Translate(
                             ("k1", desiredKingdom.Name.ToString()),
                             ("k2", k.Name.ToString()),
@@ -196,8 +196,8 @@ namespace BLTAdoptAHero
                             ("r2", stance.GetSuccessfulRaids(k)),
                             ("s1", stance.GetSuccessfulSieges(desiredKingdom)),
                             ("s2", stance.GetSuccessfulSieges(k)),
-                            ("p1%", diplo.GetWarProgressScore(desiredKingdom, k)),
-                            ("p2%", diplo.GetWarProgressScore(k, desiredKingdom)),
+                            ("pr1", diplo.GetWarProgressScore(desiredKingdom, k).RoundedResultNumber),
+                            ("pr2", diplo.GetWarProgressScore(k, desiredKingdom).RoundedResultNumber),
                             ("date", stance.WarStartDate.ToString())
                         ));
                     sb.Append(" | ");
