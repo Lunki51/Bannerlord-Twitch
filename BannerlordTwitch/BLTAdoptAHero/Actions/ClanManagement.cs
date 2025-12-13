@@ -247,14 +247,9 @@ namespace BLTAdoptAHero.Actions
 
         public void CreateParty(Hero adoptedHero)
         {
-            string partyId = Campaign.Current.CampaignObjectManager.FindNextUniqueStringId<MobileParty>($"lord_party_{adoptedHero.StringId}");
 
-            Settlement spawnSettlement = adoptedHero.HomeSettlement;
-            CampaignVec2 spawnPos = spawnSettlement.GatePosition;
-            float spawnRadius = 2f;
-
-            MobileParty newParty = LordPartyComponent.CreateLordParty(partyId, adoptedHero, spawnPos, spawnRadius, spawnSettlement, adoptedHero);
-
+            Settlement spawnSettlement = adoptedHero.CurrentSettlement ?? adoptedHero.HomeSettlement;
+            var newParty = Helpers.MobilePartyHelper.SpawnLordParty(adoptedHero, spawnSettlement);
             var retinue = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
             foreach (var retinueTroop in retinue)
             {
@@ -263,6 +258,9 @@ namespace BLTAdoptAHero.Actions
                     newParty.MemberRoster.AddToCounts(retinueTroop, 1);
                 }
             }
+            newParty.IsActive = true;
+            newParty.IsDisbanding = false;
+
         }
 
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
@@ -490,10 +488,18 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation("{=TsmDfvuz}{heroName} has created and is leading clan {clanName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("clanName", adoptedHero.Clan.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
             //ChangeClanLeaderAction.ApplyWithSelectedNewLeader(newClan, adoptedHero);
 
-            if (adoptedHero.PartyBelongedTo != null)
+            if (adoptedHero?.PartyBelongedTo?.Party?.MobileParty == null)
             {
-                CreateParty(adoptedHero);
-                onSuccess("Party created");
+                var newParty = Helpers.MobilePartyHelper.CreateNewClanMobileParty(adoptedHero, newClan);
+                var retinue = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
+                foreach (var retinueTroop in retinue)
+                {
+                    if (retinueTroop != null)
+                    {
+                        newParty.MemberRoster.AddToCounts(retinueTroop, 1);
+                    }
+                }
+                //onSuccess("Party created");
             }
         }
 
@@ -615,7 +621,7 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=zVDODxiN}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
             clanStats.Append("{=SDVLj0nw}Wealth: {wealth} | ".Translate(("wealth", adoptedHero.Clan.Leader.Gold.ToString())));
             clanStats.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
-            clanStats.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} |".Translate(("cparties", adoptedHero.Clan.WarPartyComponents.Count), ("mparties", adoptedHero.Clan.CommanderLimit)));
+            int parties = 0;
             int ships = 0;
             foreach (var partyComponent in adoptedHero.Clan.WarPartyComponents)
             {
@@ -623,10 +629,12 @@ namespace BLTAdoptAHero.Actions
 
                 if (party == null) continue;
 
+                if (party.IsLordParty) parties += 1;
                 ships += party.Ships.Count;
 
 
             }
+            clanStats.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} |".Translate(("cparties", parties), ("mparties", adoptedHero.Clan.CommanderLimit)));
             clanStats.Append("{=TESTING}Ships: {ships} | ".Translate(("ships", ships)));
             if (adoptedHero.Clan.Fiefs.Count >= 1)
             {

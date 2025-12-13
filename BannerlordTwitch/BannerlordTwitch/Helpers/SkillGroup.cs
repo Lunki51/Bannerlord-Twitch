@@ -178,6 +178,7 @@ namespace BannerlordTwitch.Helpers
                         yield return SkillsEnum.Bow;
                         break;
                     case ItemObject.ItemTypeEnum.Thrown:
+                    case ItemObject.ItemTypeEnum.Sling:
                         yield return SkillsEnum.Throwing;
                         break;
                     case ItemObject.ItemTypeEnum.Crossbow:
@@ -224,6 +225,8 @@ namespace BannerlordTwitch.Helpers
                     case EquipmentType.ThrowingKnives:
                     case EquipmentType.ThrowingAxes:
                     case EquipmentType.ThrowingJavelins:
+                    case EquipmentType.Sling:
+                    case EquipmentType.SlingStones:
                         yield return SkillsEnum.Throwing;
                         break;
                     // case EquipmentType.Shield:
@@ -275,6 +278,8 @@ namespace BannerlordTwitch.Helpers
                     yield return EquipmentType.ThrowingKnives;
                     yield return EquipmentType.ThrowingAxes;
                     yield return EquipmentType.ThrowingJavelins;
+                    yield return EquipmentType.Sling;
+                    yield return EquipmentType.SlingStones;
                 }
             }
         }

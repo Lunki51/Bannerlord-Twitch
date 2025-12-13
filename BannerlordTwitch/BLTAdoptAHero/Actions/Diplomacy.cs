@@ -321,7 +321,7 @@ namespace BLTAdoptAHero
                             onFailure($"Already at peace with {desiredKingdom}");
                             return;
                         }
-                        if ((stance.WarStartDate != CampaignTime.Zero || stance.WarStartDate != null) && (stance.WarStartDate - CampaignTime.Now).ToDays < settings.PeaceCooldown)
+                        if ((stance.WarStartDate != CampaignTime.Zero || stance.WarStartDate != null) && (CampaignTime.Now - stance.WarStartDate).ToDays < settings.PeaceCooldown)
                         {
                             onFailure($"Cant peace yet. {(int)(20 - (CampaignTime.Now - stance.WarStartDate).ToDays)} days remaining.");
                             return;
@@ -380,7 +380,7 @@ namespace BLTAdoptAHero
                                 .GetDailyTributeToPay(proposer, recipient, out tributeDurationInDays);
 
                             // Apply peace with the calculated tribute
-                            MakePeaceAction.ApplyByKingdomDecision(proposer, recipient, dailyTribute, tributeDurationInDays);
+                            MakePeaceAction.ApplyByKingdomDecision(kingdom, desiredKingdom, dailyTribute, tributeDurationInDays);
 
                             adoptedHero.Clan.Influence -= influenceCost;
                             influenceCost *= -1;

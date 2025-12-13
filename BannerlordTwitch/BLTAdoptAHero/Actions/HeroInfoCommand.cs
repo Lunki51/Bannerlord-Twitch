@@ -173,8 +173,10 @@ namespace BLTAdoptAHero
                     }
                     infoStrings.Add($"{adoptedHero.Culture.Name}");
                     infoStrings.Add("{=4TVRrlOw}{Age} yrs".Translate(("Age", (int)Math.Truncate((double)adoptedHero.Age))));
+                    var gender = adoptedHero.IsFemale ? "Female" : "Male";
+                    infoStrings.Add("{=TESTING}{gender}".Translate(("gender", gender)));
                     infoStrings.Add("{=jY2QJdA3}{HP} / {MaxHP} HP".Translate(
-                        ("HP", adoptedHero.HitPoints), ("MaxHP", adoptedHero.CharacterObject.MaxHitPoints())));
+                        ("HP", adoptedHero.HitPoints), ("MaxHP", adoptedHero.MaxHitPoints)));
                     if (adoptedHero.LastKnownClosestSettlement != null)
                     {
                         infoStrings.Add("{=B2xDasDx}Last seen near {Place}"
@@ -248,20 +250,20 @@ namespace BLTAdoptAHero
                                 {
                                     string name = RewardHelpers.GetItemNameAndModifiers(e);
 
-                // remove no-modifiers marker
-                name = name.Replace("(no modifiers)", "").Trim();
+                                    // remove no-modifiers marker
+                                    name = name.Replace("(no modifiers)", "").Trim();
 
-                // shorten common terms
-                name = name
-                                        .Replace("Damage", "Dmg")
-                                        .Replace("Missile Speed", "Speed")
-                                        .Replace("Swing Speed", "Speed")
-                                        .Replace("Mount Speed", "Speed")
-                                        .Replace("Stack Count", "Stack")
-                                        .Replace("Hit Points", "Hp")
-                                        .Replace("Mount HP", "HP")
-                                        .Replace("Mount Charge", "Charge")
-                                        .Replace("Mount Maneuver", "Maneuver");
+                                    // shorten common terms
+                                    name = name
+                                                            .Replace("Damage", "Dmg")
+                                                            .Replace("Missile Speed", "Speed")
+                                                            .Replace("Swing Speed", "Speed")
+                                                            .Replace("Mount Speed", "Speed")
+                                                            .Replace("Stack Count", "Stack")
+                                                            .Replace("Hit Points", "Hp")
+                                                            .Replace("Mount HP", "HP")
+                                                            .Replace("Mount Charge", "Charge")
+                                                            .Replace("Mount Maneuver", "Maneuver");
 
                                     return $"#{idx + 1} {name}";
                                 }))
