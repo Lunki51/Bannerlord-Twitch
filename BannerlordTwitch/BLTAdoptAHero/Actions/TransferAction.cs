@@ -202,27 +202,41 @@ namespace BLTAdoptAHero.Actions
             if (kingdomsDiffer)
             {
                 // If 'force' is used, ensure only owner kingdom rulers may force a transfer between kingdoms when config forbids non-forced cross-kingdom transfers.
-                if (!settings.AllowKingsToForceTransfers && !issuerIsOwnerKing)
+                // !settings.AllowKingsToForceTransfers && !issuerIsOwnerKing
+                if (settings.AllowKingsToForceTransfers)
                 {
-                    onFailure("Only the owner kingdom ruler can force a cross-kingdom transfer.");
-                    return;
+                    if (!issuerIsOwnerKing)
+                    {
+                        onFailure("Only the kingdom ruler can do cross-kingdom transfers.");
+                        return;
+                    }
+                    if (!isForce)
+                    {
+                        onFailure("Cross-kingdom transfers require force transfers, use !transfer force.");
+                        return;
+                    }
                 }
-                if (!isForce)
+                else
                 {
-                    onFailure("Cross-kingdom transfers require force transfers, use !transfer force.");
+                    onFailure("Cross-kingdom transfers disabled.");
+                    return;
                 }
             }
             else
             {
                 // same kingdom: 'force' may be used by owner king to override normal restrictions
-                if (!issuerIsOwnerKing)
+                if (!issuerOwnsSettlement)
                 {
-                    onFailure("Only the owner kingdom ruler may use 'force' when moving settlements.");
-                    return;
+                    if (issuerIsOwnerKing && !isForce)
+                    {
+                        onFailure("Kingdom ruler must use 'force' to move settlements that are not their clan's.");
+                        return;
+                    }
                 }
-                if (!isForce)
+                else
                 {
                     onFailure("Cross-kingdom transfers require force transfers, use !transfer force.");
+                    return;
                 }
             }
 
