@@ -61,11 +61,23 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(5), UsedImplicitly]
             public int MercPrice { get; set; } = 50000;
 
+            [LocDisplayName("{=6PUxQuLg}Mercenary Cost"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=6fkIuAEC}Player kingdom mercenary contract cost"),
+             PropertyOrder(6), UsedImplicitly]
+            public int PlayerMercPrice { get; set; } = 50000;
+
             [LocDisplayName("{=7KEOBexC}Players Kingdom?"),
              LocCategory("Join", "{=q5JhpNMF}Join"),
              LocDescription("{=7ivCO9JL}Allow viewers to join the players kingdom"),
-             PropertyOrder(6), UsedImplicitly]
+             PropertyOrder(7), UsedImplicitly]
             public bool JoinAllowPlayer { get; set; } = true;
+
+            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=6fkIuAEC}Cost of joining the player's kingdom"),
+             PropertyOrder(8), UsedImplicitly]
+            public int PlayerJoinPrice { get; set; } = 250000;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
@@ -73,11 +85,23 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool RebelEnabled { get; set; } = true;
 
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
+             LocDescription("{=88BqaM2k}Enable viewer clan rebelling against BLT kingdoms"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool BLTRebelEnabled { get; set; } = true;
+
             [LocDisplayName("{=6PUxQuLg}Gold Cost"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
              LocDescription("{=97hqQyTG}Cost of starting a rebellion"),
              PropertyOrder(2), UsedImplicitly]
             public int RebelPrice { get; set; } = 2500000;
+
+            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
+             LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
+             LocDescription("{=97hqQyTG}Cost of rebelling against BLT kingoms"),
+             PropertyOrder(2), UsedImplicitly]
+            public int BLTRebelPrice { get; set; } = 1500000;
 
             [LocDisplayName("{=9rmGjERc}Minimum Clan Tier"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
@@ -147,18 +171,22 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "Max Clans={maxHeroes}, ".Translate(("maxClans", JoinMaxClans.ToString())) +
                                     "Price={price}{icon}, ".Translate(("price", JoinPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Player Kingdom Price={price}{icon}, ".Translate(("price", PlayerJoinPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Allow Join Players Kingdom?={allowPlayer}".Translate(("allowPlayer", JoinAllowPlayer.ToString())));
                 if (MercenaryEnabled)
                     generator.Value("<strong>" +
                                     "Mercenary: " +
                                     "</strong>" +
-                    "{mercenary}{icon}, ".Translate(("mercenary", MercPrice.ToString()), ("icon", Naming.Gold)));
+                                    "Price={price}{icon}, ".Translate(("price", MercPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Player Kingdom Price={price}{icon}, ".Translate(("price", PlayerMercPrice.ToString()), ("icon", Naming.Gold)));
 
                 if (RebelEnabled)
                     generator.Value("<strong>" +
                                     "Rebel Config: " +
                                     "</strong>" +
                                     "Price={price}{icon}, ".Translate(("price", RebelPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Allow Rebelling from BLT Kingdom?={allowBLT}, ".Translate(("allowBLT", BLTRebelEnabled.ToString())) +
+                                    "From BLT Kingdom Price={price}{icon}, ".Translate(("price", BLTRebelPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}".Translate(("tier", RebelClanTierMinimum.ToString())));
                 if (CreateKEnabled)
                     generator.Value("<strong>" +
@@ -240,6 +268,7 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleJoinCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
+            bool joiningPlayer = false;
             if (!settings.JoinEnabled)
             {
                 onFailure("{=FHPbdYpk}Joining kingdoms is disabled".Translate());
@@ -277,13 +306,29 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=L4dccNIC}Joining the players kingdom is disabled".Translate());
                 return;
             }
-            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.JoinPrice)
+            else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && settings.JoinAllowPlayer)
+            {
+                joiningPlayer = true;
+            }
+            if (!joiningPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.JoinPrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.JoinPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
+            else if (joiningPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PlayerJoinPrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.PlayerJoinPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
             AdoptedHeroFlags._allowKingdomMove = true;
-            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.JoinPrice, true);
+            if (joiningPlayer)
+            {
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PlayerJoinPrice, true);
+            }
+            else
+            {
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.JoinPrice, true);
+            }
             ChangeKingdomAction.ApplyByJoinToKingdom(adoptedHero.Clan, desiredKingdom);
             onSuccess("{=LSea9bms}Your clan {clanName} has joined the kingom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
             Log.ShowInformation("{=Lid1aV3k}{clanName} has joined kingdom {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
@@ -292,6 +337,7 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleRebelCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
         {
+            bool BLTRebellion = false;
             if (!settings.RebelEnabled)
             {
                 onFailure("{=MRstTtQa}Clan rebellion is disabled".Translate());
@@ -304,7 +350,7 @@ namespace BLTAdoptAHero.Actions
             }
             if (!adoptedHero.IsClanLeader)
             {
-                onFailure("{=Nzm5bI4I}You cannot lead a rebellion agaisnt your kingdom, as you are not your clans leader!".Translate());
+                onFailure("{=Nzm5bI4I}You cannot lead a rebellion against your kingdom, as you are not your clans leader!".Translate());
                 return;
             }
             if (adoptedHero.Clan == adoptedHero.Clan.Kingdom.RulingClan)
@@ -322,13 +368,35 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=Ok94bnhi}Your clan is not high enough tier to rebel".Translate());
                 return;
             }
-            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.RebelPrice)
+            if (adoptedHero.Clan.Kingdom.RulingClan.Leader.IsAdopted())
             {
-                onFailure(Naming.NotEnoughGold(settings.RebelPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                BLTRebellion = true;
+            }
+            if (BLTRebellion && !settings.BLTRebelEnabled)
+            {
+                onFailure("{=Ok94bnhi}Rebelling from BLT-owned kingdoms is disabled!".Translate());
                 return;
             }
+            
+            if (!BLTRebellion)
+            {
+                if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.RebelPrice)
+                {
+                    onFailure(Naming.NotEnoughGold(settings.RebelPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                    return;
+                }
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.RebelPrice, true);
+            }
+            else
+            {
+                if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.BLTRebelPrice)
+                {
+                    onFailure(Naming.NotEnoughGold(settings.BLTRebelPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                    return;
+                }
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.BLTRebelPrice, true);
+            }
             AdoptedHeroFlags._allowKingdomMove = true;
-            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.RebelPrice, true);
             IFaction oldBoss = adoptedHero.Clan.Kingdom;
             adoptedHero.Clan.ClanLeaveKingdom();
             DeclareWarAction.ApplyByRebellion(adoptedHero.Clan, oldBoss);
@@ -518,6 +586,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
+            bool mercforPlayer = false;
             var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
             if (desiredKingdom == null)
             {
@@ -529,17 +598,34 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=L4dccNIC}Joining the players kingdom is disabled".Translate());
                 return;
             }
+            else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.Clan == Hero.MainHero.Clan.Kingdom.RulingClan)
+            {
+                mercforPlayer = true;
+            }
             if (desiredKingdom.Clans.Count >= settings.JoinMaxClans)
             {
                 onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
                 return;
             }
-            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.MercPrice)
+            if (!mercforPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.MercPrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.MercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
-            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MercPrice, true);
+            else if (!mercforPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PlayerMercPrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.PlayerMercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
+            
+            if (!mercforPlayer)
+            {
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MercPrice, true);
+            }
+            else
+            {
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PlayerMercPrice, true);
+            }
             ChangeKingdomAction.ApplyByJoinFactionAsMercenary(adoptedHero.Clan, desiredKingdom);
             Log.ShowInformation("{=tpwW6Ix8}{clanName} is now under contract with {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }

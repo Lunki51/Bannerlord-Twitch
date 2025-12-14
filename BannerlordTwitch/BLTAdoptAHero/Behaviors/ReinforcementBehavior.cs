@@ -8,6 +8,7 @@ using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Siege;
+using HarmonyLib;
 
 namespace BLTAdoptAHero
 {
@@ -35,6 +36,15 @@ namespace BLTAdoptAHero
             Initialize();
         }
 
+        [HarmonyPatch(typeof(SiegeEventManager), "StartSiegeEvent")]
+        static class BLTSiegeStartPatch
+        {
+            static void Postfix(SiegeEvent __result)
+            {
+                ReinforcementBehavior.Current?.OnSiegeEventCreated(__result);
+            }
+        }
+
         private void Initialize()
         {
             _eliteReinforcements ??= new Dictionary<string, int>();
@@ -48,7 +58,7 @@ namespace BLTAdoptAHero
             Initialize();
 
             CampaignEvents.OnSiegeEventStartedEvent.AddNonSerializedListener(
-                this, OnSiegeEventStarted);
+                this, OnSiegeEventCreated);
 
             CampaignEvents.AfterSiegeCompletedEvent.AddNonSerializedListener(
                 this, OnAfterSiegeCompleted);
@@ -111,7 +121,7 @@ namespace BLTAdoptAHero
         }
 
 
-        private void OnSiegeEventStarted(SiegeEvent siegeEvent)
+        private void OnSiegeEventCreated(SiegeEvent siegeEvent)
         {
             try
             {
@@ -164,7 +174,7 @@ namespace BLTAdoptAHero
             catch (Exception ex)
             {
                 InformationManager.DisplayMessage(
-                    new InformationMessage($"[BLT Reinforcement] OnSiegeEventStarted failed: {ex.Message}")
+                    new InformationMessage($"[BLT Reinforcement] OnSiegeEventCreated failed: {ex.Message}")
                 );
             }
         }
