@@ -66,21 +66,29 @@ namespace BLTAdoptAHero
              LocDescription("{=CSTqzcOi}Shows the exact classes and counts of the retinue of the hero"),
              PropertyOrder(9), UsedImplicitly]
             public bool ShowRetinueList { get; set; }
+            [LocDisplayName("{=p0WEhay8}Show Secondary Retinue"),
+             LocDescription("{=AXnWeTzh}Shows a summary of the secondary retinue of the hero (count and tier)"),
+             PropertyOrder(10), UsedImplicitly]
+            public bool ShowRetinue2 { get; set; }
+            [LocDisplayName("{=Vyatyyuh}Show Secondary Retinue List"),
+             LocDescription("{=CSTqzcOi}Shows the exact classes and counts of the secondary retinue of the hero"),
+             PropertyOrder(11), UsedImplicitly]
+            public bool ShowRetinue2List { get; set; }
             [LocDisplayName("{=1F3utCWA}Show Achievements"),
              LocDescription("{=CKJd7KC9}Shows all hero achievements"),
-             PropertyOrder(10), UsedImplicitly]
+             PropertyOrder(12), UsedImplicitly]
             public bool ShowAchievements { get; set; }
             [LocDisplayName("{=LNvYSMZj}Show Tracked Stats"),
              LocDescription("{=FaUbhgTR}Shows all hero tracked stats (kills, deaths, summons, attacks, tournament wins etc.)"),
-             PropertyOrder(11), UsedImplicitly]
+             PropertyOrder(13), UsedImplicitly]
             public bool ShowTrackedStats { get; set; }
             [LocDisplayName("{=cHaiwygJ}Show Powers"),
              LocDescription("{=YW8HsNEF}Shows the heroes unlocked powers"),
-             PropertyOrder(12), UsedImplicitly]
+             PropertyOrder(14), UsedImplicitly]
             public bool ShowPowers { get; set; }
             [LocDisplayName("{=XN95uDm8}Show Family"),
              LocDescription("{=nqgafTYp}Shows hero family"),
-             PropertyOrder(13), UsedImplicitly]
+             PropertyOrder(15), UsedImplicitly]
             public bool ShowFamily { get; set; }
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
@@ -95,6 +103,8 @@ namespace BLTAdoptAHero
                 if (ShowStorage) shows.Add("{=VSDDQdmJ}Custom item storage".Translate());
                 if (ShowRetinue) shows.Add("{=C0mkGXlK}Retinue count and average tier".Translate());
                 if (ShowRetinueList) shows.Add("{=L4Rh6vFE}Retinue unit list".Translate());
+                if (ShowRetinue2) shows.Add("{=C0mkGXlK}Secondary retinue count and average tier".Translate());
+                if (ShowRetinue2List) shows.Add("{=L4Rh6vFE}Secondary retinue unit list".Translate());
                 if (ShowAchievements) shows.Add("{=ZW9XlwY7}Achievements".Translate());
                 if (ShowTrackedStats) shows.Add("{=Xmo7pOpj}Tracked stats".Translate());
                 if (ShowPowers) shows.Add("{=xVDOsWPq}Powers".Translate());
@@ -272,8 +282,7 @@ namespace BLTAdoptAHero
 
                 if (settings.ShowRetinue)
                 {
-                    var retinue
-                        = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
+                    var retinue = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
                     if (retinue.Count > 0)
                     {
                         double tier = retinue.Average(r => r.Tier);
@@ -313,6 +322,57 @@ namespace BLTAdoptAHero
                             string troopDisplay = count > 1
                                 ? $"{retinue[i].Name} x {count}"
                                 : $"{retinue[i].Name}";
+
+                            infoStrings.Add($"{indexDisplay} {troopDisplay}");
+
+                            count = 1;
+                            startIndex = i + 1;
+                        }
+                    }
+                }
+
+                if (settings.ShowRetinue2)
+                {
+                    var retinue2 = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero).ToList();
+                    if (retinue2.Count > 0)
+                    {
+                        double tier = retinue2.Average(r => r.Tier);
+                        infoStrings.Add("{=hMBF1zLr}[RETINUE2]".Translate() + " " +
+                                        "{Retinue2Count} (avg Tier {Tier})".Translate(
+                                            ("Retinue2Count", retinue2.Count),
+                                            ("Tier", tier.ToString("0.#"))));
+                    }
+                    else
+                    {
+                        infoStrings.Add("{=hMBF1zLr}[RETINUE2]".Translate() + " " +
+                                        "{=FNK3LD2p}None".Translate());
+                    }
+                }
+
+                if (settings.ShowRetinue2List)
+                {
+                    // Convert IEnumerable to List so we can index
+                    var retinue2 = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero).ToList();
+
+                    int count = 1;
+                    int startIndex = 0;
+
+                    for (int i = 0; i < retinue2.Count; i++) // retinue.Count() -> retinue.Count
+                    {
+                        // Check if next troop exists and is the same
+                        if (i + 1 < retinue2.Count && retinue2[i + 1] == retinue2[i])
+                        {
+                            count++;
+                        }
+                        else
+                        {
+                            string indexDisplay = count > 1
+                                ? $"[{startIndex + 1}-{i + 1}]"
+                                : $"[{i + 1}]";
+
+                            string troopDisplay = count > 1
+                                ? $"{retinue2[i].Name} x {count}"
+                                : $"{retinue2[i].Name}";
 
                             infoStrings.Add($"{indexDisplay} {troopDisplay}");
 

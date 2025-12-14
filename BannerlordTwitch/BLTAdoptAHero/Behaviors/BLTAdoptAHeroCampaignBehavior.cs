@@ -35,9 +35,18 @@ namespace BLTAdoptAHero
                 public int Level { get; set; }
                 public int SavedTroopIndex { get; set; }
             }
+
+            public class Retinue2Data
+            {
+                public CharacterObject TroopType { get; set; }
+                public int Level { get; set; }
+                public int SavedTroopIndex { get; set; }
+            }
+
             public int Gold { get; set; }
             [UsedImplicitly]
             public List<RetinueData> Retinue { get; set; } = new();
+            public List<Retinue2Data> Retinue2 { get; set; } = new();
             public int SpentGold { get; set; }
             public int EquipmentTier { get; set; } = -2;
             public Guid EquipmentClassID { get; set; }
@@ -1377,6 +1386,280 @@ namespace BLTAdoptAHero
             else
             {
                 Log.Error($"Invalid retinue index {index} for {retinueOwnerHero}. Retinue count: {heroRetinue.Count}");
+            }
+        }
+
+        #endregion
+
+        #region retinue2
+        public IEnumerable<CharacterObject> GetRetinue2(Hero hero)
+            => GetHeroData(hero).Retinue2.Select(r => r.TroopType);
+
+        [CategoryOrder("Limits", 1),
+         CategoryOrder("Costs", 2),
+         CategoryOrder("Troop Types", 3)]
+        public class Retinue2Settings : IDocumentable
+        {
+            [LocDisplayName("{=wAGE7h6U}Max secondary retinue Size"),
+             LocCategory("Limits", "{=1lHWj3nT}Limits"),
+             LocDescription("{=EOGB8EWN}Maximum number of units in the secondary retinue. Recommend less than 20, summons do NOT obey the games unit limits."),
+             PropertyOrder(1), UsedImplicitly]
+            public int MaxRetinue2Size { get; set; } = 5;
+
+            [LocDisplayName("{=VvdtvdQJ}Cost Tier 1"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=9bvn5R5A}Gold cost for Tier 1 secondary retinue"),
+             PropertyOrder(1), UsedImplicitly]
+            public int CostTier1 { get; set; } = 25000;
+
+            [LocDisplayName("{=engRDMZx}Cost Tier 2"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=pD2ZvRVH}Gold cost for Tier 2 secondary retinue"),
+             PropertyOrder(2), UsedImplicitly]
+            public int CostTier2 { get; set; } = 50000;
+
+            [LocDisplayName("{=3jxmITht}Cost Tier 3"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=dyB8loLF}Gold cost for Tier 3 secondary retinue"),
+             PropertyOrder(3), UsedImplicitly]
+            public int CostTier3 { get; set; } = 100000;
+
+            [LocDisplayName("{=dhwd4ccF}Cost Tier 4"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=aji2HxKa}Gold cost for Tier 4 secondary retinue"),
+             PropertyOrder(4), UsedImplicitly]
+            public int CostTier4 { get; set; } = 175000;
+
+            [LocDisplayName("{=zJkb4AIh}Cost Tier 5"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=fnEOFst7}Gold cost for Tier 5 secondary retinue"),
+             PropertyOrder(5), UsedImplicitly]
+            public int CostTier5 { get; set; } = 275000;
+
+            [LocDisplayName("{=1hh3cOJO}Cost Tier 6"),
+             LocCategory("Costs", "{=r7sc3Tvg}Costs"),
+             LocDescription("{=PieENBSG}Gold cost for Tier 6 secondary retinue"),
+             PropertyOrder(6), UsedImplicitly]
+            public int CostTier6 { get; set; } = 400000;
+
+            // etc..
+            public int GetTierCost(int tier)
+            {
+                return tier switch
+                {
+                    0 => CostTier1,
+                    1 => CostTier2,
+                    2 => CostTier3,
+                    3 => CostTier4,
+                    4 => CostTier5,
+                    5 => CostTier6,
+                    _ => CostTier6
+                };
+            }
+
+            [LocDisplayName("{=q1Rkm3Rq}Use Heroes Culture Units"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=9qAD6eZR}Whether to use the adopted hero's culture (if not enabled then a random one is used)"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool UseHeroesCultureUnits { get; set; } = true;
+
+            [LocDisplayName("{=dbU7WEKG}Include Bandit Units"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=06KnYhyh}Whether to allow bandit units when UseHeroesCultureUnits is disabled"),
+             PropertyOrder(2), UsedImplicitly]
+            public bool IncludeBanditUnits { get; set; }
+
+            [LocDisplayName("{=E2RBmb1K}Use Basic Troops"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=uPwaOKdT}Whether to allow basic troops"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool UseBasicTroops { get; set; } = true;
+
+            [LocDisplayName("{=lnz7d1BI}Use Elite Troops"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=EPr2clqT}Whether to allow elite troops"),
+             PropertyOrder(4), UsedImplicitly]
+            public bool UseEliteTroops { get; set; } = true;
+
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.PropertyValuePair("{=UhUpH8C8}Max secondary retinue".Translate(), $"{MaxRetinue2Size}");
+                generator.PropertyValuePair("{=VBuncBq5}Tier costs".Translate(), $"1={CostTier1}{Naming.Gold}, 2={CostTier2}{Naming.Gold}, 3={CostTier3}{Naming.Gold}, 4={CostTier4}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 6={CostTier6}{Naming.Gold}");
+                var allowed = new List<string>();
+                if (UseHeroesCultureUnits) allowed.Add("{=R7rU0TbD}Same culture only".Translate());
+                if (IncludeBanditUnits) allowed.Add("{=c2qOsXvs}Bandits".Translate());
+                if (UseBasicTroops) allowed.Add("{=RmTwEFzy}Basic troops".Translate());
+                if (UseEliteTroops) allowed.Add("{=3gumlthG}Elite troops".Translate());
+                generator.PropertyValuePair("{=uL7MfYPc}Allowed".Translate(), string.Join(", ", allowed));
+            }
+        }
+
+        public (bool success, string status) UpgradeRetinue2(Hero hero, Retinue2Settings settings, int maxToUpgrade)
+        {
+            var availableTroops = CampaignHelpers.AllCultures
+                .Where(c => settings.IncludeBanditUnits || c.IsMainCulture)
+                .SelectMany(c =>
+                {
+                    var troopTypes = new List<CharacterObject>();
+                    if (settings.UseBasicTroops && c.BasicTroop != null) troopTypes.Add(c.BasicTroop);
+                    if (settings.UseEliteTroops && c.EliteBasicTroop != null) troopTypes.Add(c.EliteBasicTroop);
+                    return troopTypes;
+                })
+                // At least 2 upgrade tiers available
+                .Where(c => c.UpgradeTargets?.FirstOrDefault()?.UpgradeTargets?.Any() == true)
+                .ToList();
+
+            if (!availableTroops.Any())
+            {
+                return (false, "{=bBCyH0vV}No valid troop types could be found, please check out settings".Translate());
+            }
+
+            var heroretinue2 = GetHeroData(hero).Retinue2;
+
+            var retinue2Changes = new Dictionary<HeroData.Retinue2Data, (CharacterObject oldTroopType, int totalSpent)>();
+
+            int heroGold = GetHeroGold(hero);
+            int totalCost = 0;
+
+            var results = new List<string>();
+
+            while (maxToUpgrade-- > 0)
+            {
+                // first fill in any missing ones
+                if (heroretinue2.Count < settings.MaxRetinue2Size)
+                {
+                    var troopType = availableTroops
+                        .Shuffle()
+                        // Sort same culture units to the front if required, but still include other units in-case the hero
+                        // culture doesn't contain the requires units
+                        .OrderBy(c => settings.UseHeroesCultureUnits && c.Culture != hero.Culture)
+                        .FirstOrDefault();
+
+                    int cost = settings.GetTierCost(0);
+                    if (totalCost + cost > heroGold)
+                    {
+                        results.Add(retinue2Changes.IsEmpty()
+                            ? Naming.NotEnoughGold(cost, heroGold)
+                            : "{=zcbOq6Tb}Spent {TotalCost}{GoldIcon}, {RemainingGold}{GoldIcon} remaining"
+                                .Translate(
+                                    ("TotalCost", totalCost),
+                                    ("GoldIcon", Naming.Gold),
+                                    ("RemainingGold", heroGold - totalCost)));
+                        break;
+                    }
+                    totalCost += cost;
+
+                    var retinue2 = new HeroData.Retinue2Data { TroopType = troopType, Level = 1 };
+                    heroretinue2.Add(retinue2);
+                    retinue2Changes.Add(retinue2, (null, cost));
+                }
+                else
+                {
+                    // upgrade the lowest tier unit
+                    var Retinue2ToUpgrade = heroretinue2
+                        .OrderBy(h => h.TroopType.Tier)
+                        .FirstOrDefault(t => t.TroopType.UpgradeTargets?.Any() == true);
+
+                    if (Retinue2ToUpgrade != null)
+                    {
+                        int cost = settings.GetTierCost(Retinue2ToUpgrade.Level);
+                        if (totalCost + cost > heroGold)
+                        {
+                            results.Add(retinue2Changes.IsEmpty()
+                                ? Naming.NotEnoughGold(cost, heroGold)
+                                : "{=zcbOq6Tb}Spent {TotalCost}{GoldIcon}, {RemainingGold}{GoldIcon} remaining"
+                                    .Translate(
+                                        ("TotalCost", totalCost),
+                                        ("GoldIcon", Naming.Gold),
+                                        ("RemainingGold", heroGold - totalCost)));
+                            break;
+                        }
+
+                        totalCost += cost;
+
+                        var oldTroopType = Retinue2ToUpgrade.TroopType;
+                        Retinue2ToUpgrade.TroopType = oldTroopType.UpgradeTargets.SelectRandom();
+                        Retinue2ToUpgrade.Level++;
+                        if (retinue2Changes.TryGetValue(Retinue2ToUpgrade, out var upgradeRecord))
+                        {
+                            retinue2Changes[Retinue2ToUpgrade] =
+                                (upgradeRecord.oldTroopType ?? oldTroopType, upgradeRecord.totalSpent + cost);
+                        }
+                        else
+                        {
+                            retinue2Changes.Add(Retinue2ToUpgrade, (oldTroopType, cost));
+                        }
+                    }
+                    else
+                    {
+                        results.Add("{=PQRLJ04i}Can't upgrade secondary retinue any further!".Translate());
+                        break;
+                    }
+                }
+            }
+
+            var troopUpgradeSummary = new List<string>();
+            foreach ((var oldTroopType, var newTroopType, int cost, int num) in retinue2Changes
+                .GroupBy(r
+                    => (r.Value.oldTroopType, newTroopType: r.Key.TroopType))
+                .Select(g => (
+                        g.Key.oldTroopType,
+                        g.Key.newTroopType,
+                        cost: g.Sum(f => f.Value.totalSpent),
+                        num: g.Count()))
+                .OrderBy(g => g.oldTroopType == null)
+                .ThenBy(g => g.num)
+            )
+            {
+                if (oldTroopType != null)
+                {
+                    troopUpgradeSummary.Add($"{oldTroopType}{Naming.To}{newTroopType}" +
+                                            (num > 1 ? $" x{num}" : "") +
+                                            $" ({Naming.Dec}{cost}{Naming.Gold})");
+                }
+                else
+                {
+                    troopUpgradeSummary.Add($"{newTroopType}" +
+                                            (num > 1 ? $" x{num}" : "") +
+                                            $" ({Naming.Dec}{cost}{Naming.Gold})");
+
+                }
+            }
+
+            if (totalCost > 0)
+            {
+                ChangeHeroGold(hero, -totalCost, isSpending: true);
+            }
+
+            return (retinue2Changes.Any(), Naming.JoinList(troopUpgradeSummary.Concat(results)));
+        }
+
+        public void KillRetinue2(Hero Retinue2OwnerHero, BasicCharacterObject retinue2CharacterObject)
+        {
+            var heroretinue2 = GetHeroData(Retinue2OwnerHero).Retinue2;
+            var matchingretinue2 = heroretinue2.FirstOrDefault(r => r.TroopType == retinue2CharacterObject);
+            if (matchingretinue2 != null)
+            {
+                heroretinue2.Remove(matchingretinue2);
+            }
+            else
+            {
+                Log.Error($"Couldn't find matching secondary retinue type {retinue2CharacterObject} " +
+                          $"for {Retinue2OwnerHero} to remove");
+            }
+        }
+
+        public void KillRetinue2AtIndex(Hero Retinue2OwnerHero, int index)
+        {
+            var heroretinue2 = GetHeroData(Retinue2OwnerHero).Retinue2;
+
+            if (index >= 0 && index < heroretinue2.Count)
+            {
+                heroretinue2.RemoveAt(index);
+            }
+            else
+            {
+                Log.Error($"Invalid secondary retinue index {index} for {Retinue2OwnerHero}. secondary retinue count: {heroretinue2.Count}");
             }
         }
 
