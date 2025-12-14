@@ -80,7 +80,7 @@ namespace BLTAdoptAHero
             Agent attackerAgent, Agent victimAgent, in MissionWeapon attackerWeapon, bool isFatalHit, bool isShruggedOff, float momentumRemaining,
             out MeleeCollisionReaction colReaction)
         {
-            colReaction = MeleeCollisionReaction.ContinueChecking;
+            colReaction = MeleeCollisionReaction.Bounced;
             var param = new DecideWeaponCollisionReactionParams
             {
                 registeredBlow = registeredBlow,
@@ -355,7 +355,7 @@ namespace BLTAdoptAHero
             in AttackCollisionData collisionData, Agent attacker, Agent defender, in MissionWeapon attackerWeapon, bool isFatalHit, bool isShruggedOff, float momentumRemaining,
             out MeleeCollisionReaction colReaction)
         {
-            colReaction = MeleeCollisionReaction.ContinueChecking;
+            colReaction = MeleeCollisionReaction.Bounced;
             Current?.DecideWeaponCollisionReactionCallback(in registeredBlow, in collisionData, attacker,
                 defender, in attackerWeapon, isFatalHit, isShruggedOff, momentumRemaining, out colReaction);
         }

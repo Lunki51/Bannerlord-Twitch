@@ -228,6 +228,12 @@ namespace BLTAdoptAHero.Actions
                                     "Buy Noble Title Config: " +
                                     "</strong>" +
                                     "Price={price}{icon}".Translate(("price", TitlePrice.ToString()), ("icon", Naming.Gold)));
+                if (EditBannerEnabled)
+                    generator.Value("<strong>" +
+                                    "Create a banner:" +
+                                    "</strong>" +
+                                    "(bannerlord.party/banner/)\n" +
+                                    "For long banners: !clan banner start -> !clan banner {code} (repeat) -> !clan banner end");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -647,8 +653,8 @@ namespace BLTAdoptAHero.Actions
 
 
             }
-            clanStats.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} |".Translate(("cparties", parties), ("mparties", adoptedHero.Clan.CommanderLimit)));
-            clanStats.Append("{=TESTING}Ships: {ships} | ".Translate(("ships", ships)));
+            clanStats.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} | ".Translate(("cparties", parties), ("mparties", adoptedHero.Clan.CommanderLimit)));
+            clanStats.Append("{=TESTING}Ships: {ships} |".Translate(("ships", ships)));
             if (adoptedHero.Clan.Fiefs.Count >= 1)
             {
                 int townCount = 0;
@@ -664,7 +670,7 @@ namespace BLTAdoptAHero.Actions
                         castleCount++;
                     }
                 }
-                clanStats.Append("{=BwuFSJU1}Towns: {towns} | ".Translate(("towns", (object)townCount)));
+                clanStats.Append("{=BwuFSJU1} Towns: {towns} | ".Translate(("towns", (object)townCount)));
                 clanStats.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleCount)));
             }
             onSuccess("{=TESTING}{stats}".Translate(("stats", clanStats.ToString())));

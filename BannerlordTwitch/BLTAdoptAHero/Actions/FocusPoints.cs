@@ -65,7 +65,9 @@ namespace BLTAdoptAHero
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-
+                generator.PropertyValuePair("{=TESTING}Tier costs".Translate(), $"1={Focus1}{Naming.Gold}, 2={Focus1}{Naming.Gold}, 3={Focus1}{Naming.Gold}, 4={Focus1}{Naming.Gold}, 5={Focus1}{Naming.Gold}");
+                var skillList = string.Join(", ", Skills.All.Select(k => k.Name.ToString()));
+                generator.Value($"Skills:\n{skillList}");
             }
         }
 
@@ -120,6 +122,7 @@ namespace BLTAdoptAHero
 
             adoptedHero.HeroDeveloper.AddFocus(skill, 1, checkUnspentFocusPoints: false);
             int newFocus = adoptedHero.HeroDeveloper.GetFocus(skill);
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, cost, true);
             onSuccess(
                 ("{=HLFMWOJA}You have gained a focus point in {Skill}, you now have {NewAmount}!")
                 .Translate(("Skill", skill.Name), ("NewAmount", newFocus)));

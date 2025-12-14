@@ -171,6 +171,7 @@ namespace BLTAdoptAHero
                     //campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
                     campaignStarter.AddBehavior(new BLTClanBehavior());
                     campaignStarter.AddBehavior(new ReinforcementBehavior());
+                    campaignStarter.AddBehavior(new DiplomacyHelper());
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
 
