@@ -14,6 +14,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -375,6 +377,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: true
     ShowTopSkills: false
@@ -442,6 +446,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -514,6 +520,8 @@ Commands:
     ShowInventory: true
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -592,6 +600,8 @@ Commands:
     ShowInventory: false
     ShowPowers: true
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -661,6 +671,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: true
     ShowRetinueList: true
     ShowStorage: false
     ShowTopSkills: false
@@ -729,6 +741,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: true
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: true
@@ -791,6 +805,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -925,6 +941,8 @@ Commands:
   Handler: ReinforceAction
   HandlerConfig:
     AllowKingdomLeaders: false
+    CapitalEliteBonus: 50
+    CapitalMilitiaBonus: 150
     EliteCostPerUnit: 30000
     EliteEnabled: true
     EliteMilitiaCap: 50
