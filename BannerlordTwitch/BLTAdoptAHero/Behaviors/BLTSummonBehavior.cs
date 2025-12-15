@@ -192,6 +192,7 @@ namespace BLTAdoptAHero
             HeroSummonState existingHero, bool onPlayerSide)
         {
             var retinueTroops = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
+            var retinue2Troops = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero).ToList();
 
             bool retinueMounted = Mission.Current.Mode != MissionMode.Stealth
                                   && !MissionHelpers.InSiegeMission()
@@ -248,6 +249,59 @@ namespace BLTAdoptAHero
                 if (hasPrevFormation)
                 {
                     Campaign.Current.SetPlayerFormationPreference(retinueTroop, prevFormation);
+                }
+            }
+            foreach (var retinue2Troop in retinue2Troops)
+            {
+                // Don't modify formation for non-player side spawn as we don't really care
+                bool hasPrevFormation = Campaign.Current.PlayerFormationPreferences
+                                            .TryGetValue(retinue2Troop, out var prevFormation)
+                                        && onPlayerSide
+                                        && BLTAdoptAHeroModule.CommonConfig.RetinueUseHeroesFormation;
+
+                if (onPlayerSide && BLTAdoptAHeroModule.CommonConfig.RetinueUseHeroesFormation)
+                {
+                    Campaign.Current.SetPlayerFormationPreference(retinue2Troop, ownerFormationClass);
+                }
+
+                existingHero.Party.MemberRoster.AddToCounts(retinue2Troop, 1);
+
+                bool DeploymentFlag = Mission.Current.Mode is MissionMode.Deployment;
+                var retinue2Agent = SpawnAgent(onPlayerSide, retinue2Troop, existingHero.Party,
+                    retinue2Troop.IsMounted && retinueMounted, false, !DeploymentFlag);
+
+                existingHero.Retinue.Add(new()
+                {
+                    Troop = retinue2Troop,
+                    Agent = retinue2Agent,
+                    State = AgentState.Active,
+                });
+
+                agent_name.SetValue(retinue2Agent, new TextObject($"{retinue2Agent.Name} ({adoptedHero.FirstName})"));
+
+                retinue2Agent.BaseHealthLimit *= Math.Max(1, BLTAdoptAHeroModule.CommonConfig.StartRetinueHealthMultiplier);
+                retinue2Agent.HealthLimit *= Math.Max(1, BLTAdoptAHeroModule.CommonConfig.StartRetinueHealthMultiplier);
+                retinue2Agent.Health *= Math.Max(1, BLTAdoptAHeroModule.CommonConfig.StartRetinueHealthMultiplier);
+
+                BLTAdoptAHeroCustomMissionBehavior.Current.AddListeners(retinue2Agent,
+                    onGotAKill: (killer, killed, state) =>
+                    {
+                        Log.Trace($"[{nameof(SummonHero)}] {retinue2Agent.Name} killed {killed?.Name ?? "unknown"}");
+                        BLTAdoptAHeroCommonMissionBehavior.Current.ApplyKillEffects(
+                            adoptedHero, killer, killed, state,
+                            BLTAdoptAHeroModule.CommonConfig.RetinueGoldPerKill,
+                            BLTAdoptAHeroModule.CommonConfig.RetinueHealPerKill,
+                            0, 1,
+                            BLTAdoptAHeroModule.CommonConfig.RelativeLevelScaling,
+                            BLTAdoptAHeroModule.CommonConfig.LevelScalingCap,
+                            BLTAdoptAHeroModule.CommonConfig.MinimumGoldPerKill
+                        );
+                    }
+                );
+
+                if (hasPrevFormation)
+                {
+                    Campaign.Current.SetPlayerFormationPreference(retinue2Troop, prevFormation);
                 }
             }
         }

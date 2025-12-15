@@ -480,11 +480,19 @@ namespace BLTAdoptAHero.Actions
             {
                 var newParty = Helpers.MobilePartyHelper.CreateNewClanMobileParty(adoptedHero, newClan);
                 var retinue = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
+                var retinue2 = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero).ToList();
                 foreach (var retinueTroop in retinue)
                 {
                     if (retinueTroop != null)
                     {
                         newParty.MemberRoster.AddToCounts(retinueTroop, 1);
+                    }
+                }
+                foreach (var retinue2Troop in retinue2)
+                {
+                    if (retinue2Troop != null)
+                    {
+                        newParty.MemberRoster.AddToCounts(retinue2Troop, 1);
                     }
                 }
                 //onSuccess("Party created");

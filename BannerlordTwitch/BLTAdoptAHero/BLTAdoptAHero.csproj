@@ -355,6 +355,7 @@
     <Compile Include="Actions\NameItem.cs" />
     <Compile Include="Actions\ReinforceAction.cs" />
     <Compile Include="Actions\Rejuvenate.cs" />
+    <Compile Include="Actions\Retinue2.cs" />
     <Compile Include="Actions\Retinue.cs" />
     <Compile Include="Actions\RetireMyHero.cs" />
     <Compile Include="Actions\AuctionItem.cs" />
