@@ -1828,6 +1828,57 @@ namespace BLTAdoptAHero
             return $"Added {amount} to {stat} stat of {hero.Name}";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("killBLT", "blt")]
+        [UsedImplicitly]
+        public static string KillAdoptedHeroAgent(List<string> strings)
+        {
+            if (strings.Count != 1)
+            {
+                return "Usage: killBLT <hero_name>";
+            }
+
+            var heroName = strings[0];
+
+            // Get the adopted hero
+            var hero = Current.GetAdoptedHero(heroName);
+            if (hero == null)
+            {
+                return $"Couldn't find adopted hero: {heroName}";
+            }
+
+            // Check if there's an active mission/battle
+            var mission = Mission.Current;
+            if (mission == null)
+            {
+                return "No active mission/battle found";
+            }
+
+            // Find the agent corresponding to the hero
+            var agent = mission.Agents.FirstOrDefault(a => a.Character == hero.CharacterObject);
+
+            if (agent == null)
+            {
+                return $"Agent for hero {hero.Name} not found in current battle";
+            }
+
+            if (!agent.IsActive())
+            {
+                return $"Agent for hero {hero.Name} is not active";
+            }
+
+            // Kill the agent
+            var blow = new Blow(agent.Index);
+            blow.DamageType = DamageTypes.Invalid;
+            blow.BoneIndex = agent.Monster.HeadLookDirectionBoneIndex;
+            blow.GlobalPosition = agent.Position;
+            blow.BaseMagnitude = agent.HealthLimit;
+            blow.InflictedDamage = (int)agent.HealthLimit;
+
+            agent.Die(blow);
+
+            return $"Killed agent of {hero.Name}";
+        }
+
         #endregion
     }
 }
