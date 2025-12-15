@@ -179,6 +179,11 @@ namespace BLTAdoptAHero.Actions
                     {
                         var desiredTown = adoptedHero.Clan.Fiefs.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
                         var govFief = adoptedHero.GovernorOf;
+                        if (string.IsNullOrWhiteSpace(desiredName))
+                        {
+                            onFailure("Specify fief");
+                            return;
+                        }
                         if (adoptedHero.HeroState == Hero.CharacterStates.Released)
                         {
                             onFailure("Your hero has just been released");
@@ -343,8 +348,6 @@ namespace BLTAdoptAHero.Actions
                         onSuccess(partyStats.ToString());
                         break;
                     }
-                default: onSuccess("(invalid), nothing, govern, create, stats"); break;
-
             }
         }
     }
