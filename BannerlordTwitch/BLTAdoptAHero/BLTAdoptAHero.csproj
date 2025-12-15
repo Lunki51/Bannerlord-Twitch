@@ -332,6 +332,7 @@
     <Compile Include="Actions\AddGoldToHero.cs" />
     <Compile Include="Actions\CampaignInfo.cs" />
     <Compile Include="Actions\BattleInfo.cs" />
+    <Compile Include="Actions\PartyManagement.cs" />
     <Compile Include="Actions\HeirCommand.cs" />
     <Compile Include="Actions\Leaderboard.cs" />
     <Compile Include="Actions\Diplomacy.cs" />
@@ -384,6 +385,7 @@
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
+    <Compile Include="Behaviors\DiplomacyHelper.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="Behaviors\ReinforcementBehavior.cs" />

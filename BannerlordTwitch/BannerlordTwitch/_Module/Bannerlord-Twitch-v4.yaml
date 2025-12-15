@@ -529,9 +529,11 @@ Commands:
   Enabled: true
   Handler: KingdomManagement
   HandlerConfig:
+    BLTRebelEnabled: true
+    BLTRebelPrice: 1500000
     CreateKEnabled: true
     CreateKFiefMinimum: 2
-    CreateKPrice: 25000000
+    CreateKPrice: 20000000
     CreateKTierMinimum: 3
     JoinAllowPlayer: true
     JoinEnabled: true
@@ -540,6 +542,8 @@ Commands:
     LeaveEnabled: true
     MercenaryEnabled: true
     MercPrice: 50000
+    PlayerJoinPrice: 250000
+    PlayerMercPrice: 50000
     RebelClanTierMinimum: 2
     RebelEnabled: true
     RebelPrice: 2500000
@@ -970,6 +974,17 @@ Commands:
   Name: buyfocus
   RespondInOverlay: true
   RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: PartyManagement
+  HandlerConfig: 
+  Help: ''
+  HideHelp: false
+  ID: 39691dbb-a4f0-4f39-9ec7-966e2a0b22f9
+  ModeratorOnly: false
+  Name: party
+  RespondInOverlay: false
+  RespondInTwitch: true
 DisableAutomaticFulfillment: false
 GlobalConfigs:
 - Config:

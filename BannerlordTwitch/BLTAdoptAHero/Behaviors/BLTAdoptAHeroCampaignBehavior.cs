@@ -1210,7 +1210,7 @@ namespace BLTAdoptAHero
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 generator.PropertyValuePair("{=UhUpH8C8}Max retinue".Translate(), $"{MaxRetinueSize}");
-                generator.PropertyValuePair("{=VBuncBq5}Tier costs".Translate(), $"1={CostTier1}{Naming.Gold}, 2={CostTier2}{Naming.Gold}, 3={CostTier3}{Naming.Gold}, 4={CostTier4}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 6={CostTier6}{Naming.Gold}");
+                generator.PropertyValuePair("{=VBuncBq5}Tier costs".Translate(), $"1={CostTier1}{Naming.Gold}, 2={CostTier2}{Naming.Gold}, 3={CostTier3}{Naming.Gold}, 4={CostTier4}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 6={CostTier6}{Naming.Gold}");
                 var allowed = new List<string>();
                 if (UseHeroesCultureUnits) allowed.Add("{=R7rU0TbD}Same culture only".Translate());
                 if (IncludeBanditUnits) allowed.Add("{=c2qOsXvs}Bandits".Translate());

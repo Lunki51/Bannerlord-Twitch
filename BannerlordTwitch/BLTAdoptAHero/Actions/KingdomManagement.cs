@@ -61,9 +61,9 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(5), UsedImplicitly]
             public int MercPrice { get; set; } = 50000;
 
-            [LocDisplayName("{=6PUxQuLg}Mercenary Cost"),
+            [LocDisplayName("{=TESTING}Player Mercenary Cost"),
              LocCategory("Join", "{=q5JhpNMF}Join"),
-             LocDescription("{=6fkIuAEC}Player kingdom mercenary contract cost"),
+             LocDescription("{=TESTING}Player kingdom mercenary contract cost"),
              PropertyOrder(6), UsedImplicitly]
             public int PlayerMercPrice { get; set; } = 50000;
 
@@ -85,9 +85,9 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool RebelEnabled { get; set; } = true;
 
-            [LocDisplayName("{=pYjIUlTE}Enabled"),
+            [LocDisplayName("{=TESTING}BLT Rebel"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
-             LocDescription("{=88BqaM2k}Enable viewer clan rebelling against BLT kingdoms"),
+             LocDescription("{=TESTING}Enable viewer clan rebelling against BLT kingdoms"),
              PropertyOrder(1), UsedImplicitly]
             public bool BLTRebelEnabled { get; set; } = true;
 
@@ -97,9 +97,9 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public int RebelPrice { get; set; } = 2500000;
 
-            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
+            [LocDisplayName("{=TESTING}BLT Gold Cost"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
-             LocDescription("{=97hqQyTG}Cost of rebelling against BLT kingoms"),
+             LocDescription("{=TESTING}Cost of rebelling against BLT kingoms"),
              PropertyOrder(2), UsedImplicitly]
             public int BLTRebelPrice { get; set; } = 1500000;
 
@@ -137,7 +137,7 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Create", "{=TESTING}Create"),
              LocDescription("{=TESTING}Cost of creating a kingdom"),
              PropertyOrder(4), UsedImplicitly]
-            public int CreateKPrice { get; set; } = 25000000;
+            public int CreateKPrice { get; set; } = 20000000;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
@@ -399,7 +399,7 @@ namespace BLTAdoptAHero.Actions
             AdoptedHeroFlags._allowKingdomMove = true;
             IFaction oldBoss = adoptedHero.Clan.Kingdom;
             adoptedHero.Clan.ClanLeaveKingdom();
-            DeclareWarAction.ApplyByRebellion(adoptedHero.Clan, oldBoss);
+            DeclareWarAction.ApplyByRebellion(oldBoss, adoptedHero.Clan);
             FactionManager.DeclareWar(adoptedHero.Clan, oldBoss);
             onSuccess("{=PHuBl5tJ}Your clan has rebelled against {oldBoss} and declared war".Translate(("oldBoss", oldBoss)));
             AdoptedHeroFlags._allowKingdomMove = false;

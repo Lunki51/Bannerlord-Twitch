@@ -13,8 +13,6 @@ using BannerlordTwitch.Util;
 
 namespace BLTAdoptAHero
 {
-    // A central place to hold the flag, accessible by any patch.
-    // This could also be moved inside ChangeKingdomActionPatches if only used there.
     public static class AdoptedHeroFlags
     {
         public static bool _allowKingdomMove = false;
@@ -218,53 +216,72 @@ namespace BLTAdoptAHero
             return true; // run original if not blocked
         }
     }
+    //    [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
+    //    internal static class ShipTradeCampaignBehaviorPatches
+    //    {
+    //        [HarmonyPrefix]
+    //        [HarmonyPatch("ConsiderPurchasingShip")]
+    //        private static bool Prefix_ConsiderPurchasingShip(Clan clan)
+    //        {
+    //            try
+    //            {
+    //                // skip if clan is null or eliminated
+    //                if (clan == null || clan.IsEliminated)
+    //                {
+    //#if DEBUG
+    //                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: invalid clan");
+    //#endif
+    //                    return false;
+    //                }
+
+    //                bool hasValidParty = false;
+    //                foreach (var partyComponent in clan.WarPartyComponents)
+    //                {
+    //                    MobileParty party = partyComponent?.MobileParty;
+    //                    if (party != null && party.IsActive)
+    //                    {
+    //                        hasValidParty = true;
+    //                        break;
+    //                    }
+    //                }
+
+    //                if (!hasValidParty)
+    //                {
+    //#if DEBUG
+    //                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: no valid mobile parties found");
+    //#endif
+    //                    return false; // skip original method
+    //                }
+    //            }
+    //            catch (Exception ex)
+    //            {
+    //                Log.Error($"[BLT] Prefix_ConsiderPurchasingShip error: {ex}");
+    //                return false; // skip original safely
+    //            }
+
+    //            // all good, run original method
+    //            return true;
+    //        }
+    //    }
     [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
+    [HarmonyPatch("ConsiderPurchasingShip")]
     internal static class ShipTradeCampaignBehaviorPatches
     {
         [HarmonyPrefix]
-        [HarmonyPatch("ConsiderPurchasingShip")]
-        private static bool Prefix_ConsiderPurchasingShip(Clan clan)
+        private static bool ProtectEmptyWarParties(Clan clan)
         {
-            try
+            if (clan.WarPartyComponents == null || clan.WarPartyComponents.Count == 0)
             {
-                // skip if clan is null or eliminated
-                if (clan == null || clan.IsEliminated)
-                {
 #if DEBUG
-                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: invalid clan");
+                Log.Trace("[BLT] Skipped ConsiderPurchasingShip");
 #endif
-                    return false;
-                }
-
-                bool hasValidParty = false;
-                foreach (var partyComponent in clan.WarPartyComponents)
-                {
-                    MobileParty party = partyComponent?.MobileParty;
-                    if (party != null && party.IsActive)
-                    {
-                        hasValidParty = true;
-                        break;
-                    }
-                }
-
-                if (!hasValidParty)
-                {
-#if DEBUG
-                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: no valid mobile parties found");
-#endif
-                    return false; // skip original method
-                }
+                return false;
             }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] Prefix_ConsiderPurchasingShip error: {ex}");
-                return false; // skip original safely
-            }
-
-            // all good, run original method
+                
             return true;
         }
     }
+
 
     #endregion
 }

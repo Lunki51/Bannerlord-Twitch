@@ -133,11 +133,11 @@ namespace BLTAdoptAHero
 
                 if (WarEnabled)
                     generator.Value("<strong>War Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Price={price}{icon}-".Translate(("price", WarPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Cooldown={cd}".Translate(("cd", WarCooldown.ToString())));
                 if (PeaceEnabled)
                     generator.Value("<strong>Peace Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)) +
+                                    "Price={price}{icon}-".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)) +
                                     "Cooldown={cd}".Translate(("cd", PeaceCooldown.ToString())));
                 if (AllyEnabled)
                     generator.Value("<strong>Alliance Config: </strong>" +
@@ -203,6 +203,7 @@ namespace BLTAdoptAHero
             bool atWar = Kingdom.All.Any(k => k.IsAtWarWith(kingdom));
             AllianceCampaignBehavior allianceBehavior = Campaign.Current.GetCampaignBehavior<AllianceCampaignBehavior>();
             TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
+            var diplomacyHelper = Campaign.Current.GetCampaignBehavior<DiplomacyHelper>();
 
             var desiredKingdom = Kingdom.All.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
 
@@ -244,7 +245,7 @@ namespace BLTAdoptAHero
                         var stance = kingdom.GetStanceWith(desiredKingdom);                       
                         if (stance.PeaceDeclarationDate.ElapsedDaysUntilNow < settings.WarCooldown)
                         {
-                            onFailure($"Cant war yet. {(int)(20 - (CampaignTime.Now - stance.PeaceDeclarationDate).ToDays)} days remaining.");
+                            onFailure($"Cant war yet. {(int)(settings.WarCooldown - stance.PeaceDeclarationDate.ElapsedDaysUntilNow)} days remaining.");
                             return;
                         }
                         if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.WarPrice)
@@ -309,11 +310,7 @@ namespace BLTAdoptAHero
                             return;
                         }
                         int influenceCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfProposingPeace(adoptedHero.Clan);
-                        if (adoptedHero.Clan.Influence < influenceCost)
-                        {
-                            onFailure($"Not enough influence:{influenceCost}");
-                            return;
-                        }
+                        
 
                         var stance = kingdom.GetStanceWith(desiredKingdom);
                         if (!kingdom.IsAtWarWith(desiredKingdom))
@@ -323,12 +320,22 @@ namespace BLTAdoptAHero
                         }
                         if (stance.WarStartDate.ElapsedDaysUntilNow < settings.PeaceCooldown)
                         {
-                            onFailure($"Cant peace yet. {(int)(20 - (CampaignTime.Now - stance.WarStartDate).ToDays)} days remaining.");
+                            onFailure($"Cant peace yet. {(int)(settings.PeaceCooldown - stance.WarStartDate.ElapsedDaysUntilNow)} days remaining.");
+                            return;
+                        }
+                        if (diplomacyHelper.IsPeaceBlocked(kingdom, desiredKingdom))
+                        {
+                            onFailure("Cannot peace rebellion wars");
                             return;
                         }
                         if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PeacePrice)
                         {
                             onFailure(Naming.NotEnoughGold(settings.PeacePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                            return;
+                        }
+                        if (adoptedHero.Clan.Influence < influenceCost)
+                        {
+                            onFailure($"Not enough influence:{influenceCost}");
                             return;
                         }
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PeacePrice, true);

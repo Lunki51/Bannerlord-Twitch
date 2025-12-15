@@ -33,7 +33,7 @@ namespace BLTAdoptAHero
             [LocDisplayName("Override Age"),
              LocDescription("Override the heir's age"),
              PropertyOrder(1)]
-            public bool OverrideAge { get; set; }
+            public bool OverrideAge { get; set; } = false;
 
             [LocDisplayName("Starting Age Range"),
              LocDescription("Random range of age when overriding it"),
@@ -49,17 +49,17 @@ namespace BLTAdoptAHero
             [LocDisplayName("Starting Gold"),
              LocDescription("Gold the heir starts with"),
              PropertyOrder(4)]
-            public int StartingGold { get; set; }
+            public int StartingGold { get; set; } = 0;
 
             [LocDisplayName("Inheritance Percentage"),
              LocDescription("Fraction of assets inherited (0-1)"),
              PropertyOrder(5)]
-            public float Inheritance { get; set; } = 0.25f;
+            public float Inheritance { get; set; } = 0.5f;
 
             [LocDisplayName("Maximum Inherited Custom Items"),
              LocDescription("Max custom items inherited"),
              PropertyOrder(6)]
-            public int MaxInheritedCustomItems { get; set; } = 2;
+            public int MaxInheritedCustomItems { get; set; } = 10;
 
             [LocDisplayName("Starting Equipment Tier"),
              LocDescription("Optional starting equipment tier"),
