@@ -137,8 +137,10 @@ namespace BLTAdoptAHero.Actions
                 generator.Value("<strong>Enabled:</strong> Yes");
                 generator.Value("<strong>Militia cost per unit:</strong> {cost}{icon}".Translate(("cost", MilitiaCostPerUnit), ("icon", Naming.Gold)));
                 generator.Value("<strong>Militia cap per settlement:</strong> {cap}".Translate(("cap", MilitiaCap)));
+                generator.Value("<strong>Extra militia cap for Kingdom Capital:</strong> {bonus}".Translate(("bonus", CapitalMilitiaBonus)));
                 generator.Value("<strong>Elite cost per unit:</strong> {cost}{icon}".Translate(("cost", EliteCostPerUnit), ("icon", Naming.Gold)));
                 generator.Value("<strong>Elite cap per settlement:</strong> {cap}".Translate(("cap", EliteMilitiaCap)));
+                generator.Value("<strong>Extra elite militia cap for Kingdom Capital:</strong> {elitebonus}".Translate(("elitebonus", CapitalEliteBonus)));
                 if (AllowKingdomLeaders) generator.Value("<strong>Kingdom leaders allowed to reinforce kingdom settlements.</strong>".Translate(("kingallow", AllowKingdomLeaders)));
             }
         }
