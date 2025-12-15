@@ -169,7 +169,7 @@ namespace BLTAdoptAHero
             message +=
                 $"- Weapon: {weaponInfo}\n" +
                 $"- Kills: {state.Kills}\n" +
-                $"- Retinue({state2.ActiveRetinue}): {state.RetinueKills}\n" +
+                $"- Retinue({state2.ActiveRetinue + state2.ActiveRetinue2}): {state.RetinueKills}\n" +
                 $"- Gold: {state.WonGold}\n" +
                 $"- XP: {state.WonXP}\n" +
                 $"- Power: { ActivePowerFraction(adoptedHero) * 100:0}% ";
