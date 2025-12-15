@@ -65,6 +65,12 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(5), UsedImplicitly]
             public int MilitiaCap { get; set; } = 100;
 
+            [LocDisplayName("{=MilitiaCap}Capital Max Bonus"),
+             LocCategory("Militia", "{=MilitiaCat}Militia"),
+             LocDescription("{=MilitiaCapDesc}Bonus to the maximum total BLT reinforcements a Kingdom Capital can have (this is added to standard reinforcement cap)"),
+             PropertyOrder(6), UsedImplicitly]
+            public int CapitalMilitiaBonus { get; set; } = 150;
+
             // Elite Militia Settings (carbon copy)
             [LocDisplayName("{=EliteEnabled}Elite Militia Enabled"),
              LocCategory("EliteMilitia", "{=EliteCat}EliteMilitia"),
@@ -95,6 +101,12 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=EliteCapDesc}Maximum total BLT elite reinforcements a settlement can have (0 = no cap)"),
              PropertyOrder(5), UsedImplicitly]
             public int EliteMilitiaCap { get; set; } = 50;
+
+            [LocDisplayName("{=MilitiaCap}Capital Max Bonus"),
+             LocCategory("Militia", "{=MilitiaCat}Militia"),
+             LocDescription("{=MilitiaCapDesc}Bonus to the maximum total BLT reinforcements a Kingdom Capital can have (this is added to standard reinforcement cap)"),
+             PropertyOrder(6), UsedImplicitly]
+            public int CapitalEliteBonus { get; set; } = 50;
 
             [LocDisplayName("{=RequireClanLeader}Require Clan Leader"),
              LocCategory("Restrictions", "{=RestrictionsCat}Restrictions"),
@@ -275,6 +287,11 @@ namespace BLTAdoptAHero.Actions
             int minAmount = isElite ? settings.MinEliteMilitia : settings.MinMilitia;
             int maxAmount = isElite ? settings.MaxEliteMilitia : settings.MaxMilitia;
             int cap = isElite ? settings.EliteMilitiaCap : settings.MilitiaCap;
+            if (targetSettlement.OwnerClan.Leader.IsKingdomLeader && targetSettlement == targetSettlement.OwnerClan.HomeSettlement)
+            {
+                cap += isElite ? settings.CapitalEliteBonus : settings.CapitalMilitiaBonus;
+                maxAmount += isElite ? settings.CapitalEliteBonus : settings.CapitalMilitiaBonus;
+            }
 
             if (useAll)
             {
