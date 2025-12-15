@@ -974,6 +974,17 @@ Commands:
   Name: buyfocus
   RespondInOverlay: true
   RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: PartyManagement
+  HandlerConfig: 
+  Help: ''
+  HideHelp: false
+  ID: 39691dbb-a4f0-4f39-9ec7-966e2a0b22f9
+  ModeratorOnly: false
+  Name: party
+  RespondInOverlay: false
+  RespondInTwitch: true
 DisableAutomaticFulfillment: false
 GlobalConfigs:
 - Config:
