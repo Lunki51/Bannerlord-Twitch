@@ -501,6 +501,7 @@ namespace BLTAdoptAHero
             string desc = hero.IsDead ? "deceased" : "retired";
             string oldName = hero.Name.ToString();
             string baseName = oldName.Replace(" [BLT]", "").Trim();
+            baseName = baseName.Replace(" [DEV]", "").Trim();
             var all = Hero.AllAliveHeroes.Concat(Hero.DeadOrDisabledHeroes);
             int highest = 0;
 
@@ -1734,11 +1735,18 @@ namespace BLTAdoptAHero
                     // Only of age characters can be used
                     && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
                 .Where(filter ?? (_ => true))
-                .Where(n => !n.Name.Contains(BLTAdoptAHeroModule.Tag));
+                .Where(n => !n.Name.Contains(BLTAdoptAHeroModule.Tag) || !n.Name.Contains(BLTAdoptAHeroModule.DevTag));
 
-        public static IEnumerable<Hero> GetAllAdoptedHeroes() => CampaignHelpers.AliveHeroes.Where(n => n.Name?.Contains(BLTAdoptAHeroModule.Tag) == true);
+        public static IEnumerable<Hero> GetAllAdoptedHeroes() => CampaignHelpers.AliveHeroes.Where(n => n.Name?.Contains(BLTAdoptAHeroModule.Tag) == true || n.Name?.Contains(BLTAdoptAHeroModule.DevTag) == true);
 
-        public static string GetFullName(string name) => $"{name} {BLTAdoptAHeroModule.Tag}";
+        public static string GetFullName(string name)
+        {
+            string tag = TwitchDevUsers.Developers.Contains(name)
+                ? BLTAdoptAHeroModule.DevTag
+                : BLTAdoptAHeroModule.Tag;
+
+            return $"{name} {tag}";
+        }
 
         public static void SetHeroAdoptedName(Hero hero, string userName) =>
             CampaignHelpers.SetHeroName(hero, new(GetFullName(userName)), new(userName));

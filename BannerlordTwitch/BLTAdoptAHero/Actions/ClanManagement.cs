@@ -531,7 +531,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure(Naming.NotEnoughGold(settings.LeadPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
-            if (adoptedHero.Clan.Leader.Name.Contains(BLTAdoptAHeroModule.Tag))
+            if (adoptedHero.Clan.Leader.Name.Contains(BLTAdoptAHeroModule.Tag) || adoptedHero.Clan.Leader.Name.Contains(BLTAdoptAHeroModule.DevTag))
             {
                 if (!settings.LeadEnabled)
                 {
