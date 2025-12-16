@@ -122,7 +122,7 @@ namespace BLTAdoptAHero
 
             adoptedHero.HeroDeveloper.AddFocus(skill, 1, checkUnspentFocusPoints: false);
             int newFocus = adoptedHero.HeroDeveloper.GetFocus(skill);
-            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, cost, true);
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -cost, true);
             onSuccess(
                 ("{=HLFMWOJA}You have gained a focus point in {Skill}, you now have {NewAmount}!")
                 .Translate(("Skill", skill.Name), ("NewAmount", newFocus)));
