@@ -29,6 +29,10 @@ namespace BLTAdoptAHero.Actions
 {
     public class PartyManagement : HeroCommandHandlerBase
     {
+        public void GenerateDocumentation(IDocumentationGenerator generator)
+        {
+            generator.Value("!party/!party create/!party govern (fief)/!party stats");
+        }
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
             if (adoptedHero == null)

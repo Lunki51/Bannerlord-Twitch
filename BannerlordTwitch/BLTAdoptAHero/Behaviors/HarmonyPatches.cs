@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Helpers;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
+using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
+using NavalDLC.CharacterDevelopment;
 using BannerlordTwitch.Util;
 
 namespace BLTAdoptAHero
@@ -216,72 +219,103 @@ namespace BLTAdoptAHero
             return true; // run original if not blocked
         }
     }
-    //    [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
-    //    internal static class ShipTradeCampaignBehaviorPatches
-    //    {
-    //        [HarmonyPrefix]
-    //        [HarmonyPatch("ConsiderPurchasingShip")]
-    //        private static bool Prefix_ConsiderPurchasingShip(Clan clan)
-    //        {
-    //            try
-    //            {
-    //                // skip if clan is null or eliminated
-    //                if (clan == null || clan.IsEliminated)
-    //                {
-    //#if DEBUG
-    //                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: invalid clan");
-    //#endif
-    //                    return false;
-    //                }
+    #endregion
 
-    //                bool hasValidParty = false;
-    //                foreach (var partyComponent in clan.WarPartyComponents)
-    //                {
-    //                    MobileParty party = partyComponent?.MobileParty;
-    //                    if (party != null && party.IsActive)
-    //                    {
-    //                        hasValidParty = true;
-    //                        break;
-    //                    }
-    //                }
-
-    //                if (!hasValidParty)
-    //                {
-    //#if DEBUG
-    //                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: no valid mobile parties found");
-    //#endif
-    //                    return false; // skip original method
-    //                }
-    //            }
-    //            catch (Exception ex)
-    //            {
-    //                Log.Error($"[BLT] Prefix_ConsiderPurchasingShip error: {ex}");
-    //                return false; // skip original safely
-    //            }
-
-    //            // all good, run original method
-    //            return true;
-    //        }
-    //    }
-    [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
-    [HarmonyPatch("ConsiderPurchasingShip")]
-    internal static class ShipTradeCampaignBehaviorPatches
+    #region OnShipOwnerChanged
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "ConsiderSellingShips")]
+    public static class Patch_ConsiderSellingShips
     {
-        [HarmonyPrefix]
-        private static bool ProtectEmptyWarParties(Clan clan)
+        static bool Prefix(Clan clan)
         {
-            if (clan.WarPartyComponents == null || clan.WarPartyComponents.Count == 0)
+            // SAFETY CHECK: If components are null or empty, SKIP the original method
+            if (clan == null || clan.WarPartyComponents == null || clan.WarPartyComponents.Count == 0)
             {
-#if DEBUG
-                Log.Trace("[BLT] Skipped ConsiderPurchasingShip");
-#endif
                 return false;
             }
-                
             return true;
         }
     }
 
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "ConsiderSwappingClanLeaderShips")]
+    public static class Patch_ConsiderSwappingClanLeaderShips
+    {
+        static bool Prefix(Clan clan)
+        {
+            if (clan == null || clan.WarPartyComponents == null || clan.WarPartyComponents.Count == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "ConsiderSwappingShipsBetweenClanParties")]
+    public static class Patch_ConsiderSwappingShipsBetweenClanParties
+    {
+        static bool Prefix(Clan clan)
+        {
+            if (clan == null || clan.WarPartyComponents == null || clan.WarPartyComponents.Count == 0)
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+
+    // =============================================================
+    // FIX 2: The "Stack Trace" Fix (Null Reference in Event Handler)
+    // =============================================================
+
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
+    public static class Patch_OnShipOwnerChanged
+    {
+        // We use a Prefix that returns FALSE to completely overwrite the original broken method
+        static bool Prefix(Ship ship, PartyBase oldOwner, ChangeShipOwnerAction.ShipOwnerChangeDetail details)
+        {
+            // 1. Initial Null Safety Check
+            if (ship == null || oldOwner == null)
+            {
+                return false; // Skip original, do nothing
+            }
+
+            if (details == ChangeShipOwnerAction.ShipOwnerChangeDetail.ApplyByTrade)
+            {
+                Hero hero = null;
+
+                // 2. Safe checking for Old Owner (The Seller)
+                if (oldOwner.IsSettlement &&
+                    oldOwner.Settlement != null &&
+                    oldOwner.Settlement.IsTown &&
+                    oldOwner.Settlement.Town != null)
+                {
+                    hero = oldOwner.Settlement.Town.Governor;
+                }
+                // 3. Safe checking for New Owner (The Buyer)
+                else if (ship.Owner != null &&
+                         ship.Owner.IsSettlement &&
+                         ship.Owner.Settlement != null &&
+                         ship.Owner.Settlement.IsTown &&
+                         ship.Owner.Settlement.Town != null)
+                {
+                    hero = ship.Owner.Settlement.Town.Governor;
+                }
+
+                // 4. Execute Logic only if valid Hero and valid Owner exist
+                if (hero != null && (hero != Hero.MainHero || (ship.Owner != null && ship.Owner.LeaderHero != Hero.MainHero)))
+                {
+                    ExplainedNumber explainedNumber = new ExplainedNumber(0f, false, null);
+
+                    // Note: Ensure you have reference to Helper classes or use reflection if they are internal
+                    PerkHelper.AddPerkBonusForTown(NavalPerks.Boatswain.MerchantPrince, hero.CurrentSettlement.Town, ref explainedNumber);
+
+                    GiveGoldAction.ApplyBetweenCharacters(null, hero, explainedNumber.RoundedResultNumber, false);
+                }
+            }
+
+            return false; // Skips the original method so it doesn't crash
+        }
+    }
 
     #endregion
+
 }
