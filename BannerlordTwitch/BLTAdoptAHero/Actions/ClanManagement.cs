@@ -673,8 +673,12 @@ namespace BLTAdoptAHero.Actions
                 foreach (var wparty in parties)
                 {
                     var party = wparty?.MobileParty;
+                    if (party == null || party.LeaderHero == null)
+                        continue;
                     count += 1;
                     partyStats.Append($"Party({count})[Leader:{party.LeaderHero.FirstName} - Troops:{party.MemberRoster.TotalHealthyCount}] | ");
+                    if (string.IsNullOrWhiteSpace(partyStats.ToString()))
+                        partyStats.Append("No parties");
                 }
             }
             else partyStats.Append("No parties");
