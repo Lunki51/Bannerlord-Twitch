@@ -269,6 +269,11 @@ namespace BLTAdoptAHero
                 {
                     GetHeroMissionState(affectorRetinueOwner.Hero).RetinueKills++;
                 }
+                var affectorRetinue2Owner = BLTSummonBehavior.Current?.GetHeroSummonStateForRetinue2(affectorAgent);
+                if (affectorRetinue2Owner != null)
+                {
+                    GetHeroMissionState(affectorRetinue2Owner.Hero).RetinueKills++;
+                }
             });
         }
 
@@ -371,6 +376,8 @@ namespace BLTAdoptAHero
                     State = state.ToString().ToLower(),
                     Retinue = summonState?.ActiveRetinue ?? 0,
                     DeadRetinue = summonState?.DeadRetinue ?? 0,
+                    Retinue2 = summonState?.ActiveRetinue2 ?? 0,
+                    DeadRetinue2 = summonState?.DeadRetinue2 ?? 0,
                     GoldEarned = heroState.WonGold,
                     XPEarned = heroState.WonXP,
                     Kills = heroState.Kills,

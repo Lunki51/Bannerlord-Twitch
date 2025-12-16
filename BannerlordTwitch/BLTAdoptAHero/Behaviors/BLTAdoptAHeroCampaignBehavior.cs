@@ -501,6 +501,7 @@ namespace BLTAdoptAHero
             string desc = hero.IsDead ? "deceased" : "retired";
             string oldName = hero.Name.ToString();
             string baseName = oldName.Replace(" [BLT]", "").Trim();
+            baseName = baseName.Replace(" [DEV]", "").Trim();
             var all = Hero.AllAliveHeroes.Concat(Hero.DeadOrDisabledHeroes);
             int highest = 0;
 
@@ -1207,6 +1208,18 @@ namespace BLTAdoptAHero
              PropertyOrder(4), UsedImplicitly]
             public bool UseEliteTroops { get; set; } = true;
 
+            [LocDisplayName("{=MilitiaRetAllowName}Use Militia Troops"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=MilitiaRetAllowDesc}Whether to allow Militia troops (Will be taken from Hero's culture!)"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool UseMilitiaTroops { get; set; } = true;
+
+            [LocDisplayName("{=EliteMilitiaRetAllowName}Use Elite Militia Troops"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=EliteMilitiaRetAllowDesc}Whether to allow Elite Militia troops (Will be taken from Hero's culture!)"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool UseEliteMilitiaTroops { get; set; } = true;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 generator.PropertyValuePair("{=UhUpH8C8}Max retinue".Translate(), $"{MaxRetinueSize}");
@@ -1216,6 +1229,8 @@ namespace BLTAdoptAHero
                 if (IncludeBanditUnits) allowed.Add("{=c2qOsXvs}Bandits".Translate());
                 if (UseBasicTroops) allowed.Add("{=RmTwEFzy}Basic troops".Translate());
                 if (UseEliteTroops) allowed.Add("{=3gumlthG}Elite troops".Translate());
+                if (UseMilitiaTroops) allowed.Add("{=MilitiaTag}Militia troops".Translate());
+                if (UseEliteMilitiaTroops) allowed.Add("{=EliteMilitiaTag}Elite militia troops".Translate());
                 generator.PropertyValuePair("{=uL7MfYPc}Allowed".Translate(), string.Join(", ", allowed));
             }
         }
@@ -1229,15 +1244,17 @@ namespace BLTAdoptAHero
                     var troopTypes = new List<CharacterObject>();
                     if (settings.UseBasicTroops && c.BasicTroop != null) troopTypes.Add(c.BasicTroop);
                     if (settings.UseEliteTroops && c.EliteBasicTroop != null) troopTypes.Add(c.EliteBasicTroop);
+                    if (settings.UseMilitiaTroops && (c.MeleeMilitiaTroop != null && c.RangedMilitiaTroop != null)) troopTypes.Add(c.MeleeMilitiaTroop); troopTypes.Add(c.RangedMilitiaTroop);
+                    if (settings.UseEliteMilitiaTroops && (c.MeleeEliteMilitiaTroop != null && c.RangedEliteMilitiaTroop != null)) troopTypes.Add(c.MeleeEliteMilitiaTroop); troopTypes.Add(c.RangedEliteMilitiaTroop);
                     return troopTypes;
                 })
                 // At least 2 upgrade tiers available
-                .Where(c => c.UpgradeTargets?.FirstOrDefault()?.UpgradeTargets?.Any() == true)
+                .Where(c => (c.UpgradeTargets?.FirstOrDefault()?.UpgradeTargets?.Any() == true) || ((settings.UseMilitiaTroops || settings.UseEliteMilitiaTroops) && (c == c.Culture.MeleeMilitiaTroop || c == c.Culture.RangedMilitiaTroop || c == c.Culture.MeleeEliteMilitiaTroop || c == c.Culture.RangedEliteMilitiaTroop)))
                 .ToList();
 
             if (!availableTroops.Any())
             {
-                return (false, "{=bBCyH0vV}No valid troop types could be found, please check out settings".Translate());
+                return (false, "{=bBCyH0vV}No valid troop types could be found, please check your settings".Translate());
             }
 
             var heroRetinue = GetHeroData(hero).Retinue;
@@ -1481,15 +1498,29 @@ namespace BLTAdoptAHero
              PropertyOrder(4), UsedImplicitly]
             public bool UseEliteTroops { get; set; } = true;
 
+            [LocDisplayName("{=MilitiaRetAllowName}Use Militia Troops"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=MilitiaRetAllowDesc}Whether to allow Militia troops (Will be taken from Hero's culture!)"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool UseMilitiaTroops { get; set; } = true;
+
+            [LocDisplayName("{=EliteMilitiaRetAllowName}Use Elite Militia Troops"),
+             LocCategory("Troop Types", "{=qYhM3gcn}Troop Types"),
+             LocDescription("{=EliteMilitiaRetAllowDesc}Whether to allow Elite Militia troops (Will be taken from Hero's culture!)"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool UseEliteMilitiaTroops { get; set; } = true;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 generator.PropertyValuePair("{=UhUpH8C8}Max secondary retinue".Translate(), $"{MaxRetinue2Size}");
-                generator.PropertyValuePair("{=VBuncBq5}Tier costs".Translate(), $"1={CostTier1}{Naming.Gold}, 2={CostTier2}{Naming.Gold}, 3={CostTier3}{Naming.Gold}, 4={CostTier4}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 6={CostTier6}{Naming.Gold}");
+                generator.PropertyValuePair("{=VBuncBq5}Tier costs".Translate(), $"1={CostTier1}{Naming.Gold}, 2={CostTier2}{Naming.Gold}, 3={CostTier3}{Naming.Gold}, 4={CostTier4}{Naming.Gold}, 5={CostTier5}{Naming.Gold}, 6={CostTier6}{Naming.Gold}");
                 var allowed = new List<string>();
                 if (UseHeroesCultureUnits) allowed.Add("{=R7rU0TbD}Same culture only".Translate());
                 if (IncludeBanditUnits) allowed.Add("{=c2qOsXvs}Bandits".Translate());
                 if (UseBasicTroops) allowed.Add("{=RmTwEFzy}Basic troops".Translate());
                 if (UseEliteTroops) allowed.Add("{=3gumlthG}Elite troops".Translate());
+                if (UseMilitiaTroops) allowed.Add("{=MilitiaTag}Militia troops".Translate());
+                if (UseEliteMilitiaTroops) allowed.Add("{=EliteMilitiaTag}Elite militia troops".Translate());
                 generator.PropertyValuePair("{=uL7MfYPc}Allowed".Translate(), string.Join(", ", allowed));
             }
         }
@@ -1503,10 +1534,12 @@ namespace BLTAdoptAHero
                     var troopTypes = new List<CharacterObject>();
                     if (settings.UseBasicTroops && c.BasicTroop != null) troopTypes.Add(c.BasicTroop);
                     if (settings.UseEliteTroops && c.EliteBasicTroop != null) troopTypes.Add(c.EliteBasicTroop);
+                    if (settings.UseMilitiaTroops && (c.MeleeMilitiaTroop != null && c.RangedMilitiaTroop != null)) troopTypes.Add(c.MeleeMilitiaTroop); troopTypes.Add(c.RangedMilitiaTroop);
+                    if (settings.UseEliteMilitiaTroops && (c.MeleeEliteMilitiaTroop != null && c.RangedEliteMilitiaTroop != null)) troopTypes.Add(c.MeleeEliteMilitiaTroop); troopTypes.Add(c.RangedEliteMilitiaTroop);
                     return troopTypes;
                 })
                 // At least 2 upgrade tiers available
-                .Where(c => c.UpgradeTargets?.FirstOrDefault()?.UpgradeTargets?.Any() == true)
+                .Where(c => (c.UpgradeTargets?.FirstOrDefault()?.UpgradeTargets?.Any() == true) || ((settings.UseMilitiaTroops || settings.UseEliteMilitiaTroops) && (c == c.Culture.MeleeMilitiaTroop || c == c.Culture.RangedMilitiaTroop || c == c.Culture.MeleeEliteMilitiaTroop || c == c.Culture.RangedEliteMilitiaTroop)))
                 .ToList();
 
             if (!availableTroops.Any())
@@ -1702,11 +1735,18 @@ namespace BLTAdoptAHero
                     // Only of age characters can be used
                     && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
                 .Where(filter ?? (_ => true))
-                .Where(n => !n.Name.Contains(BLTAdoptAHeroModule.Tag));
+                .Where(n => !n.Name.Contains(BLTAdoptAHeroModule.Tag) || !n.Name.Contains(BLTAdoptAHeroModule.DevTag));
 
-        public static IEnumerable<Hero> GetAllAdoptedHeroes() => CampaignHelpers.AliveHeroes.Where(n => n.Name?.Contains(BLTAdoptAHeroModule.Tag) == true);
+        public static IEnumerable<Hero> GetAllAdoptedHeroes() => CampaignHelpers.AliveHeroes.Where(n => n.Name?.Contains(BLTAdoptAHeroModule.Tag) == true || n.Name?.Contains(BLTAdoptAHeroModule.DevTag) == true);
 
-        public static string GetFullName(string name) => $"{name} {BLTAdoptAHeroModule.Tag}";
+        public static string GetFullName(string name)
+        {
+            string tag = TwitchDevUsers.Developers.Contains(name)
+                ? BLTAdoptAHeroModule.DevTag
+                : BLTAdoptAHeroModule.Tag;
+
+            return $"{name} {tag}";
+        }
 
         public static void SetHeroAdoptedName(Hero hero, string userName) =>
             CampaignHelpers.SetHeroName(hero, new(GetFullName(userName)), new(userName));
@@ -1826,6 +1866,57 @@ namespace BLTAdoptAHero
             Current.GetHeroData(hero).AchievementStats.UpdateValue(stat, hero.GetClass()?.ID ?? Guid.Empty, amount);
 
             return $"Added {amount} to {stat} stat of {hero.Name}";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("killBLT", "blt")]
+        [UsedImplicitly]
+        public static string KillAdoptedHeroAgent(List<string> strings)
+        {
+            if (strings.Count != 1)
+            {
+                return "Usage: killBLT <hero_name>";
+            }
+
+            var heroName = strings[0];
+
+            // Get the adopted hero
+            var hero = Current.GetAdoptedHero(heroName);
+            if (hero == null)
+            {
+                return $"Couldn't find adopted hero: {heroName}";
+            }
+
+            // Check if there's an active mission/battle
+            var mission = Mission.Current;
+            if (mission == null)
+            {
+                return "No active mission/battle found";
+            }
+
+            // Find the agent corresponding to the hero
+            var agent = mission.Agents.FirstOrDefault(a => a.Character == hero.CharacterObject);
+
+            if (agent == null)
+            {
+                return $"Agent for hero {hero.Name} not found in current battle";
+            }
+
+            if (!agent.IsActive())
+            {
+                return $"Agent for hero {hero.Name} is not active";
+            }
+
+            // Kill the agent
+            var blow = new Blow(agent.Index);
+            blow.DamageType = DamageTypes.Invalid;
+            blow.BoneIndex = agent.Monster.HeadLookDirectionBoneIndex;
+            blow.GlobalPosition = agent.Position;
+            blow.BaseMagnitude = agent.HealthLimit;
+            blow.InflictedDamage = (int)agent.HealthLimit;
+
+            agent.Die(blow);
+
+            return $"Killed agent of {hero.Name}";
         }
 
         #endregion

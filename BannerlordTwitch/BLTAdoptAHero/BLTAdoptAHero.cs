@@ -27,6 +27,14 @@ using TaleWorlds.MountAndBlade.View.Screens;
 
 namespace BLTAdoptAHero
 {
+    public static class TwitchDevUsers
+    {
+        public static readonly HashSet<string> Developers = new HashSet<string>
+        {
+            "randomchair22",
+            "kanboru201"
+        };
+    }
 
 
     [UsedImplicitly]
@@ -108,7 +116,14 @@ namespace BLTAdoptAHero
                 if (isEnemy)
                 {
                     __instance.NameType = "Enemy";
-                    __instance.Name = __instance.Name.Replace(" [BLT]", "");
+                    if (TwitchDevUsers.Developers.Contains(__instance.Name))
+                    {
+                        __instance.Name = __instance.Name.Replace(" [Dev]", "");
+                    }
+                    else
+                    {
+                        __instance.Name = __instance.Name.Replace(" [BLT]", "");
+                    }
                     __instance.IsFriendly = false;
                     __instance.IsEnemy = true;
                     __instance.IsTracked = true;
@@ -116,7 +131,14 @@ namespace BLTAdoptAHero
                 else if (isFriendly)
                 {
                     __instance.NameType = "Friendly";
-                    __instance.Name = __instance.Name.Replace(" [BLT]", "");
+                    if (TwitchDevUsers.Developers.Contains(__instance.Name))
+                    {
+                        __instance.Name = __instance.Name.Replace(" [Dev]", "");
+                    }
+                    else
+                    {
+                        __instance.Name = __instance.Name.Replace(" [BLT]", "");
+                    }
                     __instance.IsFriendly = true;
                     __instance.IsEnemy = false;
                     __instance.IsTracked = true;
@@ -198,6 +220,7 @@ namespace BLTAdoptAHero
         }
 
         internal const string Tag = "[BLT]";
+        internal const string DevTag = "[DEV]";
     }
 
     public class BLTAgentApplyDamageModel : AgentApplyDamageModel

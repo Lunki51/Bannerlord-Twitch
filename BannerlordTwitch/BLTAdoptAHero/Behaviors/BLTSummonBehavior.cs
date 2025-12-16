@@ -36,9 +36,13 @@ namespace BLTAdoptAHero
             public float SummonTime;
             public int TimesSummoned = 0;
             public List<RetinueState> Retinue { get; set; } = new();
+            public List<RetinueState> Retinue2 { get; set; } = new();
 
             public int ActiveRetinue => Retinue.Count(r => r.State == AgentState.Active);
             public int DeadRetinue => Retinue.Count(r => r.Died);
+
+            public int ActiveRetinue2 => Retinue2.Count(r => r.State == AgentState.Active);
+            public int DeadRetinue2 => Retinue2.Count(r => r.Died);
 
             private float CooldownTime => BLTAdoptAHeroModule.CommonConfig.CooldownEnabled
                 ? BLTAdoptAHeroModule.CommonConfig.GetCooldownTime(TimesSummoned) : 0;
@@ -56,6 +60,8 @@ namespace BLTAdoptAHero
 
         public HeroSummonState GetHeroSummonStateForRetinue(Agent retinueAgent)
             => heroSummonStates.FirstOrDefault(h => h.Retinue.Any(r => r.Agent == retinueAgent));
+        public HeroSummonState GetHeroSummonStateForRetinue2(Agent retinue2Agent)
+            => heroSummonStates.FirstOrDefault(h => h.Retinue2.Any(r => r.Agent == retinue2Agent));
 
         /// <summary>
         /// 
@@ -131,7 +137,7 @@ namespace BLTAdoptAHero
                     heroSummonState.State = agentState;
                 }
 
-                // Set the final retinue state
+                // Set the final retinue states
                 var (retinueOwner, retinueState) = heroSummonStates
                     .Select(h
                         => (state: h, retinue: h.Retinue.FirstOrDefault(r => r.Agent == affectedAgent)))
@@ -151,6 +157,27 @@ namespace BLTAdoptAHero
                         }
                     }
                     retinueState.State = agentState;
+                }
+
+                var (retinue2Owner, retinue2State) = heroSummonStates
+                    .Select(h
+                        => (state: h, retinue2: h.Retinue2.FirstOrDefault(r => r.Agent == affectedAgent)))
+                    .FirstOrDefault(h => h.retinue2 != null);
+
+                if (retinue2Owner != null)
+                {
+                    if (agentState == AgentState.Killed &&
+                        MBRandom.RandomFloat <= BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance)
+                    {
+                        retinue2State.Died = true;
+                        BLTAdoptAHeroCampaignBehavior.Current.KillRetinue2(retinue2Owner.Hero, affectedAgent.Character);
+                        if (retinue2Owner.Hero.FirstName != null)
+                        {
+                            Log.LogFeedResponse(retinue2Owner.Hero.FirstName.ToString(),
+                                $"Your {affectedAgent.Character} was killed in battle!");
+                        }
+                    }
+                    retinue2State.State = agentState;
                 }
             });
         }

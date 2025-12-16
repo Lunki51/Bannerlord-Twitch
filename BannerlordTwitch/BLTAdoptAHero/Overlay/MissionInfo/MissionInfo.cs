@@ -35,6 +35,10 @@ namespace BLTAdoptAHero.UI
 
             [UsedImplicitly] public int Retinue;
             [UsedImplicitly] public int DeadRetinue;
+
+            [UsedImplicitly] public int Retinue2;
+            [UsedImplicitly] public int DeadRetinue2;
+
             [UsedImplicitly] public int RetinueKills;
 
             [UsedImplicitly] public int GoldEarned;
