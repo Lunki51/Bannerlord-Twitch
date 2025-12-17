@@ -165,7 +165,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check ownership: only the owning clan (by default) or kingdom ruler (with force & config) may transfer
-            var ownerClan = targetSettlement.OwnerClan;
+            var ownerClan = targetSettlement.Owner.Clan;
             if (ownerClan == null)
             {
                 onFailure("This settlement has no owner clan and cannot be transferred.");
@@ -197,7 +197,11 @@ namespace BLTAdoptAHero.Actions
             var ownerKingdomFinal = ownerClan.Kingdom;
             var targetKingdom = targetClan.Kingdom;
 
-            bool kingdomsDiffer = ownerKingdomFinal != targetKingdom;
+            bool kingdomsDiffer = false;
+            if (ownerKingdomFinal != targetKingdom)
+            {
+                kingdomsDiffer = true;
+            }
 
             if (kingdomsDiffer)
             {
