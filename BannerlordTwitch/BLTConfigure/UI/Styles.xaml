@@ -470,6 +470,8 @@
             <Style TargetType="ListBox">
             </Style>
         </Style.Resources>
+        <Setter Property="Background"
+                Value="DimGray"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type xctk:CollectionControl}">

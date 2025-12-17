@@ -16,7 +16,7 @@
       >
     <Page.Resources>
         <Style TargetType="{x:Type ui1:CollectionPropertyEditor}">
-            <EventSetter Event="OpenCollectionEditor" Handler="CollectionPropertyEditor_OpenCollectionEditor"></EventSetter>
+            
         </Style>
     </Page.Resources>
     <Grid>
@@ -29,7 +29,7 @@
             <ColumnDefinition Width="5" />
             <ColumnDefinition Width="2*" />
         </Grid.ColumnDefinitions>
-        <StackPanel Grid.ColumnSpan="3" DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0 4">
+        <StackPanel Grid.ColumnSpan="3" DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0 4" Background="LightGray">
             <Button Click="SaveButton_OnClick" FontWeight="DemiBold" FontSize="16" Padding="15 0">Save</Button>
             <Button Click="Profile1Button_OnClick" FontWeight="DemiBold" Margin="5 0 0 0" FontSize="16" Padding="5 0">1</Button>
             <Button Click="Profile2Button_OnClick" FontWeight="DemiBold" Margin="2 0 0 0" FontSize="16" Padding="5 0">2</Button>
@@ -45,7 +45,8 @@
                 <DataTemplate x:Key="NewItemHDT" DataType="{x:Type bltConfigure:NewActionViewModel}">
                     <Button Command="{Binding Command}"
                             HorizontalContentAlignment="Stretch"
-                            HorizontalAlignment="Stretch" Padding="4" Margin="4">
+                            HorizontalAlignment="Stretch" Padding="4" Margin="4"
+                            >
                         <Grid HorizontalAlignment="Stretch">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
@@ -78,7 +79,7 @@
                      HorizontalContentAlignment="Stretch"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      x:Name="ActionsListBox"
-                     ItemsSource="{Binding Model.ActionFilterView}" Grid.ColumnSpan="2" Margin="0,0,0,50" Grid.RowSpan="2">
+                     ItemsSource="{Binding Model.ActionFilterView}" Grid.ColumnSpan="2" Margin="0,0,0,50" Grid.RowSpan="2" Background="LightGray">
                 <ListBox.GroupStyle>
                     <GroupStyle>
                         <GroupStyle.HeaderTemplate>
@@ -87,7 +88,7 @@
                                            FontSize="18"
                                            Text="{Binding Name}"
                                            Foreground="Indigo"
-                                           Background="LightGray"
+                                           Background="Gray"
                                            Margin="0 10 0 0"
                                            Padding="4 2 2 2" />
                             </DataTemplate>
@@ -105,10 +106,10 @@
                         x:Key="BoolToCollapsedConverterInverted"
                         TrueValue="Collapsed" FalseValue="Visible" />
                     <DataTemplate DataType="{x:Type bannerlordTwitch:GlobalConfig}">
-                        <TextBlock Text="{Binding}" />
+                        <TextBlock Text="{Binding}" Background="LightGray"/>
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type bannerlordTwitch:ActionBase}">
-                        <DockPanel LastChildFill="True" HorizontalAlignment="Stretch">
+                        <DockPanel LastChildFill="True" HorizontalAlignment="Stretch" Background="LightGray">
                             <fa:ImageAwesome Icon="Check"
                                              Visibility="{Binding Enabled,
                                             Converter={StaticResource BoolToHiddenConverter}}"

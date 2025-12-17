@@ -15,7 +15,7 @@
             <EventSetter Event="OpenCollectionEditor" Handler="CollectionPropertyEditor_OpenCollectionEditor"></EventSetter>
         </Style>
     </Page.Resources>
-    <Grid Margin="4">
+    <Grid Margin="4" Background="DimGray">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>            
             <RowDefinition Height="*"/>
@@ -36,7 +36,7 @@
             <TextBlock Grid.Column="1" Margin="20 0 0 8" FontSize="16" FontWeight="Bold" VerticalAlignment="Center" 
                        Text="{Binding PropertyName}" TextWrapping="Wrap"/>
         </Grid>
-        <xctk:CollectionControl Grid.Row="1"
+        <xctk:CollectionControl Grid.Row="1" Background="Gray"
                                 ItemsSourceType="{Binding ItemsSourceType}"
                                 ItemsSource="{Binding ItemsSource, Mode=TwoWay}"
                                 NewItemTypes="{Binding NewItemTypes}"
