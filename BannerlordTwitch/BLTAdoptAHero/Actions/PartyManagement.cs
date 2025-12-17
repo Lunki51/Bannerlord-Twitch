@@ -399,7 +399,8 @@ namespace BLTAdoptAHero.Actions
                         partyStats.Append($"Sight: {Math.Round(party.SeeingRange, 1)} | ");
                         partyStats.Append($"Wage: {party.TotalWage} ");
                         Settlement location = HeroHelper.GetClosestSettlement(adoptedHero);
-                        partyStats.Append($"Near: {location.Name}");
+                        if (location != null)
+                            partyStats.Append($"Near: {location.Name}");
                         onSuccess(partyStats.ToString());
                         break;
                     }
