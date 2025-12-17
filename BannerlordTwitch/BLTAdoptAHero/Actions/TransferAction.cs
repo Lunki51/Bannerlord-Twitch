@@ -165,21 +165,21 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check ownership: only the owning clan (by default) or kingdom ruler (with force & config) may transfer
-            var ownerClan = targetSettlement.Owner.Clan;
-            if (ownerClan == null)
+            var owningClan = targetSettlement.Owner.Clan;
+            if (owningClan == null)
             {
-                onFailure("This settlement has no owner clan and cannot be transferred.");
+                onFailure("This settlement has no owning clan and cannot be transferred.");
                 return;
             }
 
             // If issuer's clan is the owner, allow them to transfer (they can give away their own fief)
-            bool issuerOwnsSettlement = adoptedHero.Clan != null && adoptedHero.Clan == ownerClan;
+            bool issuerOwnsSettlement = adoptedHero.Clan != null && adoptedHero.Clan == owningClan;
 
             // Kingdom-level allowance: if enabled, owner kingdom's ruler may transfer any owned settlement in their kingdom
             bool issuerIsOwnerKing = false;
             if (adoptedHero.Clan != null && adoptedHero.Clan.Kingdom != null)
             {
-                var ownerKingdom = ownerClan.Kingdom;
+                var ownerKingdom = owningClan.Kingdom;
                 if (ownerKingdom != null && ownerKingdom.Leader == adoptedHero)
                 {
                     issuerIsOwnerKing = true;
@@ -194,11 +194,16 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Kingdom crossing checks
-            var ownerKingdomFinal = ownerClan.Kingdom;
-            var targetKingdom = targetClan.Kingdom;
+            var owningKingdom = owningClan?.Kingdom;
+            var targetKingdom = targetClan?.Kingdom;
+            if (targetKingdom == null || owningKingdom == null)
+            {
+                onFailure("Either you or the target clan does not have a kingdom.");
+                return;
+            }
 
             bool kingdomsDiffer = false;
-            if (ownerKingdomFinal != targetKingdom)
+            if (owningKingdom != targetKingdom)
             {
                 kingdomsDiffer = true;
             }
@@ -240,7 +245,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Final safety checks: cannot transfer to the same clan that already owns it
-            if (ownerClan == targetClan)
+            if (owningClan == targetClan)
             {
                 onFailure($"{targetSettlement.Name} is already owned by {targetClan.Name}.");
                 return;
