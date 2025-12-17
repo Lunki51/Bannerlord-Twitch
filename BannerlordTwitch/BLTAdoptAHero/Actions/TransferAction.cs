@@ -233,11 +233,6 @@ namespace BLTAdoptAHero.Actions
                         return;
                     }
                 }
-                else
-                {
-                    onFailure("Cross-kingdom transfers require force transfers, use !transfer force.");
-                    return;
-                }
             }
 
             // Final safety checks: cannot transfer to the same clan that already owns it
