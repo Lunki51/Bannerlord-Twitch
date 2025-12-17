@@ -16,7 +16,7 @@
       >
     <Page.Resources>
         <Style TargetType="{x:Type ui1:CollectionPropertyEditor}">
-            
+            <EventSetter Event="OpenCollectionEditor" Handler="CollectionPropertyEditor_OpenCollectionEditor"></EventSetter>
         </Style>
     </Page.Resources>
     <Grid>

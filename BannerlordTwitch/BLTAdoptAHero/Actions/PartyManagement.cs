@@ -56,7 +56,7 @@ namespace BLTAdoptAHero.Actions
             var mode = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
 
-            var party = adoptedHero.PartyBelongedTo ?? adoptedHero.Clan.WarPartyComponents.Find(pc => pc.Leader == adoptedHero).MobileParty;
+            var party = adoptedHero.PartyBelongedTo ?? adoptedHero.Clan?.WarPartyComponents?.FirstOrDefault(pc => pc.Leader == adoptedHero)?.MobileParty;
             var army = party?.Army;
             string behaviorText = adoptedHero.PartyBelongedTo?.GetBehaviorText().ToString();
             string armyBehavior = "";

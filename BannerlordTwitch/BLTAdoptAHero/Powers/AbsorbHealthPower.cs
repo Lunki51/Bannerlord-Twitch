@@ -52,10 +52,15 @@ namespace BLTAdoptAHero.Powers
             BLTHeroPowersMissionBehavior.RegisterBlowParams blowParams)
         {
             if (MaxAbsorb > 0)
+            {
                 agent.Health = Math.Min(agent.HealthLimit,
                     agent.Health + Math.Min(blowParams.blow.InflictedDamage * DamageToAbsorbPercent / 100f, MaxAbsorb));
-            else agent.Health = Math.Min(agent.HealthLimit,
-                agent.Health + blowParams.blow.InflictedDamage * DamageToAbsorbPercent / 100f);
+            }
+            else
+            {
+                agent.Health = Math.Min(agent.HealthLimit,
+             agent.Health + blowParams.blow.InflictedDamage * DamageToAbsorbPercent / 100f);
+            }
         }
         #endregion
 
