@@ -14,6 +14,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -331,7 +333,7 @@ Commands:
     LeaveEnabled: true
     RenameEnabled: true
     RenamePrice: 100000
-    Renown: 50
+    Renown: 100
     StatsEnabled: true
     TitlePrice: 200000
   Help: ''
@@ -375,6 +377,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: true
     ShowTopSkills: false
@@ -442,6 +446,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -485,13 +491,13 @@ Commands:
   Handler: HeroFeatures
   HandlerConfig:
     AppearanceEnabled: true
-    ClanorName: true
+    ClanorName: false
     GenderCost: 50000
     GenderDisabledonNative: true
     GenderEnabled: true
     MarriageCost: 50000
     MarriageEnabled: true
-    OnlySpawnSpouse: false
+    OnlySpawnSpouse: true
   Help: ''
   HideHelp: true
   ID: 8443567a-70cb-4073-bb00-b00cc150ab81
@@ -514,6 +520,8 @@ Commands:
     ShowInventory: true
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -592,6 +600,8 @@ Commands:
     ShowInventory: false
     ShowPowers: true
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -637,8 +647,10 @@ Commands:
       IncludeBanditUnits: false
       MaxRetinueSize: 5
       UseBasicTroops: true
+      UseEliteMilitiaTroops: true
       UseEliteTroops: true
       UseHeroesCultureUnits: true
+      UseMilitiaTroops: true
   Help: upgrade retinue
   HideHelp: false
   ID: 38eed507-87b9-47f4-b235-af921cef00c4
@@ -661,6 +673,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: true
     ShowRetinueList: true
     ShowStorage: false
     ShowTopSkills: false
@@ -729,6 +743,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: true
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: true
@@ -791,6 +807,8 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
     ShowTopSkills: false
@@ -892,7 +910,6 @@ Commands:
     AllyPrice: 100000
     ArmyEnabled: true
     ArmyPrice: 150000
-    PeaceCooldown: 10
     PeaceEnabled: true
     PeacePrice: 100000
     PolicyEnabled: true
@@ -925,6 +942,8 @@ Commands:
   Handler: ReinforceAction
   HandlerConfig:
     AllowKingdomLeaders: false
+    CapitalEliteBonus: 50
+    CapitalMilitiaBonus: 150
     EliteCostPerUnit: 30000
     EliteEnabled: true
     EliteMilitiaCap: 50
@@ -2041,7 +2060,7 @@ GlobalConfigs:
       XPGain: 0
     AllowDeath: true
     ApplyDeathChanceToAllHeroes: true
-    BLTChildAgeMult: 3
+    BLTChildAgeMult: 5
     CustomCompanionLimit: 7
     CustomItemLimit: 8
     CustomRewardModifiers:
@@ -2113,6 +2132,7 @@ GlobalConfigs:
     RawXPSkillCap: 330
     ReferenceLevelReward: 15
     RelativeLevelScaling: 0.5
+    Retinue2DeathChance: 0.025
     RetinueDeathChance: 0.025
     RetinueGoldPerKill: 2500
     RetinueHealPerKill: 50
@@ -2170,18 +2190,21 @@ GlobalConfigs:
     - !AbsorbHealthPower
       DamageToAbsorbPercent: 10
       ID: 4a60ed27-334e-446e-8e75-9804b1980c8b
+      MaxAbsorb: 0
       Name: '{=mJQ88gTg}Vampiric I'
       Pfx: []
       PowerDurationSeconds: 120
     - !AbsorbHealthPower
       DamageToAbsorbPercent: 25
       ID: b3e5da20-1b82-4820-a373-ff9a8190dd98
+      MaxAbsorb: 0
       Name: '{=EHkU2FPe}Vampiric II'
       Pfx: []
       PowerDurationSeconds: 120
     - !AbsorbHealthPower
       DamageToAbsorbPercent: 50
       ID: 936524f5-7bde-4793-828a-1e0cf4a8a6ba
+      MaxAbsorb: 0
       Name: '{=gDsSjnnd}Vampiric III'
       Pfx: []
       PowerDurationSeconds: 120

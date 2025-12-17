@@ -30,6 +30,12 @@ namespace BLTAdoptAHero.Powers
          UIRange(0, 100, 1), Editor(typeof(SliderFloatEditor), typeof(SliderFloatEditor)),
          PropertyOrder(1), UsedImplicitly]
         public float DamageToAbsorbPercent { get; set; }
+
+        [LocDisplayName("{=TESTING}Absorb health cap"),
+         LocCategory("Power Config", "{=75UOuDM}Power Config"),
+         LocDescription("{=8SE2asYO}What percentage of damage done to absorb as health"),
+         PropertyOrder(2), UsedImplicitly]
+        public int MaxAbsorb { get; set; }
         #endregion
 
         #region IHeroPowerPassive
@@ -45,7 +51,10 @@ namespace BLTAdoptAHero.Powers
         private void OnDoDamage(Agent agent, Agent victimAgent,
             BLTHeroPowersMissionBehavior.RegisterBlowParams blowParams)
         {
-            agent.Health = Math.Min(agent.HealthLimit,
+            if (MaxAbsorb > 0)
+                agent.Health = Math.Min(agent.HealthLimit,
+                    agent.Health + Math.Min(blowParams.blow.InflictedDamage * DamageToAbsorbPercent / 100f, MaxAbsorb));
+            else agent.Health = Math.Min(agent.HealthLimit,
                 agent.Health + blowParams.blow.InflictedDamage * DamageToAbsorbPercent / 100f);
         }
         #endregion

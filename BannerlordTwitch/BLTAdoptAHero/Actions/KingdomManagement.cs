@@ -491,7 +491,11 @@ namespace BLTAdoptAHero.Actions
             if (tribute)
                 clanStats.Append("{=0GhTvF3K}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
             if (adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name != null)
-                clanStats.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
+                clanStats.Append("{=EXKsUpaU}Capital: {capital} ".Translate(("capital", adoptedHero.Clan.Kingdom.RulingClan.HomeSettlement.Name.ToString())));
+            if (adoptedHero.Clan.Kingdom.Armies.Count >= 1)
+            {
+                clanStats.Append($"| Armies: {adoptedHero.Clan.Kingdom.Armies.Count} ");
+            }
             if (adoptedHero.Clan.Kingdom.Fiefs.Count >= 1)
             {
                 int townCount = 0;
@@ -507,7 +511,7 @@ namespace BLTAdoptAHero.Actions
                         castleCount++;
                     }
                 }
-                clanStats.Append("{=BwuFSJU1}Towns: {towns} | ".Translate(("towns", (object)townCount)));
+                clanStats.Append("{=BwuFSJU1}| Towns: {towns} | ".Translate(("towns", (object)townCount)));
                 clanStats.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleCount)));
             }
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));

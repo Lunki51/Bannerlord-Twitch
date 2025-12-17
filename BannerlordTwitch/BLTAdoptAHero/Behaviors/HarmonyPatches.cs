@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Helpers;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
+using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
+using NavalDLC.CharacterDevelopment;
 using BannerlordTwitch.Util;
 
 namespace BLTAdoptAHero
@@ -216,72 +219,30 @@ namespace BLTAdoptAHero
             return true; // run original if not blocked
         }
     }
-    //    [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
-    //    internal static class ShipTradeCampaignBehaviorPatches
-    //    {
-    //        [HarmonyPrefix]
-    //        [HarmonyPatch("ConsiderPurchasingShip")]
-    //        private static bool Prefix_ConsiderPurchasingShip(Clan clan)
-    //        {
-    //            try
-    //            {
-    //                // skip if clan is null or eliminated
-    //                if (clan == null || clan.IsEliminated)
-    //                {
-    //#if DEBUG
-    //                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: invalid clan");
-    //#endif
-    //                    return false;
-    //                }
+    #endregion
 
-    //                bool hasValidParty = false;
-    //                foreach (var partyComponent in clan.WarPartyComponents)
-    //                {
-    //                    MobileParty party = partyComponent?.MobileParty;
-    //                    if (party != null && party.IsActive)
-    //                    {
-    //                        hasValidParty = true;
-    //                        break;
-    //                    }
-    //                }
-
-    //                if (!hasValidParty)
-    //                {
-    //#if DEBUG
-    //                    Log.Trace("[BLT] Skipped ConsiderPurchasingShip: no valid mobile parties found");
-    //#endif
-    //                    return false; // skip original method
-    //                }
-    //            }
-    //            catch (Exception ex)
-    //            {
-    //                Log.Error($"[BLT] Prefix_ConsiderPurchasingShip error: {ex}");
-    //                return false; // skip original safely
-    //            }
-
-    //            // all good, run original method
-    //            return true;
-    //        }
-    //    }
+    #region OnShipOwnerChanged
     [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
-    [HarmonyPatch("ConsiderPurchasingShip")]
-    internal static class ShipTradeCampaignBehaviorPatches
+    internal static class ShipTradeCampaignBehavior_OnShipOwnerChanged_Patch
     {
         [HarmonyPrefix]
-        private static bool ProtectEmptyWarParties(Clan clan)
+        [HarmonyPatch("OnShipOwnerChanged")]
+        private static bool Prefix(
+            Ship ship,
+            PartyBase oldOwner,
+            ChangeShipOwnerAction.ShipOwnerChangeDetail details)
         {
-            if (clan.WarPartyComponents == null || clan.WarPartyComponents.Count == 0)
-            {
-#if DEBUG
-                Log.Trace("[BLT] Skipped ConsiderPurchasingShip");
-#endif
+            if (details != ChangeShipOwnerAction.ShipOwnerChangeDetail.ApplyByTrade)
+                return true;
+
+            // Party owner exists but leader not initialized yet
+            var party = ship?.Owner?.MobileParty;
+            if (party != null && party.LeaderHero == null)
                 return false;
-            }
-                
+
             return true;
         }
     }
-
-
     #endregion
+
 }
