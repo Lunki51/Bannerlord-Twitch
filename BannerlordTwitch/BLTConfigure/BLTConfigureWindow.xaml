@@ -12,14 +12,14 @@
               xmlns:ui1="clr-namespace:BLTConfigure.UI"
               mc:Ignorable="d"
               ResizeMode="CanResize"
-              Title="BLT Configure Window" Width="1250" Height="1000" 
+              Title="BLT Configure Window" Width="1250" Height="1000" Background="LightGray"
               d:DataContext="{d:DesignInstance local:BLTConfigureWindow}">
     <!-- <Window.Resources> -->
     <!--     <Style TargetType="{x:Type ui:CollectionPropertyEditor}"> -->
     <!--         <EventSetter Event="OpenCollectionEditor" Handler="CollectionPropertyEditor_OpenCollectionEditor"></EventSetter> -->
     <!--     </Style> -->
     <!-- </Window.Resources> -->
-    <DockPanel LastChildFill="True">
+    <DockPanel LastChildFill="True" Background="LightGray">
         <DockPanel.Resources>
             <Style TargetType="TextBlock">
                 <Setter Property="Margin" Value="2" />
@@ -46,7 +46,7 @@
                 <Setter Property="Padding" Value="5" />
             </Style>
         </DockPanel.Resources>
-        <TabControl Name="TabControl" SelectedIndex="0">
+        <TabControl Name="TabControl" SelectedIndex="0" Background="LightGray" >
             <TabItem>
                 <TabItem.Header>
                     <TextBlock Margin="10 2">Configuration</TextBlock>
@@ -58,7 +58,7 @@
                         <Hyperlink RequestNavigate="Hyperlink_RequestNavigate" 
                                    NavigateUri="https://github.com/jazz-ttv/Bannerlord-Twitch">GitHub</Hyperlink>
                     </TextBlock>
-                    <Frame HorizontalAlignment="Stretch" VerticalAlignment="Stretch" 
+                    <Frame HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                            HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"
                            NavigationUIVisibility="Hidden"
                            Navigating="ConfigurationFrame_OnNavigating"
@@ -302,6 +302,7 @@
                 <ListBox ItemsSource="{Binding LogEntries}" 
                          utils:ListBoxExtenders.AutoScrollToEnd="True"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         Background="LightGray"
                          >
                     <ListBox.ItemTemplate>
                         <DataTemplate>
@@ -317,7 +318,7 @@
                                            Padding="4 0"
                                            FontFamily="Consolas"
                                            HorizontalAlignment="Stretch"
-                                           Background="LightGray"/>
+                                           Background="Gray"/>
                                 <TextBlock Grid.Column="1"
                                            Text="{Binding Message, Mode=OneWay}"
                                            Padding="4 0"

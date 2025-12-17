@@ -42,7 +42,7 @@ namespace BLTAdoptAHero
             {
                 case "kingdomlist":
                     ActionManager.SendReply(context,
-                        string.Join(", ", CampaignHelpers.MainFactions.Select(c => c.Name.ToString())));
+                        string.Join(", ", CampaignHelpers.MainFactions.Where(c => !c.IsEliminated).Select(c => c.Name.ToString())));
                     break;
 
                 case "culturelist":

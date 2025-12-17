@@ -105,7 +105,7 @@ namespace BLTAdoptAHero
         // --- Clan leaderboard ---
         private string BuildClanLeaderboard(Hero userHero)
         {
-            if (userHero.Clan == null)
+            if (userHero.Clan == null || !userHero.Clan.Leader.IsAdopted())
                 return "You have no clan.";
 
             var bltClans = Clan.All
