@@ -48,13 +48,13 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Fiefs", "{=FiefsCat}Fiefs"),
              LocDescription("{=GoldIncomeTownBaseDesc}Base BLT gold per town per day"),
              PropertyOrder(2), UsedImplicitly]
-            public int TownBaseGold { get; set; } = 50;
+            public int TownBaseGold { get; set; } = 3000;
 
             [LocDisplayName("{=GoldIncomeCastleBase}Castle Base Gold"),
              LocCategory("Fiefs", "{=FiefsCat}Fiefs"),
              LocDescription("{=GoldIncomeCastleBaseDesc}Base BLT gold per castle per day"),
              PropertyOrder(3), UsedImplicitly]
-            public int CastleBaseGold { get; set; } = 25;
+            public int CastleBaseGold { get; set; } = 1500;
 
             [LocDisplayName("{=GoldIncomeUseProsperity}Include Prosperity"),
              LocCategory("Fiefs", "{=FiefsCat}Fiefs"),
@@ -66,7 +66,7 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Fiefs", "{=FiefsCat}Fiefs"),
              LocDescription("{=GoldIncomeProsMultDesc}Prosperity multiplier"),
              PropertyOrder(5), UsedImplicitly]
-            public float ProsperityMultiplier { get; set; } = 0.01f;
+            public float ProsperityMultiplier { get; set; } = 1f;
 
             // ---- Mercenary ----
             [LocDisplayName("{=GoldIncomeMercEnabled}Enable Mercenary Income"),
