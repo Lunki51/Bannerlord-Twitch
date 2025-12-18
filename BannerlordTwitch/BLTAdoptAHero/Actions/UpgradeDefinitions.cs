@@ -57,6 +57,11 @@ namespace BLTAdoptAHero.Actions.Upgrades
                 desc += $"\nRequires: {RequiredUpgradeID}";
             return desc;
         }
+
+        public override string ToString()
+        {
+            return string.IsNullOrEmpty(Name) ? "New Upgrade" : Name;
+        }
     }
 
     /// <summary>
