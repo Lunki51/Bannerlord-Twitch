@@ -1380,10 +1380,16 @@ namespace BLTAdoptAHero
         public void KillRetinue(Hero retinueOwnerHero, BasicCharacterObject retinueCharacterObject)
         {
             var heroRetinue = GetHeroData(retinueOwnerHero).Retinue;
+            var heroRetinue2 = GetHeroData(retinueOwnerHero).Retinue2;
             var matchingRetinue = heroRetinue.FirstOrDefault(r => r.TroopType == retinueCharacterObject);
+            var matchingRetinue2 = heroRetinue2.FirstOrDefault(r => r.TroopType == retinueCharacterObject);
             if (matchingRetinue != null)
             {
                 heroRetinue.Remove(matchingRetinue);
+            }
+            else if (matchingRetinue2 != null) 
+            {
+                heroRetinue2.Remove(matchingRetinue2);
             }
             else
             {
@@ -1667,18 +1673,24 @@ namespace BLTAdoptAHero
             return (retinue2Changes.Any(), Naming.JoinList(troopUpgradeSummary.Concat(results)));
         }
 
-        public void KillRetinue2(Hero Retinue2OwnerHero, BasicCharacterObject retinue2CharacterObject)
+        public void KillRetinue2(Hero retinue2OwnerHero, BasicCharacterObject RetinueCharacterObject)
         {
-            var heroretinue2 = GetHeroData(Retinue2OwnerHero).Retinue2;
-            var matchingretinue2 = heroretinue2.FirstOrDefault(r => r.TroopType == retinue2CharacterObject);
-            if (matchingretinue2 != null)
+            var heroRetinue2 = GetHeroData(retinue2OwnerHero).Retinue2;
+            var heroRetinue = GetHeroData(retinue2OwnerHero).Retinue;
+            var matchingRetinue2 = heroRetinue2.FirstOrDefault(r => r.TroopType == RetinueCharacterObject);
+            var matchingRetinue = heroRetinue.FirstOrDefault(r => r.TroopType == RetinueCharacterObject);
+            if (matchingRetinue2 != null)
             {
-                heroretinue2.Remove(matchingretinue2);
+                heroRetinue2.Remove(matchingRetinue2);
+            }
+            else if (matchingRetinue != null) 
+            {
+                heroRetinue.Remove(matchingRetinue);
             }
             else
             {
-                Log.Error($"Couldn't find matching secondary retinue type {retinue2CharacterObject} " +
-                          $"for {Retinue2OwnerHero} to remove");
+                Log.Error($"Couldn't find matching secondary retinue type {RetinueCharacterObject} " +
+                          $"for {retinue2OwnerHero} to remove");
             }
         }
 
