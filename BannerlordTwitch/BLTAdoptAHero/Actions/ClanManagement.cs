@@ -648,16 +648,17 @@ namespace BLTAdoptAHero.Actions
             clanStats.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
             int parties = 0;
             int ships = 0;
-            foreach (var partyComponent in adoptedHero.Clan.WarPartyComponents)
+            if (adoptedHero.Clan.WarPartyComponents.Count > 0)
             {
-                MobileParty party = partyComponent.MobileParty;
+                foreach (var partyComponent in adoptedHero.Clan.WarPartyComponents)
+                {
+                    MobileParty party = partyComponent.MobileParty;
 
-                if (party == null || party.LeaderHero == null || party.IsDisbanding) continue;
+                    if (party == null || party.LeaderHero == null) continue;
 
-                if (party.IsLordParty) parties += 1;
-                ships += party.Ships.Count;
-
-
+                    if (party.IsLordParty) parties += 1;
+                    ships += party.Ships.Count;
+                }
             }
             clanStats.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} | ".Translate(("cparties", parties), ("mparties", adoptedHero.Clan.CommanderLimit)));
             clanStats.Append("{=TESTING}Ships: {ships} |".Translate(("ships", ships)));
@@ -695,25 +696,19 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=yPeUCq8t}You are not in a clan".Translate());
                 return;
             }
-            int count = 0;
-            if (adoptedHero.Clan.WarPartyComponents.Count > 0)
+            int count = 0;           
+            var parties = adoptedHero.Clan.WarPartyComponents.Where(pc => pc.MobileParty?.IsLordParty == true);
+            foreach (var wparty in parties)
             {
-                var parties = adoptedHero.Clan.WarPartyComponents.ToList().Where(pc => pc.MobileParty?.IsLordParty == true);
-                foreach (var wparty in parties)
-                {
-                    var party = wparty?.MobileParty;
-                    if (party == null || party.LeaderHero == null)
-                        continue;
-                    count += 1;
-                    partyStats.Append($"Party({count})[Leader:{party.LeaderHero.FirstName} - Troops:{party.MemberRoster.TotalHealthyCount}] | ");
-                    if (string.IsNullOrWhiteSpace(partyStats.ToString()))
-                        partyStats.Append("No parties");
-                }
+                var party = wparty?.MobileParty;
+                if (party == null || party.LeaderHero == null)
+                    continue;
+                count += 1;
+                partyStats.Append($"Party({count})[Leader:{party.LeaderHero.FirstName} - Troops:{party.MemberRoster.TotalHealthyCount}] | ");                   
             }
-            else partyStats.Append("No parties");
+            if (count == 0) partyStats.Append("No parties");
 
             onSuccess(partyStats.ToString());
-
         }
 
         private void HandleFiefsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)

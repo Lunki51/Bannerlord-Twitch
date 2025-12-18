@@ -9,7 +9,9 @@ using BannerlordTwitch.Util;
 using BannerlordTwitch.Helpers;
 using JetBrains.Annotations;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
 
 namespace BLTAdoptAHero
@@ -17,7 +19,7 @@ namespace BLTAdoptAHero
     [LocDisplayName("{=OpptAAU9}CampaignInfo"),
      LocDescription("{=5FynPtK8}Shows kingdom list, culture list, wars list and specific kingdom/war info"),
      UsedImplicitly]
-    public class CampaignInfo : ICommandHandler
+    public class CampaignInfo : ICommandHandler, IDocumentable
     {
         public Type HandlerConfigType => null;
 
@@ -26,11 +28,21 @@ namespace BLTAdoptAHero
             ExecuteInternal(context, config);
         }
 
+        public void GenerateDocumentation(IDocumentationGenerator generator)
+        {
+            generator.Value("<strong>Modes:</strong>\n"+
+                "kingdomlist, culturelist, warlist, "+
+                "kingdom (kingdom), "+
+                "war (kingdom), "+
+                "fief (town/castle/village), "+
+                "clan (kingdom/clan)"
+                );
+        }
         private void ExecuteInternal(ReplyContext context, object config)
         {
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village))".Translate());
+                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate());
                 return;
             }
 
@@ -66,6 +78,9 @@ namespace BLTAdoptAHero
                     ShowFief(desiredName, context);
                     break;
 
+                case "clan":
+                    ShowClan(desiredName, context);
+                    break;
                 default:
                     ActionManager.SendReply(context,
                         "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village))".Translate());
@@ -91,17 +106,58 @@ namespace BLTAdoptAHero
                 return;
             }
 
+            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
             bool war = false;
-            var warList = new StringBuilder();
+            bool ally = desiredKingdom.AlliedKingdoms.Count > 0;
+            bool trade = false;
+            bool tribute = false;
+            TextObject warList = new TextObject("");
+            TextObject tributeList = new TextObject("");
+            TextObject tradeList = new TextObject("");
             foreach (Kingdom k in Kingdom.All)
             {
-                if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
+                if (desiredKingdom == k)
+                    continue;
+
+                StanceLink stance = desiredKingdom.GetStanceWith(k);
+                if (tradeBehavior.HasTradeAgreement(desiredKingdom, k))
+                {
+                    var tradeDate = tradeBehavior.GetTradeAgreementEndDate(desiredKingdom, k);
+                    int tradeDays = (int)(tradeDate - CampaignTime.Now).ToDays;
+                    trade = true;
+                    tradeList.Value += k.Name.Value + $"({tradeDays}), ";
+                }
+                if (desiredKingdom.IsAtWarWith(k))
                 {
                     war = true;
-                    warList.Append($"{k.Name}:{(int)k.CurrentTotalStrength}, ");
+                    warList.Value += k.Name.Value + ":" + ((int)k.CurrentTotalStrength).ToString() + ", ";
+                }
+                else
+                {
+                    int dailyTributeFromUs = stance.GetDailyTributeToPay(desiredKingdom);
+                    int dailyTributeFromThem = stance.GetDailyTributeToPay(k);
+                    int daysUs = k.GetStanceWith(desiredKingdom).GetRemainingTributePaymentCount();
+                    int daysThem = stance.GetRemainingTributePaymentCount();
+
+
+                    if (dailyTributeFromUs > 0)
+                    {
+                        tribute = true;
+                        tributeList.Value +=
+                            $"{k.Name}:-{dailyTributeFromUs}({daysUs}), ";
+                    }
+                    else if (dailyTributeFromThem > 0)
+                    {
+                        tribute = true;
+                        tributeList.Value +=
+                            $"{k.Name}:+{dailyTributeFromThem}({daysThem}), ";
+                    }
                 }
             }
-            if (war) warList.Length -= 2;
+            warList.Value = warList.Value.TrimEnd(',', ' ');
+            var allyList = string.Join(", ", desiredKingdom.AlliedKingdoms.Select(k => k.Name.ToString()));
+            tradeList.Value = tradeList.Value.TrimEnd(',', ' ');
+            tributeList.Value = tributeList.Value.TrimEnd(',', ' ');
 
             var sb = new StringBuilder();
             sb.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", desiredKingdom.Name.ToString())));
@@ -110,9 +166,17 @@ namespace BLTAdoptAHero
             sb.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(desiredKingdom.CurrentTotalStrength).ToString())));
             if (war)
                 sb.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
+            if (ally)
+                sb.Append("{=TESTING}Alliances: {allies} | ".Translate(("allies", allyList)));
+            if (trade)
+                sb.Append("{=TESTING}Trades: {trade} | ".Translate(("trade", tradeList.ToString())));
+            if (tribute)
+                sb.Append("{=0GhTvF3K}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
             if (desiredKingdom.RulingClan.HomeSettlement != null)
                 sb.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", desiredKingdom.RulingClan.HomeSettlement.Name.ToString())));
-
+            if (desiredKingdom.Armies.Count >= 1)           
+                sb.Append($"| Armies: {desiredKingdom.Armies.Count} ");
+            
             int towns = desiredKingdom.Fiefs.Count(f => !f.IsCastle);
             int castles = desiredKingdom.Fiefs.Count(f => f.IsCastle);
             sb.Append("{=BwuFSJU1}Towns: {towns} | ".Translate(("towns", towns)));
@@ -277,6 +341,80 @@ namespace BLTAdoptAHero
                 sb.Append("{=TESTING}Villages:{villNames}".Translate(("villNames", villNames)));
 
                 ActionManager.SendReply(context, sb.ToString());
+            }
+        }
+
+        private void ShowClan(string desiredName, ReplyContext context)
+        {
+            if (string.IsNullOrWhiteSpace(desiredName))
+            {
+                ActionManager.SendReply(context, "{=TESTING}Need a kingdom or clan name".Translate());
+                return;
+            }
+
+            var desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            var desiredClan = Clan.All.FirstOrDefault(c =>
+                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (desiredKingdom != null)
+            {
+                List<Clan> clanList = desiredKingdom.Clans.OrderBy(c => c.CurrentTotalStrength).ToList();
+                var clanString = string.Join(", ", clanList.Select(k => k.Name.ToString()));
+                ActionManager.SendReply(context, clanString);
+                return;
+            }
+            else if (desiredClan != null)
+            {
+                var clanSb = new StringBuilder();
+                clanSb.Append("{=Ki8jvwkw}Clan Name: {name} | ".Translate(("name", desiredClan.Name.ToString())));
+                clanSb.Append("{=sZcYhSOL}Leader: {leader} | ".Translate(("leader", desiredClan.Leader.Name.ToString())));
+                if (desiredClan.Kingdom != null)
+                    clanSb.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", desiredClan.Kingdom.Name.ToString())));
+                clanSb.Append("{=Sg11nEUe}Tier: {tier}({renown}) | ".Translate(("tier", desiredClan.Tier.ToString()), ("renown", Math.Round(desiredClan.Renown).ToString())));
+                clanSb.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(desiredClan.CurrentTotalStrength).ToString())));   
+                int income = Campaign.Current.Models.ClanFinanceModel.CalculateClanGoldChange(desiredClan).RoundedResultNumber;
+                clanSb.Append("{=SDVLj0nw}Wealth: {wealth}({income}) | ".Translate(("wealth", desiredClan.Leader.Gold.ToString()), ("income", income)));
+                clanSb.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", desiredClan.Heroes.Count.ToString())));
+                int parties = 0;
+                int ships = 0;
+                if (desiredClan.WarPartyComponents.Count > 0)
+                {
+                    foreach (var partyComponent in desiredClan.WarPartyComponents)
+                    {
+                        MobileParty party = partyComponent.MobileParty;
+
+                        if (party == null || party.LeaderHero == null) continue;
+
+                        if (party.IsLordParty) parties += 1;
+                        ships += party.Ships.Count;
+                    }
+                }
+                clanSb.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} | ".Translate(("cparties", parties), ("mparties", desiredClan.CommanderLimit)));
+                clanSb.Append("{=TESTING}Ships: {ships} |".Translate(("ships", ships)));
+                if (desiredClan.Fiefs.Count >= 1)
+                {
+                    int townCount = 0;
+                    int castleCount = 0;
+                    foreach (var settlement in desiredClan.Fiefs)
+                    {
+                        if (!settlement.IsCastle)
+                        {
+                            townCount++;
+                        }
+                        if (settlement.IsCastle)
+                        {
+                            castleCount++;
+                        }
+                    }
+                    clanSb.Append("{=BwuFSJU1} Towns: {towns} | ".Translate(("towns", (object)townCount)));
+                    clanSb.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleCount)));
+                }
+                ActionManager.SendReply(context, clanSb.ToString());
+                return;
+            }
+            else
+            {
+                ActionManager.SendReply(context, "Could not find a kingdom/clan with the name {name}");
             }
         }
     }

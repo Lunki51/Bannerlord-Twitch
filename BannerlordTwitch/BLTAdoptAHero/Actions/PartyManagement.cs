@@ -31,9 +31,12 @@ namespace BLTAdoptAHero.Actions
 {
     public class PartyManagement : HeroCommandHandlerBase
     {
-        public void GenerateDocumentation(IDocumentationGenerator generator)
+        private class Documentation : IDocumentable
         {
-            generator.Value("!party/!party create/!party govern (fief)/!party stats");
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.Value("!party/!party create/!party govern (fief)/!party stats");
+            }
         }
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
@@ -56,8 +59,16 @@ namespace BLTAdoptAHero.Actions
             var mode = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
 
-            var party = adoptedHero.PartyBelongedTo ?? adoptedHero.Clan.WarPartyComponents.Find(pc => pc.Leader == adoptedHero).MobileParty;
-            var army = party?.Army;
+            MobileParty party = adoptedHero.PartyBelongedTo;
+            if (party == null)
+            {
+                var warPartyComponent = adoptedHero.Clan.WarPartyComponents.FirstOrDefault(pc => pc?.Leader == adoptedHero);
+                party = warPartyComponent?.MobileParty;
+            }
+            Army army = null;
+            Army _army = party?.Army;
+            if (_army == null)
+                army = _army;
             string behaviorText = adoptedHero.PartyBelongedTo?.GetBehaviorText().ToString();
             string armyBehavior = "";
             if (army != null)
@@ -78,33 +89,33 @@ namespace BLTAdoptAHero.Actions
                     partyStats.Append("{=TESTING}Your hero is fugitive".Translate());
                 else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
                 {
-                    partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Name.ToString())));
+                    partyStats.Append($"Prisoner: {adoptedHero.PartyBelongedToAsPrisoner.Name}");
                     partyStats.Append(" | ");
                     var place = adoptedHero.PartyBelongedToAsPrisoner?.LeaderHero?.LastKnownClosestSettlement?.Name?.ToString() ?? "Unknown";
-                    partyStats.Append("{=B2xDasDx}Last seen near {Place}".Translate(("Place", place)));
+                    partyStats.Append($"Last seen near {place}");
                 }
                 else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
                     partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
                 else if (adoptedHero.GovernorOf != null && adoptedHero.Clan.Settlements.Count > 0)
                 {
                     var govFief = adoptedHero.Clan.Settlements.Find(s => s.Town != null && s.Town.Governor == adoptedHero);
-                    partyStats.Append("{=ocrxKWUF}Governor: {governor}".Translate(("governor", govFief.Name.ToString())));
+                    partyStats.Append($"Governor: { govFief.Name}");
                 }
-                else if (adoptedHero.IsPartyLeader)
+                else if (party != null && party.LeaderHero == adoptedHero)
                 {
-                    partyStats.Append("{=sN2NzoA7}Party(Strength: {party_strength} - ".Translate(("party_strength", Math.Round(adoptedHero.PartyBelongedTo.Party.EstimatedStrength).ToString())));
+                    partyStats.Append($"Party(Strength: {(int)party.Party.EstimatedStrength} - ");
                     string partySizeStr = $"{adoptedHero.PartyBelongedTo.MemberRoster.TotalHealthyCount}({party.MemberRoster.TotalWounded})/{adoptedHero.PartyBelongedTo.Party.PartySizeLimit}";
                     if (adoptedHero.PartyBelongedTo.PrisonRoster.Count > 0)
                     {
-                        partyStats.Append("{=4HDBsO9U}Size: {size} - ".Translate(("size", partySizeStr)));
-                        partyStats.Append("{=jrBszDI8}Prisoners: {prisoners}) | ".Translate(("prisoners", adoptedHero.PartyBelongedTo.PrisonRoster.Count)));
+                        partyStats.Append($"Size: {partySizeStr} - ");
+                        partyStats.Append($"Prisoners: {adoptedHero.PartyBelongedTo.PrisonRoster.Count}) | ");
                     }
-                    else partyStats.Append("{=Sunm7EKS}Size: {size}) | ".Translate(("size", partySizeStr)));
+                    else partyStats.Append($"Size: {partySizeStr}) | ");
                     if (party.IsCurrentlyAtSea)
                     {
                         partyStats.Append("Sailing | ");
                     }
-                    if (behaviorText != null && behaviorText != armyBehavior)
+                    if (!string.IsNullOrWhiteSpace(behaviorText) && behaviorText != armyBehavior)
                     {
                         partyStats.Append($"Your party is: {behaviorText} | ");
                     }
@@ -131,7 +142,7 @@ namespace BLTAdoptAHero.Actions
                         partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", army.TotalHealthyMembers.ToString())));
                         partyStats.Append("{=7p5j5Mlx}Party nº: {count}] ".Translate(("count", army.LeaderPartyAndAttachedPartiesCount.ToString())));
 
-                        if (armyBehavior != null)
+                        if (!string.IsNullOrWhiteSpace(armyBehavior))
                         {
                             partyStats.Append($"Your army is: {armyBehavior} | ");
                         }
@@ -178,11 +189,11 @@ namespace BLTAdoptAHero.Actions
                         }
                     }
                 }
-                else if (adoptedHero.PartyBelongedTo != null && !adoptedHero.IsPartyLeader)
+                else if (party != null && !adoptedHero.IsPartyLeader)
                 {
-                    partyStats.Append($"Companion in {adoptedHero.PartyBelongedTo.Name}'s party");
+                    partyStats.Append($"Companion in {party.Name}'s party");
                 }
-                else if (adoptedHero.PartyBelongedTo == null && !adoptedHero.IsPartyLeader) partyStats.Append("You have no party");
+                else if (party == null && !adoptedHero.IsPartyLeader) partyStats.Append("You have no party");
                 else partyStats.Append("Unknown");
                 onSuccess(partyStats.ToString());
             }
@@ -275,7 +286,7 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Your hero is fugitive");
                             return;
                         }
-                        if (adoptedHero.Clan.WarPartyComponents.Any(pc => pc.Leader == adoptedHero))
+                        if (party != null)
                         {
                             onFailure("You already have a party");
                             return;
@@ -295,7 +306,7 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Cannot create party in player clan");
                             return;
                         }
-                        int parties = adoptedHero.Clan.WarPartyComponents.Count(pc => pc.MobileParty?.IsLordParty == true);
+                        int parties = adoptedHero.Clan.WarPartyComponents.Count;
                         if (!adoptedHero.IsClanLeader && parties >= adoptedHero.Clan.CommanderLimit)
                         {
                             onFailure($"Clan party limit: {adoptedHero.Clan.CommanderLimit}");
@@ -355,6 +366,11 @@ namespace BLTAdoptAHero.Actions
                                     }
                                 }
                             }
+                            else
+                            {
+                                onFailure("Failed to create a party. Wait some time and try again.");
+                                return;
+                            }
                         }
                         //PartyTemplateObject template = adoptedHero.Culture?.DefaultPartyTemplate;
 
@@ -378,11 +394,16 @@ namespace BLTAdoptAHero.Actions
                             onFailure("You have no party");
                             return;
                         }
+                        TextObject composition = PartyBaseHelper.PrintRegularTroopCategories(party.MemberRoster);
+                        partyStats.Append($"Troops:{composition} | ");
                         partyStats.Append($"Speed: {Math.Round(party.Speed, 1)} | ");
                         partyStats.Append($"Food: {(int)party.Food}({Math.Round(party.FoodChange, 1)}) | ");
                         partyStats.Append($"Morale: {(int)party.Morale} | ");
                         partyStats.Append($"Sight: {Math.Round(party.SeeingRange, 1)} | ");
                         partyStats.Append($"Wage: {party.TotalWage} ");
+                        Settlement location = HeroHelper.GetClosestSettlement(adoptedHero);
+                        if (location != null)
+                            partyStats.Append($"Near: {location.Name}");
                         onSuccess(partyStats.ToString());
                         break;
                     }

@@ -41,7 +41,7 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Join", "{=q5JhpNMF}Join"),
              LocDescription("{=5WqAw2LI}Maximum clans (includes NPC's) before join is disallowed"),
              PropertyOrder(2), UsedImplicitly]
-            public int JoinMaxClans { get; set; } = 20;
+            public int JoinMaxClans { get; set; } = 30;
 
             [LocDisplayName("{=6PUxQuLg}Gold Cost"),
              LocCategory("Join", "{=q5JhpNMF}Join"),
@@ -77,7 +77,7 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Join", "{=q5JhpNMF}Join"),
              LocDescription("{=6fkIuAEC}Cost of joining the player's kingdom"),
              PropertyOrder(8), UsedImplicitly]
-            public int PlayerJoinPrice { get; set; } = 250000;
+            public int PlayerJoinPrice { get; set; } = 150000;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
@@ -88,25 +88,25 @@ namespace BLTAdoptAHero.Actions
             [LocDisplayName("{=TESTING}BLT Rebel"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
              LocDescription("{=TESTING}Enable viewer clan rebelling against BLT kingdoms"),
-             PropertyOrder(1), UsedImplicitly]
+             PropertyOrder(2), UsedImplicitly]
             public bool BLTRebelEnabled { get; set; } = true;
 
             [LocDisplayName("{=6PUxQuLg}Gold Cost"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
              LocDescription("{=97hqQyTG}Cost of starting a rebellion"),
-             PropertyOrder(2), UsedImplicitly]
-            public int RebelPrice { get; set; } = 2500000;
+             PropertyOrder(3), UsedImplicitly]
+            public int RebelPrice { get; set; } = 500000;
 
             [LocDisplayName("{=TESTING}BLT Gold Cost"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
              LocDescription("{=TESTING}Cost of rebelling against BLT kingoms"),
-             PropertyOrder(2), UsedImplicitly]
-            public int BLTRebelPrice { get; set; } = 1500000;
+             PropertyOrder(4), UsedImplicitly]
+            public int BLTRebelPrice { get; set; } = 1000000;
 
             [LocDisplayName("{=9rmGjERc}Minimum Clan Tier"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
              LocDescription("{=ANLOgDZU}Minimum clan tier to start a rebellion"),
-             PropertyOrder(3), UsedImplicitly]
+             PropertyOrder(5), UsedImplicitly]
             public int RebelClanTierMinimum { get; set; } = 2;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -171,8 +171,8 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "Max Clans={maxHeroes}, ".Translate(("maxClans", JoinMaxClans.ToString())) +
                                     "Price={price}{icon}, ".Translate(("price", JoinPrice.ToString()), ("icon", Naming.Gold)) +
-                                    "Player Kingdom Price={price}{icon}, ".Translate(("price", PlayerJoinPrice.ToString()), ("icon", Naming.Gold)) +
-                                    "Allow Join Players Kingdom?={allowPlayer}".Translate(("allowPlayer", JoinAllowPlayer.ToString())));
+                                    "Allow Join Players Kingdom?={allowPlayer}, ".Translate(("allowPlayer", JoinAllowPlayer.ToString())) +
+                                    "Player Kingdom Price={price}{icon}".Translate(("price", PlayerJoinPrice.ToString()), ("icon", Naming.Gold)));
                 if (MercenaryEnabled)
                     generator.Value("<strong>" +
                                     "Mercenary: " +
@@ -193,7 +193,7 @@ namespace BLTAdoptAHero.Actions
                                     "Create Config: " +
                                     "</strong>" +
                                     "Price={price}{icon}, ".Translate(("price", CreateKPrice.ToString()), ("icon", Naming.Gold)) +
-                                    "Minimum Clan Tier={tier}".Translate(("tier", CreateKTierMinimum.ToString())) +
+                                    "Minimum Clan Tier={tier}, ".Translate(("tier", CreateKTierMinimum.ToString())) +
                                     "Minimum fiefs amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
             }
         }

@@ -538,23 +538,23 @@ Commands:
   Handler: KingdomManagement
   HandlerConfig:
     BLTRebelEnabled: true
-    BLTRebelPrice: 1500000
+    BLTRebelPrice: 1000000
     CreateKEnabled: true
     CreateKFiefMinimum: 2
     CreateKPrice: 20000000
     CreateKTierMinimum: 3
     JoinAllowPlayer: true
     JoinEnabled: true
-    JoinMaxClans: 20
+    JoinMaxClans: 30
     JoinPrice: 150000
     LeaveEnabled: true
     MercenaryEnabled: true
     MercPrice: 50000
-    PlayerJoinPrice: 250000
+    PlayerJoinPrice: 150000
     PlayerMercPrice: 50000
     RebelClanTierMinimum: 2
     RebelEnabled: true
-    RebelPrice: 2500000
+    RebelPrice: 500000
     StatsEnabled: true
   Help: ''
   HideHelp: true
@@ -2126,9 +2126,10 @@ GlobalConfigs:
     MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5
     NametagEnabled: true
-    NametagFontsize: 24
-    NametagHeight: 50
-    NametagWidth: 200
+    NametagFontsize: 20
+    NametagHeight: 30
+    NametagKey: K
+    NametagWidth: 150
     RawXPSkillCap: 330
     ReferenceLevelReward: 15
     RelativeLevelScaling: 0.5
