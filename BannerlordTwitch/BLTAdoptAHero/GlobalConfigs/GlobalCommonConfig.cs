@@ -140,7 +140,7 @@ namespace BLTAdoptAHero
 
         [LocDisplayName("{=TESTING}Nametags"),
          LocCategory("Battle", "{=9qAD6eZR}Battle"),
-         LocDescription("{=TESTING}Shows the consecutive cooldowns (in seconds) for 10 summons"),
+         LocDescription("{=TESTING}Nametags"),
          PropertyOrder(9), Document, UsedImplicitly]
 
         public bool NametagEnabled { get; set; } = true;
@@ -151,7 +151,7 @@ namespace BLTAdoptAHero
          PropertyOrder(10),
          Range(50, float.MaxValue),
          Document, UsedImplicitly]
-        public float NametagWidth { get; set; } = 200f;
+        public float NametagWidth { get; set; } = 150f;
 
         [LocDisplayName("{=TESTING}Nametag height"),
                 LocCategory("Battle", "{=9qAD6eZR}Battle"),
@@ -159,7 +159,7 @@ namespace BLTAdoptAHero
                 PropertyOrder(10),
                 Range(10, float.MaxValue),
                 Document, UsedImplicitly]
-        public float NametagHeight { get; set; } = 50f;
+        public float NametagHeight { get; set; } = 30f;
 
         [LocDisplayName("{=TESTING}Nametag fontsize"),
                  LocCategory("Battle", "{=9qAD6eZR}Battle"),
@@ -167,7 +167,14 @@ namespace BLTAdoptAHero
                  PropertyOrder(11),
                  Range(15, float.MaxValue),
                  Document, UsedImplicitly]
-        public float NametagFontsize { get; set; } = 24f;
+        public float NametagFontsize { get; set; } = 20f;
+
+        [LocDisplayName("{=TESTING}Nametag toggle key"),
+                 LocCategory("Battle", "{=9qAD6eZR}Battle"),
+                 LocDescription("{=TESTING}Case sensitive"),
+                 PropertyOrder(12),                 
+                 Document, UsedImplicitly]
+        public string NametagKey { get; set; } = "H";
         #endregion
 
         #region Death

@@ -104,8 +104,8 @@ namespace BLTAdoptAHero.Actions
                                     "Marriage Config: " +
                                     "</strong>" +
                                     "Price={price}{icon}, ".Translate(("price", MarriageCost.ToString()), ("icon", Naming.Gold)) +
-                                    "Only create spouse?={Create Only}, ".Translate(("Create Only", OnlySpawnSpouse.ToString())) +
-                                    "Allow choose by clan or name?={Clan or name}".Translate(("Clan or name", ClanorName.ToString())));
+                                    "Only create spouse?={CreateOnly}, ".Translate(("CreateOnly", OnlySpawnSpouse.ToString())) +
+                                    "Allow choose by clan or name?={Clanorname}".Translate(("Clanorname", ClanorName.ToString())));
             }
 
         }

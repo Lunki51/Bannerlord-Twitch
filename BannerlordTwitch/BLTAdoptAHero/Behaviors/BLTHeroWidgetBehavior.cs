@@ -14,6 +14,7 @@ using TaleWorlds.Library;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.MountAndBlade.View;
 using TaleWorlds.MountAndBlade.View.MissionViews;
+using TaleWorlds.InputSystem;
 using TaleWorlds.CampaignSystem.TournamentGames;
 using SandBox.Tournaments.MissionLogics;
 using SandBox.ViewModelCollection.Missions.NameMarker;
@@ -33,11 +34,19 @@ namespace BLTAdoptAHero
         private readonly float configWidth = GlobalCommonConfig.Get().NametagWidth;
         private readonly float configHeight = GlobalCommonConfig.Get().NametagHeight;
         private readonly float configFontsize = GlobalCommonConfig.Get().NametagFontsize;
+        private readonly InputKey configToggleKey = Enum.TryParse(GlobalCommonConfig.Get().NametagKey, out InputKey key) ? key : InputKey.H;
+        private bool _hideUI = false;
 
         public override void OnMissionScreenTick(float dt)
         {
             if (!GlobalCommonConfig.Get().NametagEnabled)
                 return;
+
+            if (Input.IsKeyReleased(configToggleKey))
+            {
+                _hideUI = !_hideUI;
+            }
+
             var heroBehavior = Mission.Current?.GetMissionBehavior<BLTAdoptAHeroCommonMissionBehavior>();
             var combatMission = Mission.Current.CombatType;
             if (heroBehavior == null || MissionScreen == null || combatMission == Mission.MissionCombatType.NoCombat)
@@ -53,7 +62,7 @@ namespace BLTAdoptAHero
             }
             else
             {
-                UpdateHeroIcons(heroBehavior);
+                UpdateHeroIcons(heroBehavior);               
             }
         }
 
@@ -61,7 +70,7 @@ namespace BLTAdoptAHero
         {
             //Log.Trace("BLTAdoptAHero: Initializing UI.");
             this._vm = new HeroWidgetVM();
-            this._layer = new GauntletLayer("BLTHeroWidgetLayer", 111, false);
+            this._layer = new GauntletLayer("BLTHeroWidgetLayer", 15, false);
             this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);            
             this.MissionScreen.AddLayer(_layer);
             //Log.Trace("BLTAdoptAHero: Layer added to MissionScreen.");
@@ -101,33 +110,79 @@ namespace BLTAdoptAHero
 
                     if (onScreen)
                     {
-                        float dist = agent.Position.Distance(_camera.Position);
-                        if (dist < 350f)
-                        {
-                            float scale = MBMath.Lerp(1f, 0.5f, (dist - 30f) / 170f, 0.0f); //Min:30 Max:200
-                            scale = MBMath.ClampFloat(scale, 0.5f, 1f);
-
-                            vm.IsVisible = true;
-                            vm.Width = configWidth * scale;
-                            vm.Height = configHeight * scale;
-                            vm.FontSize = Math.Max(15, (int)(configFontsize * scale));
-                            vm.PositionX = x - vm.Width * 0.5f;
-                            vm.PositionY = y - vm.Height * 0.5f - 5f;
-
-
-                            heroVMs.Add((hero, vm, dist));
-
-                            if (!heroTeamCache.ContainsKey(hero))
-                                heroTeamCache[hero] = inTournament
-                                    ? GetTournamentTeamColor(hero)
-                                    : BLTAdoptAHeroCommonMissionBehavior.IsHeroOnPlayerSide(hero)
-                                        ? "#4EE04CF0"
-                                        : "#ED1C24F0";
-                        }
-                        else
+                        if (_hideUI)
                         {
                             vm.IsVisible = false;
                         }
+                        else
+                        {
+                            float dist = agent.Position.Distance(_camera.Position);
+                            if (dist < 350f)
+                            {
+                                float scale = MBMath.Lerp(1f, 0.6f, (dist - 25f) / 75f, 0.00f); //Min:25 Max:100
+                                scale = MBMath.ClampFloat(scale, 0.5f, 1f);
+
+                                vm.IsVisible = true;
+                                vm.Width = configWidth * scale;
+                                vm.Height = configHeight * scale;
+                                vm.FontSize = Math.Max(15, (int)(configFontsize * scale));
+                                vm.PositionX = x - vm.Width * 0.5f;
+                                vm.PositionY = y - vm.Height * 0.5f - 5f;
+
+
+                                heroVMs.Add((hero, vm, dist));
+
+                                if (!heroTeamCache.ContainsKey(hero))
+                                    heroTeamCache[hero] = inTournament
+                                        ? GetTournamentTeamColor(hero)
+                                        : BLTAdoptAHeroCommonMissionBehavior.IsHeroOnPlayerSide(hero)
+                                            ? "#4EE04CF0"
+                                            : "#ED1C24F0";
+
+                            }
+                            else
+                            {
+                                vm.IsVisible = false;
+                            }
+
+                            var sorted = heroVMs
+                                .Where(h => h.vm.IsVisible)
+                                .OrderBy(h => h.dist)
+                                .ToList();
+
+                            float minOverlapY = 4f;
+                            float paddingY = 2f;
+                            float slideFactor = 0.6f;
+
+                            for (int i = 0; i < sorted.Count - 1; i++)
+                            {
+                                var anchor = sorted[i].vm;
+
+                                for (int j = i + 1; j < sorted.Count; j++)
+                                {
+                                    var farther = sorted[j].vm;
+                                    if (!farther.IsVisible) continue;
+
+                                    if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
+                                        break;
+
+                                    bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width *0.8f &&
+                                                    farther.PositionX + farther.Width *0.8f > anchor.PositionX;
+                                    bool overlapY = farther.PositionY < anchor.PositionY + anchor.Height &&
+                                                    farther.PositionY + farther.Height > anchor.PositionY;
+
+                                    if (overlapX && overlapY)
+                                    {
+                                        float overlapAmountY = (anchor.PositionY + anchor.Height - 4) - farther.PositionY;
+                                        if (overlapAmountY > minOverlapY)
+                                        {
+                                            farther.PositionY -= overlapAmountY * slideFactor + paddingY;
+                                        }
+                                    }
+                                }
+                            }
+
+                        }   
                     }
                     else
                     {
@@ -140,43 +195,7 @@ namespace BLTAdoptAHero
                     _heroToVM.Remove(hero);
                 }
             }
-
-            var sorted = heroVMs
-                .Where(h => h.vm.IsVisible)
-                .OrderBy(h => h.dist)
-                .ToList();
-
-            float minOverlapY = 4f;  
-            float paddingY = 2f;     
-            float slideFactor = 0.5f; 
-
-            for (int i = 0; i < sorted.Count - 1; i++)
-            {
-                var anchor = sorted[i].vm;
-
-                for (int j = i + 1; j < sorted.Count; j++)
-                {
-                    var farther = sorted[j].vm;
-                    if (!farther.IsVisible) continue;
-
-                    if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
-                        break;
-
-                    bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width &&
-                                    farther.PositionX + farther.Width > anchor.PositionX;
-                    bool overlapY = farther.PositionY < anchor.PositionY + anchor.Height &&
-                                    farther.PositionY + farther.Height > anchor.PositionY;
-
-                    if (overlapX && overlapY)
-                    {
-                        float overlapAmountY = (anchor.PositionY + anchor.Height) - farther.PositionY;
-                        if (overlapAmountY > minOverlapY)
-                        {
-                            farther.PositionY += overlapAmountY * slideFactor + paddingY;
-                        }
-                    }
-                }
-            }
+            
 
             // --- Step 4: Apply cached colors ---
             foreach (var (hero, vm, dist) in heroVMs)
