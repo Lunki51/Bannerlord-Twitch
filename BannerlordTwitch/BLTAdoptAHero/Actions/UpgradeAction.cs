@@ -186,9 +186,33 @@ namespace BLTAdoptAHero.Actions
                 generator.Value($"<strong>Allow List Command:</strong> {(AllowListCommand ? "Yes" : "No")}");
                 generator.Value($"<strong>Kingdom Leaders Can Upgrade Fiefs:</strong> {(AllowKingdomLeadersForFiefs ? "Yes" : "No")}");
                 generator.Value($"<strong>Any Clan Member Can Upgrade Clan:</strong> {(AllowAnyClanMemberForClanUpgrades ? "Yes" : "No")}");
-                generator.Value($"<strong>Fief Upgrades Available:</strong> {FiefUpgrades?.Count ?? 0}");
-                generator.Value($"<strong>Clan Upgrades Available:</strong> {ClanUpgrades?.Count ?? 0}");
-                generator.Value($"<strong>Kingdom Upgrades Available:</strong> {KingdomUpgrades?.Count ?? 0}");
+
+                generator.PropertyValuePair("Fief Upgrades Available", (FiefUpgrades?.Count ?? 0).ToString());
+                if (FiefUpgrades != null && FiefUpgrades.Count > 0)
+                {
+                    foreach (var upgrade in FiefUpgrades)
+                    {
+                        generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GoldCost}{Naming.Gold}");
+                    }
+                }
+
+                generator.PropertyValuePair("Clan Upgrades Available", (ClanUpgrades?.Count ?? 0).ToString());
+                if (ClanUpgrades != null && ClanUpgrades.Count > 0)
+                {
+                    foreach (var upgrade in ClanUpgrades)
+                    {
+                        generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GoldCost}{Naming.Gold}");
+                    }
+                }
+
+                generator.PropertyValuePair("Kingdom Upgrades Available", (KingdomUpgrades?.Count ?? 0).ToString());
+                if (KingdomUpgrades != null && KingdomUpgrades.Count > 0)
+                {
+                    foreach (var upgrade in KingdomUpgrades)
+                    {
+                        generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GetCostString()}");
+                    }
+                }
             }
         }
 

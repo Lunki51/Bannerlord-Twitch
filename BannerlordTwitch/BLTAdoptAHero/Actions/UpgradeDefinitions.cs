@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.UI;
 using BannerlordTwitch.Util;
@@ -10,37 +11,116 @@ namespace BLTAdoptAHero.Actions.Upgrades
     /// <summary>
     /// Base class for all upgrade types
     /// </summary>
-    public abstract class UpgradeBase
+    public abstract class UpgradeBase : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        private string _id = "";
         [LocDisplayName("{=BLT_UpgradeID}Upgrade ID"),
          LocDescription("{=BLT_UpgradeIDDesc}Unique identifier for this upgrade (use for tiered upgrades)"),
          PropertyOrder(1), UsedImplicitly]
-        public string ID { get; set; } = "";
+        public string ID
+        {
+            get => _id;
+            set
+            {
+                if (_id != value)
+                {
+                    _id = value;
+                    OnPropertyChanged(nameof(ID));
+                }
+            }
+        }
 
+        private string _name = "New Upgrade";
         [LocDisplayName("{=BLT_UpgradeName}Upgrade Name"),
          LocDescription("{=BLT_UpgradeNameDesc}Display name shown to players"),
          PropertyOrder(2), UsedImplicitly, InstanceName]
-        public string Name { get; set; } = "New Upgrade";
+        public string Name
+        {
+            get => _name;
+            set
+            {
+                if (_name != value)
+                {
+                    _name = value;
+                    OnPropertyChanged(nameof(Name));
+                }
+            }
+        }
 
+        private string _description = "Upgrade description";
         [LocDisplayName("{=BLT_UpgradeDesc}Description"),
          LocDescription("{=BLT_UpgradeDescDesc}Description of what this upgrade does"),
          PropertyOrder(3), UsedImplicitly]
-        public string Description { get; set; } = "Upgrade description";
+        public string Description
+        {
+            get => _description;
+            set
+            {
+                if (_description != value)
+                {
+                    _description = value;
+                    OnPropertyChanged(nameof(Description));
+                }
+            }
+        }
 
+        private int _tierLevel = 0;
         [LocDisplayName("{=BLT_UpgradeTier}Tier Level"),
          LocDescription("{=BLT_UpgradeTierDesc}Tier level (0 or 1 for non-tiered, 2+ for higher tiers)"),
          PropertyOrder(4), UsedImplicitly]
-        public int TierLevel { get; set; } = 0;
+        public int TierLevel
+        {
+            get => _tierLevel;
+            set
+            {
+                if (_tierLevel != value)
+                {
+                    _tierLevel = value;
+                    OnPropertyChanged(nameof(TierLevel));
+                }
+            }
+        }
 
+        private string _requiredUpgradeID = "";
         [LocDisplayName("{=BLT_UpgradeRequired}Required Upgrade ID"),
          LocDescription("{=BLT_UpgradeRequiredDesc}ID of upgrade required before this can be purchased (for tiered upgrades, leave empty for tier 1)"),
          PropertyOrder(5), UsedImplicitly]
-        public string RequiredUpgradeID { get; set; } = "";
+        public string RequiredUpgradeID
+        {
+            get => _requiredUpgradeID;
+            set
+            {
+                if (_requiredUpgradeID != value)
+                {
+                    _requiredUpgradeID = value;
+                    OnPropertyChanged(nameof(RequiredUpgradeID));
+                }
+            }
+        }
 
+        private int _goldCost = 10000;
         [LocDisplayName("{=BLT_UpgradeGoldCost}Gold Cost"),
          LocDescription("{=BLT_UpgradeGoldCostDesc}Cost in gold to purchase this upgrade"),
          PropertyOrder(6), UsedImplicitly]
-        public int GoldCost { get; set; } = 10000;
+        public int GoldCost
+        {
+            get => _goldCost;
+            set
+            {
+                if (_goldCost != value)
+                {
+                    _goldCost = value;
+                    OnPropertyChanged(nameof(GoldCost));
+                }
+            }
+        }
 
         public virtual string GetCostString()
         {
