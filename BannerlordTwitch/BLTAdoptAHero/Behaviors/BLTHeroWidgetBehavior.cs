@@ -145,43 +145,6 @@ namespace BLTAdoptAHero
                                 vm.IsVisible = false;
                             }
 
-                            var sorted = heroVMs
-                                .Where(h => h.vm.IsVisible)
-                                .OrderBy(h => h.dist)
-                                .ToList();
-
-                            float minOverlapY = 4f;
-                            float paddingY = 2f;
-                            float slideFactor = 0.6f;
-
-                            for (int i = 0; i < sorted.Count - 1; i++)
-                            {
-                                var anchor = sorted[i].vm;
-
-                                for (int j = i + 1; j < sorted.Count; j++)
-                                {
-                                    var farther = sorted[j].vm;
-                                    if (!farther.IsVisible) continue;
-
-                                    if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
-                                        break;
-
-                                    bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width *0.8f &&
-                                                    farther.PositionX + farther.Width *0.8f > anchor.PositionX;
-                                    bool overlapY = farther.PositionY < anchor.PositionY + anchor.Height &&
-                                                    farther.PositionY + farther.Height > anchor.PositionY;
-
-                                    if (overlapX && overlapY)
-                                    {
-                                        float overlapAmountY = (anchor.PositionY + anchor.Height - 4) - farther.PositionY;
-                                        if (overlapAmountY > minOverlapY)
-                                        {
-                                            farther.PositionY -= overlapAmountY * slideFactor + paddingY;
-                                        }
-                                    }
-                                }
-                            }
-
                         }   
                     }
                     else
@@ -195,7 +158,43 @@ namespace BLTAdoptAHero
                     _heroToVM.Remove(hero);
                 }
             }
-            
+
+            var sorted = heroVMs
+                                .Where(h => h.vm.IsVisible)
+                                .OrderBy(h => h.dist)
+                                .ToList();
+
+            float minOverlapY = 4f;
+            float paddingY = 2f;
+            float slideFactor = 0.6f;
+
+            for (int i = 0; i < sorted.Count - 1; i++)
+            {
+                var anchor = sorted[i].vm;
+
+                for (int j = i + 1; j < sorted.Count; j++)
+                {
+                    var farther = sorted[j].vm;
+                    if (!farther.IsVisible) continue;
+
+                    if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
+                        break;
+
+                    bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width * 0.8f &&
+                                    farther.PositionX + farther.Width * 0.8f > anchor.PositionX;
+                    bool overlapY = farther.PositionY < anchor.PositionY + anchor.Height &&
+                                    farther.PositionY + farther.Height > anchor.PositionY;
+
+                    if (overlapX && overlapY)
+                    {
+                        float overlapAmountY = (anchor.PositionY + anchor.Height - 4) - farther.PositionY;
+                        if (overlapAmountY > minOverlapY)
+                        {
+                            farther.PositionY -= overlapAmountY * slideFactor + paddingY;
+                        }
+                    }
+                }
+            }
 
             // --- Step 4: Apply cached colors ---
             foreach (var (hero, vm, dist) in heroVMs)

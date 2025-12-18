@@ -98,10 +98,10 @@ namespace BLTAdoptAHero.Actions
                     partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
                 else if (adoptedHero.GovernorOf != null && adoptedHero.Clan.Settlements.Count > 0)
                 {
-                    var govFief = adoptedHero.Clan.Settlements.Find(s => s.Town != null && s.Town.Governor == adoptedHero);
+                    var govFief = adoptedHero.GovernorOf;
                     partyStats.Append($"Governor: { govFief.Name}");
                 }
-                else if (party != null && party.LeaderHero == adoptedHero)
+                else if (party != null && party?.LeaderHero == adoptedHero)
                 {
                     partyStats.Append($"Party(Strength: {(int)party.Party.EstimatedStrength} - ");
                     string partySizeStr = $"{adoptedHero.PartyBelongedTo.MemberRoster.TotalHealthyCount}({party.MemberRoster.TotalWounded})/{adoptedHero.PartyBelongedTo.Party.PartySizeLimit}";
@@ -135,7 +135,7 @@ namespace BLTAdoptAHero.Actions
                             partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", target.MemberRoster.TotalManCount)));
                         }
                     }
-                    if (party.Army != null)
+                    if (party?.Army != null)
                     {
                         partyStats.Append("{=CVzSgXhT}Army: {army}".Translate(("army", army.Name.ToString())));
                         partyStats.Append("{=d76wc5iS}[Strength: {strength} | ".Translate(("strength", Math.Round(army.EstimatedStrength).ToString())));
@@ -153,7 +153,7 @@ namespace BLTAdoptAHero.Actions
                             partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", target.MemberRoster.TotalManCount)));
                         }
                     }
-                    if (adoptedHero.PartyBelongedTo.MapEvent != null)
+                    if (party.MapEvent != null)
                     {
                         var mapEvent = adoptedHero.PartyBelongedTo.MapEvent;
                         var partySide = adoptedHero.PartyBelongedTo.MapEventSide;
@@ -394,8 +394,8 @@ namespace BLTAdoptAHero.Actions
                             onFailure("You have no party");
                             return;
                         }
-                        TextObject composition = PartyBaseHelper.PrintRegularTroopCategories(party.MemberRoster);
-                        partyStats.Append($"Troops:{composition} | ");
+                        TextObject composition = PartyBaseHelper.PrintRegularTroopCategories(party.MemberRoster) ?? new TextObject("Unknown");
+                        partyStats.Append($"Troops: {composition} | ");
                         partyStats.Append($"Speed: {Math.Round(party.Speed, 1)} | ");
                         partyStats.Append($"Food: {(int)party.Food}({Math.Round(party.FoodChange, 1)}) | ");
                         partyStats.Append($"Morale: {(int)party.Morale} | ");
@@ -403,7 +403,7 @@ namespace BLTAdoptAHero.Actions
                         partyStats.Append($"Wage: {party.TotalWage} ");
                         Settlement location = HeroHelper.GetClosestSettlement(adoptedHero);
                         if (location != null)
-                            partyStats.Append($"Near: {location.Name}");
+                            partyStats.Append($"| Near: {location.Name}");
                         onSuccess(partyStats.ToString());
                         break;
                     }
