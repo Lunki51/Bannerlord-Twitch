@@ -18,6 +18,7 @@ using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 using BannerlordTwitch.Rewards;
 using System.ComponentModel;
+using System.Collections.ObjectModel;
 
 namespace BLTAdoptAHero.Actions
 {
@@ -64,7 +65,7 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=BLT_FiefUpgradesDesc}List of available fief (settlement) upgrades"),
              PropertyOrder(1), UsedImplicitly,
              Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
-            public List<FiefUpgrade> FiefUpgrades { get; set; } = new()
+            public ObservableCollection<FiefUpgrade> FiefUpgrades { get; set; } = new()
             {
                 new FiefUpgrade
                 {
@@ -113,7 +114,7 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=BLT_ClanUpgradesDesc}List of available clan-wide upgrades"),
              PropertyOrder(1), UsedImplicitly,
              Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
-            public List<ClanUpgrade> ClanUpgrades { get; set; } = new()
+            public ObservableCollection<ClanUpgrade> ClanUpgrades { get; set; } = new()
             {
                 new ClanUpgrade
                 {
@@ -147,7 +148,7 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=BLT_KingdomUpgradesDesc}List of available kingdom-wide upgrades"),
              PropertyOrder(1), UsedImplicitly,
              Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
-            public List<KingdomUpgrade> KingdomUpgrades { get; set; } = new()
+            public ObservableCollection<KingdomUpgrade> KingdomUpgrades { get; set; } = new()
             {
                 new KingdomUpgrade
                 {

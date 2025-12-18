@@ -72,8 +72,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
         }
 
         private int _tierLevel = 0;
-        [LocDisplayName("{=BLT_UpgradeTier}Tier Level"),
-         LocDescription("{=BLT_UpgradeTierDesc}Tier level (0 or 1 for non-tiered, 2+ for higher tiers)"),
+        [LocDisplayName("{=BLT_UpgradeTier}Tier Level (Cosmetic)"),
+         LocDescription("{=BLT_UpgradeTierDesc}Cosmetic Only: Tier level (0 for non-tiered, 1+ to display tier levels)"),
          PropertyOrder(4), UsedImplicitly]
         public int TierLevel
         {
@@ -130,7 +130,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
         public virtual string GetFullDescription()
         {
             string desc = $"{Name}";
-            if (TierLevel > 1)
+            if (TierLevel >= 1)
                 desc += $" (Tier {TierLevel})";
             desc += $"\n{Description}\nCost: {GetCostString()}";
             if (!string.IsNullOrEmpty(RequiredUpgradeID))
