@@ -91,12 +91,12 @@ namespace BLTAdoptAHero
         // ----------------------
 
         private void SpawnMilitiaParty(
-    SiegeEvent siegeEvent,
-    Settlement settlement,
-    int count,
-    CharacterObject meleeTroop, CharacterObject rangedTroop,
-    string idSuffix,
-    bool isElite)
+            SiegeEvent siegeEvent,
+            Settlement settlement,
+            int count,
+            CharacterObject meleeTroop, CharacterObject rangedTroop,
+            string idSuffix,
+            bool isElite)
         {
             if (count <= 0) return;
 
@@ -107,6 +107,10 @@ namespace BLTAdoptAHero
 
             var party = MilitiaPartyComponent.CreateMilitiaParty(partyId, settlement);
             if (party == null) return;
+
+            // Remove any default troops that CreateMilitiaParty might have added,
+            // so we only spawn the exact number we intend.
+            try { party.MemberRoster?.Clear(); } catch { }
 
             int meleeCount = count / 2 + (count % 2);
             int rangedCount = count - meleeCount;
@@ -134,7 +138,7 @@ namespace BLTAdoptAHero
                 if (culture == null) return;
 
                 // Prevent duplicate spawning (save/load safety)
-                if (_openSiegeParties.ContainsKey(settlement.StringId))
+                if (_openSiegeParties.ContainsKey(settlement.StringId) || _openEliteSiegeParties.ContainsKey(settlement.StringId))
                     return;
 
                 // -------------------------
@@ -163,7 +167,7 @@ namespace BLTAdoptAHero
                     SpawnMilitiaParty(
                     siegeEvent,
                     settlement,
-                    normalCount,
+                    eliteCount,
                     culture.MeleeEliteMilitiaTroop,
                     culture.RangedEliteMilitiaTroop,
                     "elite_reinforce",

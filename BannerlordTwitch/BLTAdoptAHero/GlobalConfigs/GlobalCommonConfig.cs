@@ -22,12 +22,13 @@ namespace BLTAdoptAHero
     [CategoryOrder("General", 1),
      CategoryOrder("Battle", 2),
      CategoryOrder("Death", 3),
-     CategoryOrder("XP", 4),
-     CategoryOrder("Kill Rewards", 5),
-     CategoryOrder("Battle End Rewards", 6),
-     CategoryOrder("Kill Streak Rewards", 7),
-     CategoryOrder("Achievements", 8),
-     CategoryOrder("Shouts", 9),
+     CategoryOrder("Income", 4),
+     CategoryOrder("XP", 5),
+     CategoryOrder("Kill Rewards", 6),
+     CategoryOrder("Battle End Rewards", 7),
+     CategoryOrder("Kill Streak Rewards", 8),
+     CategoryOrder("Achievements", 9),
+     CategoryOrder("Shouts", 10),
      LocDisplayName("{=vDjnDtoL}Common Config")]
     internal class GlobalCommonConfig : IUpdateFromDefault, IDocumentable, INotifyPropertyChanged
     {
@@ -236,6 +237,59 @@ namespace BLTAdoptAHero
 
         [Browsable(false), UsedImplicitly]
         public float Retinue2DeathChance { get; set; } = 0.025f;
+        #endregion
+
+        #region Income
+        [LocDisplayName("{=GoldIncomeEnabled}Enabled"),
+             LocCategory("Income", "{=IncomeCat}Income"),
+             LocDescription("{=GoldIncomeEnabledDesc}Enable daily BLT gold income"),
+             PropertyOrder(1), UsedImplicitly]
+        public bool GoldIncomeEnabled { get; set; } = true;
+
+        // ---- Fiefs ----
+        [LocDisplayName("{=GoldIncomeFiefsEnabled}Enable Fief Income"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeFiefsEnabledDesc}Enable BLT gold from owned settlements"),
+         PropertyOrder(1), UsedImplicitly]
+        public bool FiefIncomeEnabled { get; set; } = true;
+
+        [LocDisplayName("{=GoldIncomeTownBase}Town Base Gold"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeTownBaseDesc}Base BLT gold per town per day"),
+         PropertyOrder(2), UsedImplicitly]
+        public int TownBaseGold { get; set; } = 3000;
+
+        [LocDisplayName("{=GoldIncomeCastleBase}Castle Base Gold"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeCastleBaseDesc}Base BLT gold per castle per day"),
+         PropertyOrder(3), UsedImplicitly]
+        public int CastleBaseGold { get; set; } = 1500;
+
+        [LocDisplayName("{=GoldIncomeUseProsperity}Include Prosperity"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeUseProsperityDesc}Add prosperity-based income"),
+         PropertyOrder(4), UsedImplicitly]
+        public bool IncludeProsperity { get; set; } = true;
+
+        [LocDisplayName("{=GoldIncomeProsMult}Prosperity Multiplier"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeProsMultDesc}Prosperity multiplier"),
+         PropertyOrder(5), UsedImplicitly]
+        public float ProsperityMultiplier { get; set; } = 1f;
+
+        // ---- Mercenary ----
+        [LocDisplayName("{=GoldIncomeMercEnabled}Enable Mercenary Income"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeMercEnabledDesc}Enable BLT gold from mercenary contracts"),
+         PropertyOrder(1), UsedImplicitly]
+        public bool MercenaryIncomeEnabled { get; set; } = true;
+
+        [LocDisplayName("{=GoldIncomeMercMult}Mercenary Multiplier"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeMercMultDesc}Multiplier applied to mercenary contract value"),
+         PropertyOrder(2), UsedImplicitly]
+        public int MercenaryMultiplier { get; set; } = 10;
+
         #endregion
 
         #region XP
