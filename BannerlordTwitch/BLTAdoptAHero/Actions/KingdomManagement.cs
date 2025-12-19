@@ -693,6 +693,7 @@ namespace BLTAdoptAHero.Actions
             creator.CreateKingdom(new TextObject(desiredName), new TextObject(desiredName), culture, adoptedHero.Clan, null, null, null, null);
             var newKingdom = adoptedHero.Clan.Kingdom;
             newKingdom.KingdomBudgetWallet = 2000000;
+            adoptedHero.Clan.Influence = 2000;
             //foreach(Kingdom target in warTargets)
             //{
             //    DeclareWarAction.ApplyByRebellion(newKingdom, target);

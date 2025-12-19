@@ -339,7 +339,7 @@ namespace BLTAdoptAHero
                 {
                     if (hero.IsAdopted() && hero.IsPrisoner)
                     {
-                        if ((CampaignTime.Now - hero.CaptivityStartTime).ToDays >= 10)
+                        if (hero.CaptivityStartTime.ElapsedDaysUntilNow >= 10)
                         {
                             EndCaptivityAction.ApplyByEscape(hero);
                         }
