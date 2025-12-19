@@ -398,6 +398,7 @@
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroPowerConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalTournamentConfig.cs" />
+    <Compile Include="Models\BLTUpgradeModels.cs" />
     <Compile Include="Overlay\MissionInfo\MissionInfo.cs" />
     <Compile Include="Overlay\Tournament\Tournament.cs" />
     <Compile Include="Powers\AbsorbHealthPower.cs" />
