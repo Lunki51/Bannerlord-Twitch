@@ -226,7 +226,12 @@ namespace BLTAdoptAHero
             CampaignEvents.MapEventStarted.AddNonSerializedListener(this,
             (mapEvent, attackerParty, defenderParty) =>
             {
-                if (mapEvent == null || mapEvent.IsPlayerMapEvent || mapEvent.BattleState == 0) return;
+                if (mapEvent == null || mapEvent.BattleState == 0) return;
+                else if (mapEvent.IsPlayerMapEvent)
+                {
+                    MapHub.UpdateMapData();
+                    return;
+                }
                 string eventType = mapEvent.EventType switch
                 {
                     MapEvent.BattleTypes.FieldBattle => "field battle",
@@ -237,7 +242,7 @@ namespace BLTAdoptAHero
                     MapEvent.BattleTypes.SiegeOutside => "outside siege",
                     _ => "unknown battle"
                 };
-
+                
                 foreach (var side in mapEvent.InvolvedParties)
                 {
                     var hero = side.MobileParty?.LeaderHero;
@@ -261,7 +266,12 @@ namespace BLTAdoptAHero
 
             CampaignEvents.MapEventEnded.AddNonSerializedListener(this, mapEvent =>
             {
-                if (mapEvent == null || mapEvent.IsPlayerMapEvent || mapEvent.BattleState == 0) return;
+                if (mapEvent == null || mapEvent.BattleState == 0) return;
+                else if (mapEvent.IsPlayerMapEvent)
+                {
+                    MapHub.UpdateMapData();
+                    return;
+                }
                 string eventType = mapEvent.EventType switch
                 {
                     MapEvent.BattleTypes.FieldBattle => "field battle",
@@ -303,13 +313,13 @@ namespace BLTAdoptAHero
 
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, JoinTournament.SetupGameMenus);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
-            //CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
         }
 
         private void OnDailyTick()
         {
             MapHub.UpdateMapData();
         }
+
         //private Mission lastMission = null;
         //private void OnTick(float dt)
         //{

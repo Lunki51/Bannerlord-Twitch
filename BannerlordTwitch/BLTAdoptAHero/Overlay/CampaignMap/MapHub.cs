@@ -128,7 +128,7 @@ namespace BLTAdoptAHero.UI
 
                 // Get all settlements
                 mapData.Settlements = Campaign.Current.Settlements
-                    .Where(s => s.Position.X != 0 || s.Position.Y != 0)
+                    .Where(s => s.Position.X != 0 || s.Position.Y != 0 && !s.IsVillage)
                     .Select(s => new SettlementData
                     {
                         Id = s.StringId ?? s.Name?.ToString() ?? "unknown",
