@@ -2061,6 +2061,7 @@ GlobalConfigs:
     AllowDeath: true
     ApplyDeathChanceToAllHeroes: true
     BLTChildAgeMult: 5
+    CastleBaseGold: 1500
     CustomCompanionLimit: 7
     CustomItemLimit: 8
     CustomRewardModifiers:
@@ -2107,9 +2108,12 @@ GlobalConfigs:
     DifficultyScalingMin: 0.2
     DifficultyScalingOnEnemySide: true
     DifficultyScalingOnPlayersSide: true
+    FiefIncomeEnabled: true
+    GoldIncomeEnabled: true
     GoldPerKill: 5000
     HealPerKill: 20
     IncludeDefaultShouts: true
+    IncludeProsperity: true
     KillStreakPopupAlertSound: Horns2
     KillStreaks:
     - Enabled: true
@@ -2123,6 +2127,8 @@ GlobalConfigs:
     LevelScalingCap: 5
     LoseGold: 5000
     LoseXP: 5000
+    MercenaryIncomeEnabled: true
+    MercenaryMultiplier: 10
     MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5
     NametagEnabled: true
@@ -2130,6 +2136,7 @@ GlobalConfigs:
     NametagHeight: 30
     NametagKey: K
     NametagWidth: 150
+    ProsperityMultiplier: 1
     RawXPSkillCap: 330
     ReferenceLevelReward: 15
     RelativeLevelScaling: 0.5
@@ -2146,6 +2153,7 @@ GlobalConfigs:
     SubBoost: 1
     SummonCooldownInSeconds: 60
     SummonCooldownUseMultiplier: 1.5
+    TownBaseGold: 3000
     UseRawXP: true
     WinGold: 10000
     WinXP: 10000
