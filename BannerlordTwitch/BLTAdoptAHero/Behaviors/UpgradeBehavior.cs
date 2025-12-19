@@ -18,44 +18,80 @@ namespace BLTAdoptAHero
     {
         public static UpgradeBehavior Current { get; private set; }
 
-        // Persistent upgrade tracking
+        // --- Persisted as lists (IDataStore-friendly) ---
+        [Serializable]
+        public class UpgradeEntry
+        {
+            public string Key;
+            public List<string> Values = new List<string>();
+        }
+
+        private List<UpgradeEntry> _fiefUpgradesList = new();
+        private List<UpgradeEntry> _clanUpgradesList = new();
+        private List<UpgradeEntry> _kingdomUpgradesList = new();
+
+        // --- Runtime dictionaries for fast lookups/operations (not persisted directly) ---
         private Dictionary<string, List<string>> _fiefUpgrades = new();
         private Dictionary<string, List<string>> _clanUpgrades = new();
         private Dictionary<string, List<string>> _kingdomUpgrades = new();
 
-        // Cache for accumulated tax bonuses (recalculated daily)
+        // Cache for accumulated tax bonuses (recalculated daily) - runtime only
         private Dictionary<string, int> _fiefTaxBonuses = new();
         private Dictionary<string, int> _clanTaxBonuses = new();
         private Dictionary<string, int> _kingdomTaxBonuses = new();
-
-        public UpgradeBehavior()
-        {
-            Current = this;
-        }
 
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+
+            Initialize();
         }
 
         public override void SyncData(IDataStore dataStore)
         {
-            dataStore.SyncData("_fiefUpgrades", ref _fiefUpgrades);
-            dataStore.SyncData("_clanUpgrades", ref _clanUpgrades);
-            dataStore.SyncData("_kingdomUpgrades", ref _kingdomUpgrades);
+            try
+            {
+                // Convert runtime dictionaries into lists so the IDataStore can persist them
+                ConvertDictsToLists();
 
+                dataStore.SyncData("_fiefUpgrades", ref _fiefUpgradesList);
+                dataStore.SyncData("_clanUpgrades", ref _clanUpgradesList);
+                dataStore.SyncData("_kingdomUpgrades", ref _kingdomUpgradesList);
+
+                // Rebuild runtime dictionaries from the loaded/persisted lists
+                RebuildDictionariesFromLists();
+
+                // Set Current instance after successful sync
+                Current = this;
+
+                // Ensure non-persisted runtime collections are initialized
+                Initialize();
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT Upgrades] Error in SyncData: {ex}");
+
+                // Initialize to safe defaults on error
+                Initialize();
+            }
+        }
+
+        private void Initialize()
+        {
+            // Do not wipe data that was just loaded; only ensure collections are non-null
             _fiefUpgrades ??= new Dictionary<string, List<string>>();
             _clanUpgrades ??= new Dictionary<string, List<string>>();
             _kingdomUpgrades ??= new Dictionary<string, List<string>>();
 
-            // Runtime-only caches MUST always exist
-            _fiefTaxBonuses ??= new Dictionary<string, int>();
-            _clanTaxBonuses ??= new Dictionary<string, int>();
-            _kingdomTaxBonuses ??= new Dictionary<string, int>();
+            _fiefUpgradesList ??= new List<UpgradeEntry>();
+            _clanUpgradesList ??= new List<UpgradeEntry>();
+            _kingdomUpgradesList ??= new List<UpgradeEntry>();
+
+            _fiefTaxBonuses = _fiefTaxBonuses ?? new Dictionary<string, int>();
+            _clanTaxBonuses = _clanTaxBonuses ?? new Dictionary<string, int>();
+            _kingdomTaxBonuses = _kingdomTaxBonuses ?? new Dictionary<string, int>();
         }
-
-
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
@@ -66,6 +102,10 @@ namespace BLTAdoptAHero
         {
             // HARD STOP during save
             if (Campaign.Current?.SaveHandler?.IsSaving == true)
+                return;
+
+            // Don't process if game isn't properly loaded
+            if (Campaign.Current == null)
                 return;
 
             try
@@ -84,11 +124,60 @@ namespace BLTAdoptAHero
             }
         }
 
+        #region Persistence helpers
+        private void ConvertDictsToLists()
+        {
+            _fiefUpgradesList = _fiefUpgrades
+                .Select(kvp => new UpgradeEntry { Key = kvp.Key, Values = new List<string>(kvp.Value) })
+                .ToList();
+
+            _clanUpgradesList = _clanUpgrades
+                .Select(kvp => new UpgradeEntry { Key = kvp.Key, Values = new List<string>(kvp.Value) })
+                .ToList();
+
+            _kingdomUpgradesList = _kingdomUpgrades
+                .Select(kvp => new UpgradeEntry { Key = kvp.Key, Values = new List<string>(kvp.Value) })
+                .ToList();
+        }
+
+        private void RebuildDictionariesFromLists()
+        {
+            _fiefUpgrades = new Dictionary<string, List<string>>();
+            if (_fiefUpgradesList != null)
+            {
+                foreach (var entry in _fiefUpgradesList)
+                {
+                    if (string.IsNullOrEmpty(entry.Key)) continue;
+                    _fiefUpgrades[entry.Key] = entry.Values != null ? new List<string>(entry.Values) : new List<string>();
+                }
+            }
+
+            _clanUpgrades = new Dictionary<string, List<string>>();
+            if (_clanUpgradesList != null)
+            {
+                foreach (var entry in _clanUpgradesList)
+                {
+                    if (string.IsNullOrEmpty(entry.Key)) continue;
+                    _clanUpgrades[entry.Key] = entry.Values != null ? new List<string>(entry.Values) : new List<string>();
+                }
+            }
+
+            _kingdomUpgrades = new Dictionary<string, List<string>>();
+            if (_kingdomUpgradesList != null)
+            {
+                foreach (var entry in _kingdomUpgradesList)
+                {
+                    if (string.IsNullOrEmpty(entry.Key)) continue;
+                    _kingdomUpgrades[entry.Key] = entry.Values != null ? new List<string>(entry.Values) : new List<string>();
+                }
+            }
+        }
+        #endregion
 
         #region Fief Upgrades
         public bool HasFiefUpgrade(Settlement settlement, string upgradeId)
         {
-            if (settlement == null) return false;
+            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = settlement.StringId;
             return _fiefUpgrades.ContainsKey(key) && _fiefUpgrades[key].Contains(upgradeId);
         }
@@ -112,6 +201,7 @@ namespace BLTAdoptAHero
                 return false;
 
             _fiefUpgrades[key].Add(upgradeId);
+            // list will be updated when SyncData runs (ConvertDictsToLists)
             return true;
         }
 
@@ -130,14 +220,21 @@ namespace BLTAdoptAHero
                     var upgrade = settings.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
                     if (upgrade == null) continue;
 
-                    ApplyFiefUpgradeEffects(settlement, upgrade);
+                    try
+                    {
+                        ApplyFiefUpgradeEffects(settlement, upgrade);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT Upgrades] Error applying fief upgrade {upgradeId} to {settlement.Name}: {ex}");
+                    }
                 }
             }
         }
 
         private void ApplyFiefUpgradeEffects(Settlement settlement, FiefUpgrade upgrade)
         {
-            var town = settlement.Town;
+            var town = settlement?.Town;
             if (town == null) return;
 
             // Apply daily growth modifiers
@@ -159,12 +256,15 @@ namespace BLTAdoptAHero
             if (upgrade.SecurityDailyPercent != 0 && town.SecurityChange != 0)
                 town.Security += town.SecurityChange * (upgrade.SecurityDailyPercent / 100f);
 
-            float militiaChange = 0f;
-            if (upgrade.MilitiaDailyFlat != 0)
-                militiaChange += upgrade.MilitiaDailyFlat;
+            if (upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0)
+            {
+                float militiaChange = 0f;
+                if (upgrade.MilitiaDailyFlat != 0)
+                    militiaChange += upgrade.MilitiaDailyFlat;
 
-            if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
-                militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
+                if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
+                    militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
+            }
 
             if (upgrade.FoodDailyFlat != 0)
                 town.FoodStocks += upgrade.FoodDailyFlat;
@@ -181,8 +281,6 @@ namespace BLTAdoptAHero
 
                 _fiefTaxBonuses[key] += upgrade.TaxIncomeFlat;
             }
-
-            // Note: Garrison capacity bonus is handled separately when queried
         }
 
         public int GetFiefTaxBonus(Settlement settlement)
@@ -216,7 +314,7 @@ namespace BLTAdoptAHero
         #region Clan Upgrades
         public bool HasClanUpgrade(Clan clan, string upgradeId)
         {
-            if (clan == null) return false;
+            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = clan.StringId;
             return _clanUpgrades.ContainsKey(key) && _clanUpgrades[key].Contains(upgradeId);
         }
@@ -258,18 +356,25 @@ namespace BLTAdoptAHero
                     var upgrade = settings.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
                     if (upgrade == null) continue;
 
-                    ApplyClanUpgradeEffects(clan, upgrade);
+                    try
+                    {
+                        ApplyClanUpgradeEffects(clan, upgrade);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT Upgrades] Error applying clan upgrade {upgradeId} to {clan.Name}: {ex}");
+                    }
                 }
             }
         }
 
         private void ApplyClanUpgradeEffects(Clan clan, ClanUpgrade upgrade)
         {
+            if (clan == null) return;
+
             // Apply clan-wide effects
             if (upgrade.RenownDaily != 0)
                 clan.Renown += upgrade.RenownDaily;
-
-            // Note: Party size bonus is handled via GetClanPartySizeBonus()
 
             // Apply effects to all clan settlements
             foreach (var settlement in clan.Settlements)
@@ -295,12 +400,15 @@ namespace BLTAdoptAHero
                 if (upgrade.SecurityDailyPercent != 0 && town.SecurityChange != 0)
                     town.Security += town.SecurityChange * (upgrade.SecurityDailyPercent / 100f);
 
-                float militiaChange = 0f;
-                if (upgrade.MilitiaDailyFlat != 0)
-                    militiaChange += upgrade.MilitiaDailyFlat;
+                if (upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0)
+                {
+                    float militiaChange = 0f;
+                    if (upgrade.MilitiaDailyFlat != 0)
+                        militiaChange += upgrade.MilitiaDailyFlat;
 
-                if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
-                    militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
+                    if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
+                        militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
+                }
 
                 // Accumulate tax bonuses
                 if (upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0)
@@ -345,7 +453,7 @@ namespace BLTAdoptAHero
         #region Kingdom Upgrades
         public bool HasKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
-            if (kingdom == null) return false;
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = kingdom.StringId;
             return _kingdomUpgrades.ContainsKey(key) && _kingdomUpgrades[key].Contains(upgradeId);
         }
@@ -387,17 +495,25 @@ namespace BLTAdoptAHero
                     var upgrade = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
                     if (upgrade == null) continue;
 
-                    ApplyKingdomUpgradeEffects(kingdom, upgrade);
+                    try
+                    {
+                        ApplyKingdomUpgradeEffects(kingdom, upgrade);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT Upgrades] Error applying kingdom upgrade {upgradeId} to {kingdom.Name}: {ex}");
+                    }
                 }
             }
         }
 
         private void ApplyKingdomUpgradeEffects(Kingdom kingdom, KingdomUpgrade upgrade)
         {
+            if (kingdom == null) return;
+
             // Apply kingdom-wide effects
-            if (upgrade.InfluenceDaily != 0 && kingdom.Leader != null)
+            if (upgrade.InfluenceDaily != 0 && kingdom.Leader?.Clan != null)
             {
-                // Give influence to kingdom ruler
                 kingdom.Leader.Clan.Influence += upgrade.InfluenceDaily;
             }
 
@@ -408,8 +524,6 @@ namespace BLTAdoptAHero
 
                 if (upgrade.RenownDaily != 0)
                     clan.Renown += upgrade.RenownDaily;
-
-                // Note: Party size bonus is handled via GetKingdomPartySizeBonus()
 
                 // Apply effects to all settlements in each clan
                 foreach (var settlement in clan.Settlements)
@@ -435,12 +549,15 @@ namespace BLTAdoptAHero
                     if (upgrade.SecurityDailyPercent != 0 && town.SecurityChange != 0)
                         town.Security += town.SecurityChange * (upgrade.SecurityDailyPercent / 100f);
 
-                    float militiaChange = 0f;
-                    if (upgrade.MilitiaDailyFlat != 0)
-                        militiaChange += upgrade.MilitiaDailyFlat;
+                    if (upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0)
+                    {
+                        float militiaChange = 0f;
+                        if (upgrade.MilitiaDailyFlat != 0)
+                            militiaChange += upgrade.MilitiaDailyFlat;
 
-                    if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
-                        militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
+                        if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
+                            militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
+                    }
 
                     // Accumulate tax bonuses
                     if (upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0)
@@ -486,6 +603,7 @@ namespace BLTAdoptAHero
         #region Helper Methods
         public int GetTotalTaxBonus(Settlement settlement)
         {
+            if (settlement == null) return 0;
             return GetFiefTaxBonus(settlement) + GetClanTaxBonus(settlement) + GetKingdomTaxBonus(settlement);
         }
 
