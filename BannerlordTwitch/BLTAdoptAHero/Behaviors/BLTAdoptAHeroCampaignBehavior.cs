@@ -104,7 +104,7 @@ namespace BLTAdoptAHero
         private Dictionary<Hero, HeroData> heroData = new();
         #endregion
 
-        #region CampaignBehaviorBase
+        #region CampaignBehaviorBase        
         public override void RegisterEvents()
         {
             // We put all initialization that relies on loading being complete into this listener
@@ -303,13 +303,23 @@ namespace BLTAdoptAHero
 
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, JoinTournament.SetupGameMenus);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            //CampaignEvents.TickEvent.AddNonSerializedListener(this, OnTick);
         }
 
         private void OnDailyTick()
         {
             MapHub.UpdateMapData();
         }
-
+        //private Mission lastMission = null;
+        //private void OnTick(float dt)
+        //{
+        //    // Check mission status every tick to immediately hide/show map
+        //    if (Mission.Current != lastMission)
+        //    {
+        //        lastMission = Mission.Current;
+        //        MapHub.UpdateMapData(); // Force immediate update when mission changes
+        //    }
+        //}
         public override void SyncData(IDataStore dataStore)
         {
             using var scopedJsonSync = new ScopedJsonSync(dataStore, nameof(BLTAdoptAHeroCampaignBehavior));

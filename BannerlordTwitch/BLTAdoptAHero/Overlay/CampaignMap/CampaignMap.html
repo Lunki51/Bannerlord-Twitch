@@ -1,61 +1,28 @@
-﻿<div id='campaign-map-container'>
-    <svg id='campaign-map-svg' viewBox='0 0 100 100' preserveAspectRatio='xMidYMid meet'>
+﻿<div id="campaign-map-container">
+    <div id="map-header">Map</div>
+    <svg id="campaign-map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
         <defs>
             <!-- Pattern for sea -->
             <pattern id="seaPattern" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
-                <path d="M0,2 Q1,1 2,2 T4,2" stroke="#3a7ca5" stroke-width="0.3" fill="none" opacity="0.3"/>
+                <path d="M0,2 Q1,1 2,2 T4,2" stroke="#3a7ca5" stroke-width="0.3" fill="none" opacity="0.3" />
             </pattern>
-            
+
             <!-- Pattern for mountains -->
             <pattern id="mountainPattern" x="0" y="0" width="3" height="3" patternUnits="userSpaceOnUse">
-                <polygon points="0,3 1.5,0 3,3" fill="#2a2a2a" opacity="0.4"/>
+                <polygon points="0,3 1.5,0 3,3" fill="#2a2a2a" opacity="0.4" />
             </pattern>
         </defs>
-        
-        <!-- Terrain zones will be rendered here -->
-        <g id='terrain-zones'></g>
-        
-        <!-- Settlement markers will be rendered here -->
-        <g id='settlement-markers'></g>
-    </svg>
-    
-    <!-- Legend -->
-    <div id='map-legend'>
-        <div class='legend-title'>Kingdoms</div><div id="campaign-map-container">
-            <div id="map-header">Campaign Map</div>
-            <svg id="campaign-map-svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
-                <defs>
-                    <pattern id="seaPattern" patternUnits="userSpaceOnUse" width="2" height="2">
-                        <rect width="2" height="2" fill="#4682b4" />
-                    </pattern>
-                    <pattern id="mountainPattern" patternUnits="userSpaceOnUse" width="2" height="2">
-                        <rect width="2" height="2" fill="#3a3a3a" />
-                    </pattern>
-                </defs>
-                <g id="terrain-zones"></g>
-                <g id="settlement-markers"></g>
-            </svg>
-            <div id="map-legend">
-                <div class="legend-title">Kingdoms</div>
-                <div id="legend-items"></div>
-            </div>
-            <div id="map-tooltip">
-                <div id="tooltip-name"></div>
-                <div id="tooltip-info"></div>
-            </div>
-        </div>
 
-        <div id='legend-items'>
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <div>Waiting for game data...</div>
-            </div>
-        </div>
-    </div>
-    
+        <!-- Terrain zones will be rendered here -->
+        <g id="terrain-zones"></g>
+
+        <!-- Settlement markers will be rendered here -->
+        <g id="settlement-markers"></g>
+    </svg>
+
     <!-- Tooltip -->
-    <div id='map-tooltip' style='display: none;'>
-        <div id='tooltip-name'></div>
-        <div id='tooltip-info'></div>
+    <div id="map-tooltip">
+        <div id="tooltip-name"></div>
+        <div id="tooltip-info"></div>
     </div>
 </div>
