@@ -14,10 +14,13 @@ using BLTAdoptAHero.Actions;
 namespace BLTAdoptAHero
 {
     [Serializable]
-    public struct UpgradeEntrySerializable
+    public class UpgradeEntrySerializable
     {
-        public string Key;          // The ID of the fief, clan, or kingdom
-        public string ValueString;  // Comma-separated list of upgrade IDs
+        public string Key;
+        public string ValueString;
+
+        // REQUIRED: parameterless ctor for Bannerlord
+        public UpgradeEntrySerializable() { }
 
         public UpgradeEntrySerializable(string key, List<string> values)
         {
@@ -27,9 +30,12 @@ namespace BLTAdoptAHero
 
         public List<string> GetValues()
         {
-            return !string.IsNullOrEmpty(ValueString)
-                ? ValueString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList()
-                : new List<string>();
+            if (string.IsNullOrEmpty(ValueString))
+                return new List<string>();
+
+            return ValueString
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .ToList();
         }
     }
 
@@ -51,12 +57,13 @@ namespace BLTAdoptAHero
         private List<UpgradeEntrySerializable> _kingdomUpgradeEntries;
 
         // Runtime-only caches
-        private Dictionary<string, int> _fiefTaxBonuses;
-        private Dictionary<string, int> _clanTaxBonuses;
-        private Dictionary<string, int> _kingdomTaxBonuses;
+        [NonSerialized] private Dictionary<string, int> _fiefTaxBonuses;
+        [NonSerialized] private Dictionary<string, int> _clanTaxBonuses;
+        [NonSerialized] private Dictionary<string, int> _kingdomTaxBonuses;
 
         public override void RegisterEvents()
         {
+            Current = this;
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
 
@@ -65,33 +72,18 @@ namespace BLTAdoptAHero
 
         public override void SyncData(IDataStore dataStore)
         {
-            try
+            dataStore.SyncData("_fiefUpgradeEntries", ref _fiefUpgradeEntries);
+            dataStore.SyncData("_clanUpgradeEntries", ref _clanUpgradeEntries);
+            dataStore.SyncData("_kingdomUpgradeEntries", ref _kingdomUpgradeEntries);
+
+            if (dataStore.IsLoading)
             {
-                if (dataStore.IsSaving)
-                {
-                    _fiefUpgradeEntries = SerializeDict(_fiefUpgrades);
-                    _clanUpgradeEntries = SerializeDict(_clanUpgrades);
-                    _kingdomUpgradeEntries = SerializeDict(_kingdomUpgrades);
-                }
-
-                dataStore.SyncData("_fiefUpgradeEntries", ref _fiefUpgradeEntries);
-                dataStore.SyncData("_clanUpgradeEntries", ref _clanUpgradeEntries);
-                dataStore.SyncData("_kingdomUpgradeEntries", ref _kingdomUpgradeEntries);
-
-                if (dataStore.IsLoading)
-                {
-                    _fiefUpgrades = DeserializeDict(_fiefUpgradeEntries);
-                    _clanUpgrades = DeserializeDict(_clanUpgradeEntries);
-                    _kingdomUpgrades = DeserializeDict(_kingdomUpgradeEntries);
-                }
-
-                Current = this;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT Upgrades] Error in SyncData: {ex}");
+                _fiefUpgrades = DeserializeDict(_fiefUpgradeEntries);
+                _clanUpgrades = DeserializeDict(_clanUpgradeEntries);
+                _kingdomUpgrades = DeserializeDict(_kingdomUpgradeEntries);
             }
         }
+
 
         private void Initialize()
         {
@@ -111,7 +103,6 @@ namespace BLTAdoptAHero
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
-            Current = this;
         }
 
         private void OnDailyTick()
@@ -159,6 +150,14 @@ namespace BLTAdoptAHero
 
             return dict;
         }
+
+        private void RebuildSerializedData()
+        {
+            _fiefUpgradeEntries = SerializeDict(_fiefUpgrades);
+            _clanUpgradeEntries = SerializeDict(_clanUpgrades);
+            _kingdomUpgradeEntries = SerializeDict(_kingdomUpgrades);
+        }
+
         #endregion
 
         #region Fief Upgrades

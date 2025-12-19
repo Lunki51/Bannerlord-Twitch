@@ -366,8 +366,6 @@
     <Compile Include="Actions\SummonHero.cs" />
     <Compile Include="Actions\TournamentBet.cs" />
     <Compile Include="Actions\TransferAction.cs" />
-    <Compile Include="Actions\UpgradeAction.cs" />
-    <Compile Include="Actions\UpgradeDefinitions.cs" />
     <Compile Include="Actions\UsePower.cs" />
     <Compile Include="Actions\Util\CustomItems.cs" />
     <Compile Include="Actions\Util\HeroClassDef.cs" />
@@ -392,7 +390,6 @@
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="Behaviors\ReinforcementBehavior.cs" />
-    <Compile Include="Behaviors\UpgradeBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />

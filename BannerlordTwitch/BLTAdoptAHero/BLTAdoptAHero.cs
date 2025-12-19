@@ -199,7 +199,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTClanBehavior());
                     campaignStarter.AddBehavior(new ReinforcementBehavior());
                     campaignStarter.AddBehavior(new DiplomacyHelper());
-                    campaignStarter.AddBehavior(new UpgradeBehavior());
+                    //campaignStarter.AddBehavior(new UpgradeBehavior());
 
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
@@ -474,67 +474,67 @@ namespace BLTAdoptAHero
         }
 
 
-    [HarmonyPatch(typeof(PartySizeLimitModel), "GetPartyMemberSizeLimit")]
-    internal static class BLT_PartySizeLimitPatch
-    {
-        static void Postfix(TaleWorlds.CampaignSystem.Party.MobileParty party, bool includeDescriptions, ref ExplainedNumber __result)
-        {
-            if (party?.LeaderHero == null)
-                return;
-
-            var behavior = UpgradeBehavior.Current;
-            if (behavior == null)
-                return;
-
-            int bonus = behavior.GetTotalPartySizeBonus(party.LeaderHero);
-            if (bonus != 0)
-            {
-                __result.Add(bonus, new TextObject("Twitch Upgrade Party Size Bonus"));
-
-            }
-        }
-    }
-
-    [HarmonyPatch(typeof(DefaultSettlementGarrisonModel), "CalculateGarrisonPartySizeLimit")]
-    internal static class BLT_GarrisonSizePatch
-    {
-        static void Postfix(Settlement settlement, bool includeDescriptions, ref ExplainedNumber __result)
-        {
-            if (settlement == null)
-                return;
-
-            var behavior = UpgradeBehavior.Current;
-            if (behavior == null)
-                return;
-
-            int bonus = behavior.GetFiefGarrisonCapacityBonus(settlement);
-            if (bonus != 0)
-            {
-                __result.Add(bonus, new TextObject("Twitch Upgrade Garrison Capacity Bonus"));
-
-            }
-        }
-    }
-
-    [HarmonyPatch(typeof(DefaultSettlementTaxModel), "CalculateDailyTaxInternal")]
-    internal static class BLT_SettlementTaxPatch
-    {
-        static void Postfix(TaleWorlds.CampaignSystem.Settlements.Town town, ref ExplainedNumber result)
-        {
-            if (town?.Settlement == null)
-                return;
-
-            var behavior = UpgradeBehavior.Current;
-            if (behavior == null)
-                return;
-
-            int bonus = behavior.GetTotalTaxBonus(town.Settlement);
-            if (bonus != 0)
-            {
-                result.Add(bonus, new TextObject("Twitch Upgrade Tax Bonus"));
-
-            }
-        }
-    }
+    //[HarmonyPatch(typeof(PartySizeLimitModel), "GetPartyMemberSizeLimit")]
+    //internal static class BLT_PartySizeLimitPatch
+    //{
+    //    static void Postfix(TaleWorlds.CampaignSystem.Party.MobileParty party, bool includeDescriptions, ref ExplainedNumber __result)
+    //    {
+    //        if (party?.LeaderHero == null)
+    //            return;
+    //
+    //        var behavior = UpgradeBehavior.Current;
+    //        if (behavior == null)
+    //            return;
+    //
+    //        int bonus = behavior.GetTotalPartySizeBonus(party.LeaderHero);
+    //        if (bonus != 0)
+    //        {
+    //            __result.Add(bonus, new TextObject("Twitch Upgrade Party Size Bonus"));
+    //
+    //        }
+    //    }
+    //}
+    //
+    //[HarmonyPatch(typeof(DefaultSettlementGarrisonModel), "CalculateGarrisonPartySizeLimit")]
+    //internal static class BLT_GarrisonSizePatch
+    //{
+    //    static void Postfix(Settlement settlement, bool includeDescriptions, ref ExplainedNumber __result)
+    //    {
+    //        if (settlement == null)
+    //            return;
+    //
+    //        var behavior = UpgradeBehavior.Current;
+    //        if (behavior == null)
+    //            return;
+    //
+    //        int bonus = behavior.GetFiefGarrisonCapacityBonus(settlement);
+    //        if (bonus != 0)
+    //        {
+    //            __result.Add(bonus, new TextObject("Twitch Upgrade Garrison Capacity Bonus"));
+    //
+    //        }
+    //    }
+    //}
+    //
+    //[HarmonyPatch(typeof(DefaultSettlementTaxModel), "CalculateDailyTaxInternal")]
+    //internal static class BLT_SettlementTaxPatch
+    //{
+    //    static void Postfix(TaleWorlds.CampaignSystem.Settlements.Town town, ref ExplainedNumber result)
+    //    {
+    //        if (town?.Settlement == null)
+    //            return;
+    //
+    //        var behavior = UpgradeBehavior.Current;
+    //        if (behavior == null)
+    //            return;
+    //
+    //        int bonus = behavior.GetTotalTaxBonus(town.Settlement);
+    //        if (bonus != 0)
+    //        {
+    //            result.Add(bonus, new TextObject("Twitch Upgrade Tax Bonus"));
+    //
+    //        }
+    //    }
+    //}
 
 }
