@@ -1,0 +1,113 @@
+﻿#campaign-map-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    z-index: 9999;
+    background: rgba(0,0,0,0.85);
+    border-bottom: 1px solid #8b7355;
+    overflow: hidden;
+    pointer-events: all;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    margin: 0;
+}
+
+    #campaign-map-container.hidden {
+        display: none;
+    }
+
+#map-header {
+    font-weight: bold;
+    font-size: 0.9em;
+    color: #d4af37;
+    padding: 2px 6px;
+    background: rgba(0,0,0,0.6);
+    flex-shrink: 0;
+    line-height: 1.2;
+}
+
+#campaign-map-svg {
+    width: 100%;
+    height: 100%;
+    flex-grow: 1;
+    display: block;
+}
+
+/* Terrain zones */
+.terrain-zone {
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+    .terrain-zone.land {
+        fill: #8b7355;
+        stroke: #6d5942;
+        stroke-width: 0.2;
+    }
+
+    .terrain-zone.sea {
+        fill: #4682b4;
+        stroke: #2d5a7f;
+        stroke-width: 0.2;
+    }
+
+    .terrain-zone.blocked {
+        fill: #3a3a3a;
+        stroke: #2a2a2a;
+        stroke-width: 0.2;
+    }
+
+/* Settlement markers */
+.settlement-marker {
+    pointer-events: all;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+    .settlement-marker:hover {
+        filter: brightness(1.4);
+    }
+
+    .settlement-marker circle,
+    .settlement-marker rect,
+    .settlement-marker polygon {
+        stroke: #fff;
+        stroke-width: 0.3;
+    }
+
+    .settlement-marker .settlement-icon {
+        fill: white;
+        font-weight: bold;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        pointer-events: none;
+    }
+
+/* Tooltip */
+#map-tooltip {
+    position: absolute;
+    background: rgba(0,0,0,0.95);
+    border: 2px solid #8b7355;
+    border-radius: 4px;
+    padding: 6px 10px;
+    pointer-events: none;
+    z-index: 10000;
+    transform: translate(-50%, calc(-100% - 5px));
+    display: none;
+}
+
+#tooltip-name {
+    color: #d4af37;
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+#tooltip-info {
+    color: #ccc;
+    font-size: 11px;
+    line-height: 1.4;
+}
