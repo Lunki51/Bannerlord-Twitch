@@ -395,6 +395,7 @@
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroPowerConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalTournamentConfig.cs" />
+    <Compile Include="Overlay\CampaignMap\MapHub.cs" />
     <Compile Include="Overlay\MissionInfo\MissionInfo.cs" />
     <Compile Include="Overlay\Tournament\Tournament.cs" />
     <Compile Include="Powers\AbsorbHealthPower.cs" />
@@ -432,6 +433,15 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
+    <Content Include="Overlay\CampaignMap\CampaignMap.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Overlay\CampaignMap\CampaignMap.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Overlay\CampaignMap\CampaignMap.js">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Overlay\MissionInfo\MissionInfo.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
