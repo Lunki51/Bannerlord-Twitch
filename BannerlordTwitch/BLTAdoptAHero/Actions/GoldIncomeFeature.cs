@@ -45,7 +45,7 @@ namespace BLTAdoptAHero.Actions
             // Check for arguments
             if (context.Args.IsEmpty())
             {
-                onFailure("Usage: goldincome fiefs | merc");
+                onFailure("Usage: fiefs | merc");
                 return;
             }
 
@@ -63,7 +63,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            onFailure("Usage: goldincome fiefs | merc");
+            onFailure("Usage: fiefs | merc");
         }
 
         private void ShowFiefIncome(Hero hero, Action<string> onSuccess)
