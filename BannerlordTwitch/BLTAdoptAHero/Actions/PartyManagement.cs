@@ -89,13 +89,18 @@ namespace BLTAdoptAHero.Actions
                     partyStats.Append("{=TESTING}Your hero is fugitive".Translate());
                 else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
                 {
-                    partyStats.Append($"Prisoner: {adoptedHero.PartyBelongedToAsPrisoner.Name}");
+                    int prisontime = (int)adoptedHero.CaptivityStartTime.ElapsedDaysUntilNow;
+                    partyStats.Append($"Prisoner({prisontime}): {adoptedHero.PartyBelongedToAsPrisoner.Name}");
                     partyStats.Append(" | ");
                     var place = adoptedHero.PartyBelongedToAsPrisoner?.LeaderHero?.LastKnownClosestSettlement?.Name?.ToString() ?? "Unknown";
                     partyStats.Append($"Last seen near {place}");
                 }
                 else if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsSettlement)
-                    partyStats.Append("{=zVDODxiN}Prisoner: {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
+                {
+                    int prisontime = (int)adoptedHero.CaptivityStartTime.ElapsedDaysUntilNow;
+                    partyStats.Append("{=zVDODxiN}Prisoner({dur}): {prisoner}".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString()), ("dur", prisontime)));
+                }
+                    
                 else if (adoptedHero.GovernorOf != null && adoptedHero.Clan.Settlements.Count > 0)
                 {
                     var govFief = adoptedHero.GovernorOf;
