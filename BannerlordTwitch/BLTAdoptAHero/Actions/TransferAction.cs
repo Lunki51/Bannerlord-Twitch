@@ -85,7 +85,7 @@ namespace BLTAdoptAHero.Actions
 
             if (context.Args.IsEmpty())
             {
-                onFailure("Usage: !transfer [force] <settlement> <hero|clan>");
+                onFailure("Usage: [force] <settlement> <clan|hero [BLT]>");
                 return;
             }
 
@@ -103,13 +103,38 @@ namespace BLTAdoptAHero.Actions
             // validate remaining args
             if (parts.Length - idx < 2)
             {
-                onFailure("Usage: !transfer [force] <settlement> <hero|clan>");
+                onFailure("Usage: [force] <settlement> <clan|hero [BLT]>");
                 return;
             }
 
             // target settlement name may be multiple words; hero/clan is last token
+            bool endtag = false;
             string targetSpecifier = parts[parts.Length - 1]; // last token
-            string settlementName = string.Join(" ", parts.Skip(idx).Take(parts.Length - idx - 1)).Trim();
+            string settlementName = null;
+            if (targetSpecifier == "[BLT]")
+            {
+                targetSpecifier = parts[parts.Length - 2] + " [BLT]";
+                endtag = true;
+            }
+            else if (targetSpecifier == "[DEV]")
+            {
+                targetSpecifier = parts[parts.Length - 2] + " [DEV]";
+                endtag = true;
+            }
+            else
+            {
+                targetSpecifier = parts[parts.Length - 1];
+                endtag = false;
+            }
+
+            if (!endtag)
+            {
+                settlementName = string.Join(" ", parts.Skip(idx).Take(parts.Length - idx - 1)).Trim();
+            }
+            else
+            {
+                settlementName = string.Join(" ", parts.Skip(idx).Take(parts.Length - idx - 2)).Trim();
+            }
 
             if (string.IsNullOrWhiteSpace(settlementName))
             {
