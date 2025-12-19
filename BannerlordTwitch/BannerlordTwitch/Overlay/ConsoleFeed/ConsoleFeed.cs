@@ -63,7 +63,7 @@ namespace BLTOverlay
 
         public static void Register()
         {
-            BLTOverlay.Register("console", 0,
+            BLTOverlay.Register("console", 1,
                 GetContent("ConsoleFeed.css"),
                 GetContent("ConsoleFeed.html"),
                 GetContent("ConsoleFeed.js"));

@@ -65,6 +65,8 @@ namespace BLTAdoptAHero
 
             TournamentHub.Register();
             MissionInfoHub.Register();
+            MapHub.Register();
+            
         }
 
         public override void OnMissionBehaviorInitialize(Mission mission)

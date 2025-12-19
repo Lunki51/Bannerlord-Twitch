@@ -2134,7 +2134,7 @@ GlobalConfigs:
     NametagEnabled: true
     NametagFontsize: 20
     NametagHeight: 30
-    NametagKey: K
+    NametagKey: H
     NametagWidth: 150
     ProsperityMultiplier: 1
     RawXPSkillCap: 330
@@ -2146,6 +2146,7 @@ GlobalConfigs:
     RetinueHealPerKill: 50
     RetinueUseHeroesFormation: false
     Shouts: []
+    ShowCampaignMapOverlay: true
     ShowKillStreakPopup: true
     StartHealthMultiplier: 2
     StartRetinueHealthMultiplier: 2
