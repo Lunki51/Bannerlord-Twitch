@@ -302,9 +302,17 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // Find upgrade ID (last arg) and name (everything in between)
+            // Find upgrade ID (last arg) and fief name (everything in between)
             string upgradeId = args.Last();
-            string targetName = string.Join(" ", args.Skip(1).Take(args.Length - 2));
+            string targetName = null;
+            if (command == "fief")
+            {
+                targetName = string.Join(" ", args.Skip(1).Take(args.Length - 2));
+            }
+            else
+            {
+                targetName = null;
+            }
 
             HandlePurchaseCommand(command, targetName, upgradeId, adoptedHero, settings, onSuccess, onFailure);
         }
@@ -388,10 +396,10 @@ namespace BLTAdoptAHero.Actions
                     ShowFiefInfo(name, hero, settings, onSuccess, onFailure);
                     break;
                 case "clan":
-                    ShowClanInfo(name, hero, settings, onSuccess, onFailure);
+                    ShowClanInfo(hero, settings, onSuccess, onFailure);
                     break;
                 case "kingdom":
-                    ShowKingdomInfo(name, hero, settings, onSuccess, onFailure);
+                    ShowKingdomInfo(hero, settings, onSuccess, onFailure);
                     break;
                 default:
                     onFailure("Invalid type. Use 'fief', 'clan', or 'kingdom'");
@@ -408,7 +416,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (settlement.Town == null)
+            if (settlement.Town == null || settlement.IsVillage)
             {
                 onFailure("Only towns and castles can have upgrades");
                 return;
@@ -436,12 +444,12 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void ShowClanInfo(string name, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void ShowClanInfo(Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
         {
-            var clan = FindClan(name);
+            var clan = hero.Clan;
             if (clan == null)
             {
-                onFailure($"Clan '{name}' not found");
+                onFailure($"Clan '{clan.Name}' not found");
                 return;
             }
 
@@ -467,12 +475,18 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void ShowKingdomInfo(string name, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void ShowKingdomInfo(Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
         {
-            var kingdom = FindKingdom(name);
+            var kingdom = hero.Clan.Kingdom;
+            if (hero.Clan == null)
+            {
+                onFailure($"You are not in a clan!");
+                return;
+            }
+
             if (kingdom == null)
             {
-                onFailure($"Kingdom '{name}' not found");
+                onFailure($"Kingdom '{kingdom.Name}' not found");
                 return;
             }
 
@@ -506,10 +520,10 @@ namespace BLTAdoptAHero.Actions
                     PurchaseFiefUpgrade(name, upgradeId, hero, settings, onSuccess, onFailure);
                     break;
                 case "clan":
-                    PurchaseClanUpgrade(name, upgradeId, hero, settings, onSuccess, onFailure);
+                    PurchaseClanUpgrade(upgradeId, hero, settings, onSuccess, onFailure);
                     break;
                 case "kingdom":
-                    PurchaseKingdomUpgrade(name, upgradeId, hero, settings, onSuccess, onFailure);
+                    PurchaseKingdomUpgrade(upgradeId, hero, settings, onSuccess, onFailure);
                     break;
             }
         }
@@ -589,19 +603,12 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation($"{hero.Name} purchased {upgrade.Name} for {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
         }
 
-        private void PurchaseClanUpgrade(string name, string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void PurchaseClanUpgrade(string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
         {
-            var clan = FindClan(name);
+            var clan = hero?.Clan;
             if (clan == null)
             {
-                onFailure($"Clan '{name}' not found");
-                return;
-            }
-
-            // Check permissions
-            if (clan != hero.Clan)
-            {
-                onFailure("You can only purchase upgrades for your own clan");
+                onFailure($"Clan '{clan.Name}' not found");
                 return;
             }
 
@@ -652,12 +659,18 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation($"{hero.Name} purchased {upgrade.Name} for {clan.Name}", hero.CharacterObject, Log.Sound.Notification1);
         }
 
-        private void PurchaseKingdomUpgrade(string name, string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void PurchaseKingdomUpgrade(string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
         {
-            var kingdom = FindKingdom(name);
+            var kingdom = hero?.Clan?.Kingdom;
+            if (hero.Clan == null)
+            {
+                onFailure($"You're not in a clan!");
+                return;
+            }
+
             if (kingdom == null)
             {
-                onFailure($"Kingdom '{name}' not found");
+                onFailure($"Kingdom '{kingdom.Name}' not found");
                 return;
             }
 
@@ -727,18 +740,6 @@ namespace BLTAdoptAHero.Actions
         {
             return Settlement.All.FirstOrDefault(s =>
                 s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
-        }
-
-        private Clan FindClan(string name)
-        {
-            return Clan.All.FirstOrDefault(c =>
-                c?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
-        }
-
-        private Kingdom FindKingdom(string name)
-        {
-            return Kingdom.All.FirstOrDefault(k =>
-                k?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
         }
     }
 }
