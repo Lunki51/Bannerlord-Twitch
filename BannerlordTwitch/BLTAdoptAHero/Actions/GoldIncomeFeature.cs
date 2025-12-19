@@ -45,7 +45,7 @@ namespace BLTAdoptAHero.Actions
             // Check for arguments
             if (context.Args.IsEmpty())
             {
-                onFailure("Usage: goldincome fiefs | merc");
+                onFailure("Usage: fiefs | merc");
                 return;
             }
 
@@ -63,7 +63,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            onFailure("Usage: goldincome fiefs | merc");
+            onFailure("Usage: fiefs | merc");
         }
 
         private void ShowFiefIncome(Hero hero, Action<string> onSuccess)
@@ -76,7 +76,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             var sb = new StringBuilder();
-            foreach (var s in clan.Settlements)
+            foreach (var s in clan.Settlements.Where(s => !s.IsVillage))
             {
                 int income = CalculateSettlementIncome(s);
                 sb.Append($"{s.Name}: {(income >= 0 ? "+" : "")}{income} | ");
@@ -137,7 +137,7 @@ namespace BLTAdoptAHero.Actions
             if (clan == null || !clan.IsUnderMercenaryService)
                 return 0;
 
-            int mult = Math.Max(1, Math.Min(BLTAdoptAHeroModule.CommonConfig.MercenaryMultiplier, 100));
+            int mult = Math.Min(BLTAdoptAHeroModule.CommonConfig.MercenaryMultiplier, 100);
             var creator = Campaign.Current.KingdomManager;
             int contract = creator.GetMercenaryWageAmount(clan.Leader);
 
@@ -146,8 +146,13 @@ namespace BLTAdoptAHero.Actions
 
             // Multiply may be large, keep in int (Bannerlord uses int gold)
             long value = (long)contract * (long)mult;
-            if (value > int.MaxValue)
-                return int.MaxValue;
+            if (value > BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome)
+                if (BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome < int.MaxValue)
+                    return BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome;
+                else
+                {
+                    return int.MaxValue;
+                }
 
             return (int)value;
         }

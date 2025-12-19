@@ -142,41 +142,72 @@ namespace BLTAdoptAHero
                     .Select(h
                         => (state: h, retinue: h.Retinue.FirstOrDefault(r => r.Agent == affectedAgent)))
                     .FirstOrDefault(h => h.retinue != null);
-
-                if (retinueOwner != null)
-                {
-                    if (agentState == AgentState.Killed &&
-                        MBRandom.RandomFloat <= BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance)
-                    {
-                        retinueState.Died = true;
-                        BLTAdoptAHeroCampaignBehavior.Current.KillRetinue(retinueOwner.Hero, affectedAgent.Character);
-                        if (retinueOwner.Hero.FirstName != null)
-                        {
-                            Log.LogFeedResponse(retinueOwner.Hero.FirstName.ToString(),
-                                $"Your {affectedAgent.Character} was killed in battle!");
-                        }
-                    }
-                    retinueState.State = agentState;
-                }
-
                 var (retinue2Owner, retinue2State) = heroSummonStates
                     .Select(h
                         => (state: h, retinue2: h.Retinue2.FirstOrDefault(r => r.Agent == affectedAgent)))
                     .FirstOrDefault(h => h.retinue2 != null);
 
-                if (retinue2Owner != null)
+                bool inRetinue1 = retinueOwner != null;
+                bool inRetinue2 = retinue2Owner != null;
+
+                bool runRetinue1 = false;
+                bool runRetinue2 = false;
+
+                if (inRetinue1 && inRetinue2)
+                {
+                    // Same agent exists in both lists, choose one at random
+                    if (MBRandom.RandomInt(1,2) == 1)
+                        runRetinue1 = true;
+                    else
+                        runRetinue2 = true;
+                }
+                else
+                {
+                    // Only exists in one (or none)
+                    runRetinue1 = inRetinue1;
+                    runRetinue2 = inRetinue2;
+                }
+
+
+                if (runRetinue1)
+                {
+                    if (agentState == AgentState.Killed &&
+                        MBRandom.RandomFloat <= BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance)
+                    {
+                        retinueState.Died = true;
+                        BLTAdoptAHeroCampaignBehavior.Current.KillRetinue(
+                            retinueOwner.Hero,
+                            affectedAgent.Character);
+
+                        if (retinueOwner.Hero.FirstName != null)
+                        {
+                            Log.LogFeedResponse(
+                                retinueOwner.Hero.FirstName.ToString(),
+                                $"Your {affectedAgent.Character} was killed in battle!");
+                        }
+                    }
+
+                    retinueState.State = agentState;
+                }
+
+                if (runRetinue2)
                 {
                     if (agentState == AgentState.Killed &&
                         MBRandom.RandomFloat <= BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance)
                     {
                         retinue2State.Died = true;
-                        BLTAdoptAHeroCampaignBehavior.Current.KillRetinue2(retinue2Owner.Hero, affectedAgent.Character);
+                        BLTAdoptAHeroCampaignBehavior.Current.KillRetinue2(
+                            retinue2Owner.Hero,
+                            affectedAgent.Character);
+
                         if (retinue2Owner.Hero.FirstName != null)
                         {
-                            Log.LogFeedResponse(retinue2Owner.Hero.FirstName.ToString(),
+                            Log.LogFeedResponse(
+                                retinue2Owner.Hero.FirstName.ToString(),
                                 $"Your {affectedAgent.Character} was killed in battle!");
                         }
                     }
+
                     retinue2State.State = agentState;
                 }
             });

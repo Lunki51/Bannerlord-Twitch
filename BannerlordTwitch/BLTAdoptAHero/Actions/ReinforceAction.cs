@@ -65,9 +65,9 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(5), UsedImplicitly]
             public int MilitiaCap { get; set; } = 100;
 
-            [LocDisplayName("{=MilitiaCap}Capital Max Bonus"),
+            [LocDisplayName("{=MilitiaCapital}Capital Max Bonus"),
              LocCategory("Militia", "{=MilitiaCat}Militia"),
-             LocDescription("{=MilitiaCapDesc}Bonus to the maximum total BLT reinforcements a Kingdom Capital can have (this is added to standard reinforcement cap)"),
+             LocDescription("{=MilitiaCapitalDesc}Bonus to the maximum total BLT reinforcements a Kingdom Capital can have (this is added to standard reinforcement cap)"),
              PropertyOrder(6), UsedImplicitly]
             public int CapitalMilitiaBonus { get; set; } = 150;
 
@@ -102,9 +102,9 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(5), UsedImplicitly]
             public int EliteMilitiaCap { get; set; } = 50;
 
-            [LocDisplayName("{=MilitiaCap}Capital Max Bonus"),
-             LocCategory("Militia", "{=MilitiaCat}Militia"),
-             LocDescription("{=MilitiaCapDesc}Bonus to the maximum total BLT reinforcements a Kingdom Capital can have (this is added to standard reinforcement cap)"),
+            [LocDisplayName("{=EliteCapital}Capital Max Bonus"),
+             LocCategory("EliteMilitia", "{=EliteCat}EliteMilitia"),
+             LocDescription("{=EliteCapitalDesc}Bonus to the maximum total BLT reinforcements a Kingdom Capital can have (this is added to standard reinforcement cap)"),
              PropertyOrder(6), UsedImplicitly]
             public int CapitalEliteBonus { get; set; } = 50;
 

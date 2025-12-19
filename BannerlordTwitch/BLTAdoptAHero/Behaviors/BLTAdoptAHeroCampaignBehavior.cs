@@ -1398,10 +1398,16 @@ namespace BLTAdoptAHero
         public void KillRetinue(Hero retinueOwnerHero, BasicCharacterObject retinueCharacterObject)
         {
             var heroRetinue = GetHeroData(retinueOwnerHero).Retinue;
+            var heroRetinue2 = GetHeroData(retinueOwnerHero).Retinue2;
             var matchingRetinue = heroRetinue.FirstOrDefault(r => r.TroopType == retinueCharacterObject);
+            var matchingRetinue2 = heroRetinue2.FirstOrDefault(r => r.TroopType == retinueCharacterObject);
             if (matchingRetinue != null)
             {
                 heroRetinue.Remove(matchingRetinue);
+            }
+            else if (matchingRetinue2 != null) 
+            {
+                heroRetinue2.Remove(matchingRetinue2);
             }
             else
             {
@@ -1685,18 +1691,24 @@ namespace BLTAdoptAHero
             return (retinue2Changes.Any(), Naming.JoinList(troopUpgradeSummary.Concat(results)));
         }
 
-        public void KillRetinue2(Hero Retinue2OwnerHero, BasicCharacterObject retinue2CharacterObject)
+        public void KillRetinue2(Hero retinue2OwnerHero, BasicCharacterObject RetinueCharacterObject)
         {
-            var heroretinue2 = GetHeroData(Retinue2OwnerHero).Retinue2;
-            var matchingretinue2 = heroretinue2.FirstOrDefault(r => r.TroopType == retinue2CharacterObject);
-            if (matchingretinue2 != null)
+            var heroRetinue2 = GetHeroData(retinue2OwnerHero).Retinue2;
+            var heroRetinue = GetHeroData(retinue2OwnerHero).Retinue;
+            var matchingRetinue2 = heroRetinue2.FirstOrDefault(r => r.TroopType == RetinueCharacterObject);
+            var matchingRetinue = heroRetinue.FirstOrDefault(r => r.TroopType == RetinueCharacterObject);
+            if (matchingRetinue2 != null)
             {
-                heroretinue2.Remove(matchingretinue2);
+                heroRetinue2.Remove(matchingRetinue2);
+            }
+            else if (matchingRetinue != null) 
+            {
+                heroRetinue.Remove(matchingRetinue);
             }
             else
             {
-                Log.Error($"Couldn't find matching secondary retinue type {retinue2CharacterObject} " +
-                          $"for {Retinue2OwnerHero} to remove");
+                Log.Error($"Couldn't find matching secondary retinue type {RetinueCharacterObject} " +
+                          $"for {retinue2OwnerHero} to remove");
             }
         }
 
@@ -1936,6 +1948,45 @@ namespace BLTAdoptAHero
             agent.Die(blow);
 
             return $"Killed agent of {hero.Name}";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("ChangeGold", "blt")]
+        [UsedImplicitly]
+        public static string ChangeGold(List<string> strings)
+        {
+            if (Campaign.Current == null)
+            {
+                return "Campaign is not active";
+            }
+
+            var parts = string.Join(" ", strings).Split(',').Select(p => p.Trim()).ToList();
+
+            if (parts.Count < 2)
+            {
+                return "Usage: blt.change_gold username, amount (e.g., blt.change_gold TestUser, 1000)";
+            }
+
+            string username = parts[0];
+            if (!int.TryParse(parts[1], out int amount))
+            {
+                return $"Invalid gold amount: {parts[1]}";
+            }
+
+            // Find the BLT hero with the matching username
+            var hero = Hero.AllAliveHeroes
+                .FirstOrDefault(h => h.IsAdopted() &&
+                    BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(h.Name.ToString()).Name.ToString() == username);
+
+            if (hero == null)
+            {
+                return $"Could not find BLT hero with username: {username}";
+            }
+
+            // Change the hero's gold
+            BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(hero, amount, true);
+
+            int currentGold = BLTAdoptAHeroCampaignBehavior.Current?.GetHeroGold(hero) ?? 0;
+            return $"Changed {hero.Name}'s gold by {amount}. Current balance: {currentGold}";
         }
 
         #endregion

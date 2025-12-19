@@ -22,6 +22,12 @@ using TaleWorlds.MountAndBlade.ComponentInterfaces;
 using TaleWorlds.MountAndBlade.GauntletUI.Widgets.Mission.NameMarker;
 using TaleWorlds.MountAndBlade.Source.Missions;
 using TaleWorlds.MountAndBlade.View.Screens;
+using TaleWorlds.CampaignSystem.GameComponents;
+using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.Localization;
+using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using BLTAdoptAHero.Models;
 
 #pragma warning disable 649
 
@@ -196,9 +202,45 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTClanBehavior());
                     campaignStarter.AddBehavior(new ReinforcementBehavior());
                     campaignStarter.AddBehavior(new DiplomacyHelper());
+                    campaignStarter.AddBehavior(new UpgradeBehavior());
+
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
-
+                    gameStarterObject.AddModel(
+                        new BLTPartySizeLimitModel(
+                            gameStarterObject.Models.OfType<PartySizeLimitModel>().FirstOrDefault()
+                        )
+                    );
+                    gameStarterObject.AddModel(
+                        new BLTSettlementTaxModel(
+                            gameStarterObject.Models.OfType<SettlementTaxModel>().FirstOrDefault()
+                        )
+                    );
+                    gameStarterObject.AddModel(
+                        new BLTSettlementLoyaltyModel(
+                            gameStarterObject.Models.OfType<SettlementLoyaltyModel>().FirstOrDefault()
+                        )
+                    );
+                    gameStarterObject.AddModel(
+                        new BLTSettlementProsperityModel(
+                            gameStarterObject.Models.OfType<SettlementProsperityModel>().FirstOrDefault()
+                        )
+                    );
+                    gameStarterObject.AddModel(
+                        new BLTSettlementSecurityModel(
+                            gameStarterObject.Models.OfType<SettlementSecurityModel>().FirstOrDefault()
+                        )
+                    );
+                    gameStarterObject.AddModel(
+                        new BLTSettlementMilitiaModel(
+                            gameStarterObject.Models.OfType<SettlementMilitiaModel>().FirstOrDefault()
+                        )
+                    );
+                    gameStarterObject.AddModel(
+                        new BLTSettlementFoodModel(
+                            gameStarterObject.Models.OfType<SettlementFoodModel>().FirstOrDefault()
+                        )
+                    );
                 }
             }
             catch (Exception e)
@@ -467,5 +509,4 @@ namespace BLTAdoptAHero
 
 
         }
-
-    }
+}
