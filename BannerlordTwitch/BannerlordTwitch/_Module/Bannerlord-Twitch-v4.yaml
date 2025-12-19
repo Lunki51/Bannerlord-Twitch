@@ -2128,6 +2128,7 @@ GlobalConfigs:
     LoseGold: 5000
     LoseXP: 5000
     MercenaryIncomeEnabled: true
+    MercenaryMaxIncome: 2000
     MercenaryMultiplier: 10
     MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5
