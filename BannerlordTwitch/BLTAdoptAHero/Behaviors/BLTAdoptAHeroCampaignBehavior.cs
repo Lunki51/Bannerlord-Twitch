@@ -9,6 +9,7 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.SaveSystem;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.Achievements;
+using BLTAdoptAHero.UI;
 using Newtonsoft.Json;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.MapEvents;
@@ -144,7 +145,7 @@ namespace BLTAdoptAHero
                         .Where(i => i.element.Item.Type == ItemObject.ItemTypeEnum.Invalid))
                     {
                         hero.BattleEquipment[index] = EquipmentElement.Invalid;
-                    }
+                    }                   
                 }
 
                 // Retire up any dead heroes (do this last to ensure all other stuff related to this hero is updated, in-case retirement interferes with it)
@@ -152,6 +153,7 @@ namespace BLTAdoptAHero
                 {
                     RetireHero(hero);
                 }
+                MapHub.UpdateMapData();
             });
 
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, detail, _) =>
@@ -300,6 +302,12 @@ namespace BLTAdoptAHero
             });
 
             CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, JoinTournament.SetupGameMenus);
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+        }
+
+        private void OnDailyTick()
+        {
+            MapHub.UpdateMapData();
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -1832,6 +1840,7 @@ namespace BLTAdoptAHero
                 >= 1 => "I" + ToRoman(number - 1)
             };
         }
+
         #endregion
 
         #region Console Commands

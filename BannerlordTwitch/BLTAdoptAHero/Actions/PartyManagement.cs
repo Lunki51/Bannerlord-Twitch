@@ -135,9 +135,9 @@ namespace BLTAdoptAHero.Actions
                             partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", target.MemberRoster.TotalManCount)));
                         }
                     }
-                    if (party?.Army != null)
+                    if (party?.Army != null && (party.AttachedTo != null || party.AttachedParties.Count > 0))
                     {
-                        partyStats.Append("{=CVzSgXhT}Army: {army}".Translate(("army", army.Name.ToString())));
+                        partyStats.Append("{=CVzSgXhT}Army: {army}".Translate(("army", army?.Name.ToString() ?? army.LeaderParty.Name.ToString())));
                         partyStats.Append("{=d76wc5iS}[Strength: {strength} | ".Translate(("strength", Math.Round(army.EstimatedStrength).ToString())));
                         partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", army.TotalHealthyMembers.ToString())));
                         partyStats.Append("{=7p5j5Mlx}Party nº: {count}] ".Translate(("count", army.LeaderPartyAndAttachedPartiesCount.ToString())));
@@ -304,6 +304,14 @@ namespace BLTAdoptAHero.Actions
                         if (adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
                         {
                             onFailure("Cannot create party in player clan");
+                            foreach (var p in adoptedHero.Clan.WarPartyComponents)
+                            {
+                                if (p.Leader == null)
+                                {
+                                    p.MobileParty.IsActive = true;
+                                    DestroyPartyAction.ApplyForDisbanding(p.MobileParty, adoptedHero.Clan.HomeSettlement);
+                                }                                   
+                            }
                             return;
                         }
                         int parties = adoptedHero.Clan.WarPartyComponents.Count;
