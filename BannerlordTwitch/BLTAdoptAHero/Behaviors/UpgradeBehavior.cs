@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using HarmonyLib;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
@@ -11,6 +13,26 @@ using BLTAdoptAHero.Actions;
 
 namespace BLTAdoptAHero
 {
+    [Serializable]
+    public struct UpgradeEntrySerializable
+    {
+        public string Key;          // The ID of the fief, clan, or kingdom
+        public string ValueString;  // Comma-separated list of upgrade IDs
+
+        public UpgradeEntrySerializable(string key, List<string> values)
+        {
+            Key = key;
+            ValueString = values != null ? string.Join(",", values) : string.Empty;
+        }
+
+        public List<string> GetValues()
+        {
+            return !string.IsNullOrEmpty(ValueString)
+                ? ValueString.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList()
+                : new List<string>();
+        }
+    }
+
     /// <summary>
     /// Campaign behavior that tracks and applies upgrade effects
     /// </summary>
@@ -18,27 +40,20 @@ namespace BLTAdoptAHero
     {
         public static UpgradeBehavior Current { get; private set; }
 
-        // --- Persisted as lists (IDataStore-friendly) ---
-        [Serializable]
-        public class UpgradeEntry
-        {
-            public string Key;
-            public List<string> Values = new List<string>();
-        }
+        // Runtime dictionaries (not persisted)
+        private Dictionary<string, List<string>> _fiefUpgrades;
+        private Dictionary<string, List<string>> _clanUpgrades;
+        private Dictionary<string, List<string>> _kingdomUpgrades;
 
-        private List<UpgradeEntry> _fiefUpgradesList = new();
-        private List<UpgradeEntry> _clanUpgradesList = new();
-        private List<UpgradeEntry> _kingdomUpgradesList = new();
+        // Save-safe serialized lists
+        private List<UpgradeEntrySerializable> _fiefUpgradeEntries;
+        private List<UpgradeEntrySerializable> _clanUpgradeEntries;
+        private List<UpgradeEntrySerializable> _kingdomUpgradeEntries;
 
-        // --- Runtime dictionaries for fast lookups/operations (not persisted directly) ---
-        private Dictionary<string, List<string>> _fiefUpgrades = new();
-        private Dictionary<string, List<string>> _clanUpgrades = new();
-        private Dictionary<string, List<string>> _kingdomUpgrades = new();
-
-        // Cache for accumulated tax bonuses (recalculated daily) - runtime only
-        private Dictionary<string, int> _fiefTaxBonuses = new();
-        private Dictionary<string, int> _clanTaxBonuses = new();
-        private Dictionary<string, int> _kingdomTaxBonuses = new();
+        // Runtime-only caches
+        private Dictionary<string, int> _fiefTaxBonuses;
+        private Dictionary<string, int> _clanTaxBonuses;
+        private Dictionary<string, int> _kingdomTaxBonuses;
 
         public override void RegisterEvents()
         {
@@ -52,46 +67,47 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Convert runtime dictionaries into lists so the IDataStore can persist them
-                ConvertDictsToLists();
+                if (dataStore.IsSaving)
+                {
+                    _fiefUpgradeEntries = SerializeDict(_fiefUpgrades);
+                    _clanUpgradeEntries = SerializeDict(_clanUpgrades);
+                    _kingdomUpgradeEntries = SerializeDict(_kingdomUpgrades);
+                }
 
-                dataStore.SyncData("_fiefUpgrades", ref _fiefUpgradesList);
-                dataStore.SyncData("_clanUpgrades", ref _clanUpgradesList);
-                dataStore.SyncData("_kingdomUpgrades", ref _kingdomUpgradesList);
+                dataStore.SyncData("_fiefUpgradeEntries", ref _fiefUpgradeEntries);
+                dataStore.SyncData("_clanUpgradeEntries", ref _clanUpgradeEntries);
+                dataStore.SyncData("_kingdomUpgradeEntries", ref _kingdomUpgradeEntries);
 
-                // Rebuild runtime dictionaries from the loaded/persisted lists
-                RebuildDictionariesFromLists();
+                if (dataStore.IsLoading)
+                {
+                    _fiefUpgrades = DeserializeDict(_fiefUpgradeEntries);
+                    _clanUpgrades = DeserializeDict(_clanUpgradeEntries);
+                    _kingdomUpgrades = DeserializeDict(_kingdomUpgradeEntries);
+                }
 
-                // Set Current instance after successful sync
                 Current = this;
-
-                // Ensure non-persisted runtime collections are initialized
-                Initialize();
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT Upgrades] Error in SyncData: {ex}");
-
-                // Initialize to safe defaults on error
-                Initialize();
             }
         }
 
         private void Initialize()
         {
-            // Do not wipe data that was just loaded; only ensure collections are non-null
             _fiefUpgrades ??= new Dictionary<string, List<string>>();
             _clanUpgrades ??= new Dictionary<string, List<string>>();
             _kingdomUpgrades ??= new Dictionary<string, List<string>>();
 
-            _fiefUpgradesList ??= new List<UpgradeEntry>();
-            _clanUpgradesList ??= new List<UpgradeEntry>();
-            _kingdomUpgradesList ??= new List<UpgradeEntry>();
+            _fiefUpgradeEntries ??= new List<UpgradeEntrySerializable>();
+            _clanUpgradeEntries ??= new List<UpgradeEntrySerializable>();
+            _kingdomUpgradeEntries ??= new List<UpgradeEntrySerializable>();
 
-            _fiefTaxBonuses = _fiefTaxBonuses ?? new Dictionary<string, int>();
-            _clanTaxBonuses = _clanTaxBonuses ?? new Dictionary<string, int>();
-            _kingdomTaxBonuses = _kingdomTaxBonuses ?? new Dictionary<string, int>();
+            _fiefTaxBonuses ??= new Dictionary<string, int>();
+            _clanTaxBonuses ??= new Dictionary<string, int>();
+            _kingdomTaxBonuses ??= new Dictionary<string, int>();
         }
+
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
@@ -125,52 +141,23 @@ namespace BLTAdoptAHero
         }
 
         #region Persistence helpers
-        private void ConvertDictsToLists()
+        private static List<UpgradeEntrySerializable> SerializeDict(Dictionary<string, List<string>> dict)
         {
-            _fiefUpgradesList = _fiefUpgrades
-                .Select(kvp => new UpgradeEntry { Key = kvp.Key, Values = new List<string>(kvp.Value) })
-                .ToList();
-
-            _clanUpgradesList = _clanUpgrades
-                .Select(kvp => new UpgradeEntry { Key = kvp.Key, Values = new List<string>(kvp.Value) })
-                .ToList();
-
-            _kingdomUpgradesList = _kingdomUpgrades
-                .Select(kvp => new UpgradeEntry { Key = kvp.Key, Values = new List<string>(kvp.Value) })
-                .ToList();
+            var list = new List<UpgradeEntrySerializable>();
+            foreach (var kvp in dict)
+                list.Add(new UpgradeEntrySerializable(kvp.Key, kvp.Value));
+            return list;
         }
 
-        private void RebuildDictionariesFromLists()
+        private static Dictionary<string, List<string>> DeserializeDict(List<UpgradeEntrySerializable> list)
         {
-            _fiefUpgrades = new Dictionary<string, List<string>>();
-            if (_fiefUpgradesList != null)
-            {
-                foreach (var entry in _fiefUpgradesList)
-                {
-                    if (string.IsNullOrEmpty(entry.Key)) continue;
-                    _fiefUpgrades[entry.Key] = entry.Values != null ? new List<string>(entry.Values) : new List<string>();
-                }
-            }
+            var dict = new Dictionary<string, List<string>>();
+            if (list == null) return dict;
 
-            _clanUpgrades = new Dictionary<string, List<string>>();
-            if (_clanUpgradesList != null)
-            {
-                foreach (var entry in _clanUpgradesList)
-                {
-                    if (string.IsNullOrEmpty(entry.Key)) continue;
-                    _clanUpgrades[entry.Key] = entry.Values != null ? new List<string>(entry.Values) : new List<string>();
-                }
-            }
+            foreach (var entry in list)
+                dict[entry.Key] = entry.GetValues();
 
-            _kingdomUpgrades = new Dictionary<string, List<string>>();
-            if (_kingdomUpgradesList != null)
-            {
-                foreach (var entry in _kingdomUpgradesList)
-                {
-                    if (string.IsNullOrEmpty(entry.Key)) continue;
-                    _kingdomUpgrades[entry.Key] = entry.Values != null ? new List<string>(entry.Values) : new List<string>();
-                }
-            }
+            return dict;
         }
         #endregion
 
@@ -281,6 +268,8 @@ namespace BLTAdoptAHero
 
                 _fiefTaxBonuses[key] += upgrade.TaxIncomeFlat;
             }
+
+            // Note: Do not apply aggregated totals here (we apply them after processing all upgrades for the settlement)
         }
 
         public int GetFiefTaxBonus(Settlement settlement)
