@@ -325,6 +325,18 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(8), UsedImplicitly]
         public float MilitiaDailyPercent { get; set; } = 0f;
 
+        [LocDisplayName("{=BLT_FoodFlat}Food Daily (Flat)"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocDescription("{=BLT_FoodFlatDesc}Flat food stock gain per day for all clan settlements"),
+         PropertyOrder(9), UsedImplicitly]
+        public float FoodDailyFlat { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_FoodPercent}Food Daily (%)"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocDescription("{=BLT_FoodPercentDesc}Percentage bonus to food change per dayfor all clan settlements"),
+         PropertyOrder(10), UsedImplicitly]
+        public float FoodDailyPercent { get; set; } = 0f;
+
         [LocDisplayName("{=BLT_TaxFlat}Tax Income (Flat)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
          LocDescription("{=BLT_TaxFlatDesc}Flat daily gold bonus from taxes for all clan settlements"),
@@ -360,6 +372,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (SecurityDailyPercent != 0) desc += $"\n  Security: {(SecurityDailyPercent > 0 ? "+" : "")}{SecurityDailyPercent}%/day";
             if (MilitiaDailyFlat != 0) desc += $"\n  Militia: {(MilitiaDailyFlat > 0 ? "+" : "")}{MilitiaDailyFlat}/day";
             if (MilitiaDailyPercent != 0) desc += $"\n  Militia: {(MilitiaDailyPercent > 0 ? "+" : "")}{MilitiaDailyPercent}%/day";
+            if (FoodDailyFlat != 0) desc += $"\n  Food: {(FoodDailyFlat > 0 ? "+" : "")}{FoodDailyFlat}/day";
+            if (FoodDailyPercent != 0) desc += $"\n  Food: {(FoodDailyPercent > 0 ? "+" : "")}{FoodDailyPercent}%/day";
             if (TaxIncomeFlat != 0) desc += $"\n  Tax Income: {(TaxIncomeFlat > 0 ? "+" : "")}{TaxIncomeFlat}{Naming.Gold}/day per settlement";
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
             if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";
@@ -452,6 +466,18 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(8), UsedImplicitly]
         public float MilitiaDailyPercent { get; set; } = 0f;
 
+        [LocDisplayName("{=BLT_FoodFlat}Food Daily (Flat)"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
+         LocDescription("{=BLT_FoodFlatDesc}Flat food stock gain per day for all kingdom settlements"),
+         PropertyOrder(9), UsedImplicitly]
+        public float FoodDailyFlat { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_FoodPercent}Food Daily (%)"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
+         LocDescription("{=BLT_FoodPercentDesc}Percentage bonus to food change per day for all kingdom settlements"),
+         PropertyOrder(10), UsedImplicitly]
+        public float FoodDailyPercent { get; set; } = 0f;
+
         [LocDisplayName("{=BLT_TaxFlat}Tax Income (Flat)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
          LocDescription("{=BLT_TaxFlatDesc}Flat daily gold bonus from taxes for all kingdom settlements"),
@@ -498,6 +524,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (SecurityDailyPercent != 0) desc += $"\n  Security: {(SecurityDailyPercent > 0 ? "+" : "")}{SecurityDailyPercent}%/day";
             if (MilitiaDailyFlat != 0) desc += $"\n  Militia: {(MilitiaDailyFlat > 0 ? "+" : "")}{MilitiaDailyFlat}/day";
             if (MilitiaDailyPercent != 0) desc += $"\n  Militia: {(MilitiaDailyPercent > 0 ? "+" : "")}{MilitiaDailyPercent}%/day";
+            if (FoodDailyFlat != 0) desc += $"\n  Food: {(FoodDailyFlat > 0 ? "+" : "")}{FoodDailyFlat}/day";
+            if (FoodDailyPercent != 0) desc += $"\n  Food: {(FoodDailyPercent > 0 ? "+" : "")}{FoodDailyPercent}%/day";
             if (TaxIncomeFlat != 0) desc += $"\n  Tax Income: {(TaxIncomeFlat > 0 ? "+" : "")}{TaxIncomeFlat}{Naming.Gold}/day per settlement";
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
             if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";

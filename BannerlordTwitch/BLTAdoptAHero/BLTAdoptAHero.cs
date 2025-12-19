@@ -239,7 +239,6 @@ namespace BLTAdoptAHero
                             gameStarterObject.Models.OfType<SettlementFoodModel>().FirstOrDefault()
                         )
                     );
-
                 }
             }
             catch (Exception e)

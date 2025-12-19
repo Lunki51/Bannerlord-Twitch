@@ -2,55 +2,61 @@
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
-using TaleWorlds.Library;
+using BLTAdoptAHero.Actions;           // contains Settings
 using BLTAdoptAHero.Actions.Upgrades;
-using BLTAdoptAHero.Actions;
+using static BLTAdoptAHero.Actions.UpgradeAction;  // contains FiefUpgrade, ClanUpgrade, KingdomUpgrade
 
 namespace BLTAdoptAHero
 {
     /// <summary>
-    /// UpgradeBehavior - safe, non-mutating provider.
-    /// - Persists upgrades as comma-separated strings per fief/clan/kingdom (save-compatible)
+    /// UpgradeBehavior - typed, safe, non-mutating provider.
+    /// - Persists upgrades as comma-separated strings per fief/clan/kingdom
     /// - Exposes Get/Has/Add/Remove helpers used by UI/actions
-    /// - Exposes aggregated getters (tax, loyalty/prosperity/security/militia/food, party/garrison) computed on-demand from UpgradeAction.CurrentSettings
+    /// - Exposes typed aggregated getters that consult the injected Settings instance
     /// </summary>
     public class UpgradeBehavior : CampaignBehaviorBase
     {
         public static UpgradeBehavior Current { get; private set; }
 
-        // Persisted across saves - string IDs lists stored as comma-separated strings (for compatibility)
+        // persisted storage (CSV strings per id) - compatible with older saves
         private Dictionary<string, string> _fiefUpgrades = new();
         private Dictionary<string, string> _clanUpgrades = new();
         private Dictionary<string, string> _kingdomUpgrades = new();
 
+        // typed settings reference - must be set once by your initialization code
+        private Settings _settings;
+        private Settings SettingsSafe => _settings;
+
         public UpgradeBehavior()
         {
             Current = this;
-            // don't touch engine state here
         }
 
         public override void RegisterEvents()
         {
-            // No unsafe DailyTick mutators - models will query this provider on demand
+            // No DailyTick mutations - models will query this provider on demand
         }
 
         public override void SyncData(IDataStore dataStore)
         {
-            // Persist upgrade lists as comma-separated strings keyed by stringId
             dataStore.SyncData("BLT_FiefUpgrades", ref _fiefUpgrades);
             dataStore.SyncData("BLT_ClanUpgrades", ref _clanUpgrades);
             dataStore.SyncData("BLT_KingdomUpgrades", ref _kingdomUpgrades);
 
-            // Ensure dictionaries exist after load
             _fiefUpgrades ??= new Dictionary<string, string>();
             _clanUpgrades ??= new Dictionary<string, string>();
             _kingdomUpgrades ??= new Dictionary<string, string>();
         }
 
-        #region String serialization helpers
+        // Must be called once after Settings is created (see wiring below)
+        public void SetSettings(Settings settings)
+        {
+            _settings = settings;
+        }
+
+        #region Serialization helpers
         private static List<string> ParseUpgradeString(string upgradeString)
         {
             if (string.IsNullOrEmpty(upgradeString))
@@ -72,7 +78,7 @@ namespace BLTAdoptAHero
         }
         #endregion
 
-        #region Fief methods (Get/Has/Add/Remove)
+        #region Fief Get/Has/Add/Remove
         public List<string> GetFiefUpgrades(Settlement settlement)
         {
             if (settlement == null) return new List<string>();
@@ -86,25 +92,21 @@ namespace BLTAdoptAHero
 
         public bool HasFiefUpgrade(Settlement settlement, string upgradeId)
         {
-            if (settlement == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
             var list = GetFiefUpgrades(settlement);
             return list.Contains(upgradeId);
         }
 
         public bool AddFiefUpgrade(Settlement settlement, string upgradeId)
         {
-            if (settlement == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = settlement.StringId;
+
             var upgrades = _fiefUpgrades.TryGetValue(key, out string upgradeString)
                 ? ParseUpgradeString(upgradeString)
                 : new List<string>();
 
-            if (upgrades.Contains(upgradeId))
-                return false;
+            if (upgrades.Contains(upgradeId)) return false;
 
             upgrades.Add(upgradeId);
             _fiefUpgrades[key] = SerializeUpgradeList(upgrades);
@@ -113,28 +115,23 @@ namespace BLTAdoptAHero
 
         public bool RemoveFiefUpgrade(Settlement settlement, string upgradeId)
         {
-            if (settlement == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = settlement.StringId;
-            if (!_fiefUpgrades.TryGetValue(key, out string upgradeString))
-                return false;
+
+            if (!_fiefUpgrades.TryGetValue(key, out string upgradeString)) return false;
 
             var upgrades = ParseUpgradeString(upgradeString);
             bool removed = upgrades.Remove(upgradeId);
-            if (!removed)
-                return false;
+            if (!removed) return false;
 
-            if (upgrades.Count == 0)
-                _fiefUpgrades.Remove(key);
-            else
-                _fiefUpgrades[key] = SerializeUpgradeList(upgrades);
+            if (upgrades.Count == 0) _fiefUpgrades.Remove(key);
+            else _fiefUpgrades[key] = SerializeUpgradeList(upgrades);
 
             return true;
         }
         #endregion
 
-        #region Clan methods (Get/Has/Add/Remove)
+        #region Clan Get/Has/Add/Remove
         public List<string> GetClanUpgrades(Clan clan)
         {
             if (clan == null) return new List<string>();
@@ -148,25 +145,21 @@ namespace BLTAdoptAHero
 
         public bool HasClanUpgrade(Clan clan, string upgradeId)
         {
-            if (clan == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
             var list = GetClanUpgrades(clan);
             return list.Contains(upgradeId);
         }
 
         public bool AddClanUpgrade(Clan clan, string upgradeId)
         {
-            if (clan == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = clan.StringId;
+
             var upgrades = _clanUpgrades.TryGetValue(key, out string upgradeString)
                 ? ParseUpgradeString(upgradeString)
                 : new List<string>();
 
-            if (upgrades.Contains(upgradeId))
-                return false;
+            if (upgrades.Contains(upgradeId)) return false;
 
             upgrades.Add(upgradeId);
             _clanUpgrades[key] = SerializeUpgradeList(upgrades);
@@ -175,28 +168,23 @@ namespace BLTAdoptAHero
 
         public bool RemoveClanUpgrade(Clan clan, string upgradeId)
         {
-            if (clan == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = clan.StringId;
-            if (!_clanUpgrades.TryGetValue(key, out string upgradeString))
-                return false;
+
+            if (!_clanUpgrades.TryGetValue(key, out string upgradeString)) return false;
 
             var upgrades = ParseUpgradeString(upgradeString);
             bool removed = upgrades.Remove(upgradeId);
-            if (!removed)
-                return false;
+            if (!removed) return false;
 
-            if (upgrades.Count == 0)
-                _clanUpgrades.Remove(key);
-            else
-                _clanUpgrades[key] = SerializeUpgradeList(upgrades);
+            if (upgrades.Count == 0) _clanUpgrades.Remove(key);
+            else _clanUpgrades[key] = SerializeUpgradeList(upgrades);
 
             return true;
         }
         #endregion
 
-        #region Kingdom methods (Get/Has/Add/Remove)
+        #region Kingdom Get/Has/Add/Remove
         public List<string> GetKingdomUpgrades(Kingdom kingdom)
         {
             if (kingdom == null) return new List<string>();
@@ -210,25 +198,21 @@ namespace BLTAdoptAHero
 
         public bool HasKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
-            if (kingdom == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
             var list = GetKingdomUpgrades(kingdom);
             return list.Contains(upgradeId);
         }
 
         public bool AddKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
-            if (kingdom == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = kingdom.StringId;
+
             var upgrades = _kingdomUpgrades.TryGetValue(key, out string upgradeString)
                 ? ParseUpgradeString(upgradeString)
                 : new List<string>();
 
-            if (upgrades.Contains(upgradeId))
-                return false;
+            if (upgrades.Contains(upgradeId)) return false;
 
             upgrades.Add(upgradeId);
             _kingdomUpgrades[key] = SerializeUpgradeList(upgrades);
@@ -237,227 +221,228 @@ namespace BLTAdoptAHero
 
         public bool RemoveKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
-            if (kingdom == null || string.IsNullOrEmpty(upgradeId))
-                return false;
-
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
             string key = kingdom.StringId;
-            if (!_kingdomUpgrades.TryGetValue(key, out string upgradeString))
-                return false;
+
+            if (!_kingdomUpgrades.TryGetValue(key, out string upgradeString)) return false;
 
             var upgrades = ParseUpgradeString(upgradeString);
             bool removed = upgrades.Remove(upgradeId);
-            if (!removed)
-                return false;
+            if (!removed) return false;
 
-            if (upgrades.Count == 0)
-                _kingdomUpgrades.Remove(key);
-            else
-                _kingdomUpgrades[key] = SerializeUpgradeList(upgrades);
+            if (upgrades.Count == 0) _kingdomUpgrades.Remove(key);
+            else _kingdomUpgrades[key] = SerializeUpgradeList(upgrades);
 
             return true;
         }
         #endregion
 
-        #region Aggregation helpers used by models (computed on-demand, safe)
-        // Fetch current upgrade definitions from your settings container
-        private UpgradeAction.Settings GetSettingsSafe()
+        #region Typed aggregation helpers (no duplicates)
+        // Sum fief float values
+        private float SumFiefFloat(Settlement s, Func<FiefUpgrade, float> selector)
         {
-            return UpgradeAction.CurrentSettings;
-        }
-
-        // Sum helpers for settlement-level values (fief + clan + kingdom)
-        public int GetTotalTaxBonus(Settlement settlement)
-        {
-            if (settlement == null) return 0;
-            int sum = 0;
-
-            var settings = GetSettingsSafe();
-            if (settings == null) return 0;
-
-            // fief upgrades
-            foreach (var id in GetFiefUpgrades(settlement))
+            if (s == null || SettingsSafe == null) return 0f;
+            float sum = 0f;
+            foreach (var id in GetFiefUpgrades(s))
             {
-                var up = settings.FiefUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += up.TaxIncomeFlat;
+                var up = SettingsSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += selector(up);
             }
-
-            // clan upgrades (applied to clan's settlements)
-            var clan = settlement.OwnerClan;
-            if (clan != null)
-            {
-                foreach (var id in GetClanUpgrades(clan))
-                {
-                    var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
-                    if (up != null) sum += up.TaxIncomeFlat;
-                }
-            }
-
-            // kingdom upgrades (applied to kingdom's settlements)
-            var kingdom = clan?.Kingdom ?? settlement.MapFaction as Kingdom;
-            if (kingdom != null)
-            {
-                foreach (var id in GetKingdomUpgrades(kingdom))
-                {
-                    var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
-                    if (up != null) sum += up.TaxIncomeFlat;
-                }
-            }
-
             return sum;
         }
 
-        public int GetFiefGarrisonCapacityBonus(Settlement settlement)
+        // Sum clan float values (applies to clan's settlements)
+        private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> selector)
         {
-            if (settlement == null) return 0;
-            int sum = 0;
-            var settings = GetSettingsSafe();
-            if (settings == null) return 0;
-
-            foreach (var id in GetFiefUpgrades(settlement))
+            if (clan == null || SettingsSafe == null) return 0f;
+            float sum = 0f;
+            foreach (var id in GetClanUpgrades(clan))
             {
-                var up = settings.FiefUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += up.GarrisonCapacityBonus;
+                var up = SettingsSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += selector(up);
             }
+            return sum;
+        }
 
-            // also include clan/kingdom bonuses that affect settlement garrison capacity
-            var clan = settlement.OwnerClan;
+        // Sum kingdom float values (applies to kingdom's settlements)
+        private float SumKingdomFloat(Kingdom kingdom, Func<KingdomUpgrade, float> selector)
+        {
+            if (kingdom == null || SettingsSafe == null) return 0f;
+            float sum = 0f;
+            foreach (var id in GetKingdomUpgrades(kingdom))
+            {
+                var up = SettingsSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += selector(up);
+            }
+            return sum;
+        }
+
+        // Sum fief/clan/kingdom aggregated float for a settlement
+        private float SumSettlementFloatTyped(
+            Settlement s,
+            Func<FiefUpgrade, float> fiefSel,
+            Func<ClanUpgrade, float> clanSel,
+            Func<KingdomUpgrade, float> kingSel)
+        {
+            if (s == null) return 0f;
+            float sum = 0f;
+
+            // fief
+            sum += SumFiefFloat(s, fiefSel);
+
+            // clan
+            var clan = s.OwnerClan;
             if (clan != null)
             {
-                foreach (var id in GetClanUpgrades(clan))
-                {
-                    var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
-                    if (up != null) sum += up.GarrisonCapacityBonus;
-                }
+                sum += SumClanFloat(clan, clanSel);
 
+                // kingdom
                 var kingdom = clan.Kingdom;
                 if (kingdom != null)
-                {
-                    foreach (var id in GetKingdomUpgrades(kingdom))
-                    {
-                        var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
-                        if (up != null) sum += up.GarrisonCapacityBonus;
-                    }
-                }
+                    sum += SumKingdomFloat(kingdom, kingSel);
             }
 
             return sum;
         }
 
-        public int GetClanPartySizeBonus(Clan clan)
+        // Int versions
+        private int SumFiefInt(Settlement s, Func<FiefUpgrade, int> selector)
         {
-            if (clan == null) return 0;
-            var settings = GetSettingsSafe();
-            if (settings == null) return 0;
+            if (s == null || SettingsSafe == null) return 0;
+            int sum = 0;
+            foreach (var id in GetFiefUpgrades(s))
+            {
+                var up = SettingsSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += selector(up);
+            }
+            return sum;
+        }
 
+        private int SumClanInt(Clan clan, Func<ClanUpgrade, int> selector)
+        {
+            if (clan == null || SettingsSafe == null) return 0;
             int sum = 0;
             foreach (var id in GetClanUpgrades(clan))
             {
-                var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += up.PartySizeBonus;
+                var up = SettingsSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += selector(up);
             }
             return sum;
         }
 
-        public int GetKingdomPartySizeBonus(Kingdom kingdom)
+        private int SumKingdomInt(Kingdom kingdom, Func<KingdomUpgrade, int> selector)
         {
-            if (kingdom == null) return 0;
-            var settings = GetSettingsSafe();
-            if (settings == null) return 0;
-
+            if (kingdom == null || SettingsSafe == null) return 0;
             int sum = 0;
             foreach (var id in GetKingdomUpgrades(kingdom))
             {
-                var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += up.PartySizeBonus;
+                var up = SettingsSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += selector(up);
             }
             return sum;
         }
+
+        private int SumSettlementIntTyped(Settlement s,
+            Func<FiefUpgrade, int> fiefSel,
+            Func<ClanUpgrade, int> clanSel,
+            Func<KingdomUpgrade, int> kingSel)
+        {
+            if (s == null) return 0;
+            int sum = 0;
+
+            sum += SumFiefInt(s, fiefSel);
+
+            var clan = s.OwnerClan;
+            if (clan != null)
+            {
+                sum += SumClanInt(clan, clanSel);
+                var kingdom = clan.Kingdom;
+                if (kingdom != null)
+                    sum += SumKingdomInt(kingdom, kingSel);
+            }
+
+            return sum;
+        }
+        #endregion
+
+        #region Aggregated getters used by models and actions
+        // Tax
+        public int GetTotalTaxBonus(Settlement settlement)
+            => SumSettlementIntTyped(settlement,
+                f => (int)f.TaxIncomeFlat,
+                c => (int)c.TaxIncomeFlat,
+                k => (int)k.TaxIncomeFlat);
+
+        // Garrison capacity (sum fief+clan+kingdom)
+        public int GetTotalGarrisonCapacityBonus(Settlement settlement)
+            => SumSettlementIntTyped(settlement,
+                f => f.GarrisonCapacityBonus,
+                c => c.GarrisonCapacityBonus,
+                k => k.GarrisonCapacityBonus);
+
+        // Party size
+        public int GetClanPartySizeBonus(Clan clan)
+            => SumClanInt(clan, c => c.PartySizeBonus);
+
+        public int GetKingdomPartySizeBonus(Kingdom kingdom)
+            => SumKingdomInt(kingdom, k => k.PartySizeBonus);
 
         public int GetTotalPartySizeBonus(Hero hero)
         {
             if (hero?.Clan == null) return 0;
             int bonus = 0;
             bonus += GetClanPartySizeBonus(hero.Clan);
-            if (hero.Clan.Kingdom != null)
-                bonus += GetKingdomPartySizeBonus(hero.Clan.Kingdom);
+            if (hero.Clan.Kingdom != null) bonus += GetKingdomPartySizeBonus(hero.Clan.Kingdom);
             return bonus;
         }
 
-        // daily flat/percent getters (loyalty, prosperity, security, militia, food)
+        // DAILY FLAT / PERCENT getters (typed)
         public float GetTotalLoyaltyDailyFlat(Settlement s)
-        {
-            if (s == null) return 0f;
-            return SumSettlementFloat(s, (u) => u.LoyaltyDailyFlat);
-        }
+            => SumSettlementFloatTyped(s, f => f.LoyaltyDailyFlat, c => c.LoyaltyDailyFlat, k => k.LoyaltyDailyFlat);
 
         public float GetTotalLoyaltyDailyPercent(Settlement s)
-        {
-            if (s == null) return 0f;
-            return SumSettlementFloat(s, (u) => u.LoyaltyDailyPercent);
-        }
+            => SumSettlementFloatTyped(s, f => f.LoyaltyDailyPercent, c => c.LoyaltyDailyPercent, k => k.LoyaltyDailyPercent);
 
         public float GetTotalProsperityDailyFlat(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.ProsperityDailyFlat);
+            => SumSettlementFloatTyped(s, f => f.ProsperityDailyFlat, c => c.ProsperityDailyFlat, k => k.ProsperityDailyFlat);
 
         public float GetTotalProsperityDailyPercent(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.ProsperityDailyPercent);
+            => SumSettlementFloatTyped(s, f => f.ProsperityDailyPercent, c => c.ProsperityDailyPercent, k => k.ProsperityDailyPercent);
 
         public float GetTotalSecurityDailyFlat(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.SecurityDailyFlat);
+            => SumSettlementFloatTyped(s, f => f.SecurityDailyFlat, c => c.SecurityDailyFlat, k => k.SecurityDailyFlat);
 
         public float GetTotalSecurityDailyPercent(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.SecurityDailyPercent);
+            => SumSettlementFloatTyped(s, f => f.SecurityDailyPercent, c => c.SecurityDailyPercent, k => k.SecurityDailyPercent);
 
         public float GetTotalMilitiaDailyFlat(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.MilitiaDailyFlat);
+            => SumSettlementFloatTyped(s, f => f.MilitiaDailyFlat, c => c.MilitiaDailyFlat, k => k.MilitiaDailyFlat);
 
         public float GetTotalMilitiaDailyPercent(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.MilitiaDailyPercent);
+            => SumSettlementFloatTyped(s, f => f.MilitiaDailyPercent, c => c.MilitiaDailyPercent, k => k.MilitiaDailyPercent);
 
         public float GetTotalFoodDailyFlat(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.FoodDailyFlat);
+            => SumSettlementFloatTyped(s, f => f.FoodDailyFlat, c => c.FoodDailyFlat, k => k.FoodDailyFlat);
 
         public float GetTotalFoodDailyPercent(Settlement s)
-            => s == null ? 0f : SumSettlementFloat(s, (u) => u.FoodDailyPercent);
+            => SumSettlementFloatTyped(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent);
 
-        // helper that sums a float property across fief/clan/kingdom upgrades for the settlement
-        private float SumSettlementFloat(Settlement s, Func<dynamic, float> selector)
-        {
-            float sum = 0f;
-            var settings = GetSettingsSafe();
-            if (settings == null) return 0f;
+        // Backward-compatible short names used by some models
+        public float GetLoyaltyFlat(Settlement s) => GetTotalLoyaltyDailyFlat(s);
+        public float GetLoyaltyPercent(Settlement s) => GetTotalLoyaltyDailyPercent(s);
 
-            // fief
-            foreach (var id in GetFiefUpgrades(s))
-            {
-                var up = settings.FiefUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += selector(up);
-            }
+        public float GetProsperityFlat(Settlement s) => GetTotalProsperityDailyFlat(s);
+        public float GetProsperityPercent(Settlement s) => GetTotalProsperityDailyPercent(s);
 
-            // clan
-            var clan = s.OwnerClan;
-            if (clan != null)
-            {
-                foreach (var id in GetClanUpgrades(clan))
-                {
-                    var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
-                    if (up != null) sum += selector(up);
-                }
+        public float GetSecurityFlat(Settlement s) => GetTotalSecurityDailyFlat(s);
+        public float GetSecurityPercent(Settlement s) => GetTotalSecurityDailyPercent(s);
 
-                // kingdom
-                var kingdom = clan.Kingdom;
-                if (kingdom != null)
-                {
-                    foreach (var id in GetKingdomUpgrades(kingdom))
-                    {
-                        var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
-                        if (up != null) sum += selector(up);
-                    }
-                }
-            }
+        public float GetMilitiaFlat(Settlement s) => GetTotalMilitiaDailyFlat(s);
+        public float GetMilitiaPercent(Settlement s) => GetTotalMilitiaDailyPercent(s);
 
-            return sum;
-        }
+        public float GetFoodFlat(Settlement s) => GetTotalFoodDailyFlat(s);
+        public float GetFoodPercent(Settlement s) => GetTotalFoodDailyPercent(s);
+
         #endregion
     }
 }
