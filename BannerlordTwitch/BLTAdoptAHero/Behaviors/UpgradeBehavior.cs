@@ -13,32 +13,6 @@ using BLTAdoptAHero.Actions;
 
 namespace BLTAdoptAHero
 {
-    [Serializable]
-    public class UpgradeEntrySerializable
-    {
-        public string Key;
-        public string ValueString;
-
-        // REQUIRED: parameterless ctor for Bannerlord
-        public UpgradeEntrySerializable() { }
-
-        public UpgradeEntrySerializable(string key, List<string> values)
-        {
-            Key = key;
-            ValueString = values != null ? string.Join(",", values) : string.Empty;
-        }
-
-        public List<string> GetValues()
-        {
-            if (string.IsNullOrEmpty(ValueString))
-                return new List<string>();
-
-            return ValueString
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .ToList();
-        }
-    }
-
     /// <summary>
     /// Campaign behavior that tracks and applies upgrade effects
     /// </summary>
@@ -46,44 +20,21 @@ namespace BLTAdoptAHero
     {
         public static UpgradeBehavior Current { get; private set; }
 
-        // Runtime dictionaries (not persisted)
+        // Persisted across saves - stores upgrade IDs per settlement/clan/kingdom
         private Dictionary<string, List<string>> _fiefUpgrades;
         private Dictionary<string, List<string>> _clanUpgrades;
         private Dictionary<string, List<string>> _kingdomUpgrades;
 
-        // Save-safe serialized lists
-        private List<UpgradeEntrySerializable> _fiefUpgradeEntries;
-        private List<UpgradeEntrySerializable> _clanUpgradeEntries;
-        private List<UpgradeEntrySerializable> _kingdomUpgradeEntries;
-
-        // Runtime-only caches
+        // Runtime-only caches for tax bonuses (recalculated daily)
         [NonSerialized] private Dictionary<string, int> _fiefTaxBonuses;
         [NonSerialized] private Dictionary<string, int> _clanTaxBonuses;
         [NonSerialized] private Dictionary<string, int> _kingdomTaxBonuses;
 
-        public override void RegisterEvents()
+        public UpgradeBehavior()
         {
             Current = this;
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
-            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
-
             Initialize();
         }
-
-        public override void SyncData(IDataStore dataStore)
-        {
-            dataStore.SyncData("_fiefUpgradeEntries", ref _fiefUpgradeEntries);
-            dataStore.SyncData("_clanUpgradeEntries", ref _clanUpgradeEntries);
-            dataStore.SyncData("_kingdomUpgradeEntries", ref _kingdomUpgradeEntries);
-
-            if (dataStore.IsLoading)
-            {
-                _fiefUpgrades = DeserializeDict(_fiefUpgradeEntries);
-                _clanUpgrades = DeserializeDict(_clanUpgradeEntries);
-                _kingdomUpgrades = DeserializeDict(_kingdomUpgradeEntries);
-            }
-        }
-
 
         private void Initialize()
         {
@@ -91,15 +42,29 @@ namespace BLTAdoptAHero
             _clanUpgrades ??= new Dictionary<string, List<string>>();
             _kingdomUpgrades ??= new Dictionary<string, List<string>>();
 
-            _fiefUpgradeEntries ??= new List<UpgradeEntrySerializable>();
-            _clanUpgradeEntries ??= new List<UpgradeEntrySerializable>();
-            _kingdomUpgradeEntries ??= new List<UpgradeEntrySerializable>();
-
             _fiefTaxBonuses ??= new Dictionary<string, int>();
             _clanTaxBonuses ??= new Dictionary<string, int>();
             _kingdomTaxBonuses ??= new Dictionary<string, int>();
         }
 
+        public override void RegisterEvents()
+        {
+            Initialize();
+
+            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
+            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+        }
+
+        public override void SyncData(IDataStore dataStore)
+        {
+            // Persist upgrade lists keyed by stringId
+            dataStore.SyncData("BLT_FiefUpgrades", ref _fiefUpgrades);
+            dataStore.SyncData("BLT_ClanUpgrades", ref _clanUpgrades);
+            dataStore.SyncData("BLT_KingdomUpgrades", ref _kingdomUpgrades);
+
+            // After load, dictionaries may still be null
+            Initialize();
+        }
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
@@ -131,35 +96,6 @@ namespace BLTAdoptAHero
             }
         }
 
-        #region Persistence helpers
-        private static List<UpgradeEntrySerializable> SerializeDict(Dictionary<string, List<string>> dict)
-        {
-            var list = new List<UpgradeEntrySerializable>();
-            foreach (var kvp in dict)
-                list.Add(new UpgradeEntrySerializable(kvp.Key, kvp.Value));
-            return list;
-        }
-
-        private static Dictionary<string, List<string>> DeserializeDict(List<UpgradeEntrySerializable> list)
-        {
-            var dict = new Dictionary<string, List<string>>();
-            if (list == null) return dict;
-
-            foreach (var entry in list)
-                dict[entry.Key] = entry.GetValues();
-
-            return dict;
-        }
-
-        private void RebuildSerializedData()
-        {
-            _fiefUpgradeEntries = SerializeDict(_fiefUpgrades);
-            _clanUpgradeEntries = SerializeDict(_clanUpgrades);
-            _kingdomUpgradeEntries = SerializeDict(_kingdomUpgrades);
-        }
-
-        #endregion
-
         #region Fief Upgrades
         public bool HasFiefUpgrade(Settlement settlement, string upgradeId)
         {
@@ -187,8 +123,24 @@ namespace BLTAdoptAHero
                 return false;
 
             _fiefUpgrades[key].Add(upgradeId);
-            // list will be updated when SyncData runs (ConvertDictsToLists)
             return true;
+        }
+
+        public bool RemoveFiefUpgrade(Settlement settlement, string upgradeId)
+        {
+            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
+            string key = settlement.StringId;
+
+            if (!_fiefUpgrades.ContainsKey(key))
+                return false;
+
+            bool removed = _fiefUpgrades[key].Remove(upgradeId);
+
+            // Clean up empty lists
+            if (_fiefUpgrades[key].Count == 0)
+                _fiefUpgrades.Remove(key);
+
+            return removed;
         }
 
         private void ProcessFiefUpgrades()
@@ -267,8 +219,6 @@ namespace BLTAdoptAHero
 
                 _fiefTaxBonuses[key] += upgrade.TaxIncomeFlat;
             }
-
-            // Note: Do not apply aggregated totals here (we apply them after processing all upgrades for the settlement)
         }
 
         public int GetFiefTaxBonus(Settlement settlement)
@@ -327,6 +277,23 @@ namespace BLTAdoptAHero
 
             _clanUpgrades[key].Add(upgradeId);
             return true;
+        }
+
+        public bool RemoveClanUpgrade(Clan clan, string upgradeId)
+        {
+            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
+            string key = clan.StringId;
+
+            if (!_clanUpgrades.ContainsKey(key))
+                return false;
+
+            bool removed = _clanUpgrades[key].Remove(upgradeId);
+
+            // Clean up empty lists
+            if (_clanUpgrades[key].Count == 0)
+                _clanUpgrades.Remove(key);
+
+            return removed;
         }
 
         private void ProcessClanUpgrades()
@@ -466,6 +433,23 @@ namespace BLTAdoptAHero
 
             _kingdomUpgrades[key].Add(upgradeId);
             return true;
+        }
+
+        public bool RemoveKingdomUpgrade(Kingdom kingdom, string upgradeId)
+        {
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
+            string key = kingdom.StringId;
+
+            if (!_kingdomUpgrades.ContainsKey(key))
+                return false;
+
+            bool removed = _kingdomUpgrades[key].Remove(upgradeId);
+
+            // Clean up empty lists
+            if (_kingdomUpgrades[key].Count == 0)
+                _kingdomUpgrades.Remove(key);
+
+            return removed;
         }
 
         private void ProcessKingdomUpgrades()
