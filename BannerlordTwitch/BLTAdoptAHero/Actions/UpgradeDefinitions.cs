@@ -337,6 +337,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(10), UsedImplicitly]
         public float TaxIncomePercent { get; set; } = 0f;
 
+        [LocDisplayName("{=BLT_GarrisonCap}Garrison Capacity Bonus"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocDescription("{=BLT_GarrisonCapDesc}Additional garrison troop capacity (Warning: High values may cause issues)"),
+         PropertyOrder(3), UsedImplicitly]
+        public int GarrisonCapacityBonus { get; set; } = 0;
+
         public override string GetFullDescription()
         {
             string desc = base.GetFullDescription();
@@ -356,6 +362,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (MilitiaDailyPercent != 0) desc += $"\n  Militia: {(MilitiaDailyPercent > 0 ? "+" : "")}{MilitiaDailyPercent}%/day";
             if (TaxIncomeFlat != 0) desc += $"\n  Tax Income: {(TaxIncomeFlat > 0 ? "+" : "")}{TaxIncomeFlat}{Naming.Gold}/day per settlement";
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
+            if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";
 
             return desc;
         }
@@ -457,6 +464,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(10), UsedImplicitly]
         public float TaxIncomePercent { get; set; } = 0f;
 
+        [LocDisplayName("{=BLT_GarrisonCap}Garrison Capacity Bonus"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
+         LocDescription("{=BLT_GarrisonCapDesc}Additional garrison troop capacity (Warning: High values may cause issues)"),
+         PropertyOrder(3), UsedImplicitly]
+        public int GarrisonCapacityBonus { get; set; } = 0;
+
         public override string GetCostString()
         {
             string cost = $"{GoldCost}{Naming.Gold}";
@@ -487,6 +500,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (MilitiaDailyPercent != 0) desc += $"\n  Militia: {(MilitiaDailyPercent > 0 ? "+" : "")}{MilitiaDailyPercent}%/day";
             if (TaxIncomeFlat != 0) desc += $"\n  Tax Income: {(TaxIncomeFlat > 0 ? "+" : "")}{TaxIncomeFlat}{Naming.Gold}/day per settlement";
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
+            if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";
 
             return desc;
         }

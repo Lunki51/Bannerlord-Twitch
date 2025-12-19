@@ -224,9 +224,13 @@ namespace BLTAdoptAHero.Actions
 
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
-            if (config is not Settings settings) return;
+            if (config is not Settings settings)
+            {
+                onFailure("Invalid configuration");
+                return;
+            }
 
-            // Update current settings reference for behavior
+            // IMPORTANT: Update current settings reference FIRST for behavior access
             CurrentSettings = settings;
 
             if (adoptedHero == null)
@@ -249,7 +253,7 @@ namespace BLTAdoptAHero.Actions
 
             if (context.Args.IsEmpty())
             {
-                onFailure("Usage: !upgrade <fief|clan|kingdom> <name> <upgrade_id>  OR  !upgrade info <fief|clan|kingdom> <name>  OR  !upgrade list [fief|clan|kingdom]");
+                onFailure("Usage:  <fief|clan|kingdom> <name> <upgrade>  OR  info <fief|clan|kingdom> <name>  OR  list [fief|clan|kingdom]");
                 return;
             }
 
@@ -275,7 +279,7 @@ namespace BLTAdoptAHero.Actions
             {
                 if (args.Length < 3)
                 {
-                    onFailure("Usage: !upgrade info <fief|clan|kingdom> <name>");
+                    onFailure("Usage: info <fief|clan|kingdom> <name>");
                     return;
                 }
 
@@ -294,7 +298,7 @@ namespace BLTAdoptAHero.Actions
 
             if (args.Length < 3)
             {
-                onFailure($"Usage: !upgrade {command} <name> <upgrade_id>");
+                onFailure($"Usage: {command} <name> <upgrade>");
                 return;
             }
 
@@ -307,34 +311,70 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleListCommand(string type, Settings settings, Action<string> onSuccess, Action<string> onFailure)
         {
+            if (settings == null)
+            {
+                onFailure("Settings not available");
+                return;
+            }
+
             var sb = new StringBuilder();
             sb.AppendLine("=== Available Upgrades ===");
 
             if (type == "all" || type == "fief")
             {
                 sb.AppendLine("\n[Fief Upgrades]");
-                foreach (var upgrade in settings.FiefUpgrades)
+                if (settings.FiefUpgrades != null && settings.FiefUpgrades.Count > 0)
                 {
-                    sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
+                    foreach (var upgrade in settings.FiefUpgrades)
+                    {
+                        sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
+                        sb.AppendLine($"    {upgrade.Description}");
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("  No fief upgrades configured");
                 }
             }
 
             if (type == "all" || type == "clan")
             {
                 sb.AppendLine("\n[Clan Upgrades]");
-                foreach (var upgrade in settings.ClanUpgrades)
+                if (settings.ClanUpgrades != null && settings.ClanUpgrades.Count > 0)
                 {
-                    sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
+                    foreach (var upgrade in settings.ClanUpgrades)
+                    {
+                        sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
+                        sb.AppendLine($"    {upgrade.Description}");
+                    }
+                }
+                else
+                {
+                    sb.AppendLine("  No clan upgrades configured");
                 }
             }
 
             if (type == "all" || type == "kingdom")
             {
                 sb.AppendLine("\n[Kingdom Upgrades]");
-                foreach (var upgrade in settings.KingdomUpgrades)
+                if (settings.KingdomUpgrades != null && settings.KingdomUpgrades.Count > 0)
                 {
-                    sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
+                    foreach (var upgrade in settings.KingdomUpgrades)
+                    {
+                        sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
+                        sb.AppendLine($"    {upgrade.Description}");
+                    }
                 }
+                else
+                {
+                    sb.AppendLine("  No kingdom upgrades configured");
+                }
+            }
+
+            if (type != "all" && type != "fief" && type != "clan" && type != "kingdom")
+            {
+                onFailure($"Invalid type '{type}'. Use 'all', 'fief', 'clan', or 'kingdom'");
+                return;
             }
 
             onSuccess(sb.ToString());

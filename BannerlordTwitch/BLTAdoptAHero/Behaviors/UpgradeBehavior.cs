@@ -1,595 +1,462 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
-using BannerlordTwitch.Util;
 using BLTAdoptAHero.Actions.Upgrades;
 using BLTAdoptAHero.Actions;
 
 namespace BLTAdoptAHero
 {
     /// <summary>
-    /// Campaign behavior that tracks and applies upgrade effects
+    /// UpgradeBehavior - safe, non-mutating provider.
+    /// - Persists upgrades as comma-separated strings per fief/clan/kingdom (save-compatible)
+    /// - Exposes Get/Has/Add/Remove helpers used by UI/actions
+    /// - Exposes aggregated getters (tax, loyalty/prosperity/security/militia/food, party/garrison) computed on-demand from UpgradeAction.CurrentSettings
     /// </summary>
     public class UpgradeBehavior : CampaignBehaviorBase
     {
         public static UpgradeBehavior Current { get; private set; }
 
-        // Persisted across saves - stores upgrade IDs per settlement/clan/kingdom
-        private Dictionary<string, List<string>> _fiefUpgrades;
-        private Dictionary<string, List<string>> _clanUpgrades;
-        private Dictionary<string, List<string>> _kingdomUpgrades;
-
-        // Runtime-only caches for tax bonuses (recalculated daily)
-        [NonSerialized] private Dictionary<string, int> _fiefTaxBonuses;
-        [NonSerialized] private Dictionary<string, int> _clanTaxBonuses;
-        [NonSerialized] private Dictionary<string, int> _kingdomTaxBonuses;
+        // Persisted across saves - string IDs lists stored as comma-separated strings (for compatibility)
+        private Dictionary<string, string> _fiefUpgrades = new();
+        private Dictionary<string, string> _clanUpgrades = new();
+        private Dictionary<string, string> _kingdomUpgrades = new();
 
         public UpgradeBehavior()
         {
             Current = this;
-            Initialize();
-        }
-
-        private void Initialize()
-        {
-            _fiefUpgrades ??= new Dictionary<string, List<string>>();
-            _clanUpgrades ??= new Dictionary<string, List<string>>();
-            _kingdomUpgrades ??= new Dictionary<string, List<string>>();
-
-            _fiefTaxBonuses ??= new Dictionary<string, int>();
-            _clanTaxBonuses ??= new Dictionary<string, int>();
-            _kingdomTaxBonuses ??= new Dictionary<string, int>();
+            // don't touch engine state here
         }
 
         public override void RegisterEvents()
         {
-            Initialize();
-
-            CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
-            CampaignEvents.OnSessionLaunchedEvent.AddNonSerializedListener(this, OnSessionLaunched);
+            // No unsafe DailyTick mutators - models will query this provider on demand
         }
 
         public override void SyncData(IDataStore dataStore)
         {
-            // Persist upgrade lists keyed by stringId
+            // Persist upgrade lists as comma-separated strings keyed by stringId
             dataStore.SyncData("BLT_FiefUpgrades", ref _fiefUpgrades);
             dataStore.SyncData("BLT_ClanUpgrades", ref _clanUpgrades);
             dataStore.SyncData("BLT_KingdomUpgrades", ref _kingdomUpgrades);
 
-            // After load, dictionaries may still be null
-            Initialize();
+            // Ensure dictionaries exist after load
+            _fiefUpgrades ??= new Dictionary<string, string>();
+            _clanUpgrades ??= new Dictionary<string, string>();
+            _kingdomUpgrades ??= new Dictionary<string, string>();
         }
 
-        private void OnSessionLaunched(CampaignGameStarter starter)
+        #region String serialization helpers
+        private static List<string> ParseUpgradeString(string upgradeString)
         {
+            if (string.IsNullOrEmpty(upgradeString))
+                return new List<string>();
+
+            return upgradeString
+                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Where(s => !string.IsNullOrEmpty(s))
+                .ToList();
         }
 
-        private void OnDailyTick()
+        private static string SerializeUpgradeList(List<string> upgrades)
         {
-            // HARD STOP during save
-            if (Campaign.Current?.SaveHandler?.IsSaving == true)
-                return;
+            if (upgrades == null || upgrades.Count == 0)
+                return string.Empty;
 
-            // Don't process if game isn't properly loaded
-            if (Campaign.Current == null)
-                return;
-
-            try
-            {
-                _fiefTaxBonuses.Clear();
-                _clanTaxBonuses.Clear();
-                _kingdomTaxBonuses.Clear();
-
-                ProcessFiefUpgrades();
-                ProcessClanUpgrades();
-                ProcessKingdomUpgrades();
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT Upgrades] Error in daily tick: {ex}");
-            }
+            return string.Join(",", upgrades);
         }
+        #endregion
 
-        #region Fief Upgrades
-        public bool HasFiefUpgrade(Settlement settlement, string upgradeId)
-        {
-            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = settlement.StringId;
-            return _fiefUpgrades.ContainsKey(key) && _fiefUpgrades[key].Contains(upgradeId);
-        }
-
+        #region Fief methods (Get/Has/Add/Remove)
         public List<string> GetFiefUpgrades(Settlement settlement)
         {
             if (settlement == null) return new List<string>();
             string key = settlement.StringId;
-            return _fiefUpgrades.ContainsKey(key) ? new List<string>(_fiefUpgrades[key]) : new List<string>();
+
+            if (!_fiefUpgrades.TryGetValue(key, out string upgradeString))
+                return new List<string>();
+
+            return ParseUpgradeString(upgradeString);
+        }
+
+        public bool HasFiefUpgrade(Settlement settlement, string upgradeId)
+        {
+            if (settlement == null || string.IsNullOrEmpty(upgradeId))
+                return false;
+
+            var list = GetFiefUpgrades(settlement);
+            return list.Contains(upgradeId);
         }
 
         public bool AddFiefUpgrade(Settlement settlement, string upgradeId)
         {
-            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = settlement.StringId;
-
-            if (!_fiefUpgrades.ContainsKey(key))
-                _fiefUpgrades[key] = new List<string>();
-
-            if (_fiefUpgrades[key].Contains(upgradeId))
+            if (settlement == null || string.IsNullOrEmpty(upgradeId))
                 return false;
 
-            _fiefUpgrades[key].Add(upgradeId);
+            string key = settlement.StringId;
+            var upgrades = _fiefUpgrades.TryGetValue(key, out string upgradeString)
+                ? ParseUpgradeString(upgradeString)
+                : new List<string>();
+
+            if (upgrades.Contains(upgradeId))
+                return false;
+
+            upgrades.Add(upgradeId);
+            _fiefUpgrades[key] = SerializeUpgradeList(upgrades);
             return true;
         }
 
         public bool RemoveFiefUpgrade(Settlement settlement, string upgradeId)
         {
-            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = settlement.StringId;
-
-            if (!_fiefUpgrades.ContainsKey(key))
+            if (settlement == null || string.IsNullOrEmpty(upgradeId))
                 return false;
 
-            bool removed = _fiefUpgrades[key].Remove(upgradeId);
-
-            // Clean up empty lists
-            if (_fiefUpgrades[key].Count == 0)
-                _fiefUpgrades.Remove(key);
-
-            return removed;
-        }
-
-        private void ProcessFiefUpgrades()
-        {
-            var settings = UpgradeAction.CurrentSettings;
-            if (settings?.FiefUpgrades == null) return;
-
-            foreach (var kvp in _fiefUpgrades.ToList())
-            {
-                var settlement = Settlement.Find(kvp.Key);
-                if (settlement == null || settlement.Town == null) continue;
-
-                foreach (var upgradeId in kvp.Value)
-                {
-                    var upgrade = settings.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                    if (upgrade == null) continue;
-
-                    try
-                    {
-                        ApplyFiefUpgradeEffects(settlement, upgrade);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"[BLT Upgrades] Error applying fief upgrade {upgradeId} to {settlement.Name}: {ex}");
-                    }
-                }
-            }
-        }
-
-        private void ApplyFiefUpgradeEffects(Settlement settlement, FiefUpgrade upgrade)
-        {
-            var town = settlement?.Town;
-            if (town == null) return;
-
-            // Apply daily growth modifiers
-            if (upgrade.LoyaltyDailyFlat != 0)
-                town.Loyalty += upgrade.LoyaltyDailyFlat;
-
-            if (upgrade.LoyaltyDailyPercent != 0 && town.LoyaltyChange != 0)
-                town.Loyalty += town.LoyaltyChange * (upgrade.LoyaltyDailyPercent / 100f);
-
-            if (upgrade.ProsperityDailyFlat != 0)
-                town.Prosperity += upgrade.ProsperityDailyFlat;
-
-            if (upgrade.ProsperityDailyPercent != 0 && town.ProsperityChange != 0)
-                town.Prosperity += town.ProsperityChange * (upgrade.ProsperityDailyPercent / 100f);
-
-            if (upgrade.SecurityDailyFlat != 0)
-                town.Security += upgrade.SecurityDailyFlat;
-
-            if (upgrade.SecurityDailyPercent != 0 && town.SecurityChange != 0)
-                town.Security += town.SecurityChange * (upgrade.SecurityDailyPercent / 100f);
-
-            if (upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0)
-            {
-                float militiaChange = 0f;
-                if (upgrade.MilitiaDailyFlat != 0)
-                    militiaChange += upgrade.MilitiaDailyFlat;
-
-                if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
-                    militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
-            }
-
-            if (upgrade.FoodDailyFlat != 0)
-                town.FoodStocks += upgrade.FoodDailyFlat;
-
-            if (upgrade.FoodDailyPercent != 0 && town.FoodChange != 0)
-                town.FoodStocks += town.FoodChange * (upgrade.FoodDailyPercent / 100f);
-
-            // Accumulate tax bonuses (applied when needed)
-            if (upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0)
-            {
-                string key = settlement.StringId;
-                if (!_fiefTaxBonuses.ContainsKey(key))
-                    _fiefTaxBonuses[key] = 0;
-
-                _fiefTaxBonuses[key] += upgrade.TaxIncomeFlat;
-            }
-        }
-
-        public int GetFiefTaxBonus(Settlement settlement)
-        {
-            if (settlement == null) return 0;
             string key = settlement.StringId;
-            return _fiefTaxBonuses.ContainsKey(key) ? _fiefTaxBonuses[key] : 0;
-        }
+            if (!_fiefUpgrades.TryGetValue(key, out string upgradeString))
+                return false;
 
-        public int GetFiefGarrisonCapacityBonus(Settlement settlement)
-        {
-            if (settlement == null) return 0;
+            var upgrades = ParseUpgradeString(upgradeString);
+            bool removed = upgrades.Remove(upgradeId);
+            if (!removed)
+                return false;
 
-            var settings = UpgradeAction.CurrentSettings;
-            if (settings?.FiefUpgrades == null) return 0;
+            if (upgrades.Count == 0)
+                _fiefUpgrades.Remove(key);
+            else
+                _fiefUpgrades[key] = SerializeUpgradeList(upgrades);
 
-            var upgrades = GetFiefUpgrades(settlement);
-            int bonus = 0;
-
-            foreach (var upgradeId in upgrades)
-            {
-                var upgrade = settings.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                if (upgrade != null)
-                    bonus += upgrade.GarrisonCapacityBonus;
-            }
-
-            return bonus;
+            return true;
         }
         #endregion
 
-        #region Clan Upgrades
-        public bool HasClanUpgrade(Clan clan, string upgradeId)
-        {
-            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = clan.StringId;
-            return _clanUpgrades.ContainsKey(key) && _clanUpgrades[key].Contains(upgradeId);
-        }
-
+        #region Clan methods (Get/Has/Add/Remove)
         public List<string> GetClanUpgrades(Clan clan)
         {
             if (clan == null) return new List<string>();
             string key = clan.StringId;
-            return _clanUpgrades.ContainsKey(key) ? new List<string>(_clanUpgrades[key]) : new List<string>();
+
+            if (!_clanUpgrades.TryGetValue(key, out string upgradeString))
+                return new List<string>();
+
+            return ParseUpgradeString(upgradeString);
+        }
+
+        public bool HasClanUpgrade(Clan clan, string upgradeId)
+        {
+            if (clan == null || string.IsNullOrEmpty(upgradeId))
+                return false;
+
+            var list = GetClanUpgrades(clan);
+            return list.Contains(upgradeId);
         }
 
         public bool AddClanUpgrade(Clan clan, string upgradeId)
         {
-            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = clan.StringId;
-
-            if (!_clanUpgrades.ContainsKey(key))
-                _clanUpgrades[key] = new List<string>();
-
-            if (_clanUpgrades[key].Contains(upgradeId))
+            if (clan == null || string.IsNullOrEmpty(upgradeId))
                 return false;
 
-            _clanUpgrades[key].Add(upgradeId);
+            string key = clan.StringId;
+            var upgrades = _clanUpgrades.TryGetValue(key, out string upgradeString)
+                ? ParseUpgradeString(upgradeString)
+                : new List<string>();
+
+            if (upgrades.Contains(upgradeId))
+                return false;
+
+            upgrades.Add(upgradeId);
+            _clanUpgrades[key] = SerializeUpgradeList(upgrades);
             return true;
         }
 
         public bool RemoveClanUpgrade(Clan clan, string upgradeId)
         {
-            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = clan.StringId;
-
-            if (!_clanUpgrades.ContainsKey(key))
+            if (clan == null || string.IsNullOrEmpty(upgradeId))
                 return false;
 
-            bool removed = _clanUpgrades[key].Remove(upgradeId);
+            string key = clan.StringId;
+            if (!_clanUpgrades.TryGetValue(key, out string upgradeString))
+                return false;
 
-            // Clean up empty lists
-            if (_clanUpgrades[key].Count == 0)
+            var upgrades = ParseUpgradeString(upgradeString);
+            bool removed = upgrades.Remove(upgradeId);
+            if (!removed)
+                return false;
+
+            if (upgrades.Count == 0)
                 _clanUpgrades.Remove(key);
+            else
+                _clanUpgrades[key] = SerializeUpgradeList(upgrades);
 
-            return removed;
-        }
-
-        private void ProcessClanUpgrades()
-        {
-            var settings = UpgradeAction.CurrentSettings;
-            if (settings?.ClanUpgrades == null) return;
-
-            foreach (var kvp in _clanUpgrades.ToList())
-            {
-                var clan = Clan.All.FirstOrDefault(c => c.StringId == kvp.Key);
-                if (clan == null || clan.IsEliminated) continue;
-
-                foreach (var upgradeId in kvp.Value)
-                {
-                    var upgrade = settings.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                    if (upgrade == null) continue;
-
-                    try
-                    {
-                        ApplyClanUpgradeEffects(clan, upgrade);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"[BLT Upgrades] Error applying clan upgrade {upgradeId} to {clan.Name}: {ex}");
-                    }
-                }
-            }
-        }
-
-        private void ApplyClanUpgradeEffects(Clan clan, ClanUpgrade upgrade)
-        {
-            if (clan == null) return;
-
-            // Apply clan-wide effects
-            if (upgrade.RenownDaily != 0)
-                clan.Renown += upgrade.RenownDaily;
-
-            // Apply effects to all clan settlements
-            foreach (var settlement in clan.Settlements)
-            {
-                if (settlement?.Town == null) continue;
-                var town = settlement.Town;
-
-                if (upgrade.LoyaltyDailyFlat != 0)
-                    town.Loyalty += upgrade.LoyaltyDailyFlat;
-
-                if (upgrade.LoyaltyDailyPercent != 0 && town.LoyaltyChange != 0)
-                    town.Loyalty += town.LoyaltyChange * (upgrade.LoyaltyDailyPercent / 100f);
-
-                if (upgrade.ProsperityDailyFlat != 0)
-                    town.Prosperity += upgrade.ProsperityDailyFlat;
-
-                if (upgrade.ProsperityDailyPercent != 0 && town.ProsperityChange != 0)
-                    town.Prosperity += town.ProsperityChange * (upgrade.ProsperityDailyPercent / 100f);
-
-                if (upgrade.SecurityDailyFlat != 0)
-                    town.Security += upgrade.SecurityDailyFlat;
-
-                if (upgrade.SecurityDailyPercent != 0 && town.SecurityChange != 0)
-                    town.Security += town.SecurityChange * (upgrade.SecurityDailyPercent / 100f);
-
-                if (upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0)
-                {
-                    float militiaChange = 0f;
-                    if (upgrade.MilitiaDailyFlat != 0)
-                        militiaChange += upgrade.MilitiaDailyFlat;
-
-                    if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
-                        militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
-                }
-
-                // Accumulate tax bonuses
-                if (upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0)
-                {
-                    string key = settlement.StringId;
-                    if (!_clanTaxBonuses.ContainsKey(key))
-                        _clanTaxBonuses[key] = 0;
-
-                    _clanTaxBonuses[key] += upgrade.TaxIncomeFlat;
-                }
-            }
-        }
-
-        public int GetClanPartySizeBonus(Clan clan)
-        {
-            if (clan == null) return 0;
-
-            var settings = UpgradeAction.CurrentSettings;
-            if (settings?.ClanUpgrades == null) return 0;
-
-            var upgrades = GetClanUpgrades(clan);
-            int bonus = 0;
-
-            foreach (var upgradeId in upgrades)
-            {
-                var upgrade = settings.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                if (upgrade != null)
-                    bonus += upgrade.PartySizeBonus;
-            }
-
-            return bonus;
-        }
-
-        public int GetClanTaxBonus(Settlement settlement)
-        {
-            if (settlement == null) return 0;
-            string key = settlement.StringId;
-            return _clanTaxBonuses.ContainsKey(key) ? _clanTaxBonuses[key] : 0;
+            return true;
         }
         #endregion
 
-        #region Kingdom Upgrades
-        public bool HasKingdomUpgrade(Kingdom kingdom, string upgradeId)
-        {
-            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = kingdom.StringId;
-            return _kingdomUpgrades.ContainsKey(key) && _kingdomUpgrades[key].Contains(upgradeId);
-        }
-
+        #region Kingdom methods (Get/Has/Add/Remove)
         public List<string> GetKingdomUpgrades(Kingdom kingdom)
         {
             if (kingdom == null) return new List<string>();
             string key = kingdom.StringId;
-            return _kingdomUpgrades.ContainsKey(key) ? new List<string>(_kingdomUpgrades[key]) : new List<string>();
+
+            if (!_kingdomUpgrades.TryGetValue(key, out string upgradeString))
+                return new List<string>();
+
+            return ParseUpgradeString(upgradeString);
+        }
+
+        public bool HasKingdomUpgrade(Kingdom kingdom, string upgradeId)
+        {
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId))
+                return false;
+
+            var list = GetKingdomUpgrades(kingdom);
+            return list.Contains(upgradeId);
         }
 
         public bool AddKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
-            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = kingdom.StringId;
-
-            if (!_kingdomUpgrades.ContainsKey(key))
-                _kingdomUpgrades[key] = new List<string>();
-
-            if (_kingdomUpgrades[key].Contains(upgradeId))
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId))
                 return false;
 
-            _kingdomUpgrades[key].Add(upgradeId);
+            string key = kingdom.StringId;
+            var upgrades = _kingdomUpgrades.TryGetValue(key, out string upgradeString)
+                ? ParseUpgradeString(upgradeString)
+                : new List<string>();
+
+            if (upgrades.Contains(upgradeId))
+                return false;
+
+            upgrades.Add(upgradeId);
+            _kingdomUpgrades[key] = SerializeUpgradeList(upgrades);
             return true;
         }
 
         public bool RemoveKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
-            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
-            string key = kingdom.StringId;
-
-            if (!_kingdomUpgrades.ContainsKey(key))
+            if (kingdom == null || string.IsNullOrEmpty(upgradeId))
                 return false;
 
-            bool removed = _kingdomUpgrades[key].Remove(upgradeId);
+            string key = kingdom.StringId;
+            if (!_kingdomUpgrades.TryGetValue(key, out string upgradeString))
+                return false;
 
-            // Clean up empty lists
-            if (_kingdomUpgrades[key].Count == 0)
+            var upgrades = ParseUpgradeString(upgradeString);
+            bool removed = upgrades.Remove(upgradeId);
+            if (!removed)
+                return false;
+
+            if (upgrades.Count == 0)
                 _kingdomUpgrades.Remove(key);
+            else
+                _kingdomUpgrades[key] = SerializeUpgradeList(upgrades);
 
-            return removed;
+            return true;
+        }
+        #endregion
+
+        #region Aggregation helpers used by models (computed on-demand, safe)
+        // Fetch current upgrade definitions from your settings container
+        private UpgradeAction.Settings GetSettingsSafe()
+        {
+            return UpgradeAction.CurrentSettings;
         }
 
-        private void ProcessKingdomUpgrades()
+        // Sum helpers for settlement-level values (fief + clan + kingdom)
+        public int GetTotalTaxBonus(Settlement settlement)
         {
-            var settings = UpgradeAction.CurrentSettings;
-            if (settings?.KingdomUpgrades == null) return;
+            if (settlement == null) return 0;
+            int sum = 0;
 
-            foreach (var kvp in _kingdomUpgrades.ToList())
+            var settings = GetSettingsSafe();
+            if (settings == null) return 0;
+
+            // fief upgrades
+            foreach (var id in GetFiefUpgrades(settlement))
             {
-                var kingdom = Kingdom.All.FirstOrDefault(k => k.StringId == kvp.Key);
-                if (kingdom == null || kingdom.IsEliminated) continue;
+                var up = settings.FiefUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += up.TaxIncomeFlat;
+            }
 
-                foreach (var upgradeId in kvp.Value)
+            // clan upgrades (applied to clan's settlements)
+            var clan = settlement.OwnerClan;
+            if (clan != null)
+            {
+                foreach (var id in GetClanUpgrades(clan))
                 {
-                    var upgrade = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                    if (upgrade == null) continue;
+                    var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                    if (up != null) sum += up.TaxIncomeFlat;
+                }
+            }
 
-                    try
+            // kingdom upgrades (applied to kingdom's settlements)
+            var kingdom = clan?.Kingdom ?? settlement.MapFaction as Kingdom;
+            if (kingdom != null)
+            {
+                foreach (var id in GetKingdomUpgrades(kingdom))
+                {
+                    var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                    if (up != null) sum += up.TaxIncomeFlat;
+                }
+            }
+
+            return sum;
+        }
+
+        public int GetFiefGarrisonCapacityBonus(Settlement settlement)
+        {
+            if (settlement == null) return 0;
+            int sum = 0;
+            var settings = GetSettingsSafe();
+            if (settings == null) return 0;
+
+            foreach (var id in GetFiefUpgrades(settlement))
+            {
+                var up = settings.FiefUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += up.GarrisonCapacityBonus;
+            }
+
+            // also include clan/kingdom bonuses that affect settlement garrison capacity
+            var clan = settlement.OwnerClan;
+            if (clan != null)
+            {
+                foreach (var id in GetClanUpgrades(clan))
+                {
+                    var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                    if (up != null) sum += up.GarrisonCapacityBonus;
+                }
+
+                var kingdom = clan.Kingdom;
+                if (kingdom != null)
+                {
+                    foreach (var id in GetKingdomUpgrades(kingdom))
                     {
-                        ApplyKingdomUpgradeEffects(kingdom, upgrade);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"[BLT Upgrades] Error applying kingdom upgrade {upgradeId} to {kingdom.Name}: {ex}");
+                        var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                        if (up != null) sum += up.GarrisonCapacityBonus;
                     }
                 }
             }
+
+            return sum;
         }
 
-        private void ApplyKingdomUpgradeEffects(Kingdom kingdom, KingdomUpgrade upgrade)
+        public int GetClanPartySizeBonus(Clan clan)
         {
-            if (kingdom == null) return;
+            if (clan == null) return 0;
+            var settings = GetSettingsSafe();
+            if (settings == null) return 0;
 
-            // Apply kingdom-wide effects
-            if (upgrade.InfluenceDaily != 0 && kingdom.Leader?.Clan != null)
+            int sum = 0;
+            foreach (var id in GetClanUpgrades(clan))
             {
-                kingdom.Leader.Clan.Influence += upgrade.InfluenceDaily;
+                var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += up.PartySizeBonus;
             }
-
-            // Apply effects to all kingdom clans
-            foreach (var clan in kingdom.Clans)
-            {
-                if (clan == null || clan.IsEliminated) continue;
-
-                if (upgrade.RenownDaily != 0)
-                    clan.Renown += upgrade.RenownDaily;
-
-                // Apply effects to all settlements in each clan
-                foreach (var settlement in clan.Settlements)
-                {
-                    if (settlement?.Town == null) continue;
-                    var town = settlement.Town;
-
-                    if (upgrade.LoyaltyDailyFlat != 0)
-                        town.Loyalty += upgrade.LoyaltyDailyFlat;
-
-                    if (upgrade.LoyaltyDailyPercent != 0 && town.LoyaltyChange != 0)
-                        town.Loyalty += town.LoyaltyChange * (upgrade.LoyaltyDailyPercent / 100f);
-
-                    if (upgrade.ProsperityDailyFlat != 0)
-                        town.Prosperity += upgrade.ProsperityDailyFlat;
-
-                    if (upgrade.ProsperityDailyPercent != 0 && town.ProsperityChange != 0)
-                        town.Prosperity += town.ProsperityChange * (upgrade.ProsperityDailyPercent / 100f);
-
-                    if (upgrade.SecurityDailyFlat != 0)
-                        town.Security += upgrade.SecurityDailyFlat;
-
-                    if (upgrade.SecurityDailyPercent != 0 && town.SecurityChange != 0)
-                        town.Security += town.SecurityChange * (upgrade.SecurityDailyPercent / 100f);
-
-                    if (upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0)
-                    {
-                        float militiaChange = 0f;
-                        if (upgrade.MilitiaDailyFlat != 0)
-                            militiaChange += upgrade.MilitiaDailyFlat;
-
-                        if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
-                            militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
-                    }
-
-                    // Accumulate tax bonuses
-                    if (upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0)
-                    {
-                        string key = settlement.StringId;
-                        if (!_kingdomTaxBonuses.ContainsKey(key))
-                            _kingdomTaxBonuses[key] = 0;
-
-                        _kingdomTaxBonuses[key] += upgrade.TaxIncomeFlat;
-                    }
-                }
-            }
+            return sum;
         }
 
         public int GetKingdomPartySizeBonus(Kingdom kingdom)
         {
             if (kingdom == null) return 0;
+            var settings = GetSettingsSafe();
+            if (settings == null) return 0;
 
-            var settings = UpgradeAction.CurrentSettings;
-            if (settings?.KingdomUpgrades == null) return 0;
-
-            var upgrades = GetKingdomUpgrades(kingdom);
-            int bonus = 0;
-
-            foreach (var upgradeId in upgrades)
+            int sum = 0;
+            foreach (var id in GetKingdomUpgrades(kingdom))
             {
-                var upgrade = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                if (upgrade != null)
-                    bonus += upgrade.PartySizeBonus;
+                var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += up.PartySizeBonus;
             }
-
-            return bonus;
-        }
-
-        public int GetKingdomTaxBonus(Settlement settlement)
-        {
-            if (settlement == null) return 0;
-            string key = settlement.StringId;
-            return _kingdomTaxBonuses.ContainsKey(key) ? _kingdomTaxBonuses[key] : 0;
-        }
-        #endregion
-
-        #region Helper Methods
-        public int GetTotalTaxBonus(Settlement settlement)
-        {
-            if (settlement == null) return 0;
-            return GetFiefTaxBonus(settlement) + GetClanTaxBonus(settlement) + GetKingdomTaxBonus(settlement);
+            return sum;
         }
 
         public int GetTotalPartySizeBonus(Hero hero)
         {
             if (hero?.Clan == null) return 0;
-
             int bonus = 0;
             bonus += GetClanPartySizeBonus(hero.Clan);
-
             if (hero.Clan.Kingdom != null)
                 bonus += GetKingdomPartySizeBonus(hero.Clan.Kingdom);
-
             return bonus;
+        }
+
+        // daily flat/percent getters (loyalty, prosperity, security, militia, food)
+        public float GetTotalLoyaltyDailyFlat(Settlement s)
+        {
+            if (s == null) return 0f;
+            return SumSettlementFloat(s, (u) => u.LoyaltyDailyFlat);
+        }
+
+        public float GetTotalLoyaltyDailyPercent(Settlement s)
+        {
+            if (s == null) return 0f;
+            return SumSettlementFloat(s, (u) => u.LoyaltyDailyPercent);
+        }
+
+        public float GetTotalProsperityDailyFlat(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.ProsperityDailyFlat);
+
+        public float GetTotalProsperityDailyPercent(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.ProsperityDailyPercent);
+
+        public float GetTotalSecurityDailyFlat(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.SecurityDailyFlat);
+
+        public float GetTotalSecurityDailyPercent(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.SecurityDailyPercent);
+
+        public float GetTotalMilitiaDailyFlat(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.MilitiaDailyFlat);
+
+        public float GetTotalMilitiaDailyPercent(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.MilitiaDailyPercent);
+
+        public float GetTotalFoodDailyFlat(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.FoodDailyFlat);
+
+        public float GetTotalFoodDailyPercent(Settlement s)
+            => s == null ? 0f : SumSettlementFloat(s, (u) => u.FoodDailyPercent);
+
+        // helper that sums a float property across fief/clan/kingdom upgrades for the settlement
+        private float SumSettlementFloat(Settlement s, Func<dynamic, float> selector)
+        {
+            float sum = 0f;
+            var settings = GetSettingsSafe();
+            if (settings == null) return 0f;
+
+            // fief
+            foreach (var id in GetFiefUpgrades(s))
+            {
+                var up = settings.FiefUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up != null) sum += selector(up);
+            }
+
+            // clan
+            var clan = s.OwnerClan;
+            if (clan != null)
+            {
+                foreach (var id in GetClanUpgrades(clan))
+                {
+                    var up = settings.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                    if (up != null) sum += selector(up);
+                }
+
+                // kingdom
+                var kingdom = clan.Kingdom;
+                if (kingdom != null)
+                {
+                    foreach (var id in GetKingdomUpgrades(kingdom))
+                    {
+                        var up = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                        if (up != null) sum += selector(up);
+                    }
+                }
+            }
+
+            return sum;
         }
         #endregion
     }
