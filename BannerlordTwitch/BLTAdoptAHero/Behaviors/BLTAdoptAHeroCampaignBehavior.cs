@@ -1931,6 +1931,45 @@ namespace BLTAdoptAHero
             return $"Killed agent of {hero.Name}";
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("ChangeGold", "blt")]
+        [UsedImplicitly]
+        public static string ChangeGold(List<string> strings)
+        {
+            if (Campaign.Current == null)
+            {
+                return "Campaign is not active";
+            }
+
+            var parts = string.Join(" ", strings).Split(',').Select(p => p.Trim()).ToList();
+
+            if (parts.Count < 2)
+            {
+                return "Usage: blt.change_gold username, amount (e.g., blt.change_gold TestUser, 1000)";
+            }
+
+            string username = parts[0];
+            if (!int.TryParse(parts[1], out int amount))
+            {
+                return $"Invalid gold amount: {parts[1]}";
+            }
+
+            // Find the BLT hero with the matching username
+            var hero = Hero.AllAliveHeroes
+                .FirstOrDefault(h => h.IsAdopted() &&
+                    BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(h.Name.ToString()).Name.ToString() == username);
+
+            if (hero == null)
+            {
+                return $"Could not find BLT hero with username: {username}";
+            }
+
+            // Change the hero's gold
+            BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(hero, amount, true);
+
+            int currentGold = BLTAdoptAHeroCampaignBehavior.Current?.GetHeroGold(hero) ?? 0;
+            return $"Changed {hero.Name}'s gold by {amount}. Current balance: {currentGold}";
+        }
+
         #endregion
     }
 }
