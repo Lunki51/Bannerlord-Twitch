@@ -290,6 +290,12 @@ namespace BLTAdoptAHero
          PropertyOrder(2), UsedImplicitly]
         public int MercenaryMultiplier { get; set; } = 10;
 
+        [LocDisplayName("{=GoldIncomeMercMax}Mercenary Maximum Daily Income"),
+         LocCategory("Income", "{=IncomeCat}Income"),
+         LocDescription("{=GoldIncomeMercMaxDesc}Maximum BLT daily income from mercenary contract"),
+         PropertyOrder(2), UsedImplicitly]
+        public int MercenaryMaxIncome { get; set; } = 2000;
+
         #endregion
 
         #region XP

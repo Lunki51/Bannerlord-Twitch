@@ -137,7 +137,7 @@ namespace BLTAdoptAHero.Actions
             if (clan == null || !clan.IsUnderMercenaryService)
                 return 0;
 
-            int mult = Math.Max(1, Math.Min(BLTAdoptAHeroModule.CommonConfig.MercenaryMultiplier, 100));
+            int mult = Math.Min(BLTAdoptAHeroModule.CommonConfig.MercenaryMultiplier, 100);
             var creator = Campaign.Current.KingdomManager;
             int contract = creator.GetMercenaryWageAmount(clan.Leader);
 
@@ -146,8 +146,13 @@ namespace BLTAdoptAHero.Actions
 
             // Multiply may be large, keep in int (Bannerlord uses int gold)
             long value = (long)contract * (long)mult;
-            if (value > int.MaxValue)
-                return int.MaxValue;
+            if (value > BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome)
+                if (BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome < int.MaxValue)
+                    return BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome;
+                else
+                {
+                    return int.MaxValue;
+                }
 
             return (int)value;
         }
