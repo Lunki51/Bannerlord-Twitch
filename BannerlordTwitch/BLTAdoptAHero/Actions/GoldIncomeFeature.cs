@@ -76,7 +76,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             var sb = new StringBuilder();
-            foreach (var s in clan.Settlements)
+            foreach (var s in clan.Settlements.Where(s => !s.IsVillage))
             {
                 int income = CalculateSettlementIncome(s);
                 sb.Append($"{s.Name}: {(income >= 0 ? "+" : "")}{income} | ");
