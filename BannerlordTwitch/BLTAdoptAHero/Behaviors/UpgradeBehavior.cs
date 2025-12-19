@@ -45,17 +45,17 @@ namespace BLTAdoptAHero
             dataStore.SyncData("_clanUpgrades", ref _clanUpgrades);
             dataStore.SyncData("_kingdomUpgrades", ref _kingdomUpgrades);
 
-            if (dataStore.IsLoading)
-            {
-                // Ensure dictionaries are initialized
-                _fiefUpgrades ??= new Dictionary<string, List<string>>();
-                _clanUpgrades ??= new Dictionary<string, List<string>>();
-                _kingdomUpgrades ??= new Dictionary<string, List<string>>();
-                _fiefTaxBonuses = new Dictionary<string, int>();
-                _clanTaxBonuses = new Dictionary<string, int>();
-                _kingdomTaxBonuses = new Dictionary<string, int>();
-            }
+            _fiefUpgrades ??= new Dictionary<string, List<string>>();
+            _clanUpgrades ??= new Dictionary<string, List<string>>();
+            _kingdomUpgrades ??= new Dictionary<string, List<string>>();
+
+            // Runtime-only caches MUST always exist
+            _fiefTaxBonuses ??= new Dictionary<string, int>();
+            _clanTaxBonuses ??= new Dictionary<string, int>();
+            _kingdomTaxBonuses ??= new Dictionary<string, int>();
         }
+
+
 
         private void OnSessionLaunched(CampaignGameStarter starter)
         {
@@ -64,9 +64,12 @@ namespace BLTAdoptAHero
 
         private void OnDailyTick()
         {
+            // HARD STOP during save
+            if (Campaign.Current?.SaveHandler?.IsSaving == true)
+                return;
+
             try
             {
-                // Clear tax bonus caches
                 _fiefTaxBonuses.Clear();
                 _clanTaxBonuses.Clear();
                 _kingdomTaxBonuses.Clear();
@@ -77,9 +80,10 @@ namespace BLTAdoptAHero
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT Upgrades] Error in daily tick: {ex.Message}");
+                Log.Error($"[BLT Upgrades] Error in daily tick: {ex}");
             }
         }
+
 
         #region Fief Upgrades
         public bool HasFiefUpgrade(Settlement settlement, string upgradeId)
@@ -161,17 +165,6 @@ namespace BLTAdoptAHero
 
             if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
                 militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
-
-            if (militiaChange != 0)
-            {
-                // Use reflection to set the private field as Militia property is read-only
-                var militiaField = typeof(Town).GetField("_militia", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                if (militiaField != null)
-                {
-                    float currentMilitia = town.Militia;
-                    militiaField.SetValue(town, Math.Max(0, currentMilitia + militiaChange));
-                }
-            }
 
             if (upgrade.FoodDailyFlat != 0)
                 town.FoodStocks += upgrade.FoodDailyFlat;
@@ -308,17 +301,6 @@ namespace BLTAdoptAHero
 
                 if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
                     militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
-
-                if (militiaChange != 0)
-                {
-                    // Use reflection to set the private field as Militia property is read-only
-                    var militiaField = typeof(Town).GetField("_militia", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                    if (militiaField != null)
-                    {
-                        float currentMilitia = town.Militia;
-                        militiaField.SetValue(town, Math.Max(0, currentMilitia + militiaChange));
-                    }
-                }
 
                 // Accumulate tax bonuses
                 if (upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0)
@@ -459,17 +441,6 @@ namespace BLTAdoptAHero
 
                     if (upgrade.MilitiaDailyPercent != 0 && town.MilitiaChange != 0)
                         militiaChange += town.MilitiaChange * (upgrade.MilitiaDailyPercent / 100f);
-
-                    if (militiaChange != 0)
-                    {
-                        // Use reflection to set the private field as Militia property is read-only
-                        var militiaField = typeof(Town).GetField("_militia", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                        if (militiaField != null)
-                        {
-                            float currentMilitia = town.Militia;
-                            militiaField.SetValue(town, Math.Max(0, currentMilitia + militiaChange));
-                        }
-                    }
 
                     // Accumulate tax bonuses
                     if (upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0)
