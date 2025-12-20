@@ -290,28 +290,31 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Handle purchase command
-            if (command != "fief" && command != "clan" && command != "kingdom")
+            // Validate arg count based on command type
+            if (command == "fief" && args.Length < 3)
             {
-                onFailure("Invalid command. Use 'fief', 'clan', 'kingdom', 'info', or 'list'");
+                onFailure("Usage: fief <settlement_name> <upgrade_id>");
+                return;
+            }
+            else if ((command == "clan" || command == "kingdom") && args.Length < 2)
+            {
+                onFailure($"Usage: {command} <upgrade_id>");
                 return;
             }
 
-            if (args.Length < 3)
-            {
-                onFailure($"Usage: {command} <name> <upgrade>");
-                return;
-            }
-
-            // Find upgrade ID (last arg) and fief name (everything in between)
-            string upgradeId = args.Last();
+            // Parse args based on command type
+            string upgradeId;
             string targetName = null;
+
             if (command == "fief")
             {
+                upgradeId = args.Last();
                 targetName = string.Join(" ", args.Skip(1).Take(args.Length - 2));
             }
             else
             {
-                targetName = null;
+                // clan or kingdom - just get the upgrade ID
+                upgradeId = args.Last();
             }
 
             HandlePurchaseCommand(command, targetName, upgradeId, adoptedHero, settings, onSuccess, onFailure);
