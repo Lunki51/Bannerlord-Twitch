@@ -28,6 +28,8 @@ using TaleWorlds.Localization;
 using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using BLTAdoptAHero.Models;
+using BLTAdoptAHero.Actions;
+using BLTAdoptAHero.Behaviors;
 
 #pragma warning disable 649
 
@@ -203,7 +205,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new ReinforcementBehavior());
                     campaignStarter.AddBehavior(new DiplomacyHelper());
                     campaignStarter.AddBehavior(new UpgradeBehavior());
-
+                    campaignStarter.AddBehavior(new BLTGoldIncomeBehavior());
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
                     gameStarterObject.AddModel(

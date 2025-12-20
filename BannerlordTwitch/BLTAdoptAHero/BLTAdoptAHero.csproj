@@ -389,6 +389,7 @@
     <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\DiplomacyHelper.cs" />
+    <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="Behaviors\ReinforcementBehavior.cs" />
