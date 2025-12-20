@@ -97,7 +97,13 @@ namespace BLTAdoptAHero
                 return;
             }
             var skill = Skills.All.Find(c =>
+               c.Name.ToString() == args);
+
+            if (skill == null)
+            {
+                skill = Skills.All.Find(c =>
                 c.Name.ToString().IndexOf(args, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
 
 
             if (skill == null)
