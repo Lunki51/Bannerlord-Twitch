@@ -1,7 +1,6 @@
 ﻿$(document).ready(function () {
     const container = document.getElementById('campaign-map-container');
     const svg = document.getElementById('campaign-map-svg');
-    const terrainZonesGroup = document.getElementById('terrain-zones');
     const settlementMarkersGroup = document.getElementById('settlement-markers');
     const tooltip = document.getElementById('map-tooltip');
     const tooltipName = document.getElementById('tooltip-name');
@@ -9,6 +8,7 @@
 
     let currentMapData = null;
     let kingdomColors = new Map();
+    let isConnected = false;
 
     // Use SignalR if available
     if (typeof $.connection.mapHub !== 'undefined') {
@@ -18,6 +18,7 @@
             if (!mapData) {
                 // Hide the map when in mission or no data
                 container.classList.add('hidden');
+                currentMapData = null;
                 return;
             }
 
@@ -29,6 +30,25 @@
 
         $.connection.hub.start().done(() => {
             console.log('Campaign Map Hub connected');
+            isConnected = true;
+            mapHub.server.refresh();
+
+            // Poll for updates every 2 seconds to catch mission changes
+            setInterval(() => {
+                if (isConnected) {
+                    mapHub.server.refresh();
+                }
+            }, 2000);
+        });
+
+        $.connection.hub.disconnected(() => {
+            isConnected = false;
+            console.log('Campaign Map Hub disconnected');
+        });
+
+        $.connection.hub.reconnected(() => {
+            isConnected = true;
+            console.log('Campaign Map Hub reconnected');
             mapHub.server.refresh();
         });
     } else {
@@ -42,20 +62,7 @@
         if (data.Kingdoms) {
             data.Kingdoms.forEach(k => kingdomColors.set(k.Id, k.Color));
         }
-        renderTerrainZones(data.TerrainZones || []);
         renderSettlements(data.Settlements || []);
-    }
-
-    function renderTerrainZones(zones) {
-        terrainZonesGroup.innerHTML = '';
-        zones.forEach(zone => {
-            if (!zone.Points || zone.Points.length < 3) return;
-
-            const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-            polygon.setAttribute('points', zone.Points.map(p => `${p[0]},${p[1]}`).join(' '));
-            polygon.setAttribute('class', 'terrain-zone ' + zone.Type);
-            terrainZonesGroup.appendChild(polygon);
-        });
     }
 
     function renderSettlements(settlements) {
@@ -67,29 +74,22 @@
             const color = kingdomColors.get(settlement.KingdomId) || '#888888';
 
             let shape;
-            switch (settlement.Type) {
-                case 'Town':
-                    shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                    shape.setAttribute('cx', 0);
-                    shape.setAttribute('cy', 0);
-                    shape.setAttribute('r', 1.8);
-                    break;
-                case 'Castle':
-                    shape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                    shape.setAttribute('x', -1.3);
-                    shape.setAttribute('y', -1.3);
-                    shape.setAttribute('width', 2.6);
-                    shape.setAttribute('height', 2.6);
-                    break;
-                case 'Village':
-                    shape = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                    shape.setAttribute('points', '0,-1 1,1 -1,1');
-                    break;
+            if (settlement.Type === 'Town') {
+                shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                shape.setAttribute('cx', 0);
+                shape.setAttribute('cy', 0);
+                shape.setAttribute('r', 2.5);
+            } else { // Castle
+                shape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                shape.setAttribute('x', -2);
+                shape.setAttribute('y', -2);
+                shape.setAttribute('width', 4);
+                shape.setAttribute('height', 4);
             }
 
             shape.setAttribute('fill', color);
             shape.setAttribute('stroke', '#fff');
-            shape.setAttribute('stroke-width', 0.3);
+            shape.setAttribute('stroke-width', 0.4);
             group.appendChild(shape);
 
             group.addEventListener('mouseenter', e => showTooltip(e, settlement));
@@ -109,8 +109,8 @@
     }
 
     function updateTooltipPosition(e) {
-        tooltip.style.left = e.clientX + 'px';
-        tooltip.style.top = e.clientY + 'px';
+        tooltip.style.left = (e.clientX + 10) + 'px';
+        tooltip.style.top = (e.clientY - 10) + 'px';
     }
 
     function hideTooltip() {
