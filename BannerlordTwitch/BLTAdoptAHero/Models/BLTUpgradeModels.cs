@@ -44,7 +44,7 @@ namespace BLTAdoptAHero.Models
 
         public override ExplainedNumber GetPartyMemberSizeLimit(
             PartyBase party,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.GetPartyMemberSizeLimit(party, includeDescriptions);
 
@@ -60,7 +60,7 @@ namespace BLTAdoptAHero.Models
 
         public override ExplainedNumber CalculateGarrisonPartySizeLimit(
             Settlement settlement,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.CalculateGarrisonPartySizeLimit(settlement, includeDescriptions);
 
@@ -133,7 +133,7 @@ namespace BLTAdoptAHero.Models
 
         public override ExplainedNumber CalculateTownTax(
             Town town,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.CalculateTownTax(town, includeDescriptions);
 
@@ -237,7 +237,7 @@ namespace BLTAdoptAHero.Models
 
         public override ExplainedNumber CalculateLoyaltyChange(
             Town town,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.CalculateLoyaltyChange(town, includeDescriptions);
 
@@ -264,14 +264,14 @@ namespace BLTAdoptAHero.Models
             _previous = previous;
         }
 
-        public override ExplainedNumber CalculateHearthChange(Village village, bool includeDescriptions = false)
+        public override ExplainedNumber CalculateHearthChange(Village village, bool includeDescriptions = true)
         {
             return _previous.CalculateHearthChange(village, includeDescriptions);
         }
 
         public override ExplainedNumber CalculateProsperityChange(
             Town town,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.CalculateProsperityChange(town, includeDescriptions);
 
@@ -342,7 +342,7 @@ namespace BLTAdoptAHero.Models
 
         public override ExplainedNumber CalculateSecurityChange(
             Town town,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.CalculateSecurityChange(town, includeDescriptions);
 
@@ -382,7 +382,7 @@ namespace BLTAdoptAHero.Models
 
         public override ExplainedNumber CalculateMilitiaChange(
             Settlement settlement,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.CalculateMilitiaChange(settlement, includeDescriptions);
 
@@ -434,10 +434,10 @@ namespace BLTAdoptAHero.Models
 
         public override ExplainedNumber CalculateTownFoodStocksChange(
             Town town,
-            bool includeMarketStocks = false,
-            bool includeDescriptions = false)
+            bool includeMarketStocks = true,
+            bool includeDescriptions = true)
         {
-            var result = _previous.CalculateTownFoodStocksChange(town, includeDescriptions);
+            var result = _previous.CalculateTownFoodStocksChange(town, includeMarketStocks, includeDescriptions);
 
             if (town?.Settlement != null && UpgradeBehavior.Current != null)
             {
