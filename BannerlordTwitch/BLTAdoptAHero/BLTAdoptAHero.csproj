@@ -439,13 +439,13 @@
   <ItemGroup>
     <Content Include="FodyWeavers.xml" />
     <Content Include="Overlay\CampaignMap\CampaignMap.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Overlay\CampaignMap\CampaignMap.html">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Overlay\CampaignMap\CampaignMap.js">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Overlay\MissionInfo\MissionInfo.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

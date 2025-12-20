@@ -154,7 +154,7 @@ namespace BLTAdoptAHero
                                                    ("cdmg", charge),
                                                    ("hp", hp));
                                 }
-
+                                inv += $"- {item.Culture.Name}";
                                 return inv;
                             })
                             .Where(line => line != null);
@@ -278,6 +278,7 @@ namespace BLTAdoptAHero
                                            ("cdmg", charge),
                                            ("hp", hp));
                         }
+                        custom += $"- {item.Culture.Name}";
                         if (custom == $"{GetIcon(item)} {item.Name} | " +
                         "{=rDvZf4JE}Type: {type}".Translate(("type", item.ItemType)) + " | " +
                         "{=Sg11nEUe}Tier: {tier}".Translate(("tier", item.Tier)))

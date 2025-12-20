@@ -358,7 +358,7 @@ namespace BLTAdoptAHero
                  c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
             if (desiredKingdom != null)
             {
-                List<Clan> clanList = desiredKingdom.Clans.OrderBy(c => c.CurrentTotalStrength).ToList();
+                List<Clan> clanList = desiredKingdom.Clans.OrderByDescending(c => c.CurrentTotalStrength).ToList();
                 var clanString = string.Join(", ", clanList.Select(k => k.Name.ToString()));
                 ActionManager.SendReply(context, clanString);
                 return;
