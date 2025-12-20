@@ -435,7 +435,7 @@ namespace BLTAdoptAHero.Models
         public override ExplainedNumber CalculateTownFoodStocksChange(
             Town town,
             bool includeMarketStocks = true,
-            bool includeDescriptions = false)
+            bool includeDescriptions = true)
         {
             var result = _previous.CalculateTownFoodStocksChange(town, includeDescriptions);
 
