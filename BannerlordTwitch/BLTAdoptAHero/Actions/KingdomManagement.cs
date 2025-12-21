@@ -174,7 +174,7 @@ namespace BLTAdoptAHero.Actions
                 if (CreateKEnabled)
                     EnabledCommands.Append("Create, ");
                 if (VassalEnabled)
-                    EnabledCommands.Append("Vassa, ");
+                    EnabledCommands.Append("Vassal, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
 
@@ -731,7 +731,7 @@ namespace BLTAdoptAHero.Actions
 
             if (adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
             {
-                onFailure("{=GEGrsLPm}Your must be king to vassal".Translate());
+                onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
                 return;
             }
             if (!adoptedHero.IsClanLeader)
@@ -741,7 +741,7 @@ namespace BLTAdoptAHero.Actions
             }
             if (string.IsNullOrWhiteSpace(desiredName))
             {
-                onFailure("{=ETfJQatX}(vassal) (hero name)".Translate());
+                onFailure("{=ETfJQatX}Usage: (vassal) (hero name)".Translate());
                 return;
             }
             var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == desiredName);

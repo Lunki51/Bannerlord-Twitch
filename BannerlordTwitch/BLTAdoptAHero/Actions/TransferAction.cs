@@ -167,7 +167,7 @@ namespace BLTAdoptAHero.Actions
                 // The hero must be the leader of their clan per requirement
                 if (targetHero != targetHero.Clan.Leader)
                 {
-                    onFailure($"Hero '{targetHero.Name}' is not the leader of clan '{targetBLTHero.Clan.Name}'. Transfers must specify a clan leader.");
+                    onFailure($"Hero '{targetHero.Name}' is not the leader of clan '{targetHero.Clan.Name}'. Transfers must specify a clan leader.");
                     return;
                 }
 
