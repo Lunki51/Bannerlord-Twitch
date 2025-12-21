@@ -1913,51 +1913,115 @@ namespace BLTAdoptAHero
         [UsedImplicitly]
         public static string KillAdoptedHeroAgent(List<string> strings)
         {
-            if (strings.Count != 1)
-            {
+            Hero targetHero = null;
+            // allow multi-word hero names
+            var heroName = string.Join(" ", strings).Trim();
+            bool hasBLTTag = heroName.EndsWith(" [BLT]");
+            bool hasDEVTag = heroName.EndsWith(" [DEV]");
+            if (string.IsNullOrEmpty(heroName))
                 return "Usage: killBLT <hero_name>";
-            }
 
-            var heroName = strings[0];
+            // get the behavior safely
+            var behavior = BLTAdoptAHeroCampaignBehavior.Current
+                           ?? Campaign.Current?.GetCampaignBehavior<BLTAdoptAHeroCampaignBehavior>();
+            if (behavior == null)
+                return "BLT adopt-a-hero behavior is not available";
 
-            // Get the adopted hero
-            var hero = Current.GetAdoptedHero(heroName);
-            if (hero == null)
-            {
-                return $"Couldn't find adopted hero: {heroName}";
-            }
-
-            // Check if there's an active mission/battle
+            // check active mission
             var mission = Mission.Current;
             if (mission == null)
-            {
                 return "No active mission/battle found";
+
+            Hero adoptedRecord = null;
+            string adoptedTaggedName = null;
+            try
+            {
+                // try the obvious call - if the behavior exposes other overloads you can prefer them
+                if (targetHero == null)
+                {
+                    targetHero = behavior.GetAdoptedHero(heroName);
+
+                    if (targetHero == null && !hasBLTTag && !hasDEVTag)
+                    {
+                        adoptedTaggedName = heroName.Add(" [BLT]");
+                        adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        if (adoptedRecord == null)
+                        {
+                            adoptedTaggedName = heroName.Add(" [DEV]");
+                            adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        }
+            {
+                // ignore - we'll fall back to scanning heroes
             }
 
-            // Find the agent corresponding to the hero
-            var agent = mission.Agents.FirstOrDefault(a => a.Character == hero.CharacterObject);
+            //Find a live hero by name
+            if (targetHero == null)
+            {
+                targetHero = Hero.AllAliveHeroes
+                    .FirstOrDefault(h => string.Equals(h.Name?.ToString(), heroName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (targetHero == null)
+                return $"Couldn't find adopted hero: {heroName}";
+
+            // find agent safely - avoid throwing inside LINQ
+            Agent agent = null;
+            foreach (var a in mission.Agents)
+            {
+                try
+                {
+                    if (a == null) continue;
+                    // prefer direct CharacterObject equality when available
+                    if (a.Character != null && targetHero.CharacterObject != null)
+                    {
+                        if (object.ReferenceEquals(a.Character, targetHero.CharacterObject))
+                        {
+                            agent = a;
+                            break;
+                        }
+                    }
+
+                    // fallback: compare names (safe)
+                    var aName = a.Character?.Name?.ToString();
+                    if (!string.IsNullOrEmpty(aName) && aName.Equals(heroName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        agent = a;
+                        break;
+                    }
+                }
+                catch
+                {
+                    // continue - don't let one bad agent crash the search
+                    continue;
+                }
+            }
 
             if (agent == null)
-            {
-                return $"Agent for hero {hero.Name} not found in current battle";
-            }
+                return $"Agent for hero {targetHero.Name} not found in current battle";
 
             if (!agent.IsActive())
-            {
-                return $"Agent for hero {hero.Name} is not active";
-            }
+                return $"Agent for hero {targetHero.Name} is not active";
 
             // Kill the agent
             var blow = new Blow(agent.Index);
-            blow.DamageType = DamageTypes.Invalid;
+            blow.DamageType = DamageTypes.Blunt; // Blunt to avoid accidentally killing characters with lethal damage type
             blow.BoneIndex = agent.Monster.HeadLookDirectionBoneIndex;
             blow.GlobalPosition = agent.Position;
             blow.BaseMagnitude = agent.HealthLimit;
             blow.InflictedDamage = (int)agent.HealthLimit;
 
-            agent.Die(blow);
+            try
+            {
+                agent.Die(blow);
+            }
+            catch (Exception ex)
+            {
+                // show a helpful debug message without crashing the game
+                InformationManager.DisplayMessage(new InformationMessage($"killBLT failed: {ex.Message}"));
+                return $"Failed to kill agent: {ex.Message}";
+            }
 
-            return $"Killed agent of {hero.Name}";
+            return $"Killed agent of {targetHero.Name}";
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("ChangeGold", "blt")]
@@ -1982,22 +2046,52 @@ namespace BLTAdoptAHero
                 return $"Invalid gold amount: {parts[1]}";
             }
 
-            // Find the BLT hero with the matching username
-            var hero = Hero.AllAliveHeroes
-                .FirstOrDefault(h => h.IsAdopted() &&
-                    BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(h.Name.ToString()).Name.ToString() == username);
+            // get the behavior once and null-check it
+            var behavior = Campaign.Current?.GetCampaignBehavior<BLTAdoptAHeroCampaignBehavior>();
+            if (behavior == null)
+            {
+                return "BLT Adopt-a-hero behavior is not available";
+            }
+
+            // avoid LINQ lambda throwing - do a foreach with null checks
+            Hero hero = null;
+            foreach (var h in Hero.AllAliveHeroes)
+            {
+                if (!h.IsAdopted())
+                    continue;
+
+                // guard every call that might return null
+                var adopted = behavior.GetAdoptedHero(h.Name.ToString());
+                if (adopted == null || adopted.Name == null)
+                    continue;
+
+                if (string.Equals(adopted.Name.ToString(), username, StringComparison.OrdinalIgnoreCase))
+                {
+                    hero = h;
+                    break;
+                }
+            }
 
             if (hero == null)
             {
                 return $"Could not find BLT hero with username: {username}";
             }
 
-            // Change the hero's gold
-            BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(hero, amount, true);
+            // Change the hero's gold in a try/catch so we don't crash if the behavior throws
+            try
+            {
+                behavior.ChangeHeroGold(hero, amount, true);
+            }
+            catch (Exception ex)
+            {
+                InformationManager.DisplayMessage(new InformationMessage($"blt.change_gold failed: {ex.Message}"));
+                return $"Error changing gold: {ex.Message}";
+            }
 
-            int currentGold = BLTAdoptAHeroCampaignBehavior.Current?.GetHeroGold(hero) ?? 0;
+            int currentGold = behavior.GetHeroGold(hero);
             return $"Changed {hero.Name}'s gold by {amount}. Current balance: {currentGold}";
         }
+
 
         #endregion
     }

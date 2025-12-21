@@ -153,6 +153,8 @@ namespace BLTAdoptAHero.Actions
             // Resolve clan/hero
             // Try hero first
             Hero targetHero = FindHero(targetSpecifier);
+            Hero targetBLTHero = FindHero(targetSpecifier.Add(" [BLT]", false));
+            Hero targetDEVHero = FindHero(targetSpecifier.Add(" [DEV]", false));
             Clan targetClan = null;
             if (targetHero != null)
             {
@@ -165,16 +167,65 @@ namespace BLTAdoptAHero.Actions
                 // The hero must be the leader of their clan per requirement
                 if (targetHero != targetHero.Clan.Leader)
                 {
-                    onFailure($"Hero '{targetHero.Name}' is not the leader of clan '{targetHero.Clan.Name}'. Transfers must specify a clan leader.");
+                    onFailure($"Hero '{targetHero.Name}' is not the leader of clan '{targetBLTHero.Clan.Name}'. Transfers must specify a clan leader.");
                     return;
                 }
 
                 targetClan = targetHero.Clan;
             }
+            else if (targetBLTHero != null)
+            {
+                if (targetBLTHero.Clan == null)
+                {
+                    onFailure($"Hero '{targetBLTHero.Name}' is not in a clan.");
+                    return;
+                }
+
+                // The hero must be the leader of their clan per requirement
+                if (targetBLTHero != targetBLTHero.Clan.Leader)
+                {
+                    onFailure($"Hero '{targetBLTHero.Name}' is not the leader of clan '{targetBLTHero.Clan.Name}'. Transfers must specify a clan leader.");
+                    return;
+                }
+
+                targetClan = targetBLTHero.Clan;
+            }
+            else if (targetDEVHero != null)
+            {
+                if (targetDEVHero.Clan == null)
+                {
+                    onFailure($"Hero '{targetDEVHero.Name}' is not in a clan.");
+                    return;
+                }
+
+                // The hero must be the leader of their clan per requirement
+                if (targetDEVHero != targetDEVHero.Clan.Leader)
+                {
+                    onFailure($"Hero '{targetDEVHero.Name}' is not the leader of clan '{targetDEVHero.Clan.Name}'. Transfers must specify a clan leader.");
+                    return;
+                }
+
+                targetClan = targetDEVHero.Clan;
+            }
             else
             {
                 // Try clan by name
                 targetClan = FindClan(targetSpecifier);
+                var targetBLTClan = FindClan("[BLT Clan]".Add(targetSpecifier, false));
+                var safetargetBLTClan = FindClan("[BLT Clan] ".Add(targetSpecifier, false));
+
+                if (targetClan == null)
+                {
+                    if (targetBLTClan != null)
+                    {
+                        targetClan = targetBLTClan;
+                    }
+                    else if (safetargetBLTClan != null)
+                    {
+                        targetClan = safetargetBLTClan;
+                    }
+                }
+
                 if (targetClan == null)
                 {
                     onFailure($"Could not find a hero or clan named '{targetSpecifier}'.");

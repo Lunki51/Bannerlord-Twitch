@@ -635,7 +635,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure(Naming.NotEnoughGold(settings.MercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
-            else if (!mercforPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PlayerMercPrice)
+            else if (mercforPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PlayerMercPrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.PlayerMercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
