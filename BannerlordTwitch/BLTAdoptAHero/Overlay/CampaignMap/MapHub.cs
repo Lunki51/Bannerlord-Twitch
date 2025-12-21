@@ -17,7 +17,7 @@ namespace BLTAdoptAHero.UI
     {
         private static MapData currentMapData = null;
         private static DateTime lastUpdate = DateTime.MinValue;
-        private static readonly TimeSpan UpdateInterval = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan UpdateInterval = TimeSpan.FromSeconds(300);
 
         public class MapData
         {

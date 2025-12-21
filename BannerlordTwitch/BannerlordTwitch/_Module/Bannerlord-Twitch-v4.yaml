@@ -556,6 +556,8 @@ Commands:
     RebelEnabled: true
     RebelPrice: 500000
     StatsEnabled: true
+    VassalEnabled: true
+    VassalPrice: 20000000
   Help: ''
   HideHelp: true
   ID: a87232d0-93a7-4123-9981-892b3d19c832
@@ -2403,7 +2405,7 @@ GlobalConfigs:
     RetinueHealPerKill: 50
     RetinueUseHeroesFormation: false
     Shouts: []
-    ShowCampaignMapOverlay: true
+    ShowCampaignMapOverlay: false
     ShowKillStreakPopup: true
     StartHealthMultiplier: 2
     StartRetinueHealthMultiplier: 2

@@ -987,7 +987,7 @@ namespace BLTAdoptAHero.Actions
                 {
                     var newBanner = new Banner(bannerCode);  // creates a Banner object directly from the code                  
                     var color1 = newBanner.GetPrimaryColor();
-                    var color2 = newBanner.GetSecondaryColor();
+                    var color2 = newBanner.GetFirstIconColor();
 
 
                     adoptedHero.Clan.Banner = newBanner;
