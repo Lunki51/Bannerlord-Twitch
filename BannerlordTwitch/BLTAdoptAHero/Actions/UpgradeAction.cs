@@ -28,10 +28,7 @@ namespace BLTAdoptAHero.Actions
     public class UpgradeAction : HeroCommandHandlerBase
     {
         [CategoryOrder("General", 0),
-         CategoryOrder("Permissions", 1),
-         CategoryOrder("Fief Upgrades", 2),
-         CategoryOrder("Clan Upgrades", 3),
-         CategoryOrder("Kingdom Upgrades", 4)]
+ CategoryOrder("Permissions", 1)]
         public class Settings : IDocumentable
         {
             [LocDisplayName("{=BLT_UpgradeEnabled}Enabled"),
@@ -59,127 +56,8 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public bool AllowAnyClanMemberForClanUpgrades { get; set; } = false;
 
-            // Upgrade definitions
-            [LocDisplayName("{=BLT_FiefUpgrades}Fief Upgrades"),
-             LocCategory("Fief Upgrades", "{=BLT_FiefUpgrades}Fief Upgrades"),
-             LocDescription("{=BLT_FiefUpgradesDesc}List of available fief (settlement) upgrades"),
-             PropertyOrder(1), UsedImplicitly,
-             Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
-            public ObservableCollection<FiefUpgrade> FiefUpgrades { get; set; } = new()
-            {
-                new FiefUpgrade
-                {
-                    ID = "fief_loyalty_1",
-                    Name = "Improved Administration",
-                    Description = "Better administration increases loyalty growth",
-                    GoldCost = 15000,
-                    LoyaltyDailyFlat = 0.5f
-                },
-                new FiefUpgrade
-                {
-                    ID = "fief_prosperity_1",
-                    Name = "Trade Hub",
-                    Description = "Attract more merchants to boost prosperity",
-                    GoldCost = 20000,
-                    ProsperityDailyFlat = 1.0f
-                },
-                new FiefUpgrade
-                {
-                    ID = "fief_security_1",
-                    Name = "Guard Posts",
-                    Description = "Additional guard posts improve security",
-                    GoldCost = 12000,
-                    SecurityDailyFlat = 0.5f
-                },
-                new FiefUpgrade
-                {
-                    ID = "fief_militia_1",
-                    Name = "Militia Training",
-                    Description = "Train civilians as militia",
-                    GoldCost = 10000,
-                    MilitiaDailyFlat = 2.0f
-                },
-                new FiefUpgrade
-                {
-                    ID = "fief_food_1",
-                    Name = "Granary Expansion",
-                    Description = "Larger granaries store more food",
-                    GoldCost = 8000,
-                    FoodDailyFlat = 5.0f
-                }
-            };
-
-            [LocDisplayName("{=BLT_ClanUpgrades}Clan Upgrades"),
-             LocCategory("Clan Upgrades", "{=BLT_ClanUpgrades}Clan Upgrades"),
-             LocDescription("{=BLT_ClanUpgradesDesc}List of available clan-wide upgrades"),
-             PropertyOrder(1), UsedImplicitly,
-             Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
-            public ObservableCollection<ClanUpgrade> ClanUpgrades { get; set; } = new()
-            {
-                new ClanUpgrade
-                {
-                    ID = "clan_renown_1",
-                    Name = "Clan Prestige",
-                    Description = "Increase your clan's fame across the land",
-                    GoldCost = 30000,
-                    RenownDaily = 1.0f
-                },
-                new ClanUpgrade
-                {
-                    ID = "clan_party_1",
-                    Name = "Recruitment Drive",
-                    Description = "Allow larger party sizes for all clan members",
-                    GoldCost = 40000,
-                    PartySizeBonus = 20
-                },
-                new ClanUpgrade
-                {
-                    ID = "clan_settlements_1",
-                    Name = "Clan Development",
-                    Description = "Improve loyalty and prosperity in all clan settlements",
-                    GoldCost = 50000,
-                    LoyaltyDailyFlat = 0.3f,
-                    ProsperityDailyFlat = 0.5f
-                }
-            };
-
-            [LocDisplayName("{=BLT_KingdomUpgrades}Kingdom Upgrades"),
-             LocCategory("Kingdom Upgrades", "{=BLT_KingdomUpgrades}Kingdom Upgrades"),
-             LocDescription("{=BLT_KingdomUpgradesDesc}List of available kingdom-wide upgrades"),
-             PropertyOrder(1), UsedImplicitly,
-             Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
-            public ObservableCollection<KingdomUpgrade> KingdomUpgrades { get; set; } = new()
-            {
-                new KingdomUpgrade
-                {
-                    ID = "kingdom_influence_1",
-                    Name = "Royal Authority",
-                    Description = "Strengthen the ruler's influence",
-                    GoldCost = 100000,
-                    InfluenceCost = 500,
-                    InfluenceDaily = 2.0f
-                },
-                new KingdomUpgrade
-                {
-                    ID = "kingdom_military_1",
-                    Name = "Kingdom Military Reform",
-                    Description = "Increase party sizes and militia across the kingdom",
-                    GoldCost = 150000,
-                    InfluenceCost = 1000,
-                    PartySizeBonus = 15,
-                    MilitiaDailyFlat = 1.0f
-                },
-                new KingdomUpgrade
-                {
-                    ID = "kingdom_prosperity_1",
-                    Name = "Kingdom Prosperity Initiative",
-                    Description = "Boost prosperity and loyalty in all kingdom settlements",
-                    GoldCost = 200000,
-                    InfluenceCost = 1500,
-                    LoyaltyDailyFlat = 0.2f,
-                    ProsperityDailyFlat = 0.5f
-                }
-            };
+            // REMOVE all the ObservableCollection<FiefUpgrade>, etc.
+            // These are now in GlobalCommonConfig
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
@@ -188,28 +66,31 @@ namespace BLTAdoptAHero.Actions
                 generator.Value($"<strong>Kingdom Leaders Can Upgrade Fiefs:</strong> {(AllowKingdomLeadersForFiefs ? "Yes" : "No")}");
                 generator.Value($"<strong>Any Clan Member Can Upgrade Clan:</strong> {(AllowAnyClanMemberForClanUpgrades ? "Yes" : "No")}");
 
-                generator.PropertyValuePair("Fief Upgrades Available", (FiefUpgrades?.Count ?? 0).ToString());
-                if (FiefUpgrades != null && FiefUpgrades.Count > 0)
+                // Access upgrade definitions from GlobalCommonConfig
+                var config = GlobalCommonConfig.Get();
+
+                generator.PropertyValuePair("Fief Upgrades Available", (config.FiefUpgrades?.Count ?? 0).ToString());
+                if (config.FiefUpgrades != null && config.FiefUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in FiefUpgrades)
+                    foreach (var upgrade in config.FiefUpgrades)
                     {
                         generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GoldCost}{Naming.Gold}");
                     }
                 }
 
-                generator.PropertyValuePair("Clan Upgrades Available", (ClanUpgrades?.Count ?? 0).ToString());
-                if (ClanUpgrades != null && ClanUpgrades.Count > 0)
+                generator.PropertyValuePair("Clan Upgrades Available", (config.ClanUpgrades?.Count ?? 0).ToString());
+                if (config.ClanUpgrades != null && config.ClanUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in ClanUpgrades)
+                    foreach (var upgrade in config.ClanUpgrades)
                     {
                         generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GoldCost}{Naming.Gold}");
                     }
                 }
 
-                generator.PropertyValuePair("Kingdom Upgrades Available", (KingdomUpgrades?.Count ?? 0).ToString());
-                if (KingdomUpgrades != null && KingdomUpgrades.Count > 0)
+                generator.PropertyValuePair("Kingdom Upgrades Available", (config.KingdomUpgrades?.Count ?? 0).ToString());
+                if (config.KingdomUpgrades != null && config.KingdomUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in KingdomUpgrades)
+                    foreach (var upgrade in config.KingdomUpgrades)
                     {
                         generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GetCostString()}");
                     }
@@ -219,9 +100,6 @@ namespace BLTAdoptAHero.Actions
 
         public override Type HandlerConfigType => typeof(Settings);
 
-        // Store settings in behavior for runtime access - called by behavior on session start
-        internal static Settings CurrentSettings { get; set; }
-
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
             if (config is not Settings settings)
@@ -229,9 +107,6 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Invalid configuration");
                 return;
             }
-
-            // IMPORTANT: Update current settings reference FIRST for behavior access
-            CurrentSettings = settings;
 
             if (adoptedHero == null)
             {
@@ -257,8 +132,16 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
+            var globalConfig = GlobalCommonConfig.Get();
+            if (globalConfig == null)
+            {
+                onFailure("Configuration not available");
+                return;
+            }
+
             var args = context.Args.Split(' ');
             var command = args[0].ToLowerInvariant();
+
 
             // Handle list command
             if (command == "list")
@@ -270,7 +153,7 @@ namespace BLTAdoptAHero.Actions
                 }
 
                 string type = args.Length > 1 ? args[1].ToLowerInvariant() : "all";
-                HandleListCommand(type, settings, onSuccess, onFailure);
+                HandleListCommand(type, globalConfig, onSuccess, onFailure);
                 return;
             }
 
@@ -285,7 +168,7 @@ namespace BLTAdoptAHero.Actions
 
                 string type = args[1].ToLowerInvariant();
                 string name = string.Join(" ", args.Skip(2));
-                HandleInfoCommand(type, name, adoptedHero, settings, onSuccess, onFailure);
+                HandleInfoCommand(type, name, adoptedHero, globalConfig, onSuccess, onFailure);
                 return;
             }
 
@@ -317,14 +200,14 @@ namespace BLTAdoptAHero.Actions
                 upgradeId = args.Last();
             }
 
-            HandlePurchaseCommand(command, targetName, upgradeId, adoptedHero, settings, onSuccess, onFailure);
+            HandlePurchaseCommand(command, targetName, upgradeId, adoptedHero, settings, globalConfig, onSuccess, onFailure);
         }
 
-        private void HandleListCommand(string type, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleListCommand(string type, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
-            if (settings == null)
+            if (globalConfig == null)
             {
-                onFailure("Settings not available");
+                onFailure("Global Configs not available");
                 return;
             }
 
@@ -334,9 +217,9 @@ namespace BLTAdoptAHero.Actions
             if (type == "all" || type == "fief")
             {
                 sb.AppendLine("\n[Fief Upgrades]");
-                if (settings.FiefUpgrades != null && settings.FiefUpgrades.Count > 0)
+                if (globalConfig.FiefUpgrades != null && globalConfig.FiefUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in settings.FiefUpgrades)
+                    foreach (var upgrade in globalConfig.FiefUpgrades)
                     {
                         sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
                         sb.AppendLine($"    {upgrade.Description}");
@@ -351,9 +234,9 @@ namespace BLTAdoptAHero.Actions
             if (type == "all" || type == "clan")
             {
                 sb.AppendLine("\n[Clan Upgrades]");
-                if (settings.ClanUpgrades != null && settings.ClanUpgrades.Count > 0)
+                if (globalConfig.ClanUpgrades != null && globalConfig.ClanUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in settings.ClanUpgrades)
+                    foreach (var upgrade in globalConfig.ClanUpgrades)
                     {
                         sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
                         sb.AppendLine($"    {upgrade.Description}");
@@ -368,9 +251,9 @@ namespace BLTAdoptAHero.Actions
             if (type == "all" || type == "kingdom")
             {
                 sb.AppendLine("\n[Kingdom Upgrades]");
-                if (settings.KingdomUpgrades != null && settings.KingdomUpgrades.Count > 0)
+                if (globalConfig.KingdomUpgrades != null && globalConfig.KingdomUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in settings.KingdomUpgrades)
+                    foreach (var upgrade in globalConfig.KingdomUpgrades)
                     {
                         sb.AppendLine($"  {upgrade.ID}: {upgrade.Name} - {upgrade.GetCostString()}");
                         sb.AppendLine($"    {upgrade.Description}");
@@ -391,18 +274,18 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void HandleInfoCommand(string type, string name, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleInfoCommand(string type, string name, Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             switch (type)
             {
                 case "fief":
-                    ShowFiefInfo(name, hero, settings, onSuccess, onFailure);
+                    ShowFiefInfo(name, hero, globalConfig, onSuccess, onFailure);
                     break;
                 case "clan":
-                    ShowClanInfo(hero, settings, onSuccess, onFailure);
+                    ShowClanInfo(hero, globalConfig, onSuccess, onFailure);
                     break;
                 case "kingdom":
-                    ShowKingdomInfo(hero, settings, onSuccess, onFailure);
+                    ShowKingdomInfo(hero, globalConfig, onSuccess, onFailure);
                     break;
                 default:
                     onFailure("Invalid type. Use 'fief', 'clan', or 'kingdom'");
@@ -410,7 +293,7 @@ namespace BLTAdoptAHero.Actions
             }
         }
 
-        private void ShowFiefInfo(string name, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void ShowFiefInfo(string name, Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             var settlement = FindSettlement(name);
             if (settlement == null)
@@ -438,7 +321,7 @@ namespace BLTAdoptAHero.Actions
                 sb.AppendLine("Active Upgrades:");
                 foreach (var upgradeId in upgrades)
                 {
-                    var upgrade = settings.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+                    var upgrade = globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
                     if (upgrade != null)
                         sb.AppendLine($"  • {upgrade.Name}");
                 }
@@ -447,7 +330,7 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void ShowClanInfo(Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void ShowClanInfo(Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             var clan = hero.Clan;
             if (clan == null)
@@ -469,7 +352,7 @@ namespace BLTAdoptAHero.Actions
                 sb.AppendLine("Active Upgrades:");
                 foreach (var upgradeId in upgrades)
                 {
-                    var upgrade = settings.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+                    var upgrade = globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
                     if (upgrade != null)
                         sb.AppendLine($"  • {upgrade.Name}");
                 }
@@ -478,7 +361,7 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void ShowKingdomInfo(Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void ShowKingdomInfo(Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             var kingdom = hero.Clan.Kingdom;
             if (hero.Clan == null)
@@ -506,7 +389,7 @@ namespace BLTAdoptAHero.Actions
                 sb.AppendLine("Active Upgrades:");
                 foreach (var upgradeId in upgrades)
                 {
-                    var upgrade = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+                    var upgrade = globalConfig.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
                     if (upgrade != null)
                         sb.AppendLine($"  • {upgrade.Name}");
                 }
@@ -515,23 +398,23 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void HandlePurchaseCommand(string type, string name, string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void HandlePurchaseCommand(string type, string name, string upgradeId, Hero hero, Settings settings, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             switch (type)
             {
                 case "fief":
-                    PurchaseFiefUpgrade(name, upgradeId, hero, settings, onSuccess, onFailure);
+                    PurchaseFiefUpgrade(name, upgradeId, hero, settings, globalConfig, onSuccess, onFailure);
                     break;
                 case "clan":
-                    PurchaseClanUpgrade(upgradeId, hero, settings, onSuccess, onFailure);
+                    PurchaseClanUpgrade(upgradeId, hero, settings, globalConfig, onSuccess, onFailure);
                     break;
                 case "kingdom":
-                    PurchaseKingdomUpgrade(upgradeId, hero, settings, onSuccess, onFailure);
+                    PurchaseKingdomUpgrade(upgradeId, hero, globalConfig, onSuccess, onFailure);
                     break;
             }
         }
 
-        private void PurchaseFiefUpgrade(string name, string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void PurchaseFiefUpgrade(string name, string upgradeId, Hero hero, Settings settings, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             var settlement = FindSettlement(name);
             if (settlement == null)
@@ -566,7 +449,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Find upgrade
-            var upgrade = settings.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+            var upgrade = globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
             if (upgrade == null)
             {
                 onFailure($"Upgrade '{upgradeId}' not found");
@@ -606,7 +489,7 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation($"{hero.Name} purchased {upgrade.Name} for {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
         }
 
-        private void PurchaseClanUpgrade(string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void PurchaseClanUpgrade(string upgradeId, Hero hero, Settings settings, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             var clan = hero?.Clan;
             if (clan == null)
@@ -622,7 +505,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Find upgrade
-            var upgrade = settings.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+            var upgrade = globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
             if (upgrade == null)
             {
                 onFailure($"Upgrade '{upgradeId}' not found");
@@ -662,7 +545,7 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation($"{hero.Name} purchased {upgrade.Name} for {clan.Name}", hero.CharacterObject, Log.Sound.Notification1);
         }
 
-        private void PurchaseKingdomUpgrade(string upgradeId, Hero hero, Settings settings, Action<string> onSuccess, Action<string> onFailure)
+        private void PurchaseKingdomUpgrade(string upgradeId, Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
             var kingdom = hero?.Clan?.Kingdom;
             if (hero.Clan == null)
@@ -685,7 +568,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Find upgrade
-            var upgrade = settings.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+            var upgrade = globalConfig.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
             if (upgrade == null)
             {
                 onFailure($"Upgrade '{upgradeId}' not found");

@@ -12,6 +12,7 @@ using BannerlordTwitch.UI;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.Achievements;
 using BLTAdoptAHero.Actions.Util;
+using BLTAdoptAHero.Actions.Upgrades;
 using TaleWorlds.Library;
 using TaleWorlds.TwoDimension;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
@@ -23,12 +24,13 @@ namespace BLTAdoptAHero
      CategoryOrder("Battle", 2),
      CategoryOrder("Death", 3),
      CategoryOrder("Income", 4),
-     CategoryOrder("XP", 5),
-     CategoryOrder("Kill Rewards", 6),
-     CategoryOrder("Battle End Rewards", 7),
-     CategoryOrder("Kill Streak Rewards", 8),
-     CategoryOrder("Achievements", 9),
-     CategoryOrder("Shouts", 10),
+     CategoryOrder("Income", 5),
+     CategoryOrder("XP", 6),
+     CategoryOrder("Kill Rewards", 7),
+     CategoryOrder("Battle End Rewards", 8),
+     CategoryOrder("Kill Streak Rewards", 9),
+     CategoryOrder("Achievements", 10),
+     CategoryOrder("Shouts", 11),
      LocDisplayName("{=vDjnDtoL}Common Config")]
     internal class GlobalCommonConfig : IUpdateFromDefault, IDocumentable, INotifyPropertyChanged
     {
@@ -302,6 +304,129 @@ namespace BLTAdoptAHero
          PropertyOrder(2), UsedImplicitly]
         public int MercenaryMaxIncome { get; set; } = 2000;
 
+        #endregion
+
+        #region Upgrades
+        [LocDisplayName("{=BLT_FiefUpgrades}Fief Upgrades"),
+         LocCategory("Upgrades", "{=BLT_Upgrades}Upgrades"),
+         LocDescription("{=BLT_FiefUpgradesDesc}List of available fief (settlement) upgrades"),
+         PropertyOrder(1), UsedImplicitly,
+         Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
+        public ObservableCollection<FiefUpgrade> FiefUpgrades { get; set; } = new()
+{
+    new FiefUpgrade
+    {
+        ID = "fief_loyalty_1",
+        Name = "Improved Administration",
+        Description = "Better administration increases loyalty growth",
+        GoldCost = 15000,
+        LoyaltyDailyFlat = 0.5f
+    },
+    new FiefUpgrade
+    {
+        ID = "fief_prosperity_1",
+        Name = "Trade Hub",
+        Description = "Attract more merchants to boost prosperity",
+        GoldCost = 20000,
+        ProsperityDailyFlat = 1.0f
+    },
+    new FiefUpgrade
+    {
+        ID = "fief_security_1",
+        Name = "Guard Posts",
+        Description = "Additional guard posts improve security",
+        GoldCost = 12000,
+        SecurityDailyFlat = 0.5f
+    },
+    new FiefUpgrade
+    {
+        ID = "fief_militia_1",
+        Name = "Militia Training",
+        Description = "Train civilians as militia",
+        GoldCost = 10000,
+        MilitiaDailyFlat = 2.0f
+    },
+    new FiefUpgrade
+    {
+        ID = "fief_food_1",
+        Name = "Granary Expansion",
+        Description = "Larger granaries store more food",
+        GoldCost = 8000,
+        FoodDailyFlat = 5.0f
+    }
+};
+
+        [LocDisplayName("{=BLT_ClanUpgrades}Clan Upgrades"),
+         LocCategory("Upgrades", "{=BLT_Upgrades}Upgrades"),
+         LocDescription("{=BLT_ClanUpgradesDesc}List of available clan-wide upgrades"),
+         PropertyOrder(2), UsedImplicitly,
+         Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
+        public ObservableCollection<ClanUpgrade> ClanUpgrades { get; set; } = new()
+{
+    new ClanUpgrade
+    {
+        ID = "clan_renown_1",
+        Name = "Clan Prestige",
+        Description = "Increase your clan's fame across the land",
+        GoldCost = 30000,
+        RenownDaily = 1.0f
+    },
+    new ClanUpgrade
+    {
+        ID = "clan_party_1",
+        Name = "Recruitment Drive",
+        Description = "Allow larger party sizes for all clan members",
+        GoldCost = 40000,
+        PartySizeBonus = 20
+    },
+    new ClanUpgrade
+    {
+        ID = "clan_settlements_1",
+        Name = "Clan Development",
+        Description = "Improve loyalty and prosperity in all clan settlements",
+        GoldCost = 50000,
+        LoyaltyDailyFlat = 0.3f,
+        ProsperityDailyFlat = 0.5f
+    }
+};
+
+        [LocDisplayName("{=BLT_KingdomUpgrades}Kingdom Upgrades"),
+         LocCategory("Upgrades", "{=BLT_Upgrades}Upgrades"),
+         LocDescription("{=BLT_KingdomUpgradesDesc}List of available kingdom-wide upgrades"),
+         PropertyOrder(3), UsedImplicitly,
+         Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
+        public ObservableCollection<KingdomUpgrade> KingdomUpgrades { get; set; } = new()
+{
+    new KingdomUpgrade
+    {
+        ID = "kingdom_influence_1",
+        Name = "Royal Authority",
+        Description = "Strengthen the ruler's influence",
+        GoldCost = 100000,
+        InfluenceCost = 500,
+        InfluenceDaily = 2.0f
+    },
+    new KingdomUpgrade
+    {
+        ID = "kingdom_military_1",
+        Name = "Kingdom Military Reform",
+        Description = "Increase party sizes and militia across the kingdom",
+        GoldCost = 150000,
+        InfluenceCost = 1000,
+        PartySizeBonus = 15,
+        MilitiaDailyFlat = 1.0f
+    },
+    new KingdomUpgrade
+    {
+        ID = "kingdom_prosperity_1",
+        Name = "Kingdom Prosperity Initiative",
+        Description = "Boost prosperity and loyalty in all kingdom settlements",
+        GoldCost = 200000,
+        InfluenceCost = 1500,
+        LoyaltyDailyFlat = 0.2f,
+        ProsperityDailyFlat = 0.5f
+    }
+};
         #endregion
 
         #region XP

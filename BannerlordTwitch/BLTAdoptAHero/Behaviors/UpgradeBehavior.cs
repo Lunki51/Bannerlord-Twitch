@@ -25,8 +25,11 @@ namespace BLTAdoptAHero
         private Dictionary<string, string> _clanUpgrades = new();
         private Dictionary<string, string> _kingdomUpgrades = new();
 
-        private Settings _settings;
-        private Settings SettingsSafe => UpgradeAction.CurrentSettings;
+        // REMOVE: private Settings _settings;
+        // REMOVE: private Settings ConfigSafe => _settings;
+
+        // REPLACE WITH:
+        private GlobalCommonConfig ConfigSafe => GlobalCommonConfig.Get();
 
         public UpgradeBehavior()
         {
@@ -47,12 +50,6 @@ namespace BLTAdoptAHero
             _fiefUpgrades ??= new Dictionary<string, string>();
             _clanUpgrades ??= new Dictionary<string, string>();
             _kingdomUpgrades ??= new Dictionary<string, string>();
-        }
-
-        // Must be called once after Settings is created (see wiring below)
-        public void SetSettings(Settings settings)
-        {
-            _settings = settings;
         }
 
         #region Serialization helpers
@@ -240,11 +237,11 @@ namespace BLTAdoptAHero
         // Sum fief float values
         private float SumFiefFloat(Settlement s, Func<FiefUpgrade, float> selector)
         {
-            if (s == null || SettingsSafe == null) return 0f;
+            if (s == null || ConfigSafe == null) return 0f;
             float sum = 0f;
             foreach (var id in GetFiefUpgrades(s))
             {
-                var up = SettingsSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
+                var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null) sum += selector(up);
             }
             return sum;
@@ -253,11 +250,11 @@ namespace BLTAdoptAHero
         // Sum clan float values (applies to clan's settlements)
         private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> selector)
         {
-            if (clan == null || SettingsSafe == null) return 0f;
+            if (clan == null || ConfigSafe == null) return 0f;
             float sum = 0f;
             foreach (var id in GetClanUpgrades(clan))
             {
-                var up = SettingsSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null) sum += selector(up);
             }
             return sum;
@@ -266,11 +263,11 @@ namespace BLTAdoptAHero
         // Sum kingdom float values (applies to kingdom's settlements)
         private float SumKingdomFloat(Kingdom kingdom, Func<KingdomUpgrade, float> selector)
         {
-            if (kingdom == null || SettingsSafe == null) return 0f;
+            if (kingdom == null || ConfigSafe == null) return 0f;
             float sum = 0f;
             foreach (var id in GetKingdomUpgrades(kingdom))
             {
-                var up = SettingsSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                var up = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null) sum += selector(up);
             }
             return sum;
@@ -307,11 +304,11 @@ namespace BLTAdoptAHero
         // Int versions
         private int SumFiefInt(Settlement s, Func<FiefUpgrade, int> selector)
         {
-            if (s == null || SettingsSafe == null) return 0;
+            if (s == null || ConfigSafe == null) return 0;
             int sum = 0;
             foreach (var id in GetFiefUpgrades(s))
             {
-                var up = SettingsSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
+                var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null) sum += selector(up);
             }
             return sum;
@@ -319,11 +316,11 @@ namespace BLTAdoptAHero
 
         private int SumClanInt(Clan clan, Func<ClanUpgrade, int> selector)
         {
-            if (clan == null || SettingsSafe == null) return 0;
+            if (clan == null || ConfigSafe == null) return 0;
             int sum = 0;
             foreach (var id in GetClanUpgrades(clan))
             {
-                var up = SettingsSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null) sum += selector(up);
             }
             return sum;
@@ -331,11 +328,11 @@ namespace BLTAdoptAHero
 
         private int SumKingdomInt(Kingdom kingdom, Func<KingdomUpgrade, int> selector)
         {
-            if (kingdom == null || SettingsSafe == null) return 0;
+            if (kingdom == null || ConfigSafe == null) return 0;
             int sum = 0;
             foreach (var id in GetKingdomUpgrades(kingdom))
             {
-                var up = SettingsSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
+                var up = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null) sum += selector(up);
             }
             return sum;
