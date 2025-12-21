@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using BannerlordTwitch;
@@ -42,70 +43,54 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // Check for arguments
-            if (context.Args.IsEmpty())
-            {
-                onFailure("Usage: fiefs | merc");
-                return;
-            }
-
-            string arg = context.Args.Trim().ToLowerInvariant();
-
-            if (arg == "fiefs")
-            {
-                ShowFiefIncome(adoptedHero, onSuccess);
-                return;
-            }
-
-            if (arg == "merc" || arg == "mercenary")
-            {
-                ShowMercIncome(adoptedHero, onSuccess, onFailure);
-                return;
-            }
-
-            onFailure("Usage: fiefs | merc");
-        }
-
-        private void ShowFiefIncome(Hero hero, Action<string> onSuccess)
-        {
-            var clan = hero.Clan;
-            if (clan == null || clan.Settlements == null || clan.Settlements.Count == 0)
-            {
-                onSuccess("You own no settlements.");
-                return;
-            }
-
-            var sb = new StringBuilder();
-            foreach (var s in clan.Settlements.Where(s => !s.IsVillage))
-            {
-                int income = CalculateSettlementIncome(s);
-                sb.Append($"{s.Name}: {(income >= 0 ? "+" : "")}{income} | ");
-            }
-
-            var result = sb.ToString().Trim();
-            if (result.EndsWith("|"))
-                result = result.Substring(0, result.Length - 1).TrimEnd();
-
-            onSuccess(result);
-        }
-
-        private void ShowMercIncome(Hero hero, Action<string> onSuccess, Action<string> onFailure)
-        {
-            var clan = hero.Clan;
+            var clan = adoptedHero.Clan;
             if (clan == null)
             {
                 onFailure("You are not in a clan.");
                 return;
             }
 
-            if (!clan.IsUnderMercenaryService)
+            // Check for fiefs first (towns/castles only)
+            var fiefs = clan.Settlements?.Where(s => !s.IsVillage).ToList();
+            if (fiefs != null && fiefs.Count > 0)
             {
-                onFailure("You are not under a mercenary contract.");
+                ShowFiefIncome(fiefs, onSuccess);
                 return;
             }
 
+            // If no fiefs, check for mercenary contract
+            if (clan.IsUnderMercenaryService)
+            {
+                ShowMercIncome(clan, onSuccess);
+                return;
+            }
+
+            // No income sources
+            onSuccess("You have no income sources (no settlements or mercenary contract).");
+        }
+
+        private void ShowFiefIncome(List<Settlement> settlements, Action<string> onSuccess)
+        {
+            var sb = new StringBuilder();
+            int totalIncome = 0;
+
+            foreach (var s in settlements)
+            {
+                int income = CalculateSettlementIncome(s);
+                totalIncome += income;
+                sb.Append($"{s.Name}: {(income >= 0 ? "+" : "")}{income} | ");
+            }
+
+            var result = sb.ToString().TrimEnd(' ', '|');
+            result += $" | Total: {(totalIncome >= 0 ? "+" : "")}{totalIncome}/day";
+
+            onSuccess(result);
+        }
+
+        private void ShowMercIncome(Clan clan, Action<string> onSuccess)
+        {
             int income = CalculateMercenaryIncome(clan);
-            onSuccess($"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}");
+            onSuccess($"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}/day");
         }
 
         // Helper methods for income calculation (can be used by behavior)

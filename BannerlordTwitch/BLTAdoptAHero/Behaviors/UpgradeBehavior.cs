@@ -25,9 +25,8 @@ namespace BLTAdoptAHero
         private Dictionary<string, string> _clanUpgrades = new();
         private Dictionary<string, string> _kingdomUpgrades = new();
 
-        // typed settings reference - must be set once by your initialization code
         private Settings _settings;
-        private Settings SettingsSafe => _settings;
+        private Settings SettingsSafe => UpgradeAction.CurrentSettings;
 
         public UpgradeBehavior()
         {
