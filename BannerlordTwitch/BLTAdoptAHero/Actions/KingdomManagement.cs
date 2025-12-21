@@ -7,6 +7,7 @@ using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero.Annotations;
+using BLTAdoptAHero.Actions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
@@ -28,7 +29,8 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Rebel", 1),
          CategoryOrder("Leave", 2),
          CategoryOrder("Create", 3),
-         CategoryOrder("Stats", 4)]
+         CategoryOrder("Vassal", 4),
+         CategoryOrder("Stats", 5)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -140,6 +142,18 @@ namespace BLTAdoptAHero.Actions
             public int CreateKPrice { get; set; } = 20000000;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Vassal", "{=TESTING}Vassal"),
+             LocDescription("{=TESTING}Enable viewer create vassal"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool VassalEnabled { get; set; } = true;
+
+            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
+             LocCategory("Vassal", "{=TESTING}Vassal"),
+             LocDescription("{=TESTING}Cost of creating a vassal clan"),
+             PropertyOrder(4), UsedImplicitly]
+            public int VassalPrice { get; set; } = 250000;
+
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
              LocDescription("{=CFBJIpux}Enable stats command"),
              PropertyOrder(1), UsedImplicitly]
@@ -159,6 +173,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Leave, ");
                 if (CreateKEnabled)
                     EnabledCommands.Append("Create, ");
+                if (VassalEnabled)
+                    EnabledCommands.Append("Vassa, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
 
@@ -195,6 +211,9 @@ namespace BLTAdoptAHero.Actions
                                     "Price={price}{icon}, ".Translate(("price", CreateKPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}, ".Translate(("tier", CreateKTierMinimum.ToString())) +
                                     "Minimum fiefs amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
+                if (VassalEnabled)
+                    generator.Value("<strong>Vassal: </strong>" +
+                        $"Price={VassalPrice.ToString()}{Naming.Gold}");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -700,6 +719,82 @@ namespace BLTAdoptAHero.Actions
             //}
             onSuccess("{=TESTING}Created kingdom {name}".Translate(("name", desiredName)));
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
+        }
+
+        private void VassalCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.VassalEnabled)
+            {
+                onFailure("Vassal creation is disabled");
+                return;
+            }
+
+            if (adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
+            {
+                onFailure("{=GEGrsLPm}Your must be king to vassal".Translate());
+                return;
+            }
+            if (!adoptedHero.IsClanLeader)
+            {
+                onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(desiredName))
+            {
+                onFailure("{=ETfJQatX}(vassal) (hero name)".Translate());
+                return;
+            }
+            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == desiredName);
+            if (existingClan != null)
+            {
+                onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", desiredName)));
+                return;
+            }
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.CreateKPrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.VassalPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
+
+
+            Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.Name.ToString() == desiredName);
+            if (vassal == null)
+            {
+                onFailure($"No hero named {desiredName}");
+                return;
+            }
+            if (vassal.Spouse == null)
+            {
+                HeroFeatures.SpawnSpouse(vassal, vassal.Culture);
+            }
+
+            var fullClanName = vassal.Culture.ClanNameList.SelectRandom().ToString()+ " [Vassal]";
+            var newClan = Clan.CreateClan(fullClanName);
+            newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
+            newClan.Culture = vassal.Culture;
+            newClan.Banner = Banner.CreateOneColoredBannerWithOneIcon(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetFirstIconColor(), -1);
+            newClan.Kingdom = adoptedHero.Clan.Kingdom;
+            newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
+            vassal.Clan = newClan;
+            if (vassal.Spouse != null)
+            {
+                vassal.Spouse.Clan = newClan;
+            }
+            if (vassal.Children.Count > 0)
+            {
+                foreach (Hero child in vassal.Children)
+                {
+                    child.Clan = newClan;
+                }
+            }
+            var tierModel = Campaign.Current.Models.ClanTierModel;
+            newClan.AddRenown(tierModel.GetRequiredRenownForTier(tierModel.CompanionToLordClanStartingTier));
+            newClan.SetLeader(vassal);
+            newClan.IsNoble = true;
+            CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
+            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
+            Log.ShowInformation("Vassal created");
         }
     }
 }

@@ -291,75 +291,75 @@ namespace BLTAdoptAHero.Actions
                             return name.StartsWith("{=") ? name.Substring(name.IndexOf("}") + 1) : name;
                         }
 
-                        Hero SpawnSpouse(string cultureArg = null)
-                        {
-                            bool fallback = false;
-                            var cultureToSpawn = !string.IsNullOrEmpty(cultureArg)
-                                ? CampaignHelpers.MainCultures.FirstOrDefault(c => c.Name.ToString().StartsWith(cultureArg, StringComparison.CurrentCultureIgnoreCase))
-                                : adoptedHero.Culture;
+                        //Hero SpawnSpouse(string cultureArg = null)
+                        //{
+                        //    bool fallback = false;
+                        //    var cultureToSpawn = !string.IsNullOrEmpty(cultureArg)
+                        //        ? CampaignHelpers.MainCultures.FirstOrDefault(c => c.Name.ToString().StartsWith(cultureArg, StringComparison.CurrentCultureIgnoreCase))
+                        //        : adoptedHero.Culture;
 
-                            if (cultureToSpawn == null)
-                                cultureToSpawn = CampaignHelpers.MainCultures.FirstOrDefault();
+                        //    if (cultureToSpawn == null)
+                        //        cultureToSpawn = CampaignHelpers.MainCultures.FirstOrDefault();
 
-                            var character = CampaignHelpers.GetWandererTemplates(cultureToSpawn).SelectRandom();
-                            if (character == null)
-                            {
-                                character = CampaignHelpers.AllWandererTemplates.SelectRandom();
-                                fallback = true;
-                            }                                
+                        //    var character = CampaignHelpers.GetWandererTemplates(cultureToSpawn).SelectRandom();
+                        //    if (character == null)
+                        //    {
+                        //        character = CampaignHelpers.AllWandererTemplates.SelectRandom();
+                        //        fallback = true;
+                        //    }                                
 
-                            if (character == null)
-                            {
-                                onFailure("{=cfkeeEB0}Failed to find a character template to spawn".Translate());
-                                return null;
-                            }
+                        //    if (character == null)
+                        //    {
+                        //        onFailure("{=cfkeeEB0}Failed to find a character template to spawn".Translate());
+                        //        return null;
+                        //    }
 
-                            var newHero = HeroCreator.CreateSpecialHero(character);
-                            newHero.ChangeState(Hero.CharacterStates.Active);
-                            BLTAdoptAHeroCampaignBehavior.Current.SetIsCreatedHero(newHero, true);
+                        //    var newHero = HeroCreator.CreateSpecialHero(character);
+                        //    newHero.ChangeState(Hero.CharacterStates.Active);
+                        //    BLTAdoptAHeroCampaignBehavior.Current.SetIsCreatedHero(newHero, true);
 
-                            var towns = Settlement.All.Where(s => s.IsTown).ToList();
+                        //    var towns = Settlement.All.Where(s => s.IsTown).ToList();
 
-                            Settlement heroSettlement = adoptedHero.LastKnownClosestSettlement;
-                            Settlement targetSettlement = null;
+                        //    Settlement heroSettlement = adoptedHero.LastKnownClosestSettlement;
+                        //    Settlement targetSettlement = null;
 
-                            if (heroSettlement != null)
-                            {
-                                var heroPos = heroSettlement.Position;
-                                targetSettlement = towns.OrderBy(town => town.Position.DistanceSquared(heroPos)).FirstOrDefault();
-                            }
-                            targetSettlement ??= towns.SelectRandom();
+                        //    if (heroSettlement != null)
+                        //    {
+                        //        var heroPos = heroSettlement.Position;
+                        //        targetSettlement = towns.OrderBy(town => town.Position.DistanceSquared(heroPos)).FirstOrDefault();
+                        //    }
+                        //    targetSettlement ??= towns.SelectRandom();
 
-                            if (targetSettlement != null)
-                                EnterSettlementAction.ApplyForCharacterOnly(newHero, targetSettlement);
-                            else
-                                Log.Error("No suitable settlement found to place new hero");
+                        //    if (targetSettlement != null)
+                        //        EnterSettlementAction.ApplyForCharacterOnly(newHero, targetSettlement);
+                        //    else
+                        //        Log.Error("No suitable settlement found to place new hero");
 
-                            newHero.SetNewOccupation(Occupation.Lord);
-                            newHero.Clan = adoptedHero.Clan;
-      
-                            var randAge = new Random();
-                            newHero.SetBirthDay(CampaignTime.YearsFromNow(-Math.Max(Campaign.Current.Models.AgeModel.HeroComesOfAge, adoptedHero.Age + randAge.Next(-3, +3))));
+                        //    newHero.SetNewOccupation(Occupation.Lord);
+                        //    newHero.Clan = adoptedHero.Clan;
 
-                            if (adoptedHero.IsFemale == newHero.IsFemale)
-                            {
-                                newHero.IsFemale = !newHero.IsFemale;
-                            }
-                            // Now randomize and assign the name based on new gender
-                            bool isFemale = newHero.IsFemale;
+                        //    var randAge = new Random();
+                        //    newHero.SetBirthDay(CampaignTime.YearsFromNow(-Math.Max(Campaign.Current.Models.AgeModel.HeroComesOfAge, adoptedHero.Age + randAge.Next(-3, +3))));
 
-                            TextObject objectName = isFemale
-                            ? cultureToSpawn.FemaleNameList.SelectRandom()
-                            : cultureToSpawn.MaleNameList.SelectRandom();
+                        //    if (adoptedHero.IsFemale == newHero.IsFemale)
+                        //    {
+                        //        newHero.IsFemale = !newHero.IsFemale;
+                        //    }
+                        //    // Now randomize and assign the name based on new gender
+                        //    bool isFemale = newHero.IsFemale;
 
-                            string rawName = objectName.ToString();
-                            string oldName = newHero.Name.ToString();
+                        //    TextObject objectName = isFemale
+                        //    ? cultureToSpawn.FemaleNameList.SelectRandom()
+                        //    : cultureToSpawn.MaleNameList.SelectRandom();
 
-                            CampaignHelpers.SetHeroName(newHero, objectName, objectName);
-                            if (fallback)
-                                newHero.Culture = cultureToSpawn;
-                            return newHero;
-                        }
+                        //    string rawName = objectName.ToString();
+                        //    string oldName = newHero.Name.ToString();
+
+                        //    CampaignHelpers.SetHeroName(newHero, objectName, objectName);
+                        //    if (fallback)
+                        //        newHero.Culture = cultureToSpawn;
+                        //    return newHero;
+                        //}
 
                         if (settings.OnlySpawnSpouse)
                         {
@@ -368,14 +368,15 @@ namespace BLTAdoptAHero.Actions
                                 onFailure("{=OwlH8hKI}Please specify a culture to spawn spouse from".Translate());
                                 return;
                             }
+                            var cultureSpouse = !string.IsNullOrEmpty(spouseArg)
+                                ? CampaignHelpers.MainCultures
+                                .FirstOrDefault(c => c.Name.ToString().IndexOf(spouseArg, StringComparison.OrdinalIgnoreCase) >= 0)
+                                : adoptedHero.Culture;
 
-                            var newHero = SpawnSpouse(spouseArg);
+                            var newHero = SpawnSpouse(adoptedHero, cultureSpouse);
                             if (newHero == null)
                                 return;
 
-                            adoptedHero.Spouse = newHero;
-                            newHero.Spouse = adoptedHero;
-                            
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MarriageCost);
                             onSuccess("{=JW5L4lvt}Marriage successful with spawned spouse".Translate());
                             Log.ShowInformation("{=h6AHfoVx}{heroName} has married {spouseName}!".Translate(("heroName", adoptedHero.Name.ToString()), ("spouseName", CleanName(newHero.Name.ToString()))),
@@ -475,11 +476,8 @@ namespace BLTAdoptAHero.Actions
 
                             if (spouse == null && ClanorName == false)
                             {
-                                var newHero = SpawnSpouse(spouseArg);
+                                var newHero = SpawnSpouse(adoptedHero, adoptedHero.Culture);
                                 if (newHero == null) return;
-
-                                adoptedHero.Spouse = newHero;
-                                newHero.Spouse = adoptedHero;
 
                                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.MarriageCost);
                                 onSuccess("{=AMBu22hn}No valid spouse found, spawned fallback spouse successfully".Translate());
@@ -536,5 +534,74 @@ namespace BLTAdoptAHero.Actions
                     return;
             }
         }
+        public static Hero SpawnSpouse(Hero adoptedHero, CultureObject cultureArg)
+        {
+            bool fallback = false;
+
+            var cultureToSpawn = cultureArg;
+
+            cultureToSpawn ??= CampaignHelpers.MainCultures.FirstOrDefault();
+
+            var character = CampaignHelpers
+                .GetWandererTemplates(cultureToSpawn)
+                .SelectRandom();
+
+            if (character == null)
+            {
+                character = CampaignHelpers.AllWandererTemplates.SelectRandom();
+                fallback = true;
+            }
+
+            if (character == null)
+            {
+                Log.Info("{=cfkeeEB0}Failed to find a character template to spawn".Translate());
+                return null;
+            }
+
+            var newHero = HeroCreator.CreateSpecialHero(character);
+            newHero.ChangeState(Hero.CharacterStates.Active);
+
+            BLTAdoptAHeroCampaignBehavior.Current.SetIsCreatedHero(newHero, true);
+
+            var towns = Settlement.All.Where(s => s.IsTown).ToList();
+            var targetSettlement = adoptedHero.LastKnownClosestSettlement != null
+                ? towns.OrderBy(t => t.Position.DistanceSquared(
+                    adoptedHero.LastKnownClosestSettlement.Position)).FirstOrDefault()
+                : towns.SelectRandom();
+
+            if (targetSettlement != null)
+                EnterSettlementAction.ApplyForCharacterOnly(newHero, targetSettlement);
+
+            newHero.SetNewOccupation(Occupation.Lord);
+            newHero.Clan = adoptedHero.Clan;
+
+            var rand = new Random();
+            newHero.SetBirthDay(
+                CampaignTime.YearsFromNow(
+                    -Math.Max(
+                        Campaign.Current.Models.AgeModel.HeroComesOfAge,
+                        adoptedHero.Age + rand.Next(-3, 3))));
+
+            if (adoptedHero.IsFemale == newHero.IsFemale)
+                newHero.IsFemale = !newHero.IsFemale;
+
+            TextObject name = newHero.IsFemale
+                ? cultureToSpawn.FemaleNameList.SelectRandom()
+                : cultureToSpawn.MaleNameList.SelectRandom();
+
+            CampaignHelpers.SetHeroName(newHero, name, name);
+
+            if (fallback)
+                newHero.Culture = cultureToSpawn;
+
+            if (newHero != null)
+            {
+                adoptedHero.Spouse = newHero;
+                newHero.Spouse = adoptedHero;
+            }
+            
+            return newHero;
+        }
+
     }
 }

@@ -65,7 +65,7 @@ namespace BLTAdoptAHero
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.PropertyValuePair("{=TESTING}Tier costs".Translate(), $"1={Focus1}{Naming.Gold}, 2={Focus1}{Naming.Gold}, 3={Focus1}{Naming.Gold}, 4={Focus1}{Naming.Gold}, 5={Focus1}{Naming.Gold}");
+                generator.PropertyValuePair("{=TESTING}Tier costs".Translate(), $"1={Focus1}{Naming.Gold}, 2={Focus2}{Naming.Gold}, 3={Focus3}{Naming.Gold}, 4={Focus4}{Naming.Gold}, 5={Focus5}{Naming.Gold}");
                 var skillList = string.Join(", ", Skills.All.Select(k => k.Name.ToString()));
                 generator.Value($"Skills:\n{skillList}");
             }

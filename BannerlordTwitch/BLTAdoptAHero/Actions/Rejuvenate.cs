@@ -50,7 +50,7 @@ namespace BLTAdoptAHero
 			//	onFailure("{=yWo2v3yu}You cannot rejuvenate bellow child age".Translate());
 			//	return;
 			//}
-			if ((float)((int)Math.Truncate((double)adoptedHero.Age)) <= 18f)
+			if ((adoptedHero.Age - (float)settings.Age) < Campaign.Current.Models.AgeModel.BecomeChildAge)
 			{
 				onFailure("{=yWo2v3yu}You cannot rejuvenate bellow child age".Translate());
 				return;

@@ -237,6 +237,11 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Your hero is busy");
                             return;
                         }
+                        if (adoptedHero.CurrentSettlement != null && (adoptedHero.CurrentSettlement.IsUnderSiege || adoptedHero.CurrentSettlement.IsUnderRaid))
+                        {
+                            onFailure("Your hero is busy");
+                            return;
+                        }
                         if (adoptedHero.IsPrisoner)
                         {
                             onFailure("You are prisoner");
@@ -327,12 +332,12 @@ namespace BLTAdoptAHero.Actions
                         if (party == null)
                         {
                             Settlement spawnSettlement = SettlementHelper.GetBestSettlementToSpawnAround(adoptedHero) ?? adoptedHero.CurrentSettlement ?? adoptedHero.HomeSettlement;
-                            //MobileParty newParty = MobilePartyHelper.SpawnLordParty(adoptedHero, spawnSettlement);
                             MobileParty newParty = MobilePartyHelper.SpawnLordParty(adoptedHero, spawnSettlement.GatePosition, Campaign.Current.GetAverageDistanceBetweenClosestTwoTownsWithNavigationType(MobileParty.NavigationType.Default) / 2f);
                             var retinue = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
                             var retinue2 = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero).ToList();
                             if (newParty != null)
                             {
+                                
                                 foreach (var retinueTroop in retinue)
                                 {
                                     if (retinueTroop != null)
@@ -402,7 +407,9 @@ namespace BLTAdoptAHero.Actions
                             return;
                         }
                         TextObject composition = PartyBaseHelper.PrintRegularTroopCategories(party.MemberRoster) ?? new TextObject("Unknown");
-                        partyStats.Append($"Troops: {composition} | ");
+                        double tier = party.MemberRoster.GetTroopRoster().Sum(r => r.Character.Tier * r.Number) / (double)party.MemberRoster.GetTroopRoster().Sum(r => r.Number);
+
+                        partyStats.Append($"Troops: {composition}(avg Tier {tier}) | ");
                         partyStats.Append($"Speed: {Math.Round(party.Speed, 1)} | ");
                         partyStats.Append($"Food: {(int)party.Food}({Math.Round(party.FoodChange, 1)}) | ");
                         partyStats.Append($"Morale: {(int)party.Morale} | ");

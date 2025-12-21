@@ -226,6 +226,16 @@ namespace BLTAdoptAHero
     internal static class ShipTradeCampaignBehavior_OnShipOwnerChanged_Patch
     {
         [HarmonyPrefix]
+        [HarmonyPatch("TryPurchasingShipFromTown")]
+        private static bool Prefix(MobileParty mobileParty, Town town)
+        {
+            if (mobileParty.Party.LeaderHero == null || mobileParty.Owner == null)
+                return false;
+
+            return true;
+        }
+
+        [HarmonyPrefix]
         [HarmonyPatch("OnShipOwnerChanged")]
         private static bool Prefix(
             Ship ship,
@@ -235,9 +245,15 @@ namespace BLTAdoptAHero
             if (details != ChangeShipOwnerAction.ShipOwnerChangeDetail.ApplyByTrade)
                 return true;
 
-            // Party owner exists but leader not initialized yet
-            var party = ship?.Owner?.MobileParty;
-            if (party != null && party.LeaderHero == null)
+            if (ship.Owner == null)
+                Log.Error("ship owner null");
+
+            else if (oldOwner.Owner == null)
+                Log.Error("party owner null");
+
+            else if (oldOwner.LeaderHero == null)
+                Log.Error("party leader null");
+            else if (ship.Owner == null || oldOwner.Owner == null || oldOwner.LeaderHero == null)
                 return false;
 
             return true;
