@@ -378,6 +378,7 @@
     <Compile Include="Behaviors\BLTAdoptAHeroCommonMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCustomMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTHeroWidgetBehavior.cs" />
+    <Compile Include="Behaviors\BLTSettlementUpgradeBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentBetMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTCustomItemsCampaignBehavior.cs" />
     <Compile Include="Behaviors\BLTHeroPowersMissionBehavior.cs" />
