@@ -2042,54 +2042,83 @@ namespace BLTAdoptAHero
                 return "Campaign is not active";
             }
 
-            var parts = string.Join(" ", strings).Split(',').Select(p => p.Trim()).ToList();
-
-            if (parts.Count < 2)
+            if (strings.Count < 2)
             {
-                return "Usage: blt.change_gold username, amount (e.g., blt.change_gold TestUser, 1000)";
+                return "Usage: blt.change_gold <hero_name> <amount> (e.g., blt.change_gold TestUser 1000)";
             }
 
-            string username = parts[0];
-            if (!int.TryParse(parts[1], out int amount))
+            // Last element is the amount, everything else is the hero name
+            if (!int.TryParse(strings[strings.Count - 1], out int amount))
             {
-                return $"Invalid gold amount: {parts[1]}";
+                return $"Invalid gold amount: {strings[strings.Count - 1]}";
             }
 
-            // get the behavior once and null-check it
+            // Join all strings except the last one (the amount) to get the hero name
+            var heroName = string.Join(" ", strings.Take(strings.Count - 1)).Trim();
+            bool hasBLTTag = heroName.EndsWith(" [BLT]");
+            bool hasDEVTag = heroName.EndsWith(" [DEV]");
+
+            if (string.IsNullOrEmpty(heroName))
+            {
+                return "Usage: blt.change_gold <hero_name> <amount>";
+            }
+
+            // get the behavior safely
             var behavior = Campaign.Current?.GetCampaignBehavior<BLTAdoptAHeroCampaignBehavior>();
             if (behavior == null)
             {
                 return "BLT Adopt-a-hero behavior is not available";
             }
 
-            // avoid LINQ lambda throwing - do a foreach with null checks
-            Hero hero = null;
-            foreach (var h in Hero.AllAliveHeroes)
+            Hero targetHero = null;
+            Hero adoptedRecord = null;
+            string adoptedTaggedName = null;
+
+            try
             {
-                if (!h.IsAdopted())
-                    continue;
-
-                // guard every call that might return null
-                var adopted = behavior.GetAdoptedHero(h.Name.ToString());
-                if (adopted == null || adopted.Name == null)
-                    continue;
-
-                if (string.Equals(adopted.Name.ToString(), username, StringComparison.OrdinalIgnoreCase))
+                // try the obvious call - if the behavior exposes other overloads you can prefer them
+                if (targetHero == null)
                 {
-                    hero = h;
-                    break;
+                    targetHero = behavior.GetAdoptedHero(heroName);
+
+                    if (targetHero == null && !hasBLTTag && !hasDEVTag)
+                    {
+                        adoptedTaggedName = heroName.Add(" [BLT]");
+                        adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        if (adoptedRecord == null)
+                        {
+                            adoptedTaggedName = heroName.Add(" [DEV]");
+                            adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        }
+
+                        if (adoptedRecord != null)
+                        {
+                            targetHero = adoptedRecord;
+                        }
+                    }
                 }
             }
-
-            if (hero == null)
+            catch
             {
-                return $"Could not find BLT hero with username: {username}";
+                // ignore - we'll fall back to scanning heroes
+            }
+
+            // Find a live hero by name
+            if (targetHero == null)
+            {
+                targetHero = Hero.AllAliveHeroes
+                    .FirstOrDefault(h => string.Equals(h.Name?.ToString(), heroName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (targetHero == null)
+            {
+                return $"Could not find BLT hero: {heroName}";
             }
 
             // Change the hero's gold in a try/catch so we don't crash if the behavior throws
             try
             {
-                behavior.ChangeHeroGold(hero, amount, true);
+                behavior.ChangeHeroGold(targetHero, amount, true);
             }
             catch (Exception ex)
             {
@@ -2097,8 +2126,8 @@ namespace BLTAdoptAHero
                 return $"Error changing gold: {ex.Message}";
             }
 
-            int currentGold = behavior.GetHeroGold(hero);
-            return $"Changed {hero.Name}'s gold by {amount}. Current balance: {currentGold}";
+            int currentGold = behavior.GetHeroGold(targetHero);
+            return $"Changed {targetHero.Name}'s gold by {amount}. Current balance: {currentGold}";
         }
 
 
