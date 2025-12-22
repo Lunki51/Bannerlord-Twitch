@@ -9,6 +9,7 @@ using TaleWorlds.Library;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Siege;
 using HarmonyLib;
+using TaleWorlds.Localization;
 
 namespace BLTAdoptAHero
 {
@@ -29,6 +30,9 @@ namespace BLTAdoptAHero
         // runtime-only bookkeeping to map settlement -> list of party string ids we created for its current siege
         private Dictionary<string, List<string>> _openSiegeParties = new();
         private Dictionary<string, List<string>> _openEliteSiegeParties = new();
+        // runtime-only: tracks sieges already finalized via AfterSiegeCompletedEvent
+        private HashSet<string> _finalizedSieges = new();
+
 
         public ReinforcementBehavior()
         {
@@ -62,6 +66,13 @@ namespace BLTAdoptAHero
 
             CampaignEvents.AfterSiegeCompletedEvent.AddNonSerializedListener(
                 this, OnAfterSiegeCompleted);
+
+            CampaignEvents.DailyTickPartyEvent.AddNonSerializedListener(
+                this, OnDailyTickParty);
+
+            CampaignEvents.OnSiegeEventEndedEvent.AddNonSerializedListener(
+                this, OnSiegeEventEnded);
+
         }
 
 
@@ -99,17 +110,30 @@ namespace BLTAdoptAHero
             bool isElite)
         {
             if (count <= 0) return;
+            if (settlement == null) return;
 
             string partyId =
                 Campaign.Current.CampaignObjectManager
-                    .FindNextUniqueStringId<MobileParty>(
-                        $"blt_{idSuffix}_{settlement.StringId}");
+                    .FindNextUniqueStringId<MobileParty>($"blt_{idSuffix}_{settlement.StringId}");
 
+            // 1) create a militia party using the factory (safe)
             var party = MilitiaPartyComponent.CreateMilitiaParty(partyId, settlement);
             if (party == null) return;
 
-            // Remove any default troops that CreateMilitiaParty might have added,
-            // so we only spawn the exact number we intend.
+            // 2) convert it to a Custom/Mobile party so militia-specific plumbing won't re-add troops later
+            try
+            {
+                // TextObject name - friendly readable name (localize if you want)
+                var name = new TextObject("{=blt_reinforce_name}BLT Reinforcements");
+                // Convert to a custom party (keeps the party instance but changes its PartyComponent)
+                CustomPartyComponent.ConvertPartyToCustomParty(party, settlement, name, owner: null);
+            }
+            catch
+            {
+                // conversion failing shouldn't be fatal; fall back to continuing with the party instance
+            }
+
+            // 3) Now we control the roster reliably - clear and add exact counts
             try { party.MemberRoster?.Clear(); } catch { }
 
             int meleeCount = count / 2 + (count % 2);
@@ -120,6 +144,15 @@ namespace BLTAdoptAHero
 
             if (rangedTroop != null && rangedCount > 0)
                 party.MemberRoster.AddToCounts(rangedTroop, rangedCount);
+
+            // 4) Seed a small amount of food so they don't starve instantly (we also refill daily in the tick)
+            try
+            {
+                // Per-party "start" food - tweak amount as desired (example: 5 grain per man)
+                int seedGrain = Math.Max(1, count * 5);
+                party.ItemRoster?.AddToCounts(DefaultItems.Grain, seedGrain);
+            }
+            catch { }
 
             RegisterSiegeParty(settlement, party.StringId, isElite);
         }
@@ -364,6 +397,9 @@ namespace BLTAdoptAHero
 
                 var key = KeyFor(siegeSettlement);
 
+                // mark this siege as finalized
+                _finalizedSieges.Add(key);
+
                 // If attackers won (settlement captured), wipe the reinforcements
                 if (attackersWon)
                 {
@@ -389,6 +425,96 @@ namespace BLTAdoptAHero
             catch (Exception ex)
             {
                 InformationManager.DisplayMessage(new InformationMessage($"[BLT Reinforcement] OnAfterSiegeCompleted failed: {ex.Message}"));
+            }
+        }
+
+        private void OnSiegeEventEnded(SiegeEvent siegeEvent)
+        {
+            try
+            {
+                if (siegeEvent == null) return;
+                var settlement = siegeEvent.BesiegedSettlement;
+                if (settlement == null) return;
+
+                var key = KeyFor(settlement);
+
+                // If we already finalized this siege via AfterSiegeCompletedEvent,
+                // do nothing here to avoid double-cleanup.
+                if (_finalizedSieges.Contains(key))
+                {
+                    _finalizedSieges.Remove(key);
+                    return;
+                }
+
+                // Helper to remove parties from a dictionary list
+                void cleanupDict(Dictionary<string, List<string>> dict)
+                {
+                    if (!dict.TryGetValue(key, out var ids) || ids == null) return;
+                    foreach (var id in ids.ToList())
+                    {
+                        try
+                        {
+                            var mp = MobileParty.All.FirstOrDefault(p => string.Equals(p.StringId, id, StringComparison.OrdinalIgnoreCase));
+                            if (mp == null) continue;
+
+                            // clear troops so they don't linger; try to hide/dispose the party
+                            try { mp.MemberRoster?.Clear(); } catch { }
+                            try
+                            {
+                                // mark inactive - this usually hides it from the map
+                                mp.IsActive = false;
+                            }
+                            catch { }
+
+                            // if you want a stronger removal you can try marking disbanding (use with caution)
+                            try { mp.IsDisbanding = true; } catch { }
+                        }
+                        catch (Exception exPart)
+                        {
+                            InformationManager.DisplayMessage(new InformationMessage($"[BLT Reinforcement] error cleaning siege party {id}: {exPart.Message}"));
+                        }
+                    }
+                    dict.Remove(key);
+                }
+
+                cleanupDict(_openSiegeParties);
+                cleanupDict(_openEliteSiegeParties);
+                // fallback cleanup done
+                _finalizedSieges.Remove(key); // safe even if not present
+            }
+            catch (Exception ex)
+            {
+                InformationManager.DisplayMessage(new InformationMessage($"[BLT Reinforcement] OnSiegeEventEnded failed: {ex.Message}"));
+            }
+        }
+
+        private void OnDailyTickParty(MobileParty party)
+        {
+            try
+            {
+                if (party == null) return;
+                // fast check: only care about parties we spawned
+                if (!_openSiegeParties.Values.Any(list => list.Contains(party.StringId)) &&
+                    !_openEliteSiegeParties.Values.Any(list => list.Contains(party.StringId)))
+                    return;
+
+                // if party already has plenty of food skip
+                int totalFood = party.TotalFoodAtInventory;
+                const int desiredFood = 200; // adjust per-party desired stock
+                if (totalFood >= desiredFood) return;
+
+                int toAdd = desiredFood - totalFood;
+
+                // Add grain (DefaultItems.Grain)
+                try
+                {
+                    party.ItemRoster?.AddToCounts(DefaultItems.Grain, toAdd);
+                }
+                catch { }
+            }
+            catch (Exception ex)
+            {
+                InformationManager.DisplayMessage(new InformationMessage($"[BLT Reinforcement] OnDailyTickParty error: {ex.Message}"));
             }
         }
 

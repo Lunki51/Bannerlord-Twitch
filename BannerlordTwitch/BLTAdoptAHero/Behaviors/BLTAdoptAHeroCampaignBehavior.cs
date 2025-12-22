@@ -20,6 +20,9 @@ using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.ObjectSystem;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
+using TaleWorlds.CampaignSystem.Party;
+using Helpers;
+using TaleWorlds.LinQuick;
 
 namespace BLTAdoptAHero
 {
@@ -1913,51 +1916,124 @@ namespace BLTAdoptAHero
         [UsedImplicitly]
         public static string KillAdoptedHeroAgent(List<string> strings)
         {
-            if (strings.Count != 1)
-            {
+            Hero targetHero = null;
+            // allow multi-word hero names
+            var heroName = string.Join(" ", strings).Trim();
+            bool hasBLTTag = heroName.EndsWith(" [BLT]");
+            bool hasDEVTag = heroName.EndsWith(" [DEV]");
+            if (string.IsNullOrEmpty(heroName))
                 return "Usage: killBLT <hero_name>";
-            }
 
-            var heroName = strings[0];
+            // get the behavior safely
+            var behavior = BLTAdoptAHeroCampaignBehavior.Current
+                           ?? Campaign.Current?.GetCampaignBehavior<BLTAdoptAHeroCampaignBehavior>();
+            if (behavior == null)
+                return "BLT adopt-a-hero behavior is not available";
 
-            // Get the adopted hero
-            var hero = Current.GetAdoptedHero(heroName);
-            if (hero == null)
-            {
-                return $"Couldn't find adopted hero: {heroName}";
-            }
-
-            // Check if there's an active mission/battle
+            // check active mission
             var mission = Mission.Current;
             if (mission == null)
-            {
                 return "No active mission/battle found";
+
+            Hero adoptedRecord = null;
+            string adoptedTaggedName = null;
+            try
+            {
+                // try the obvious call - if the behavior exposes other overloads you can prefer them
+                if (targetHero == null)
+                {
+                    targetHero = behavior.GetAdoptedHero(heroName);
+
+                    if (targetHero == null && !hasBLTTag && !hasDEVTag)
+                    {
+                        adoptedTaggedName = heroName.Add(" [BLT]");
+                        adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        if (adoptedRecord == null)
+                        {
+                            adoptedTaggedName = heroName.Add(" [DEV]");
+                            adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        }
+                        
+                        if (adoptedRecord != null)
+                        {
+                            targetHero = adoptedRecord;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore - we'll fall back to scanning heroes
             }
 
-            // Find the agent corresponding to the hero
-            var agent = mission.Agents.FirstOrDefault(a => a.Character == hero.CharacterObject);
+            //Find a live hero by name
+            if (targetHero == null)
+            {
+                targetHero = Hero.AllAliveHeroes
+                    .FirstOrDefault(h => string.Equals(h.Name?.ToString(), heroName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (targetHero == null)
+                return $"Couldn't find adopted hero: {heroName}";
+
+            // find agent safely - avoid throwing inside LINQ
+            Agent agent = null;
+            foreach (var a in mission.Agents)
+            {
+                try
+                {
+                    if (a == null) continue;
+                    // prefer direct CharacterObject equality when available
+                    if (a.Character != null && targetHero.CharacterObject != null)
+                    {
+                        if (object.ReferenceEquals(a.Character, targetHero.CharacterObject))
+                        {
+                            agent = a;
+                            break;
+                        }
+                    }
+
+                    // fallback: compare names (safe)
+                    var aName = a.Character?.Name?.ToString();
+                    if (!string.IsNullOrEmpty(aName) && aName.Equals(heroName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        agent = a;
+                        break;
+                    }
+                }
+                catch
+                {
+                    // continue - don't let one bad agent crash the search
+                    continue;
+                }
+            }
 
             if (agent == null)
-            {
-                return $"Agent for hero {hero.Name} not found in current battle";
-            }
+                return $"Agent for hero {targetHero.Name} not found in current battle";
 
             if (!agent.IsActive())
-            {
-                return $"Agent for hero {hero.Name} is not active";
-            }
+                return $"Agent for hero {targetHero.Name} is not active";
 
             // Kill the agent
             var blow = new Blow(agent.Index);
-            blow.DamageType = DamageTypes.Invalid;
+            blow.DamageType = DamageTypes.Blunt; // Blunt to avoid accidentally killing characters with lethal damage type
             blow.BoneIndex = agent.Monster.HeadLookDirectionBoneIndex;
             blow.GlobalPosition = agent.Position;
             blow.BaseMagnitude = agent.HealthLimit;
             blow.InflictedDamage = (int)agent.HealthLimit;
 
-            agent.Die(blow);
+            try
+            {
+                agent.Die(blow);
+            }
+            catch (Exception ex)
+            {
+                // show a helpful debug message without crashing the game
+                InformationManager.DisplayMessage(new InformationMessage($"killBLT failed: {ex.Message}"));
+                return $"Failed to kill agent: {ex.Message}";
+            }
 
-            return $"Killed agent of {hero.Name}";
+            return $"Killed agent of {targetHero.Name}";
         }
 
         [CommandLineFunctionality.CommandLineArgumentFunction("ChangeGold", "blt")]
@@ -1969,34 +2045,246 @@ namespace BLTAdoptAHero
                 return "Campaign is not active";
             }
 
-            var parts = string.Join(" ", strings).Split(',').Select(p => p.Trim()).ToList();
-
-            if (parts.Count < 2)
+            if (strings.Count < 2)
             {
-                return "Usage: blt.change_gold username, amount (e.g., blt.change_gold TestUser, 1000)";
+                return "Usage: blt.change_gold <hero_name> <amount> (e.g., blt.change_gold TestUser 1000)";
             }
 
-            string username = parts[0];
-            if (!int.TryParse(parts[1], out int amount))
+            // Last element is the amount, everything else is the hero name
+            if (!int.TryParse(strings[strings.Count - 1], out int amount))
             {
-                return $"Invalid gold amount: {parts[1]}";
+                return $"Invalid gold amount: {strings[strings.Count - 1]}";
             }
 
-            // Find the BLT hero with the matching username
-            var hero = Hero.AllAliveHeroes
-                .FirstOrDefault(h => h.IsAdopted() &&
-                    BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(h.Name.ToString()).Name.ToString() == username);
+            // Join all strings except the last one (the amount) to get the hero name
+            var heroName = string.Join(" ", strings.Take(strings.Count - 1)).Trim();
+            bool hasBLTTag = heroName.EndsWith(" [BLT]");
+            bool hasDEVTag = heroName.EndsWith(" [DEV]");
 
-            if (hero == null)
+            if (string.IsNullOrEmpty(heroName))
             {
-                return $"Could not find BLT hero with username: {username}";
+                return "Usage: blt.change_gold <hero_name> <amount>";
             }
 
-            // Change the hero's gold
-            BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(hero, amount, true);
+            // get the behavior safely
+            var behavior = Campaign.Current?.GetCampaignBehavior<BLTAdoptAHeroCampaignBehavior>();
+            if (behavior == null)
+            {
+                return "BLT Adopt-a-hero behavior is not available";
+            }
 
-            int currentGold = BLTAdoptAHeroCampaignBehavior.Current?.GetHeroGold(hero) ?? 0;
-            return $"Changed {hero.Name}'s gold by {amount}. Current balance: {currentGold}";
+            Hero targetHero = null;
+            Hero adoptedRecord = null;
+            string adoptedTaggedName = null;
+
+            try
+            {
+                // try the obvious call - if the behavior exposes other overloads you can prefer them
+                if (targetHero == null)
+                {
+                    targetHero = behavior.GetAdoptedHero(heroName);
+
+                    if (targetHero == null && !hasBLTTag && !hasDEVTag)
+                    {
+                        adoptedTaggedName = heroName.Add(" [BLT]");
+                        adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        if (adoptedRecord == null)
+                        {
+                            adoptedTaggedName = heroName.Add(" [DEV]");
+                            adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
+                        }
+
+                        if (adoptedRecord != null)
+                        {
+                            targetHero = adoptedRecord;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // ignore - we'll fall back to scanning heroes
+            }
+
+            // Find a live hero by name
+            if (targetHero == null)
+            {
+                targetHero = Hero.AllAliveHeroes
+                    .FirstOrDefault(h => string.Equals(h.Name?.ToString(), heroName, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (targetHero == null)
+            {
+                return $"Could not find BLT hero: {heroName}";
+            }
+
+            // Change the hero's gold in a try/catch so we don't crash if the behavior throws
+            try
+            {
+                behavior.ChangeHeroGold(targetHero, amount, true);
+            }
+            catch (Exception ex)
+            {
+                InformationManager.DisplayMessage(new InformationMessage($"blt.change_gold failed: {ex.Message}"));
+                return $"Error changing gold: {ex.Message}";
+            }
+
+            int currentGold = behavior.GetHeroGold(targetHero);
+            return $"Changed {targetHero.Name}'s gold by {amount}. Current balance: {currentGold}";
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("CleanupShellParties", "blt")]
+        [UsedImplicitly]
+        public static string CleanupShellParties(List<string> strings)
+        {
+            if (Campaign.Current == null)
+            {
+                return "Campaign is not active";
+            }
+
+            var Heroes = new List<Hero>();
+            var partiesToDelete = new List<MobileParty>();
+            int checkedCount = 0;
+            int skippedCount = 0;
+
+            try
+            {
+                foreach (var hero in Hero.AllAliveHeroes.ToList().Where(h => h.IsAdopted()))
+                {
+                    Heroes.Add(hero);
+                }
+
+                // Collect all parties that should be deleted
+                // Use ToList() to avoid modifying collection during enumeration
+                foreach (var party in MobileParty.All.ToList())
+                {
+                    if (party == null)
+                        continue;
+
+                    checkedCount++;
+
+                    // Skip the main party (player's party)
+                    if (party.IsMainParty)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Skip caravans - they don't need a LeaderHero
+                    if (party.IsCaravan)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Skip villagers - they don't need a LeaderHero
+                    if (party.IsVillager)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Skip bandits - they don't need a LeaderHero
+                    if (party.IsBandit)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Skip militia - they don't need a LeaderHero
+                    if (party.IsMilitia)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Skip garrison parties (shouldn't be mobile but just in case)
+                    if (party.IsGarrison)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Skip patrol parties - counted as Lord Parties for some reason
+                    if (party.IsPatrolParty)
+                    {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    // Now check if this is a lord party without a leader
+                    // IsLordParty should be true for parties that need a LeaderHero
+                    string partyName = party.Name?.ToString() ?? string.Empty;
+
+                    bool nameMatchesAdoptedHero =
+                        Heroes.Any(h =>
+                            !string.IsNullOrEmpty(h.Name?.ToString()) &&
+                            partyName.Contains(h.Name.ToString()));
+
+                    if (party.IsLordParty &&
+                        (party.LeaderHero == null ||
+                         party.LeaderHero.IsAdopted() ||
+                         nameMatchesAdoptedHero))
+                    {
+                        if (!party.IsActive)
+                            party.IsActive = true;
+
+                        partiesToDelete.Add(party);
+                    }
+                    else
+                    {
+                        skippedCount++;
+                    }
+                }
+
+                // Now delete the collected parties
+                int deletedCount = 0;
+                var deletionErrors = new List<string>();
+
+                foreach (var party in partiesToDelete)
+                {
+                    try
+                    {
+                        string partyInfo = $"{party.Name.ToString() ?? "Unnamed"}";
+                        if (party.Party?.Owner != null)
+                        {
+                            partyInfo += $" (Owner: {party.Party.Owner.Name})";
+                        }
+
+                        DestroyPartyAction.Apply(null, party);
+                        deletedCount++;
+
+                        InformationManager.DisplayMessage(
+                            new InformationMessage($"Deleted shell party: {partyInfo}")
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        deletionErrors.Add($"Failed to delete party {party.Name}: {ex.Message}");
+                    }
+                }
+
+                // Build result message
+                var result = $"Cleanup complete:" +
+                             $"- Checked: {checkedCount} parties" +
+                             $"- Skipped: {skippedCount} (valid parties)" +
+                             $"- Deleted: {deletedCount} shell lord parties";
+
+                if (deletionErrors.Any())
+                {
+                    result += $"- Errors: { deletionErrors.Count}";
+                    foreach (var error in deletionErrors)
+                    {
+                        InformationManager.DisplayMessage(new InformationMessage($"Error: {error}"));
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return $"Cleanup failed: {ex.Message}";
+            }
         }
 
         #endregion
