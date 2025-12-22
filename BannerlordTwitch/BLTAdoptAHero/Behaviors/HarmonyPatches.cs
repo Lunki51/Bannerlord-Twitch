@@ -221,44 +221,72 @@ namespace BLTAdoptAHero
     }
     #endregion
 
-    #region OnShipOwnerChanged
-    [HarmonyPatch(typeof(ShipTradeCampaignBehavior))]
-    internal static class ShipTradeCampaignBehavior_OnShipOwnerChanged_Patch
-    {
-        [HarmonyPrefix]
-        [HarmonyPatch("TryPurchasingShipFromTown")]
-        private static bool Prefix(MobileParty mobileParty, Town town)
-        {
-            if (mobileParty.Party.LeaderHero == null || mobileParty.Owner == null)
-                return false;
+    //#region OnShipOwnerChanged
+    //[HarmonyPatch(typeof(ChangeShipOwnerAction), "ApplyInternal")]
+    //public static class ChangeShipOwnerActionPatch
+    //{
+    //    [HarmonyPrefix]
+    //    private static bool Prefix(PartyBase newOwner, Ship ship, ChangeShipOwnerAction.ShipOwnerChangeDetail changeDetail)
+    //    {
+    //        try
+    //        {
+    //            // 1. Basic Null Checks
+    //            if (ship == null) { Log.Trace("[FIX] ship is null"); return false; }
+    //            if (newOwner == null) { Log.Trace("[FIX] newOwner is null"); return false; }
 
-            return true;
-        }
+    //            PartyBase oldOwner = ship.Owner;
+    //            //if (oldOwner == null) { Log.Trace("[FIX] ship.Owner (oldOwner) is null"); return false; }
 
-        [HarmonyPrefix]
-        [HarmonyPatch("OnShipOwnerChanged")]
-        private static bool Prefix(
-            Ship ship,
-            PartyBase oldOwner,
-            ChangeShipOwnerAction.ShipOwnerChangeDetail details)
-        {
-            if (details != ChangeShipOwnerAction.ShipOwnerChangeDetail.ApplyByTrade)
-                return true;
+    //            // 2. Scenario: Buying from a Town (Settlement -> MobileParty)
+    //            if (changeDetail == ChangeShipOwnerAction.ShipOwnerChangeDetail.ApplyByTrade)
+    //            {
+    //                if (oldOwner.IsSettlement)
+    //                {
+    //                    // Check if the buyer (newOwner) is missing critical components
+    //                    if (newOwner.MobileParty == null)
+    //                    {
+    //                        Log.Trace($"[FIX] Buyer '{newOwner.Name}' has no MobileParty attached.");
+    //                        return false;
+    //                    }
 
-            if (ship.Owner == null)
-                Log.Error("ship owner null");
+    //                    // The decompiled code checks ActualClan.Leader and LeaderHero
+    //                    bool hasClanLeader = newOwner.MobileParty.ActualClan?.Leader != null;
+    //                    bool hasLeaderHero = newOwner.MobileParty.LeaderHero != null;
 
-            else if (oldOwner.Owner == null)
-                Log.Error("party owner null");
+    //                    if (!newOwner.MobileParty.IsCaravan && !newOwner.MobileParty.IsVillager && !hasClanLeader && !hasLeaderHero)
+    //                    {
+    //                        Log.Trace($"[FIX] Buyer '{newOwner.Name}' is not a caravan/villager AND has no Clan Leader or LeaderHero. This will crash ApplyInternal.");
+    //                        return false;
+    //                    }
+    //                }
+    //                // 3. Scenario: Selling to a Town (MobileParty -> Settlement)
+    //                else
+    //                {
+    //                    if (oldOwner.MobileParty == null)
+    //                    {
+    //                        Log.Trace($"[FIX] Seller '{oldOwner.Name}' has no MobileParty attached.");
+    //                        return false;
+    //                    }
 
-            else if (oldOwner.LeaderHero == null)
-                Log.Error("party leader null");
-            else if (ship.Owner == null || oldOwner.Owner == null || oldOwner.LeaderHero == null)
-                return false;
+    //                    bool hasClanLeader = oldOwner.MobileParty.ActualClan?.Leader != null;
+    //                    bool hasLeaderHero = oldOwner.LeaderHero != null;
 
-            return true;
-        }
-    }
-    #endregion
+    //                    if (!oldOwner.MobileParty.IsCaravan && !oldOwner.MobileParty.IsVillager && !hasClanLeader && !hasLeaderHero)
+    //                    {
+    //                        Log.Trace($"[FIX] Seller '{oldOwner.Name}' lacks leaders required for gold transfer. Blocking crash.");
+    //                        return false;
+    //                    }
+    //                }
+    //            }
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            Log.Trace($"[FIX] Error in Patch Logic: {ex.Message}");
+    //        }
+
+    //        return true; // Proceed if safe
+    //    }
+    //}
+    //#endregion
 
 }
