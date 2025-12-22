@@ -1950,6 +1950,15 @@ namespace BLTAdoptAHero
                             adoptedTaggedName = heroName.Add(" [DEV]");
                             adoptedRecord = behavior.GetAdoptedHero(adoptedTaggedName);
                         }
+                        
+                        if (adoptedRecord != null)
+                        {
+                            targetHero = adoptedRecord;
+                        }
+                    }
+                }
+            }
+            catch
             {
                 // ignore - we'll fall back to scanning heroes
             }
