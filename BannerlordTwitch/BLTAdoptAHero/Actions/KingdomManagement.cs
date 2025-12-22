@@ -147,6 +147,12 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool VassalEnabled { get; set; } = true;
 
+            [LocDisplayName("{=6PUxQuLg}Max vassal"),
+             LocCategory("Vassal", "{=TESTING}Vassal"),
+             LocDescription("{=TESTING}Max vassal clans"),
+             PropertyOrder(4), UsedImplicitly]
+            public int VassalAmount { get; set; } = 3;
+
             [LocDisplayName("{=6PUxQuLg}Gold Cost"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
              LocDescription("{=TESTING}Cost of creating a vassal clan"),
@@ -213,7 +219,8 @@ namespace BLTAdoptAHero.Actions
                                     "Minimum fiefs amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
                 if (VassalEnabled)
                     generator.Value("<strong>Vassal: </strong>" +
-                        $"Price={VassalPrice.ToString()}{Naming.Gold}");
+                                    $"Max vassals:{VassalAmount}, " +
+                                    $"Price={VassalPrice.ToString()}{Naming.Gold}");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -677,6 +684,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Your clan is not high enough tier to create a kingdom");
                 return;
             }
+
             if (adoptedHero.Clan.Kingdom != null)
             {
                 onFailure("{=GEGrsLPm}Your clan is already in a kingdom, in order to leave you must rebel against them".Translate());
@@ -752,10 +760,15 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=ETfJQatX}(vassal) (hero name)".Translate());
                 return;
             }
-            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == desiredName);
-            if (existingClan != null)
+            //var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == desiredName);
+            //if (existingClan != null)
+            //{
+            //    onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", desiredName)));
+            //    return;
+            //}
+            if (adoptedHero.Clan.Kingdom.Clans.FindAll(c => c.Name.ToString().IndexOf("[Vassal]", StringComparison.OrdinalIgnoreCase) >= 0).Count >= settings.VassalAmount)
             {
-                onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", desiredName)));
+                onFailure($"Max vassals{settings.VassalAmount}");
                 return;
             }
             if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.CreateKPrice)
@@ -765,7 +778,7 @@ namespace BLTAdoptAHero.Actions
             }
 
 
-            Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.Name.ToString() == desiredName);
+            Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.FirstName.ToString() == desiredName);
             if (vassal == null)
             {
                 onFailure($"No hero named {desiredName}");

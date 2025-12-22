@@ -414,7 +414,7 @@ namespace BLTAdoptAHero.Actions
                         TextObject composition = PartyBaseHelper.PrintRegularTroopCategories(party.MemberRoster) ?? new TextObject("Unknown");
                         double tier = Math.Round(party.MemberRoster.GetTroopRoster().Sum(r => r.Character.Tier * r.Number) / (double)party.MemberRoster.GetTroopRoster().Sum(r => r.Number),1);
 
-                        partyStats.Append($"Troops: {composition}(avg Tier {tier}) | ");
+                        partyStats.Append($"Troops: {composition}(avg Tier {Math.Round(tier, 1)}) | ");
                         partyStats.Append($"Speed: {Math.Round(party.Speed, 1)} | ");
                         partyStats.Append($"Food: {(int)party.Food}({Math.Round(party.FoodChange, 1)}) | ");
                         partyStats.Append($"Morale: {(int)party.Morale} | ");
