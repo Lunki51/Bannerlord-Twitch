@@ -457,7 +457,7 @@ namespace BLTAdoptAHero.Actions
             //newClan.Initialize(new TextObject(fullClanName), new TextObject(fullClanName), clanCulture, clanBanner);
             newClan.Kingdom = null;
             newClan.AddRenown(settings.Renown, false);
-            newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
+            newClan.SetInitialHomeSettlement(Settlement.All.Where(s => s.Culture == adoptedHero.Culture).SelectRandom() ?? (Settlement.All.SelectRandom()));
             adoptedHero.Clan = newClan;
             if ((adoptedHero.Occupation != Occupation.Lord) && (adoptedHero.Clan != null))
             {
@@ -469,6 +469,7 @@ namespace BLTAdoptAHero.Actions
             CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
 
             adoptedHero.Gold = 50000;
+             
 
             if (!CampaignHelpers.IsEncyclopediaBookmarked(newClan))
                 CampaignHelpers.AddEncyclopediaBookmarkToItem(newClan);
@@ -479,6 +480,7 @@ namespace BLTAdoptAHero.Actions
             if (adoptedHero?.PartyBelongedTo?.Party?.MobileParty == null && !adoptedHero.IsPartyLeader)
             {
                 var newParty = Helpers.MobilePartyHelper.CreateNewClanMobileParty(adoptedHero, newClan);
+                
                 var retinue = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).ToList();
                 var retinue2 = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero).ToList();
                 if (newParty != null)

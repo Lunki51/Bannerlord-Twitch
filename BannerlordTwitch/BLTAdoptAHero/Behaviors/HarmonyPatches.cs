@@ -229,8 +229,11 @@ namespace BLTAdoptAHero
         [HarmonyPatch("TryPurchasingShipFromTown")]
         private static bool Prefix(MobileParty mobileParty, Town town)
         {
-            if (mobileParty.Party.LeaderHero == null || mobileParty.Owner == null)
-                return false;
+            if (mobileParty.Party.LeaderHero == null)
+            {
+                Log.Trace("party leader null");
+            }
+            //return false;
 
             return true;
         }
@@ -245,16 +248,20 @@ namespace BLTAdoptAHero
             if (details != ChangeShipOwnerAction.ShipOwnerChangeDetail.ApplyByTrade)
                 return true;
 
-            if (ship.Owner == null)
-                Log.Error("ship owner null");
+            if (ship.Owner.IsMobile && ship.Owner == null)
+                Log.Trace("1ship party owner null");
 
-            else if (oldOwner.Owner == null)
-                Log.Error("party owner null");
+            if (oldOwner.IsMobile && oldOwner == null)
+                Log.Trace("2ship party owner null");
 
-            else if (oldOwner.LeaderHero == null)
-                Log.Error("party leader null");
-            else if (ship.Owner == null || oldOwner.Owner == null || oldOwner.LeaderHero == null)
-                return false;
+            if (ship.Owner.IsSettlement && ship.Owner == null)
+                Log.Trace("1settlement owner null");
+
+            if (oldOwner.IsSettlement && oldOwner == null)
+                Log.Trace("2settlement owner null");
+
+            //if (ship.Owner == null || oldOwner.Owner == null || ship.Owner.LeaderHero == null)
+            //    return false;
 
             return true;
         }

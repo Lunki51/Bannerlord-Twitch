@@ -275,6 +275,9 @@ namespace BLTAdoptAHero.Actions
                 case "create":
                     HandleKCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
+                case "vassal":
+                    VassalCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                        break;
                 case "stats":
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
@@ -349,6 +352,11 @@ namespace BLTAdoptAHero.Actions
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.JoinPrice, true);
             }
             ChangeKingdomAction.ApplyByJoinToKingdom(adoptedHero.Clan, desiredKingdom);
+            if (adoptedHero.Clan.Kingdom == null)
+                adoptedHero.Clan.Kingdom = desiredKingdom;
+            if (adoptedHero.Clan.Fiefs.Count == 0)
+                adoptedHero.Clan.SetInitialHomeSettlement(desiredKingdom.InitialHomeSettlement);
+
             onSuccess("{=LSea9bms}Your clan {clanName} has joined the kingom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
             Log.ShowInformation("{=Lid1aV3k}{clanName} has joined kingdom {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
             AdoptedHeroFlags._allowKingdomMove = false;

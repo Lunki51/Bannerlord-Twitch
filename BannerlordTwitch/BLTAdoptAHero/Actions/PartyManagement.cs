@@ -337,7 +337,12 @@ namespace BLTAdoptAHero.Actions
                             var retinue2 = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero).ToList();
                             if (newParty != null)
                             {
-                                
+                                if (newParty.LeaderHero != adoptedHero)
+                                    newParty.ChangePartyLeader(adoptedHero);
+                                if (newParty.ActualClan != adoptedHero.Clan)
+                                    newParty.ActualClan = adoptedHero.Clan;
+                                if (newParty.Owner == null)
+                                    Log.Info("Party create owner null");
                                 foreach (var retinueTroop in retinue)
                                 {
                                     if (retinueTroop != null)
@@ -407,7 +412,7 @@ namespace BLTAdoptAHero.Actions
                             return;
                         }
                         TextObject composition = PartyBaseHelper.PrintRegularTroopCategories(party.MemberRoster) ?? new TextObject("Unknown");
-                        double tier = party.MemberRoster.GetTroopRoster().Sum(r => r.Character.Tier * r.Number) / (double)party.MemberRoster.GetTroopRoster().Sum(r => r.Number);
+                        double tier = Math.Round(party.MemberRoster.GetTroopRoster().Sum(r => r.Character.Tier * r.Number) / (double)party.MemberRoster.GetTroopRoster().Sum(r => r.Number),1);
 
                         partyStats.Append($"Troops: {composition}(avg Tier {tier}) | ");
                         partyStats.Append($"Speed: {Math.Round(party.Speed, 1)} | ");

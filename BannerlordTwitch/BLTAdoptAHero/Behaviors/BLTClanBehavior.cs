@@ -262,10 +262,10 @@ namespace BLTAdoptAHero
                     {
                         clan.Renown += 5f;
 
-                        if (leader.Gold <= 0)
-                            leader.Gold = 25000;
-                        else if (clan.Influence <= 0 && !clan.IsUnderMercenaryService && clan.Kingdom != null)
-                            clan.Influence = 100f;
+                        if (leader.Gold <= 100000)
+                            leader.Gold += 50000;
+                        else if (clan.Influence <= 100 && !clan.IsUnderMercenaryService && clan.Kingdom != null)
+                            clan.Influence += 250f;
                     }
                 }
             }

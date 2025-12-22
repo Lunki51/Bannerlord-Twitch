@@ -17,7 +17,13 @@ namespace BLTAdoptAHero.UI
     {
         private static MapData currentMapData = null;
         private static DateTime lastUpdate = DateTime.MinValue;
-        private static readonly TimeSpan UpdateInterval = TimeSpan.FromSeconds(300);
+        private static readonly TimeSpan UpdateInterval = TimeSpan.FromSeconds(5);
+        private static Mission lastMission = null;
+
+        // Overlay dimensions for aspect ratio calculation
+        private const float OVERLAY_WIDTH = 100f;
+        private const float OVERLAY_HEIGHT = 30f;
+        private const float OVERLAY_ASPECT_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT; // 3.33
 
         public class MapData
         {
@@ -45,7 +51,7 @@ namespace BLTAdoptAHero.UI
 
         public class TerrainZone
         {
-            public string Type { get; set; } // "land", "sea", "blocked"
+            public string Type { get; set; }
             public List<float[]> Points { get; set; } = new();
         }
 
@@ -64,41 +70,73 @@ namespace BLTAdoptAHero.UI
                 return;
             }
 
-            // Check if in mission - check both Mission.Current and if we're in campaign map
+            // Check if in mission - always respond immediately
             if (Mission.Current != null || Campaign.Current?.MapSceneWrapper == null)
             {
                 Clients.Caller.updateMap(null);
                 return;
             }
 
+            // Send current data if we have it, otherwise trigger update
             if (currentMapData != null)
             {
+                Clients.Caller.updateMap(currentMapData);
+            }
+            else
+            {
+                // Force immediate update
+                UpdateMapDataInternal(true);
                 Clients.Caller.updateMap(currentMapData);
             }
         }
 
         public static void UpdateMapData()
         {
+            UpdateMapDataInternal(false);
+        }
+
+        private static void UpdateMapDataInternal(bool forceUpdate)
+        {
             var context = GlobalHost.ConnectionManager.GetHubContext<MapHub>();
 
             // Check if map overlay is disabled in settings
             if (BLTAdoptAHeroModule.CommonConfig?.ShowCampaignMapOverlay != true)
             {
-                context.Clients.All.updateMap(null);
-                currentMapData = null;
+                if (currentMapData != null)
+                {
+                    context.Clients.All.updateMap(null);
+                    currentMapData = null;
+                    lastMission = null;
+                }
                 return;
             }
 
-            // Check mission status and campaign map availability
+            // Check mission status - if it changed, update immediately
+            bool missionChanged = lastMission != Mission.Current;
+            lastMission = Mission.Current;
+
+            // Check if in mission or not on campaign map
             if (Mission.Current != null || Campaign.Current?.MapSceneWrapper == null)
             {
                 // In mission or not on campaign map - hide the map
-                context.Clients.All.updateMap(null);
-                currentMapData = null;
+                if (currentMapData != null || missionChanged)
+                {
+                    context.Clients.All.updateMap(null);
+                    currentMapData = null;
+                    Log.Trace("[MapHub] Map hidden - in mission or not on campaign map");
+                }
                 return;
             }
 
-            if (DateTime.Now - lastUpdate < UpdateInterval)
+            // If we just left a mission, update immediately
+            if (missionChanged)
+            {
+                forceUpdate = true;
+                Log.Trace("[MapHub] Mission ended, forcing map update");
+            }
+
+            // Check throttle (unless forced)
+            if (!forceUpdate && DateTime.Now - lastUpdate < UpdateInterval && currentMapData != null)
                 return;
 
             try
@@ -123,13 +161,19 @@ namespace BLTAdoptAHero.UI
                     })
                     .ToList();
 
-                // Get map bounds for normalization
+                // Get map bounds
                 var mapBounds = GetMapBounds();
 
-                // Get all settlements
-                mapData.Settlements = Campaign.Current.Settlements
+                // Get all settlements (only towns and castles, no villages)
+                var rawSettlements = Campaign.Current.Settlements
                     .Where(s => (s.IsTown || s.IsCastle) && (s.Position.X != 0 || s.Position.Y != 0))
-                    .Select(s => new SettlementData
+                    .ToList();
+
+                // Normalize settlements to fit the viewBox (0-100 width, 0-30 height)
+                var settlements = new List<SettlementData>();
+                foreach (var s in rawSettlements)
+                {
+                    var settlement = new SettlementData
                     {
                         Id = s.StringId ?? s.Name?.ToString() ?? "unknown",
                         Name = s.Name?.ToString() ?? "Unknown",
@@ -137,11 +181,17 @@ namespace BLTAdoptAHero.UI
                         KingdomId = s.OwnerClan?.Kingdom?.StringId,
                         X = NormalizeX(s.Position.X, mapBounds),
                         Y = NormalizeY(s.Position.Y, mapBounds)
-                    })
-                    .ToList();
+                    };
 
-                // Generate terrain zones based on actual navigation data
-                mapData.TerrainZones = GenerateTerrainZones(mapBounds);
+                    // Only separate overlapping settlements
+                    var (spreadX, spreadY) = SpreadSettlement(settlement.X, settlement.Y, settlements);
+                    settlement.X = spreadX;
+                    settlement.Y = spreadY;
+
+                    settlements.Add(settlement);
+                }
+
+                mapData.Settlements = settlements;
 
                 currentMapData = mapData;
                 lastUpdate = DateTime.Now;
@@ -149,7 +199,7 @@ namespace BLTAdoptAHero.UI
                 // Broadcast to all connected clients
                 context.Clients.All.updateMap(mapData);
 
-                Log.Trace($"[MapHub] Updated map data: {mapData.Kingdoms.Count} kingdoms, {mapData.Settlements.Count} settlements, {mapData.TerrainZones.Count} terrain zones");
+                Log.Trace($"[MapHub] Updated map data: {mapData.Kingdoms.Count} kingdoms, {mapData.Settlements.Count} settlements");
             }
             catch (Exception ex)
             {
@@ -159,35 +209,86 @@ namespace BLTAdoptAHero.UI
 
         private static (float minX, float maxX, float minY, float maxY) GetMapBounds()
         {
-            var settlements = Campaign.Current.Settlements.ToList();
+            var settlements = Campaign.Current.Settlements
+                .Where(s => (s.IsTown || s.IsCastle) && (s.Position.X != 0 || s.Position.Y != 0))
+                .ToList();
+
             if (!settlements.Any())
                 return (0, 1000, 0, 1000);
 
+            // Get the actual min/max positions
             var minX = settlements.Min(s => s.Position.X);
             var maxX = settlements.Max(s => s.Position.X);
             var minY = settlements.Min(s => s.Position.Y);
             var maxY = settlements.Max(s => s.Position.Y);
 
-            // Add padding
-            var paddingX = (maxX - minX) * 0.1f;
-            var paddingY = (maxY - minY) * 0.1f;
+            // Add just a tiny bit of padding so edge settlements aren't right on the border
+            float dataWidth = maxX - minX;
+            float dataHeight = maxY - minY;
+
+            float paddingX = dataWidth * 0.02f; // 2% padding
+            float paddingY = dataHeight * 0.02f;
 
             return (minX - paddingX, maxX + paddingX, minY - paddingY, maxY + paddingY);
         }
 
         private static float NormalizeX(float x, (float minX, float maxX, float minY, float maxY) bounds)
         {
-            return ((x - bounds.minX) / (bounds.maxX - bounds.minX)) * 100f;
+            float width = bounds.maxX - bounds.minX;
+            if (width == 0) return 50f;
+
+            // Map to viewBox width (0-100) with margins (5-95)
+            float normalized = (x - bounds.minX) / width;
+            return 5f + (normalized * 90f);
         }
 
         private static float NormalizeY(float y, (float minX, float maxX, float minY, float maxY) bounds)
         {
             float height = bounds.maxY - bounds.minY;
-            if (height == 0) return 50f;
+            if (height == 0) return 15f;
 
-            float normalizedY = (y - bounds.minY) / height;
+            float normalized = (y - bounds.minY) / height;
             // Invert for SVG (SVG 0 is top, Game 0 is bottom)
-            return (1f - normalizedY) * 100f;
+            // Map to viewBox height (0-30) with margins (2-28)
+            return 2f + ((1f - normalized) * 26f);
+        }
+
+        // Only separate overlapping settlements, don't distort the map
+        private static (float x, float y) SpreadSettlement(float x, float y, List<SettlementData> existingSettlements)
+        {
+            const float minDistance = 2.5f; // Minimum distance between settlements in viewBox units
+            const int maxIterations = 5;
+
+            for (int iteration = 0; iteration < maxIterations; iteration++)
+            {
+                bool moved = false;
+
+                foreach (var other in existingSettlements)
+                {
+                    float dx = x - other.X;
+                    float dy = y - other.Y;
+                    float dist = (float)Math.Sqrt(dx * dx + dy * dy);
+
+                    if (dist < minDistance && dist > 0.01f)
+                    {
+                        // Push away just enough to separate
+                        float overlap = minDistance - dist;
+                        float pushX = (dx / dist) * overlap * 0.5f;
+                        float pushY = (dy / dist) * overlap * 0.5f;
+                        x += pushX;
+                        y += pushY;
+                        moved = true;
+                    }
+                }
+
+                // Keep within viewBox bounds with margins
+                x = Math.Max(3f, Math.Min(97f, x));
+                y = Math.Max(1f, Math.Min(29f, y));
+
+                if (!moved) break;
+            }
+
+            return (x, y);
         }
 
         private static string ColorToHex(uint color)
@@ -197,231 +298,6 @@ namespace BLTAdoptAHero.UI
             var g = (color >> 8) & 0xFF;
             var b = color & 0xFF;
             return $"#{r:X2}{g:X2}{b:X2}";
-        }
-
-        private static List<TerrainZone> GenerateTerrainZones((float minX, float maxX, float minY, float maxY) bounds)
-        {
-            var zones = new List<TerrainZone>();
-
-            try
-            {
-                // Sample the map in a grid to detect terrain types
-                const int gridSize = 20; // 20x20 grid
-                var terrainGrid = new string[gridSize, gridSize];
-
-                for (int x = 0; x < gridSize; x++)
-                {
-                    for (int y = 0; y < gridSize; y++)
-                    {
-                        // Convert grid position to world position
-                        float worldX = bounds.minX + (x / (float)gridSize) * (bounds.maxX - bounds.minX);
-                        float worldY = bounds.minY + (y / (float)gridSize) * (bounds.maxY - bounds.minY);
-
-                        //var pos = new CampaignVec2(worldXY, worldY);
-                        //var terrainType = GetTerrainTypeAtPosition(pos);
-                        //terrainGrid[x, y] = terrainType;
-                    }
-                }
-
-                // Group adjacent cells of same type into zones
-                var visited = new bool[gridSize, gridSize];
-                for (int x = 0; x < gridSize; x++)
-                {
-                    for (int y = 0; y < gridSize; y++)
-                    {
-                        if (!visited[x, y])
-                        {
-                            var zone = FloodFill(terrainGrid, visited, x, y, gridSize);
-                            if (zone.Points.Count >= 3)
-                            {
-                                zones.Add(zone);
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[MapHub] Error generating terrain zones: {ex.Message}");
-                // Return basic fallback zones
-                return GetFallbackTerrainZones();
-            }
-
-            return zones.Any() ? zones : GetFallbackTerrainZones();
-        }
-
-        private static string GetTerrainTypeAtPosition(CampaignVec2 position)
-        {
-            try
-            {
-                // Try to get terrain type from the game's navigation system
-                var scene = Campaign.Current?.MapSceneWrapper;
-                if (scene != null)
-                {
-                    // Check if position is on water using Campaign's terrain data
-                    // The game uses different navigation face types
-                    var terrainType = Campaign.Current.MapSceneWrapper.GetTerrainTypeAtPosition(position);
-
-                    // Map terrain type to our zone types
-                    // TerrainType.Water, TerrainType.Mountain, TerrainType.Bridge, etc.
-                    if (terrainType == TerrainType.Water || terrainType == TerrainType.River ||
-                        terrainType == TerrainType.Lake || terrainType == TerrainType.Bridge)
-                        return "sea";
-                    if (terrainType == TerrainType.Mountain || terrainType == TerrainType.Canyon)
-                        return "blocked";
-
-                    return "land";
-                }
-            }
-            catch
-            {
-                // Fallback: check if near water settlements or edge of map
-            }
-
-            return "land";
-        }
-
-        private static TerrainZone FloodFill(string[,] grid, bool[,] visited, int startX, int startY, int gridSize)
-        {
-            var terrainType = grid[startX, startY];
-            var points = new List<(int x, int y)>();
-            var queue = new Queue<(int x, int y)>();
-            queue.Enqueue((startX, startY));
-            visited[startX, startY] = true;
-
-            while (queue.Count > 0)
-            {
-                var (x, y) = queue.Dequeue();
-                points.Add((x, y));
-
-                // Check 4-directional neighbors
-                var neighbors = new[] { (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1) };
-                foreach (var (nx, ny) in neighbors)
-                {
-                    if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize &&
-                        !visited[nx, ny] && grid[nx, ny] == terrainType)
-                    {
-                        visited[nx, ny] = true;
-                        queue.Enqueue((nx, ny));
-                    }
-                }
-            }
-
-            // Convert grid points to normalized polygon
-            var zone = new TerrainZone { Type = terrainType };
-            var hull = GetConvexHull(points);
-            foreach (var (x, y) in hull)
-            {
-                zone.Points.Add(new float[] { x * 5f, y * 5f }); // Scale to 0-100 range
-            }
-
-            return zone;
-        }
-
-        private static List<(int x, int y)> GetConvexHull(List<(int x, int y)> points)
-        {
-            // Simple convex hull for zone boundary
-            if (points.Count < 3) return points;
-
-            var sorted = points.OrderBy(p => p.x).ThenBy(p => p.y).ToList();
-            var hull = new List<(int x, int y)>();
-
-            // Lower hull
-            for (int i = 0; i < sorted.Count; i++)
-            {
-                while (hull.Count >= 2 && CrossProduct(hull[hull.Count - 2], hull[hull.Count - 1], sorted[i]) <= 0)
-                    hull.RemoveAt(hull.Count - 1);
-                hull.Add(sorted[i]);
-            }
-
-            // Upper hull
-            int lowerSize = hull.Count;
-            for (int i = sorted.Count - 2; i >= 0; i--)
-            {
-                while (hull.Count > lowerSize && CrossProduct(hull[hull.Count - 2], hull[hull.Count - 1], sorted[i]) <= 0)
-                    hull.RemoveAt(hull.Count - 1);
-                hull.Add(sorted[i]);
-            }
-
-            hull.RemoveAt(hull.Count - 1);
-            return hull;
-        }
-
-        private static long CrossProduct((int x, int y) o, (int x, int y) a, (int x, int y) b)
-        {
-            return (long)(a.x - o.x) * (b.y - o.y) - (long)(a.y - o.y) * (b.x - o.x);
-        }
-
-        private static List<TerrainZone> GetFallbackTerrainZones()
-        {
-            var zones = new List<TerrainZone>();
-
-            // Western Sea
-            zones.Add(new TerrainZone
-            {
-                Type = "sea",
-                Points = new List<float[]>
-                {
-                    new float[] { 0, 0 },
-                    new float[] { 8, 0 },
-                    new float[] { 8, 100 },
-                    new float[] { 0, 100 }
-                }
-            });
-
-            // Southern Sea
-            zones.Add(new TerrainZone
-            {
-                Type = "sea",
-                Points = new List<float[]>
-                {
-                    new float[] { 8, 88 },
-                    new float[] { 100, 88 },
-                    new float[] { 100, 100 },
-                    new float[] { 8, 100 }
-                }
-            });
-
-            // Eastern Edge (mountains)
-            zones.Add(new TerrainZone
-            {
-                Type = "blocked",
-                Points = new List<float[]>
-                {
-                    new float[] { 92, 0 },
-                    new float[] { 100, 0 },
-                    new float[] { 100, 100 },
-                    new float[] { 92, 100 }
-                }
-            });
-
-            // Northern Edge
-            zones.Add(new TerrainZone
-            {
-                Type = "blocked",
-                Points = new List<float[]>
-                {
-                    new float[] { 0, 0 },
-                    new float[] { 100, 0 },
-                    new float[] { 100, 5 },
-                    new float[] { 0, 5 }
-                }
-            });
-
-            // Central land
-            zones.Add(new TerrainZone
-            {
-                Type = "land",
-                Points = new List<float[]>
-                {
-                    new float[] { 8, 5 },
-                    new float[] { 92, 5 },
-                    new float[] { 92, 88 },
-                    new float[] { 8, 88 }
-                }
-            });
-
-            return zones;
         }
 
         public static void Register()

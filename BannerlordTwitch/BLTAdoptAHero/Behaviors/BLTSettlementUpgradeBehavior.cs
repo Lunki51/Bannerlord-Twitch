@@ -91,8 +91,8 @@ namespace BLTAdoptAHero.Behaviors
                 settlement.Militia += settlement.Militia * (militiaPercent / 100f);
 
             int taxFlat = UpgradeBehavior.Current.GetTotalTaxBonus(settlement);
-            if (taxFlat > 0 && town.OwnerClan != null)
-                town.OwnerClan.AddGold(taxFlat);
+            if (taxFlat > 0 && town.OwnerClan != null) { }
+                //town.OwnerClan.AddGold(taxFlat);
         }
 
         private void ApplyVillageBonuses(Settlement settlement)
@@ -103,8 +103,8 @@ namespace BLTAdoptAHero.Behaviors
 
             int taxFlat = UpgradeBehavior.Current.GetTotalTaxBonus(settlement);
 
-            if (taxFlat > 0 && village.TradeTaxAccumulated > 1)
-                village.OwnerClan.AddGold(taxFlat);
+            if (taxFlat > 0 && village.TradeTaxAccumulated > 1) { }
+                //village.OwnerClan.AddGold(taxFlat);
         }
     }
 }
