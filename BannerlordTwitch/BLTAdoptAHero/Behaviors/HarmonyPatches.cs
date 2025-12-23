@@ -221,7 +221,7 @@ namespace BLTAdoptAHero
     }
     #endregion
 
-    //#region OnShipOwnerChanged
+    #region OnShipOwnerChanged
     //[HarmonyPatch(typeof(ChangeShipOwnerAction), "ApplyInternal")]
     //public static class ChangeShipOwnerActionPatch
     //{
@@ -287,6 +287,40 @@ namespace BLTAdoptAHero
     //        return true; // Proceed if safe
     //    }
     //}
-    //#endregion
+
+    //[HarmonyPatch(typeof(ShipTradeCampaignBehavior), "ConsiderPurchasingShip")]
+    //static class BLT_BlockShipPurchase
+    //{
+    //    static bool Prefix(Clan clan)
+    //    {
+    //        if (clan == null || clan.Leader == null)
+    //            return false;
+    //
+    //        if (clan.Name.ToString().StartsWith("[BLT Clan]") || clan.Leader.IsAdopted())
+    //            Log.Trace($"[ShipTradeBlock] '{clan.Name.ToString()}' has been blocked from considering a ship purchase.");
+    //        return false;
+    //
+    //        return true;
+    //    }
+    //}
+
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
+    static class BLT_Suppress_OnShipOwnerChanged_Exception
+    {
+        static Exception Finalizer(Exception __exception)
+        {
+            // If the method threw, swallow it completely
+            if (__exception != null)
+            {
+                // Optional logging (disabled for now)
+                // Log.Trace("[BLT] Suppressed exception in OnShipOwnerChanged:\n" + __exception);
+                return null;
+            }
+
+            return null;
+        }
+    }
+
+    #endregion
 
 }

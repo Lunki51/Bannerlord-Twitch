@@ -302,7 +302,7 @@ namespace BLTAdoptAHero
                         .Translate(
                             ("HeroName", hero.PartyBelongedTo.Name.ToString()),
                             ("Result", result ? "won" : "lost"),
-                            ("EventType", mapEvent),
+                            ("EventType", eventType),
                             ("Opponent", opponentName))); 
                     }
                 }
@@ -2224,6 +2224,7 @@ namespace BLTAdoptAHero
                     if (party.IsLordParty &&
                         (party.LeaderHero == null ||
                          party.LeaderHero.IsAdopted() ||
+                         party.LeaderHero.Name.Contains("retired") ||
                          nameMatchesAdoptedHero))
                     {
                         if (!party.IsActive)
