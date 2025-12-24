@@ -70,8 +70,12 @@ namespace BLTAdoptAHero
 			});
 			adoptedHero.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
             int newAge = (int)adoptedHero.Age;
+			if (settings.Spouse && adoptedHero.Spouse != null && ((adoptedHero.Spouse.Age - (float)settings.Age) > Campaign.Current.Models.AgeModel.BecomeChildAge))
+			{
+			adoptedHero.Spouse.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
+			}
 			onSuccess("{=XidEZXAO}Your rejuvenated of {Age} years you are now {newAge}".Translate(("Age", settings.Age), ("newAge", newAge)));
-            }
+            
   
   		public Rejuvenate()
 		{
@@ -93,6 +97,12 @@ namespace BLTAdoptAHero
 			[PropertyOrder(2)]
 			[UsedImplicitly]
 			public int Age { get; set; } = 1;
+
+			[LocDisplayName("{=TESTING}Spouse")]
+			[LocDescription("{=TESTING}.Should spouse deage with you.")]
+			[PropertyOrder(3)]
+			[UsedImplicitly]
+			public bool Spouse { get; set; } = False;
 
 			public void GenerateDocumentation(IDocumentationGenerator generator)
 			{
