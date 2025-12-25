@@ -172,6 +172,27 @@ namespace BLTAdoptAHero
         }
 
         [HarmonyPrefix]
+        [HarmonyPatch("ApplyByJoinToKingdomByDefection")]
+        private static bool Prefix_ApplyByJoinToKingdomByDefection(Clan clan)
+        {
+            if (clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove)
+            {
+                try
+                {
+#if DEBUG
+                    Log.Trace("[BLT] Blocked ApplyByJoinToKingdomByDefection for adopted clan (join blocked)");
+#endif
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[BLT] Prefix_ApplyByJoinToKingdomByDefection error: {ex}");
+                }
+            }
+            return true;
+        }
+
+        [HarmonyPrefix]
         [HarmonyPatch("ApplyByLeaveKingdom")]
         private static bool Prefix_ApplyByLeaveKingdom(Clan clan)
         {
