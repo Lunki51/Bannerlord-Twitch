@@ -384,7 +384,13 @@ namespace BLTAdoptAHero.Actions
         private Settlement FindSettlement(string name)
         {
             if (string.IsNullOrWhiteSpace(name)) return null;
-            return Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            var settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            if (settlement.IsVillage)
+            {
+                name = name.Add(" Castle", false);
+                settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            }
+            return settlement;
         }
 
         // Helper: best-effort find hero by name (search all known heroes)
