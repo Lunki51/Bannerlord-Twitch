@@ -55,7 +55,7 @@ namespace BLTAdoptAHero
         [HarmonyPatch("DiscontinueClan")]
         private static bool Prefix_DiscontinueClan(Clan clan)
         {
-            if (clan?.Leader != null && clan.Leader.IsAdopted())
+            if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal"))
             {
                 try
                 {
@@ -76,7 +76,7 @@ namespace BLTAdoptAHero
         [HarmonyPatch("CanClanBeDiscontinued")]
         private static bool Prefix_CanClanBeDiscontinued(Clan clan, ref bool __result)
         {
-            if (clan?.Leader != null && clan.Leader.IsAdopted())
+            if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal"))
             {
                 try
                 {
@@ -154,7 +154,7 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByJoinToKingdom")]
         private static bool Prefix_ApplyByJoinToKingdom(Clan clan)
         {
-            if (clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove)
+            if ((clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove) || clan.Name.ToString().ToLower().Contains("vassal"))
             {
                 try
                 {
@@ -175,7 +175,7 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByJoinToKingdomByDefection")]
         private static bool Prefix_ApplyByJoinToKingdomByDefection(Clan clan)
         {
-            if (clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove)
+            if ((clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove) || clan.Name.ToString().ToLower().Contains("vassal"))
             {
                 try
                 {
@@ -196,7 +196,7 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByLeaveKingdom")]
         private static bool Prefix_ApplyByLeaveKingdom(Clan clan)
         {
-            if (clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove)
+            if ((clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove) || clan.Name.ToString().ToLower().Contains("vassal"))
             {
                 try
                 {
