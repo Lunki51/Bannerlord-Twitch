@@ -69,7 +69,7 @@ namespace BLTAdoptAHero
 
             [LocDisplayName("{=HOZnxjGb}Gold Cost"),
              LocCategory("General", "{=C5T5nnix}General"),
-             LocDescription("{=OQISx7Jz}Gold cost to summon"),
+             LocDescription("{=OQISx7Jz}Gold cost to smith"),
              PropertyOrder(4), UsedImplicitly]
             public int GoldCost { get; set; }
         }
