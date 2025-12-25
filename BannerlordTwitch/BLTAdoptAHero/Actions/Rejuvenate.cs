@@ -44,18 +44,12 @@ namespace BLTAdoptAHero
 				onFailure("{=Z4vYZzSq}Not enough gold !".Translate());
 				return;
 			}
-			double num = Math.Truncate((double)(adoptedHero.Age - (float)settings.Age));
-   			//if (num < (double)Campaign.Current.Models.AgeModel.BecomeChildAge)
-			//{
-			//	onFailure("{=yWo2v3yu}You cannot rejuvenate bellow child age".Translate());
-			//	return;
-			//}
 			if ((adoptedHero.Age - (float)settings.Age) < Campaign.Current.Models.AgeModel.BecomeChildAge)
 			{
 				onFailure("{=yWo2v3yu}You cannot rejuvenate bellow child age".Translate());
 				return;
 			}
-			int num2 = BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.Price, true);
+			int num = BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.Price, true);
 			ActionManager.SendReply(context, new string[]
 			{
 				string.Format("{0}{1}{2}{3}{4}{5}", new object[]
@@ -64,17 +58,18 @@ namespace BLTAdoptAHero
 					settings.Price,
 					Naming.Gold,
 					Naming.To,
-					num2,
+					num,
 					Naming.Gold
 				})
 			});
 			adoptedHero.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
-            int newAge = (int)adoptedHero.Age;
+			int newAge = (int)adoptedHero.Age;
 			if (settings.Spouse && adoptedHero.Spouse != null && ((adoptedHero.Spouse.Age - (float)settings.Age) > Campaign.Current.Models.AgeModel.BecomeChildAge))
 			{
-			adoptedHero.Spouse.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
+				adoptedHero.Spouse.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
 			}
 			onSuccess("{=XidEZXAO}Your rejuvenated of {Age} years you are now {newAge}".Translate(("Age", settings.Age), ("newAge", newAge)));
+		}
             
   
   		public Rejuvenate()
@@ -93,16 +88,16 @@ namespace BLTAdoptAHero
 			public int Price { get; set; } = 10000;
 
 			[LocDisplayName("{=eyrNUsxM}Age")]
-			[LocDescription("{=oyzYoByT}The age that will be substracted from the hero.")]
+			[LocDescription("{=oyzYoByT}The age that will be substracted from the hero")]
 			[PropertyOrder(2)]
 			[UsedImplicitly]
 			public int Age { get; set; } = 1;
 
 			[LocDisplayName("{=TESTING}Spouse")]
-			[LocDescription("{=TESTING}.Should spouse deage with you.")]
+			[LocDescription("{=TESTING}Should spouse de-age with the hero")]
 			[PropertyOrder(3)]
 			[UsedImplicitly]
-			public bool Spouse { get; set; } = False;
+			public bool Spouse { get; set; } = false;
 
 			public void GenerateDocumentation(IDocumentationGenerator generator)
 			{
