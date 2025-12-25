@@ -71,8 +71,7 @@ namespace BLTAdoptAHero
 
         private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail declareWarDetail)
         {
-            if (declareWarDetail != DeclareWarAction.DeclareWarDetail.CausedByRebellion &&
-                declareWarDetail != DeclareWarAction.DeclareWarDetail.CausedByKingdomCreation)
+            if (declareWarDetail != DeclareWarAction.DeclareWarDetail.CausedByRebellion)
                 return;
 
             if (!IsAdoptedLeader(faction1) && !IsAdoptedLeader(faction2))
