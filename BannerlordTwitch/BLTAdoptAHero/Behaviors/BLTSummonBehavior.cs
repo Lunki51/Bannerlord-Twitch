@@ -173,7 +173,7 @@ namespace BLTAdoptAHero
                 }
 
 
-                if (runRetinue1)
+                if (runRetinue1 && BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance != 0)
                 {
                     if (retinueState.Died)
                         return;
@@ -197,7 +197,7 @@ namespace BLTAdoptAHero
                     retinueState.State = agentState;
                 }
 
-                if (runRetinue2)
+                if (runRetinue2 && BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance != 0)
                 {
                     if (retinue2State.Died)
                         return;

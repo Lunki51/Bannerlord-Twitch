@@ -78,18 +78,18 @@
                 shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 shape.setAttribute('cx', 0);
                 shape.setAttribute('cy', 0);
-                shape.setAttribute('r', 1.2); // Adjusted for viewBox 100x30
+                shape.setAttribute('r', 2.5); // Adjusted for viewBox 100x30
             } else { // Castle
                 shape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                shape.setAttribute('x', -1);
-                shape.setAttribute('y', -1);
-                shape.setAttribute('width', 2);
-                shape.setAttribute('height', 2); // Adjusted for viewBox 100x30
+                shape.setAttribute('x', -2);
+                shape.setAttribute('y', -2);
+                shape.setAttribute('width', 4);
+                shape.setAttribute('height', 4); // Adjusted for viewBox 100x30
             }
 
             shape.setAttribute('fill', color);
             shape.setAttribute('stroke', '#fff');
-            shape.setAttribute('stroke-width', 0.2);
+            shape.setAttribute('stroke-width', 0.4);
             group.appendChild(shape);
 
             group.addEventListener('mouseenter', e => showTooltip(e, settlement));

@@ -382,6 +382,7 @@ namespace BLTAdoptAHero.Actions
                                         }
                                     }
                                 }
+                                newParty.InitializeMobilePartyAtPosition(spawnSettlement.GatePosition);
                             }
                             else
                             {

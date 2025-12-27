@@ -624,8 +624,14 @@ namespace BLTAdoptAHero.Actions
 
         private Settlement FindSettlement(string name)
         {
-            return Settlement.All.FirstOrDefault(s =>
-                s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            if (settlement.IsVillage)
+            {
+                name = name.Add(" Castle", false);
+                settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            }
+            return settlement;
         }
     }
 }

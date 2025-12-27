@@ -22,7 +22,7 @@ namespace BLTAdoptAHero.UI
 
         // Overlay dimensions for aspect ratio calculation
         private const float OVERLAY_WIDTH = 100f;
-        private const float OVERLAY_HEIGHT = 30f;
+        private const float OVERLAY_HEIGHT = 95f;
         private const float OVERLAY_ASPECT_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT; // 3.33
 
         public class MapData
@@ -250,7 +250,7 @@ namespace BLTAdoptAHero.UI
             float normalized = (y - bounds.minY) / height;
             // Invert for SVG (SVG 0 is top, Game 0 is bottom)
             // Map to viewBox height (0-30) with margins (2-28)
-            return 2f + ((1f - normalized) * 26f);
+            return 2f + ((1f - normalized) * 91f);
         }
 
         // Only separate overlapping settlements, don't distort the map
@@ -283,7 +283,7 @@ namespace BLTAdoptAHero.UI
 
                 // Keep within viewBox bounds with margins
                 x = Math.Max(3f, Math.Min(97f, x));
-                y = Math.Max(1f, Math.Min(29f, y));
+                y = Math.Max(1f, Math.Min(94f, y));
 
                 if (!moved) break;
             }

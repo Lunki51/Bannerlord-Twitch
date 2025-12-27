@@ -76,7 +76,7 @@ namespace BLTAdoptAHero
         public int BLTChildAgeMult { get; set; } = 1;
 
         [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Show Campaign Map Overlay"),
-         LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Enable or disable the campaign map overlay that shows in the top portion of the screen. The map automatically hides during missions."),
+         LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Enable or disable the campaign map overlay that shows in the top portion of the overlay. The map automatically hides during missions."),
         LocCategory("General", "{=C5T6nnix}General"),
          PropertyOrder(100)]
         public bool ShowCampaignMapOverlay { get; set; } = false;

@@ -101,7 +101,7 @@ namespace BLTAdoptAHero.Actions
 
             [LocDisplayName("{=TESTING}BLT Gold Cost"),
              LocCategory("Rebel", "{=qgKGFYNu}Rebel"),
-             LocDescription("{=TESTING}Cost of rebelling against BLT kingoms"),
+             LocDescription("{=TESTING}Cost of rebelling against BLT kingdoms"),
              PropertyOrder(4), UsedImplicitly]
             public int BLTRebelPrice { get; set; } = 1000000;
 
@@ -257,7 +257,7 @@ namespace BLTAdoptAHero.Actions
                     onFailure("{=EJ4Pd2Lg}Your clan is not in a Kingdom".Translate());
                     return;
                 }
-                onSuccess("{=EkmpJvML}Your clan {clanName} is a member of the kingom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
+                onSuccess("{=EkmpJvML}Your clan {clanName} is a member of the kingdom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
                 return;
             }
 
@@ -364,7 +364,7 @@ namespace BLTAdoptAHero.Actions
             if (adoptedHero.Clan.Fiefs.Count == 0)
                 adoptedHero.Clan.SetInitialHomeSettlement(desiredKingdom.InitialHomeSettlement);
 
-            onSuccess("{=LSea9bms}Your clan {clanName} has joined the kingom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
+            onSuccess("{=LSea9bms}Your clan {clanName} has joined the kingdom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
             Log.ShowInformation("{=Lid1aV3k}{clanName} has joined kingdom {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
             AdoptedHeroFlags._allowKingdomMove = false;
         }

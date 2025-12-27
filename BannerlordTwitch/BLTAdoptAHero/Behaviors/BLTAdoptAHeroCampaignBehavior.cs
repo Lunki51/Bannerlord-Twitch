@@ -302,7 +302,7 @@ namespace BLTAdoptAHero
                         .Translate(
                             ("HeroName", hero.PartyBelongedTo.Name.ToString()),
                             ("Result", result ? "won" : "lost"),
-                            ("EventType", mapEvent),
+                            ("EventType", eventType),
                             ("Opponent", opponentName))); 
                     }
                 }
@@ -1411,16 +1411,10 @@ namespace BLTAdoptAHero
         public void KillRetinue(Hero retinueOwnerHero, BasicCharacterObject retinueCharacterObject)
         {
             var heroRetinue = GetHeroData(retinueOwnerHero).Retinue;
-            var heroRetinue2 = GetHeroData(retinueOwnerHero).Retinue2;
             var matchingRetinue = heroRetinue.FirstOrDefault(r => r.TroopType == retinueCharacterObject);
-            var matchingRetinue2 = heroRetinue2.FirstOrDefault(r => r.TroopType == retinueCharacterObject);
             if (matchingRetinue != null)
             {
                 heroRetinue.Remove(matchingRetinue);
-            }
-            else if (matchingRetinue2 != null) 
-            {
-                heroRetinue2.Remove(matchingRetinue2);
             }
             else
             {
@@ -1707,16 +1701,10 @@ namespace BLTAdoptAHero
         public void KillRetinue2(Hero retinue2OwnerHero, BasicCharacterObject RetinueCharacterObject)
         {
             var heroRetinue2 = GetHeroData(retinue2OwnerHero).Retinue2;
-            var heroRetinue = GetHeroData(retinue2OwnerHero).Retinue;
             var matchingRetinue2 = heroRetinue2.FirstOrDefault(r => r.TroopType == RetinueCharacterObject);
-            var matchingRetinue = heroRetinue.FirstOrDefault(r => r.TroopType == RetinueCharacterObject);
             if (matchingRetinue2 != null)
             {
                 heroRetinue2.Remove(matchingRetinue2);
-            }
-            else if (matchingRetinue != null) 
-            {
-                heroRetinue.Remove(matchingRetinue);
             }
             else
             {
@@ -2224,6 +2212,7 @@ namespace BLTAdoptAHero
                     if (party.IsLordParty &&
                         (party.LeaderHero == null ||
                          party.LeaderHero.IsAdopted() ||
+                         party.LeaderHero.Name.Contains("retired") ||
                          nameMatchesAdoptedHero))
                     {
                         if (!party.IsActive)
