@@ -154,12 +154,12 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByJoinToKingdom")]
         private static bool Prefix_ApplyByJoinToKingdom(Clan clan)
         {
-            if ((clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove) || clan.Name.ToString().ToLower().Contains("vassal"))
+            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
             {
                 try
                 {
 #if DEBUG
-                    Log.Trace("[BLT] Blocked ApplyByJoinToKingdom for adopted clan (join blocked)");
+                    Log.Trace("[BLT] Blocked ApplyByJoinToKingdom for adopted/vassal clan (join blocked)");
 #endif
                     return false;
                 }
@@ -175,12 +175,12 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByJoinToKingdomByDefection")]
         private static bool Prefix_ApplyByJoinToKingdomByDefection(Clan clan)
         {
-            if ((clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove) || clan.Name.ToString().ToLower().Contains("vassal"))
+            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
             {
                 try
                 {
 #if DEBUG
-                    Log.Trace("[BLT] Blocked ApplyByJoinToKingdomByDefection for adopted clan (join blocked)");
+                    Log.Trace("[BLT] Blocked ApplyByJoinToKingdomByDefection for adopted/vassal clan (join blocked)");
 #endif
                     return false;
                 }
@@ -196,12 +196,12 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByLeaveKingdom")]
         private static bool Prefix_ApplyByLeaveKingdom(Clan clan)
         {
-            if ((clan?.Leader != null && clan.Leader.IsAdopted() && !AdoptedHeroFlags._allowKingdomMove) || clan.Name.ToString().ToLower().Contains("vassal"))
+            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
             {
                 try
                 {
 #if DEBUG
-                    Log.Trace("[BLT] Blocked ApplyByLeaveKingdom for adopted clan (leave blocked)");
+                    Log.Trace("[BLT] Blocked ApplyByLeaveKingdom for adopted/vassal clan (leave blocked)");
 #endif
                     return false;
                 }
