@@ -12,6 +12,7 @@
 		<DependedModule Id="SandBoxCore"/>
 		<DependedModule Id="Sandbox"/>
 		<DependedModule Id="StoryMode"/>
+		<DependedModule Id="NavalDLC"/>
 		<DependedModule Id="CustomBattle"/>
 		<DependedModule Id="BannerlordTwitch"/>
 		<DependedModule Id="BLTAdoptAHero"/>
@@ -35,6 +36,7 @@
 		<DependedModuleMetadata id="SandBoxCore" order="LoadBeforeThis" />
 		<DependedModuleMetadata id="Sandbox" order="LoadBeforeThis" />
 		<DependedModuleMetadata id="StoryMode" order="LoadBeforeThis" />
+		<DependedModuleMetadata id="NavalDLC" order="LoadBeforeThis" />
 		<DependedModuleMetadata id="CustomBattle" order="LoadBeforeThis" />
 		<DependedModuleMetadata id="BannerlordTwitch" order="LoadBeforeThis" />
 		<DependedModuleMetadata id="BLTAdoptAHero" order="LoadBeforeThis" optional="true" />
