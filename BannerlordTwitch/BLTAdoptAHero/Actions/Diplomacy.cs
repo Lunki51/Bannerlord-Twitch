@@ -509,6 +509,7 @@ namespace BLTAdoptAHero
                             .Where(p => p?.ActualClan == adoptedHero.Clan && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
 
+                        adoptedHero.Clan.Influence += 50;
                         adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
                         Army army = adoptedHero.PartyBelongedTo.Army;
 
