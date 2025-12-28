@@ -141,7 +141,7 @@ namespace BLTAdoptAHero
                                     "Price={price}{icon}".Translate(("price", TradePrice.ToString()), ("icon", Naming.Gold)));
                 if (ArmyEnabled)
                     generator.Value("<strong>Army Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
+                                    "Price={price}{icon}".Translate(("price", ArmyPrice.ToString()), ("icon", Naming.Gold)));
                 if (PolicyEnabled)
                     generator.Value("<strong>Policy Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", PolicyPrice.ToString()), ("icon", Naming.Gold)));
@@ -472,7 +472,7 @@ namespace BLTAdoptAHero
                         Army.ArmyTypes armyType;
                         if (splitArgs.Length < 2)
                         {
-                            onFailure("Specify an army type: defend/siege/raid/patrol");
+                            onFailure("Specify an army type: defend/siege/patrol");
                             return;
                         }
                         switch (desiredName)
@@ -509,6 +509,7 @@ namespace BLTAdoptAHero
                             .Where(p => p?.ActualClan == adoptedHero.Clan && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
 
+                        adoptedHero.Clan.Influence += 50;
                         adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
                         Army army = adoptedHero.PartyBelongedTo.Army;
 
