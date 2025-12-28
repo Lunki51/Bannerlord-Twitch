@@ -395,6 +395,7 @@
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="Behaviors\ReinforcementBehavior.cs" />
     <Compile Include="Behaviors\UpgradeBehavior.cs" />
+    <Compile Include="Behaviors\VassalBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />

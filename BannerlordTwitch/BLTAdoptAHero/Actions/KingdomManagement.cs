@@ -17,6 +17,7 @@ using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace BLTAdoptAHero.Actions
 {
@@ -159,6 +160,13 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(4), UsedImplicitly]
             public int VassalPrice { get; set; } = 250000;
 
+            [LocDisplayName("{=TESTING}Vassal Merc Income Share %"),
+             LocCategory("Vassal", "{=TESTING}Vassal"),
+             LocDescription("{=TESTING}Percentage of vassal mercenary income shared with master (0.0-2.0, 0.25 = 25%)"),
+             PropertyOrder(5), UsedImplicitly,
+             Range(0f, 2f)]
+            public float VassalMercIncomeShare { get; set; } = 0.25f; // 25% default
+
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
              LocDescription("{=CFBJIpux}Enable stats command"),
@@ -228,7 +236,15 @@ namespace BLTAdoptAHero.Actions
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
             if (config is not Settings settings) return;
+<<<<<<< Updated upstream
 
+=======
+            // Set vassal mercenary income share percentage
+            if (VassalBehavior.Current != null)
+            {
+                VassalBehavior.MercenaryIncomeSharePercent = settings.VassalMercIncomeShare;
+            }
+>>>>>>> Stashed changes
             if (adoptedHero == null)
             {
                 onFailure(AdoptAHero.NoHeroMessage);
@@ -789,7 +805,7 @@ namespace BLTAdoptAHero.Actions
                 HeroFeatures.SpawnSpouse(vassal, vassal.Culture);
             }
 
-            var fullClanName = vassal.Culture.ClanNameList.SelectRandom().ToString()+ " [Vassal]";
+            var fullClanName = vassal.Culture.ClanNameList.SelectRandom().ToString() + " [Vassal]";
             var newClan = Clan.CreateClan(fullClanName);
             newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
             newClan.Culture = vassal.Culture;
@@ -814,6 +830,21 @@ namespace BLTAdoptAHero.Actions
             newClan.IsNoble = true;
             CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
+
+            //// Register the vassal with the VassalBehavior
+            //VassalBehavior.Current?.RegisterVassal(newClan, adoptedHero.Clan);
+
+            // Register the vassal with the VassalBehavior - DID YOU ADD THIS LINE?
+            if (VassalBehavior.Current != null)
+            {
+                VassalBehavior.Current.RegisterVassal(newClan, adoptedHero.Clan);
+                InformationManager.DisplayMessage(new InformationMessage($"[DEBUG] Registered vassal {newClan.Name} to master {adoptedHero.Clan.Name}"));
+            }
+            else
+            {
+                InformationManager.DisplayMessage(new InformationMessage($"[DEBUG ERROR] VassalBehavior.Current is NULL!"));
+            }
+
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
             Log.ShowInformation("Vassal created");
         }
