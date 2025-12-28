@@ -472,7 +472,7 @@ namespace BLTAdoptAHero
                         Army.ArmyTypes armyType;
                         if (splitArgs.Length < 2)
                         {
-                            onFailure("Specify an army type: defend/siege/raid/patrol");
+                            onFailure("Specify an army type: defend/siege/patrol");
                             return;
                         }
                         switch (desiredName)
