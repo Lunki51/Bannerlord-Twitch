@@ -141,7 +141,7 @@ namespace BLTAdoptAHero
                                     "Price={price}{icon}".Translate(("price", TradePrice.ToString()), ("icon", Naming.Gold)));
                 if (ArmyEnabled)
                     generator.Value("<strong>Army Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
+                                    "Price={price}{icon}".Translate(("price", ArmyPrice.ToString()), ("icon", Naming.Gold)));
                 if (PolicyEnabled)
                     generator.Value("<strong>Policy Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", PolicyPrice.ToString()), ("icon", Naming.Gold)));

@@ -228,7 +228,7 @@ namespace BLTAdoptAHero.Actions
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
             if (config is not Settings settings) return;
-            //var adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(context.UserName);
+
             if (adoptedHero == null)
             {
                 onFailure(AdoptAHero.NoHeroMessage);
