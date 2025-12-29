@@ -90,7 +90,19 @@ namespace BLTAdoptAHero.Actions
         private void ShowMercIncome(Clan clan, Action<string> onSuccess)
         {
             int income = CalculateMercenaryIncome(clan);
-            onSuccess($"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}/day");
+            int vassalincome;
+            if (VassalBehavior.Current != null)
+            {
+                vassalincome = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
+            }
+            else
+            {
+                vassalincome = 0;
+            }
+            onSuccess(
+                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}/day | " + 
+                $"Vassals' total contract income: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day"
+                );
         }
 
         // Helper methods for income calculation (can be used by behavior)
