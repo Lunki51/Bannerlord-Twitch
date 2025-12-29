@@ -17,6 +17,7 @@ using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace BLTAdoptAHero.Actions
 {
@@ -159,6 +160,13 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(4), UsedImplicitly]
             public int VassalPrice { get; set; } = 250000;
 
+            [LocDisplayName("{=TESTING}Vassal Merc Income Share %"),
+             LocCategory("Vassal", "{=TESTING}Vassal"),
+             LocDescription("{=TESTING}Percentage of vassal mercenary income shared with master (0.0-2.0, 0.25 = 25%)"),
+             PropertyOrder(5), UsedImplicitly,
+             Range(0f, 2f)]
+            public float VassalMercIncomeShare { get; set; } = 0.25f; // 25% default
+
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
              LocDescription("{=CFBJIpux}Enable stats command"),
@@ -228,7 +236,11 @@ namespace BLTAdoptAHero.Actions
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
             if (config is not Settings settings) return;
-
+            // Set vassal mercenary income share percentage
+            if (VassalBehavior.Current != null)
+            {
+                VassalBehavior.MercenaryIncomeSharePercent = settings.VassalMercIncomeShare;
+            }
             if (adoptedHero == null)
             {
                 onFailure(AdoptAHero.NoHeroMessage);
@@ -737,7 +749,7 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
 
-        private void VassalCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        private void VassalCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.VassalEnabled)
             {
@@ -745,19 +757,22 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
-            {
-                onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
-                return;
-            }
+            var splitargs = args.Split(' ');
+            var childName = splitargs[0];
+            var setname = string.Join(" ", splitargs.Skip(1)).Trim();
+            //if (adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
+            //{
+            //    onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
+            //    return;
+            //}
             if (!adoptedHero.IsClanLeader)
             {
                 onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
                 return;
             }
-            if (string.IsNullOrWhiteSpace(desiredName))
+            if (string.IsNullOrWhiteSpace(childName) || string.IsNullOrWhiteSpace(setname))
             {
-                onFailure("{=ETfJQatX}Usage: (vassal) (hero name)".Translate());
+                onFailure("{=ETfJQatX}Usage: (vassal) (hero name) (clan name)".Translate());
                 return;
             }
             //var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == desiredName);
@@ -766,7 +781,7 @@ namespace BLTAdoptAHero.Actions
             //    onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", desiredName)));
             //    return;
             //}
-            if (adoptedHero.Clan.Kingdom.Clans.FindAll(c => c.Name.ToString().IndexOf("[Vassal]", StringComparison.OrdinalIgnoreCase) >= 0).Count >= settings.VassalAmount)
+            if (VassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= settings.VassalAmount)
             {
                 onFailure($"Max vassals{settings.VassalAmount}");
                 return;
@@ -778,10 +793,10 @@ namespace BLTAdoptAHero.Actions
             }
 
 
-            Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.FirstName.ToString() == desiredName);
+            Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.FirstName.ToString().ToLower() == childName.ToLower());
             if (vassal == null)
             {
-                onFailure($"No hero named {desiredName}");
+                onFailure($"No hero named {childName}");
                 return;
             }
             if (vassal.Spouse == null)
@@ -789,12 +804,17 @@ namespace BLTAdoptAHero.Actions
                 HeroFeatures.SpawnSpouse(vassal, vassal.Culture);
             }
 
-            var fullClanName = vassal.Culture.ClanNameList.SelectRandom().ToString()+ " [Vassal]";
+            var fullClanName = $"[Vassal] {setname}";
             var newClan = Clan.CreateClan(fullClanName);
             newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
             newClan.Culture = vassal.Culture;
             newClan.Banner = Banner.CreateOneColoredBannerWithOneIcon(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetFirstIconColor(), -1);
-            newClan.Kingdom = adoptedHero.Clan.Kingdom;
+            AdoptedHeroFlags._allowKingdomMove = true;
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+                ChangeKingdomAction.ApplyByJoinFactionAsMercenary(newClan, adoptedHero.Clan.Kingdom);
+            else
+                ChangeKingdomAction.ApplyByJoinToKingdom(newClan, adoptedHero.Clan.Kingdom);
+            AdoptedHeroFlags._allowKingdomMove = false;
             newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
             vassal.Clan = newClan;
             if (vassal.Spouse != null)
@@ -814,8 +834,13 @@ namespace BLTAdoptAHero.Actions
             newClan.IsNoble = true;
             CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
+
+            // Register the vassal with the VassalBehavior
+            VassalBehavior.Current?.RegisterVassal(newClan, adoptedHero.Clan);
+
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
-            Log.ShowInformation("Vassal created");
+            string response = $"Vassal created by {adoptedHero.FirstName.ToString()}: {newClan.Name.ToString()}";
+            Log.LogFeedResponse(response);
         }
     }
 }

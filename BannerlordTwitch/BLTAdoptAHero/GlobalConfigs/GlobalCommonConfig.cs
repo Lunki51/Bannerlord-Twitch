@@ -294,7 +294,7 @@ namespace BLTAdoptAHero
 
         [LocDisplayName("{=GoldIncomeMercMult}Mercenary Multiplier"),
          LocCategory("Income", "{=IncomeCat}Income"),
-         LocDescription("{=GoldIncomeMercMultDesc}Multiplier applied to mercenary contract value"),
+         LocDescription("{=GoldIncomeMercMultDesc}Multiplier applied to mercenary contract value (Used for BLT Clans and their Vassals)"),
          PropertyOrder(2), UsedImplicitly]
         public int MercenaryMultiplier { get; set; } = 10;
 

@@ -43,10 +43,17 @@ namespace BLTAdoptAHero.Behaviors
                 }
             }
 
-            // Calculate mercenary income
+            // Calculate mercenary income for this BLT clan
             if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
             {
                 total += GoldIncomeAction.CalculateMercenaryIncome(clan);
+            }
+
+            // Calculate bonus from vassal mercenary contracts
+            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && VassalBehavior.Current != null)
+            {
+                int vassalBonus = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
+                total += vassalBonus;
             }
 
             // Apply gold change if there's any income
