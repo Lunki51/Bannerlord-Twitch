@@ -44,7 +44,7 @@ namespace BLTAdoptAHero
 				onFailure("{=Z4vYZzSq}Not enough gold !".Translate());
 				return;
 			}
-			if ((adoptedHero.Age - (float)settings.Age) < Campaign.Current.Models.AgeModel.BecomeChildAge)
+			if ((adoptedHero.Age - (float)settings.Age) < 18)
 			{
 				onFailure("{=yWo2v3yu}You cannot rejuvenate bellow child age".Translate());
 				return;
@@ -64,7 +64,7 @@ namespace BLTAdoptAHero
 			});
 			adoptedHero.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
 			int newAge = (int)adoptedHero.Age;
-			if (settings.Spouse && adoptedHero.Spouse != null && ((adoptedHero.Spouse.Age - (float)settings.Age) > Campaign.Current.Models.AgeModel.BecomeChildAge))
+			if (settings.Spouse && adoptedHero.Spouse != null && ((adoptedHero.Spouse.Age - (float)settings.Age) >= 18))
 			{
 				adoptedHero.Spouse.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
 			}
