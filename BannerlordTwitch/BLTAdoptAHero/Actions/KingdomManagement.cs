@@ -799,6 +799,26 @@ namespace BLTAdoptAHero.Actions
                 onFailure($"No hero named {childName}");
                 return;
             }
+            if (vassal.Age < 18)
+            {
+            onFailure($"{childName} is too young");
+            return;
+            }
+            if (vassal.Spouse != null && vassal.Spouse.isAdopted())
+            {
+            onFailure("Cannot vassal a blt spouse");
+            return;
+            }
+            if (vassal.PartyBelongedTo != null)
+            {
+            onFailure($"{childName} is in a party");
+            return;
+            }
+            if (vassal.isPrisoner)
+            {
+            onFailure($"{childName} is prisoner");
+            return;
+            }
             if (vassal.Spouse == null)
             {
                 HeroFeatures.SpawnSpouse(vassal, vassal.Culture);
@@ -809,12 +829,15 @@ namespace BLTAdoptAHero.Actions
             newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
             newClan.Culture = vassal.Culture;
             newClan.Banner = Banner.CreateOneColoredBannerWithOneIcon(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetFirstIconColor(), -1);
+            if (adoptedHero.Clan.Kingdom != null)
+            {
             AdoptedHeroFlags._allowKingdomMove = true;
             if (adoptedHero.Clan.IsUnderMercenaryService)
                 ChangeKingdomAction.ApplyByJoinFactionAsMercenary(newClan, adoptedHero.Clan.Kingdom);
             else
                 ChangeKingdomAction.ApplyByJoinToKingdom(newClan, adoptedHero.Clan.Kingdom);
             AdoptedHeroFlags._allowKingdomMove = false;
+            }
             newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
             vassal.Clan = newClan;
             if (vassal.Spouse != null)
@@ -832,6 +855,7 @@ namespace BLTAdoptAHero.Actions
             newClan.AddRenown(tierModel.GetRequiredRenownForTier(tierModel.CompanionToLordClanStartingTier));
             newClan.SetLeader(vassal);
             newClan.IsNoble = true;
+            vassal.Gold += 50000;
             CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
 
