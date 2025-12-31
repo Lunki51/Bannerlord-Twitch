@@ -161,12 +161,12 @@ namespace BLTAdoptAHero
 
             var sorted = heroVMs
                                 .Where(h => h.vm.IsVisible)
-                                .OrderBy(h => h.dist)
+                                .OrderBy(h => h.vm.PositionY)
                                 .ToList();
 
             float minOverlapY = 4f;
             float paddingY = 2f;
-            float slideFactor = 0.6f;
+            float slideFactor = 0.5f;
 
             for (int i = 0; i < sorted.Count - 1; i++)
             {
@@ -180,14 +180,14 @@ namespace BLTAdoptAHero
                     if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
                         break;
 
-                    bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width * 0.8f &&
-                                    farther.PositionX + farther.Width * 0.8f > anchor.PositionX;
+                    bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width * 0.9f &&
+                                    farther.PositionX + farther.Width * 0.9f > anchor.PositionX;
                     bool overlapY = farther.PositionY < anchor.PositionY + anchor.Height &&
                                     farther.PositionY + farther.Height > anchor.PositionY;
 
                     if (overlapX && overlapY)
                     {
-                        float overlapAmountY = (anchor.PositionY + anchor.Height - 4) - farther.PositionY;
+                        float overlapAmountY = (anchor.PositionY + anchor.Height) - farther.PositionY;
                         if (overlapAmountY > minOverlapY)
                         {
                             farther.PositionY -= overlapAmountY * slideFactor + paddingY;
