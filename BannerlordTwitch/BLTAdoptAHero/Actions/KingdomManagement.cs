@@ -6,6 +6,7 @@ using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
+using BLTAdoptAHero;
 using BLTAdoptAHero.Annotations;
 using BLTAdoptAHero.Actions;
 using TaleWorlds.CampaignSystem;
@@ -276,6 +277,7 @@ namespace BLTAdoptAHero.Actions
             var splitArgs = context.Args.Split(' ');
             var command = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
+            var diplomacyHelper = Campaign.Current.GetCampaignBehavior<DiplomacyHelper>();
 
             switch (command.ToLower())
             {
@@ -336,6 +338,11 @@ namespace BLTAdoptAHero.Actions
             {
                 onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
                 return;
+            }
+            if (diplomacyHelper.IsPeaceBlocked(adoptedHero.Clan, desiredKingdom))
+            {
+            onFailure("Rebellion block");
+            return;
             }
             if (desiredKingdom.Clans.Count >= settings.JoinMaxClans)
             {
@@ -642,6 +649,11 @@ namespace BLTAdoptAHero.Actions
             {
                 onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
                 return;
+            }
+            if (diplomacyHelper.IsPeaceBlocked(adoptedHero.Clan, desiredKingdom))
+            {
+            onFailure("Rebellion block");
+            return;
             }
             if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.Clan == Hero.MainHero.Clan.Kingdom.RulingClan && !settings.JoinAllowPlayer)
             {
