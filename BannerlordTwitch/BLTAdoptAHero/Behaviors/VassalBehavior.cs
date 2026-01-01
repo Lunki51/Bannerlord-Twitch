@@ -387,12 +387,32 @@ namespace BLTAdoptAHero
                                 else if (Kingdom.All.Contains(vassal.Kingdom) && vassal?.Kingdom == faction2)
                                 {
                                     AdoptedHeroFlags._allowKingdomMove = true;
+                                    bool rebel = false;
+                                    List<Settlement> transferred = null;
 
                                     if (vassal.IsUnderMercenaryService)
                                     {
                                         vassal.EndMercenaryService(true);
                                     }
+                                    else
+                                    {
+                                        foreach (var fief in vassal.Settlements.ToList())
+                                        {
+                                            Hero ruler = vassal.Kingdom?.RulingClan?.Leader;
+                                            if (ruler != null && ruler != vassal.Leader)
+                                            {
+                                                ChangeOwnerOfSettlementAction.ApplyByDefault(ruler, fief);
+                                                transferred.Add(fief);
+                                            }
+                                        }
+                                        rebel = true;
+                                    }
                                     vassal.ClanLeaveKingdom(false);
+                                    foreach (var fief in transferred)
+                                    {
+                                        ChangeOwnerOfSettlementAction.ApplyByDefault(vassal.Leader, fief);
+                                        transferred.Remove(fief);
+                                    }
 
                                     AdoptedHeroFlags._allowKingdomMove = false;
 
