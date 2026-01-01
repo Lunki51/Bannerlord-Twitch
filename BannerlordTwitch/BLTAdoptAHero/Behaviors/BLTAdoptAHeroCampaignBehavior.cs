@@ -2276,6 +2276,161 @@ namespace BLTAdoptAHero
             }
         }
 
+        [CommandLineFunctionality.CommandLineArgumentFunction("FixVassals", "blt")]
+        [UsedImplicitly]
+        public static string FixVassals(List<string> strings)
+        {
+            if (Campaign.Current == null)
+            {
+                return "Campaign is not active";
+            }
+
+            if (VassalBehavior.Current == null)
+            {
+                return "Vassal Behavior is not active";
+            }
+
+            int checkedCount = 0;
+            int alreadyCorrect = 0;
+            int fixedCount = 0;
+            int errorCount = 0;
+            var errors = new List<string>();
+
+            try
+            {
+                // Get all clans and check if they're vassals
+                foreach (var clan in Clan.All.ToList())
+                {
+                    if (clan == null) continue;
+
+                    // Check if this is a vassal clan
+                    if (!VassalBehavior.Current.IsVassal(clan))
+                        continue;
+
+                    checkedCount++;
+
+                    var masterClan = VassalBehavior.Current.GetMasterClan(clan);
+
+                    if (masterClan == null)
+                    {
+                        errors.Add($"Vassal {clan.Name} has no master clan found");
+                        errorCount++;
+                        continue;
+                    }
+
+                    // Check if vassal is already in correct kingdom and correct status
+                    bool inCorrectKingdom = clan.Kingdom == masterClan.Kingdom;
+                    bool correctMercStatus = clan.IsUnderMercenaryService == masterClan.IsUnderMercenaryService;
+
+                    if (inCorrectKingdom && correctMercStatus)
+                    {
+                        alreadyCorrect++;
+                        continue;
+                    }
+
+                    try
+                    {
+                        InformationManager.DisplayMessage(
+                            new InformationMessage($"[BLT] Fixing vassal {clan.Name} (master: {masterClan.Name})")
+                        );
+
+                        AdoptedHeroFlags._allowKingdomMove = true;
+
+                        // If vassal has fiefs and is leaving a kingdom, transfer them
+                        if (clan.Kingdom != null && clan.Kingdom != masterClan.Kingdom && clan.Settlements.Any())
+                        {
+                            foreach (var fief in clan.Settlements.ToList())
+                            {
+                                try
+                                {
+                                    // Give fiefs to the kingdom ruler
+                                    Hero ruler = clan.Kingdom?.RulingClan?.Leader;
+                                    if (ruler != null && ruler != clan.Leader)
+                                    {
+                                        ChangeOwnerOfSettlementAction.ApplyByDefault(ruler, fief);
+                                        InformationManager.DisplayMessage(
+                                            new InformationMessage($"[BLT] Transferred {fief.Name} from {clan.Name} to {ruler.Name}")
+                                        );
+                                    }
+                                }
+                                catch (Exception fiefEx)
+                                {
+                                    errors.Add($"Failed to transfer fief {fief.Name} from {clan.Name}: {fiefEx.Message}");
+                                }
+                            }
+                        }
+
+                        // Leave current kingdom if in one
+                        if (clan.Kingdom != null && clan.Kingdom != masterClan.Kingdom)
+                        {
+                            if (clan.IsUnderMercenaryService)
+                            {
+                                clan.EndMercenaryService(true);
+                            }
+                            clan.ClanLeaveKingdom(true);
+                        }
+
+                        // Join master's kingdom with correct status
+                        if (masterClan.Kingdom != null)
+                        {
+                            if (masterClan.IsUnderMercenaryService)
+                            {
+                                ChangeKingdomAction.ApplyByJoinFactionAsMercenary(clan, masterClan.Kingdom, default, clan.MercenaryAwardMultiplier);
+                                InformationManager.DisplayMessage(
+                                    new InformationMessage($"[BLT] {clan.Name} joined {masterClan.Kingdom.Name} as mercenary")
+                                );
+                            }
+                            else
+                            {
+                                ChangeKingdomAction.ApplyByJoinToKingdom(clan, masterClan.Kingdom, default, false);
+                                InformationManager.DisplayMessage(
+                                    new InformationMessage($"[BLT] {clan.Name} joined {masterClan.Kingdom.Name} as vassal")
+                                );
+                            }
+                        }
+                        else
+                        {
+                            // Master is independent, vassal should be too
+                            InformationManager.DisplayMessage(
+                                new InformationMessage($"[BLT] {clan.Name} is now independent (master is independent)")
+                            );
+                        }
+
+                        AdoptedHeroFlags._allowKingdomMove = false;
+                        fixedCount++;
+                    }
+                    catch (Exception clanEx)
+                    {
+                        AdoptedHeroFlags._allowKingdomMove = false;
+                        errors.Add($"Failed to fix vassal {clan.Name}: {clanEx.Message}");
+                        errorCount++;
+                    }
+                }
+
+                // Build result message
+                var result = $"Vassal fix complete: " +
+                             $"Checked: {checkedCount} vassals | " +
+                             $"Already correct: {alreadyCorrect} | " +
+                             $"Fixed: {fixedCount} | " +
+                             $"Errors: {errorCount}";
+
+                if (errors.Any())
+                {
+                    foreach (var error in errors)
+                    {
+                        InformationManager.DisplayMessage(new InformationMessage($"[BLT Error] {error}"));
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                AdoptedHeroFlags._allowKingdomMove = false;
+                return $"Vassal fix failed: {ex.Message}";
+            }
+        }
+
         #endregion
     }
 }

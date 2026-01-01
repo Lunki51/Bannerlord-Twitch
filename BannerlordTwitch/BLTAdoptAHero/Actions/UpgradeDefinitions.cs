@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.UI;
 using BannerlordTwitch.Util;
@@ -89,8 +91,9 @@ namespace BLTAdoptAHero.Actions.Upgrades
         }
 
         private string _requiredUpgradeID = "";
-        [LocDisplayName("{=BLT_UpgradeRequired}Required Upgrade ID"),
-         LocDescription("{=BLT_UpgradeRequiredDesc}ID of upgrade required before this can be purchased (for tiered upgrades, leave empty for tier 1)"),
+
+        [LocDisplayName("{=BLT_UpgradeRequired}Required Upgrade ID(s)"),
+         LocDescription("{=BLT_UpgradeRequiredDesc}ID(s) of upgrades required before this can be purchased. Use comma-separated values for multiple requirements (e.g., \"upgrade1, upgrade2\"). Leave empty for tier 1."),
          PropertyOrder(5), UsedImplicitly]
         public string RequiredUpgradeID
         {
@@ -103,6 +106,34 @@ namespace BLTAdoptAHero.Actions.Upgrades
                     OnPropertyChanged(nameof(RequiredUpgradeID));
                 }
             }
+        }
+
+        // Helper property to get the IDs as a list
+        public List<string> RequiredUpgradeIDs
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_requiredUpgradeID))
+                    return new List<string>();
+
+                return _requiredUpgradeID
+                    .Split(',')
+                    .Select(id => id.Trim())
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .ToList();
+            }
+        }
+
+        // Helper method to check if a specific upgrade ID is required
+        public bool IsUpgradeRequired(string upgradeId)
+        {
+            return RequiredUpgradeIDs.Contains(upgradeId, StringComparer.OrdinalIgnoreCase);
+        }
+
+        // Helper method to check if ALL required upgrades are met
+        public bool AreRequiredUpgradesMet(HashSet<string> ownedUpgrades)
+        {
+            return RequiredUpgradeIDs.All(id => ownedUpgrades.Contains(id, StringComparer.OrdinalIgnoreCase));
         }
 
         private int _goldCost = 10000;
