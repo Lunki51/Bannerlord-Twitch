@@ -229,7 +229,7 @@ namespace BLTAdoptAHero
             CampaignEvents.MapEventStarted.AddNonSerializedListener(this,
             (mapEvent, attackerParty, defenderParty) =>
             {
-                if (mapEvent == null || mapEvent.BattleState == 0) return;
+                if (mapEvent == null) return;
                 else if (mapEvent.IsPlayerMapEvent)
                 {
                     MapHub.UpdateMapData();
