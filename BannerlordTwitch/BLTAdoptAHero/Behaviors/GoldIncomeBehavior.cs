@@ -43,6 +43,12 @@ namespace BLTAdoptAHero.Behaviors
                 }
             }
 
+            // Calculate bonus from vassal fief income
+            if (BLTAdoptAHeroModule.CommonConfig.FiefIncomeEnabled)
+            {
+                total += VassalBehavior.Current.CalculateVassalFiefIncome(clan);
+            }
+
             // Calculate mercenary income for this BLT clan
             if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
             {

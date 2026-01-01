@@ -54,7 +54,7 @@ namespace BLTAdoptAHero.Actions
             var fiefs = clan.Settlements?.Where(s => !s.IsVillage).ToList();
             if (fiefs != null && fiefs.Count > 0)
             {
-                ShowFiefIncome(fiefs, onSuccess);
+                ShowFiefIncome(clan, fiefs, onSuccess);
                 return;
             }
 
@@ -69,10 +69,19 @@ namespace BLTAdoptAHero.Actions
             onSuccess("You have no income sources (no settlements or mercenary contract).");
         }
 
-        private void ShowFiefIncome(List<Settlement> settlements, Action<string> onSuccess)
+        private void ShowFiefIncome(Clan masterclan, List<Settlement> settlements, Action<string> onSuccess)
         {
             var sb = new StringBuilder();
             int totalIncome = 0;
+            int vassalincome;
+            if (VassalBehavior.Current != null)
+            {
+                vassalincome = VassalBehavior.Current.CalculateVassalFiefIncome(masterclan);
+            }
+            else
+            {
+                vassalincome = 0;
+            }
 
             foreach (var s in settlements)
             {
@@ -82,7 +91,8 @@ namespace BLTAdoptAHero.Actions
             }
 
             var result = sb.ToString().TrimEnd(' ', '|');
-            result += $" | Total: {(totalIncome >= 0 ? "+" : "")}{totalIncome}/day";
+            result += $" | Total: {(totalIncome >= 0 ? "+" : "")}{totalIncome}/day | " +
+                $"Total income from Vassals' fiefs: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day";
 
             onSuccess(result);
         }
@@ -101,7 +111,7 @@ namespace BLTAdoptAHero.Actions
             }
             onSuccess(
                 $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}/day | " + 
-                $"Vassals' total contract income: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day"
+                $"Total income from Vassals' contracts: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day"
                 );
         }
 

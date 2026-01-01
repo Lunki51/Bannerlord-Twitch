@@ -6,7 +6,6 @@ using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
-using BLTAdoptAHero;
 using BLTAdoptAHero.Annotations;
 using BLTAdoptAHero.Actions;
 using TaleWorlds.CampaignSystem;
@@ -163,10 +162,17 @@ namespace BLTAdoptAHero.Actions
 
             [LocDisplayName("{=TESTING}Vassal Merc Income Share %"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Percentage of vassal mercenary income shared with master (0.0-2.0, 0.25 = 25%)"),
+             LocDescription("{=TESTING}Percentage of vassal mercenary income shared with master (0.0 - 2.0, 0.25 = 25%)"),
              PropertyOrder(5), UsedImplicitly,
              Range(0f, 2f)]
             public float VassalMercIncomeShare { get; set; } = 0.25f; // 25% default
+
+            [LocDisplayName("{=TESTING}Vassal Fief Income Share %"),
+             LocCategory("Vassal", "{=TESTING}Vassal"),
+             LocDescription("{=TESTING}Percentage of vassal fief income shared with master (0.0 - 2.0, 0.25 = 25%)"),
+             PropertyOrder(6), UsedImplicitly,
+             Range(0f, 2f)]
+            public float VassalFiefIncomeShare { get; set; } = 0.25f; // 25% default
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
@@ -241,6 +247,7 @@ namespace BLTAdoptAHero.Actions
             if (VassalBehavior.Current != null)
             {
                 VassalBehavior.MercenaryIncomeSharePercent = settings.VassalMercIncomeShare;
+                VassalBehavior.FiefIncomeSharePercent = settings.VassalFiefIncomeShare;
             }
             if (adoptedHero == null)
             {
@@ -282,25 +289,25 @@ namespace BLTAdoptAHero.Actions
             switch (command.ToLower())
             {
                 case "join":
-                    HandleJoinCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleJoinCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "merc":
-                    HandleMercenaryCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleMercenaryCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "rebel":
-                    HandleRebelCommand(settings, adoptedHero, onSuccess, onFailure);
+                    HandleRebelCommand(diplomacyHelper, settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "leave":
-                    HandleLeaveCommand(settings, adoptedHero, onSuccess, onFailure);
+                    HandleLeaveCommand(diplomacyHelper, settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "create":
-                    HandleKCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleKCreateCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "vassal":
-                    VassalCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    VassalCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                         break;
                 case "stats":
-                    HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
+                    HandleStatsCommand(diplomacyHelper, settings, adoptedHero, onSuccess, onFailure);
                     break;
                 default:
                     onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/stats)".Translate());
@@ -309,7 +316,7 @@ namespace BLTAdoptAHero.Actions
 
         }
 
-        private void HandleJoinCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleJoinCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
             bool joiningPlayer = false;
             if (!settings.JoinEnabled)
@@ -332,7 +339,6 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=IKXbDYU8}(join) (kingdom name)".Translate());
                 return;
             }
-
             var desiredKingdom = CampaignHelpers.AllHeroes.Select(h => h?.Clan?.Kingdom).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase) == true);
             if (desiredKingdom == null)
             {
@@ -388,7 +394,7 @@ namespace BLTAdoptAHero.Actions
             AdoptedHeroFlags._allowKingdomMove = false;
         }
 
-        private void HandleRebelCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleRebelCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
         {
             bool BLTRebellion = false;
             if (!settings.RebelEnabled)
@@ -459,7 +465,7 @@ namespace BLTAdoptAHero.Actions
             return;
         }
 
-        private void HandleStatsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleStatsCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.StatsEnabled)
             {
@@ -570,7 +576,7 @@ namespace BLTAdoptAHero.Actions
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
         }
 
-        private void HandleLeaveCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleLeaveCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.LeaveEnabled)
             {
@@ -589,7 +595,7 @@ namespace BLTAdoptAHero.Actions
             }
             if (adoptedHero.Clan == adoptedHero.Clan.Kingdom.RulingClan)
             {
-                onFailure("{=OgwKEDza}You already are the ruling clan".Translate());
+                onFailure("{=OgwKEDza}You are the ruling clan, force transfer all fiefs of your kingdom to another to disband your kingdom".Translate());
                 return;
             }
             IFaction oldBoss = adoptedHero.Clan.Kingdom;
@@ -612,10 +618,14 @@ namespace BLTAdoptAHero.Actions
             onSuccess("{=sc77IxCW}Your clan has left {oldBoss}".Translate(("oldBoss", oldBoss)));
             adoptedHero.Clan.ClanLeaveKingdom();
             AdoptedHeroFlags._allowKingdomMove = false;
+            if (VassalBehavior.Current != null)
+            {
+                VassalBehavior.Current.OnClanChangedKingdom(adoptedHero.Clan, (Kingdom)oldBoss, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+            }
             return;
         }
 
-        private void HandleMercenaryCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleMercenaryCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.MercenaryEnabled)
             {
@@ -691,7 +701,7 @@ namespace BLTAdoptAHero.Actions
             ChangeKingdomAction.ApplyByJoinFactionAsMercenary(adoptedHero.Clan, desiredKingdom);
             Log.ShowInformation("{=tpwW6Ix8}{clanName} is now under contract with {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
-        private void HandleKCreateCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleKCreateCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.CreateKEnabled)
             {
@@ -761,7 +771,7 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
 
-        private void VassalCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
+        private void VassalCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.VassalEnabled)
             {
@@ -816,7 +826,7 @@ namespace BLTAdoptAHero.Actions
             onFailure($"{childName} is too young");
             return;
             }
-            if (vassal.Spouse != null && vassal.Spouse.isAdopted())
+            if (vassal.Spouse != null && vassal.Spouse.IsAdopted())
             {
             onFailure("Cannot vassal a blt spouse");
             return;
@@ -826,7 +836,7 @@ namespace BLTAdoptAHero.Actions
             onFailure($"{childName} is in a party");
             return;
             }
-            if (vassal.isPrisoner)
+            if (vassal.IsPrisoner)
             {
             onFailure($"{childName} is prisoner");
             return;

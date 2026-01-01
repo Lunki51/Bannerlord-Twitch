@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -22,6 +23,8 @@ namespace BLTAdoptAHero
         public static VassalBehavior Current { get; private set; }
 
         public static float MercenaryIncomeSharePercent { get; set; } = 0.25f; // 25% default
+
+        public static float FiefIncomeSharePercent { get; set; } = 0.25f; // 25% default
 
         // Persisted: maps vassal clan StringId to master clan StringId
         private Dictionary<string, string> _vassalToMaster = new();
@@ -143,7 +146,7 @@ namespace BLTAdoptAHero
         // Event Handlers
         // ----------------------
 
-        private void OnClanChangedKingdom(Clan clan, Kingdom oldKingdom, Kingdom newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail detail, bool showNotification)
+        public void OnClanChangedKingdom(Clan clan, Kingdom oldKingdom, Kingdom newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail detail, bool showNotification)
         {
             try
             {
@@ -162,64 +165,57 @@ namespace BLTAdoptAHero
                     {
                         try
                         {
+                            AdoptedHeroFlags._allowKingdomMove = true;
+
                             // Skip if vassal is already in the correct kingdom
-                            if (vassal.Kingdom == newKingdom)
+                            // Fix if same kingdom, but vassal is merc and parent is not
+                            // Do not do opposite, as clan state should never be changed, and would likely want vassal to keep land
+                            // Can just leave and join as merc again if they DO want the vassal to lose their land and become a merc
+                            if (vassal?.Kingdom == newKingdom)
                             {
                                 //Log.LogFeedResponse($"[DEBUG] Vassal {vassal.Name} already in correct kingdom, skipping");
+                                
+                                if (!clan.IsUnderMercenaryService && vassal.IsUnderMercenaryService) 
+                                {
+                                    vassal.EndMercenaryService(false);
+                                    ChangeKingdomAction.ApplyByLeaveKingdomAsMercenary(vassal, false);
+                                }
                                 continue;
                             }
 
-                            AdoptedHeroFlags._allowKingdomMove = true;
-
-                            if (Kingdom.All.Contains(clan.Kingdom))
+                            if (vassal?.Kingdom != null)
                             {
                                 if (vassal.IsUnderMercenaryService)
                                 {
                                     vassal.EndMercenaryService(true);
+                                }
+                                else
+                                {
+                                    foreach (var fief in vassal.Settlements.ToList())
+                                    {
+                                        Hero ruler = vassal.Kingdom?.RulingClan?.Leader;
+                                        if (ruler != null && ruler != vassal.Leader)
+                                        {
+                                            ChangeOwnerOfSettlementAction.ApplyByDefault(ruler, fief);
+                                        }
+                                    }
                                 }
                                 vassal.ClanLeaveKingdom(true);
                             }
-                            else if (detail == ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary)
+
+                            if (detail == ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary)
                             {
-                                if (vassal.IsUnderMercenaryService)
-                                {
-                                    vassal.EndMercenaryService(true);
-                                }
-
-                                if (vassal.Kingdom != null && vassal.Kingdom != newKingdom)
-                                {
-                                    vassal.ClanLeaveKingdom(true);
-                                }
-
                                 ChangeKingdomAction.ApplyByJoinFactionAsMercenary(vassal, newKingdom, default, vassal.MercenaryAwardMultiplier);
+                                Log.LogFeedResponse($"{vassal.Name} has joined {newKingdom.Name} as a mercenary!");
                             }
-                            else if (oldKingdom != null && newKingdom != null)
+                            else if (newKingdom != null)
                             {
-                                if (vassal.IsUnderMercenaryService)
-                                {
-                                    vassal.EndMercenaryService(true);
-                                }
-
-                                if (vassal.Kingdom != null && vassal.Kingdom != newKingdom)
-                                {
-                                    vassal.ClanLeaveKingdom(true);
-                                }
-
                                 ChangeKingdomAction.ApplyByJoinToKingdom(vassal, newKingdom, default, false);
-
-                                if (oldKingdom != null && newKingdom.IsAtWarWith(oldKingdom))
-                                {
-                                    if (!vassal.IsAtWarWith(oldKingdom))
-                                    {
-                                        DeclareWarAction.ApplyByDefault(vassal, oldKingdom);
-                                    }
-                                }
+                                Log.LogFeedResponse($"{vassal.Name} has joined {newKingdom.Name} as a vassal!");
                             }
-                            else if (oldKingdom == null && newKingdom != null)
+                            else if (newKingdom == null)
                             {
-                                //Log.LogFeedResponse($"[DEBUG] Making vassal {vassal.Name} join kingdom");
-
-                                ChangeKingdomAction.ApplyByJoinToKingdom(vassal, newKingdom, default, false);
+                                Log.LogFeedResponse($"{vassal.Name} has become independent!");
                             }
 
                             //Log.LogFeedResponse($"[DEBUG] Vassal {vassal.Name} now in kingdom: {vassal.Kingdom?.Name?.ToString() ?? "None"}");
@@ -240,34 +236,32 @@ namespace BLTAdoptAHero
                     //Log.LogFeedResponse($"[DEBUG] {clan.Name} is a vassal of {masterClan.Name}");
 
                     // Vassal changed kingdom but should follow master
-                    if (clan.Kingdom != masterClan.Kingdom)
+                    if ((clan.Kingdom == null && masterClan.Kingdom == null) || (clan.Kingdom != masterClan.Kingdom))
                     {
                         //Log.LogFeedResponse($"[DEBUG] Vassal {clan.Name} in wrong kingdom, correcting...");
-
                         try
                         {
                             AdoptedHeroFlags._allowKingdomMove = true;
 
-                            if (masterClan.Kingdom == null)
+                            if (clan.IsUnderMercenaryService)
                             {
-                                if (clan.IsUnderMercenaryService)
-                                {
-                                    clan.EndMercenaryService(true);
-                                }
-                                clan.ClanLeaveKingdom(true);
+                                clan.EndMercenaryService(true);
                             }
                             else
                             {
-                                if (clan.IsUnderMercenaryService)
+                                foreach (var fief in clan.Settlements.ToList())
                                 {
-                                    clan.EndMercenaryService(true);
+                                    Hero ruler = clan.Kingdom?.RulingClan?.Leader;
+                                    if (ruler != null && ruler != clan.Leader)
+                                    {
+                                        ChangeOwnerOfSettlementAction.ApplyByDefault(ruler, fief);
+                                    }
                                 }
+                            }
+                            clan.ClanLeaveKingdom(true);
 
-                                if (clan.Kingdom != null)
-                                {
-                                    clan.ClanLeaveKingdom(true);
-                                }
-
+                            if (masterClan.Kingdom != null)
+                            {
                                 // Match master's mercenary status
                                 if (masterClan.IsUnderMercenaryService)
                                 {
@@ -332,6 +326,46 @@ namespace BLTAdoptAHero
             }
         }
 
+        public int CalculateVassalFiefIncome(Clan masterClan)
+        {
+            try
+            {
+                if (masterClan == null) return 0;
+
+                var vassals = GetVassalClans(masterClan);
+                if (vassals.Count == 0) return 0;
+
+                int totalBonus = 0;
+
+                foreach (var vassal in vassals)
+                {
+                    // Only calculate bonus if vassal is under mercenary service
+                    if (vassal.Fiefs.Count > 0)
+                    {
+                        int bonus = 0;
+                        
+                        foreach (Town town in vassal.Fiefs.ToList())
+                        {
+                            Settlement fief = town.Settlement;
+                            int vassalFiefIncome = GoldIncomeAction.CalculateSettlementIncome(fief);
+
+                            // Master gets a percentage as bonus
+                            bonus = (int)(vassalFiefIncome * FiefIncomeSharePercent);
+                        }
+
+                        totalBonus += bonus;
+                    }
+                }
+
+                return totalBonus;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT Vassal] CalculateVassalFiefIncome error: {ex.Message}");
+                return 0;
+            }
+        }
+
         private void WarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
         {
             try
@@ -339,33 +373,36 @@ namespace BLTAdoptAHero
                 // Check if faction1 is a lone master clan with vassals
                 if (faction1 is Clan clan1)
                 {
-                    var vassals = GetVassalClans(clan1);
-                    foreach (var vassal in vassals)
+                    if (GetMasterClan(clan1) == null)
                     {
-                        try
+                        var vassals = GetVassalClans(clan1);
+                        foreach (var vassal in vassals)
                         {
-                            if (!vassal.IsAtWarWith(faction2) && !Kingdom.All.Contains(vassal?.Kingdom))
+                            try
                             {
-                                DeclareWarAction.ApplyByDefault(vassal, faction2);
-                            }
-                            else if (Kingdom.All.Contains(vassal?.Kingdom) && vassal.Kingdom == faction2)
-                            {
-                                AdoptedHeroFlags._allowKingdomMove = true;
-                                
-                                if (vassal.IsUnderMercenaryService)
+                                if (!vassal.IsAtWarWith(faction2) && !Kingdom.All.Contains(vassal.Kingdom))
                                 {
-                                    vassal.EndMercenaryService(true);
+                                    DeclareWarAction.ApplyByDefault(vassal, faction2);
                                 }
-                                vassal.ClanLeaveKingdom(false);
+                                else if (Kingdom.All.Contains(vassal.Kingdom) && vassal?.Kingdom == faction2)
+                                {
+                                    AdoptedHeroFlags._allowKingdomMove = true;
 
-                                AdoptedHeroFlags._allowKingdomMove = false;
+                                    if (vassal.IsUnderMercenaryService)
+                                    {
+                                        vassal.EndMercenaryService(true);
+                                    }
+                                    vassal.ClanLeaveKingdom(false);
 
-                                DeclareWarAction.ApplyByDefault(vassal, faction2);
+                                    AdoptedHeroFlags._allowKingdomMove = false;
+
+                                    DeclareWarAction.ApplyByDefault(vassal, faction2);
+                                }
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error($"[BLT Vassal] Error declaring war for vassal {vassal.Name}: {ex.Message}");
+                            catch (Exception ex)
+                            {
+                                Log.Error($"[BLT Vassal] Error declaring war for vassal {vassal.Name}: {ex.Message}");
+                            }
                         }
                     }
                 }
@@ -373,33 +410,36 @@ namespace BLTAdoptAHero
                 // Check if faction2 is a lone master clan with vassals
                 if (faction2 is Clan clan2)
                 {
-                    var vassals = GetVassalClans(clan2);
-                    foreach (var vassal in vassals)
+                    if (GetMasterClan(clan2) == null)
                     {
-                        try
+                        var vassals = GetVassalClans(clan2);
+                        foreach (var vassal in vassals)
                         {
-                            if (!vassal.IsAtWarWith(faction1) && !Kingdom.All.Contains(vassal?.Kingdom))
+                            try
                             {
-                                DeclareWarAction.ApplyByDefault(vassal, faction1);
-                            }
-                            else if (Kingdom.All.Contains(vassal?.Kingdom) && vassal.Kingdom == faction1)
-                            {
-                                AdoptedHeroFlags._allowKingdomMove = true;
-
-                                if (vassal.IsUnderMercenaryService)
+                                if (!vassal.IsAtWarWith(faction1) && !Kingdom.All.Contains(vassal.Kingdom))
                                 {
-                                    vassal.EndMercenaryService(true);
+                                    DeclareWarAction.ApplyByDefault(vassal, faction1);
                                 }
-                                vassal.ClanLeaveKingdom(false);
+                                else if (Kingdom.All.Contains(vassal.Kingdom) && vassal?.Kingdom == faction1)
+                                {
+                                    AdoptedHeroFlags._allowKingdomMove = true;
 
-                                AdoptedHeroFlags._allowKingdomMove = false;
+                                    if (vassal.IsUnderMercenaryService)
+                                    {
+                                        vassal.EndMercenaryService(true);
+                                    }
+                                    vassal.ClanLeaveKingdom(false);
 
-                                DeclareWarAction.ApplyByDefault(vassal, faction1);
+                                    AdoptedHeroFlags._allowKingdomMove = false;
+
+                                    DeclareWarAction.ApplyByDefault(vassal, faction1);
+                                }
                             }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error($"[BLT Vassal] Error declaring war for vassal {vassal.Name}: {ex.Message}");
+                            catch (Exception ex)
+                            {
+                                Log.Error($"[BLT Vassal] Error declaring war for vassal {vassal.Name}: {ex.Message}");
+                            }
                         }
                     }
                 }
