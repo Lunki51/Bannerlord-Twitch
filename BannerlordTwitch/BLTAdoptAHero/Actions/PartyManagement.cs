@@ -398,6 +398,7 @@ namespace BLTAdoptAHero.Actions
                                         }
                                     }
                                 }
+                                newParty.InitializeMobilePartyAtPosition(spawnSettlement.GatePosition);
                             }
                             else
                             {
@@ -515,15 +516,16 @@ namespace BLTAdoptAHero.Actions
                             return;
                         }
                         var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
+                        var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
                         var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
-                            .Where(p => p?.ActualClan == adoptedHero.Clan && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
+                            .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
 
                         adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
-                        Army army = adoptedHero.PartyBelongedTo.Army;
+                        Army aarmy = adoptedHero.PartyBelongedTo.Army;
 
                         //int addedPartiesCount = 0;
-                        foreach (var party in sameClanParties)
+                        foreach (var pparty in sameClanParties)
                         {
                             party.Army = army;
                         }

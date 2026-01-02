@@ -39,6 +39,8 @@ namespace BLTAdoptAHero
         public override void RegisterEvents()
         {
             // No DailyTick mutations - models will query this provider on demand
+            // Renown has been added to this file to avoid behavior bloating, will be moved to own behavior when more clan upgrades are added
+            CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, ApplyRenownDaily);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -247,7 +249,7 @@ namespace BLTAdoptAHero
             return sum;
         }
 
-        // Sum clan float values (applies to clan's settlements)
+        // Sum clan float values (applies to clan's settlements + renown)
         private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> selector)
         {
             if (clan == null || ConfigSafe == null) return 0f;
@@ -260,7 +262,7 @@ namespace BLTAdoptAHero
             return sum;
         }
 
-        // Sum kingdom float values (applies to kingdom's settlements)
+        // Sum kingdom float values (applies to kingdom's settlements + clans' renown)
         private float SumKingdomFloat(Kingdom kingdom, Func<KingdomUpgrade, float> selector)
         {
             if (kingdom == null || ConfigSafe == null) return 0f;
@@ -390,6 +392,28 @@ namespace BLTAdoptAHero
             bonus += GetClanPartySizeBonus(hero.Clan);
             if (hero.Clan.Kingdom != null) bonus += GetKingdomPartySizeBonus(hero.Clan.Kingdom);
             return bonus;
+        }
+
+        // Renown
+        public float GetClanRenownDaily(Clan clan)
+            => SumClanFloat(clan, c => c.RenownDaily);
+
+        public float GetKingdomRenownDaily(Kingdom kingdom)
+            => SumKingdomFloat(kingdom, k => k.RenownDaily);
+
+        public float GetTotalRenownDaily(Hero hero)
+        {
+            if (hero?.Clan == null) return 0f;
+            float bonus = 0;
+            bonus += GetClanRenownDaily(hero.Clan);
+            if (hero.Clan.Kingdom != null) bonus += GetKingdomRenownDaily(hero.Clan.Kingdom);
+            return bonus;
+        }
+
+        public void ApplyRenownDaily(Clan clan)
+        {
+            float bonus = GetTotalRenownDaily(clan.Leader);
+            clan.AddRenown(bonus, false);
         }
 
         // DAILY FLAT / PERCENT getters (typed)

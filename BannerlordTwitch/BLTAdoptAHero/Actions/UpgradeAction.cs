@@ -463,12 +463,22 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // Check prerequisites
-            if (!string.IsNullOrEmpty(upgrade.RequiredUpgradeID))
+            // Check prerequisites - NOW SUPPORTS MULTIPLE REQUIRED IDs
+            var requiredIds = upgrade.RequiredUpgradeIDs;
+            if (requiredIds.Count > 0)
             {
-                if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgrade.RequiredUpgradeID) != true)
+                var ownedUpgrades = new HashSet<string>(
+                    UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>(),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                if (!upgrade.AreRequiredUpgradesMet(ownedUpgrades))
                 {
-                    onFailure($"Requires upgrade '{upgrade.RequiredUpgradeID}' first");
+                    var missingUpgrades = requiredIds
+                        .Where(id => !ownedUpgrades.Contains(id, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+
+                    onFailure($"Requires upgrade(s) first: {string.Join(", ", missingUpgrades)}");
                     return;
                 }
             }
@@ -519,12 +529,22 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // Check prerequisites
-            if (!string.IsNullOrEmpty(upgrade.RequiredUpgradeID))
+            // Check prerequisites - NOW SUPPORTS MULTIPLE REQUIRED IDs
+            var requiredIds = upgrade.RequiredUpgradeIDs;
+            if (requiredIds.Count > 0)
             {
-                if (UpgradeBehavior.Current?.HasClanUpgrade(clan, upgrade.RequiredUpgradeID) != true)
+                var ownedUpgrades = new HashSet<string>(
+                    UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>(),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                if (!upgrade.AreRequiredUpgradesMet(ownedUpgrades))
                 {
-                    onFailure($"Requires upgrade '{upgrade.RequiredUpgradeID}' first");
+                    var missingUpgrades = requiredIds
+                        .Where(id => !ownedUpgrades.Contains(id, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+
+                    onFailure($"Requires upgrade(s) first: {string.Join(", ", missingUpgrades)}");
                     return;
                 }
             }
@@ -582,12 +602,22 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // Check prerequisites
-            if (!string.IsNullOrEmpty(upgrade.RequiredUpgradeID))
+            // Check prerequisites - NOW SUPPORTS MULTIPLE REQUIRED IDs
+            var requiredIds = upgrade.RequiredUpgradeIDs;
+            if (requiredIds.Count > 0)
             {
-                if (UpgradeBehavior.Current?.HasKingdomUpgrade(kingdom, upgrade.RequiredUpgradeID) != true)
+                var ownedUpgrades = new HashSet<string>(
+                    UpgradeBehavior.Current?.GetKingdomUpgrades(kingdom) ?? new List<string>(),
+                    StringComparer.OrdinalIgnoreCase
+                );
+
+                if (!upgrade.AreRequiredUpgradesMet(ownedUpgrades))
                 {
-                    onFailure($"Requires upgrade '{upgrade.RequiredUpgradeID}' first");
+                    var missingUpgrades = requiredIds
+                        .Where(id => !ownedUpgrades.Contains(id, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+
+                    onFailure($"Requires upgrade(s) first: {string.Join(", ", missingUpgrades)}");
                     return;
                 }
             }
@@ -624,8 +654,14 @@ namespace BLTAdoptAHero.Actions
 
         private Settlement FindSettlement(string name)
         {
-            return Settlement.All.FirstOrDefault(s =>
-                s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            if (settlement.IsVillage)
+            {
+                name = name.Add(" Castle", false);
+                settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+            }
+            return settlement;
         }
     }
 }

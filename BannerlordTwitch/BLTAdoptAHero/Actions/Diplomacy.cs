@@ -124,7 +124,7 @@ namespace BLTAdoptAHero
                                     "Price={price}{icon}".Translate(("price", AllyPrice.ToString()), ("icon", Naming.Gold)));
                 if (TradeEnabled)
                     generator.Value("<strong>Trade Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", TradePrice.ToString()), ("icon", Naming.Gold)));                
+                                    "Price={price}{icon}".Translate(("price", TradePrice.ToString()), ("icon", Naming.Gold)));
                 if (PolicyEnabled)
                     generator.Value("<strong>Policy Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", PolicyPrice.ToString()), ("icon", Naming.Gold)));
@@ -419,7 +419,8 @@ namespace BLTAdoptAHero
                         }
                         else { onFailure("Invalid action"); }
                         break;
-                    }               
+
+                    }            
                 case "alliance":
                     {
 

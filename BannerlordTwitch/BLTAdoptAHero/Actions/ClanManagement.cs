@@ -435,6 +435,11 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=6vTxAMVx}(create) (clan name)".Translate());
                 return;
             }
+            if (adoptedHero.PartyBelongedTo == Hero.MainHero.PartyBelongedTo)
+            {
+                onFailure("{=TESTING}You cannot create a clan while in the players party".Translate());
+                return;
+            }
 
             var fullClanName = $"[BLT Clan] {desiredName}";
             var existingClan = CampaignHelpers.AllHeroes.Select(h => h.Clan).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(fullClanName, StringComparison.OrdinalIgnoreCase) == true);

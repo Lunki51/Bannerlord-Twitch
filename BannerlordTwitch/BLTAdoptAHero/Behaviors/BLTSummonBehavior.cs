@@ -25,6 +25,8 @@ namespace BLTAdoptAHero
             public bool Died;
         }
 
+        private readonly Dictionary<Agent, bool> _retinueResolution = new();
+
         public class HeroSummonState
         {
             public Hero Hero;
@@ -155,24 +157,29 @@ namespace BLTAdoptAHero
 
                 if (inRetinue1 && inRetinue2)
                 {
-                    // Same agent exists in both lists, choose one at random
-                    if (MBRandom.RandomInt(1,2) == 1)
-                        runRetinue1 = true;
-                    else
-                        runRetinue2 = true;
+                    if (!_retinueResolution.TryGetValue(affectedAgent, out var useRetinue1))
+                    {
+                        useRetinue1 = MBRandom.RandomInt(0, 2) == 0;
+                        _retinueResolution[affectedAgent] = useRetinue1;
+                    }
+
+                    runRetinue1 = useRetinue1;
+                    runRetinue2 = !useRetinue1;
                 }
                 else
                 {
-                    // Only exists in one (or none)
                     runRetinue1 = inRetinue1;
                     runRetinue2 = inRetinue2;
                 }
 
 
-                if (runRetinue1)
+                if (runRetinue1 && BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance != 0)
                 {
+                    if (retinueState.Died)
+                        return;
+
                     if (agentState == AgentState.Killed &&
-                        MBRandom.RandomFloat <= BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance)
+                        MBRandom.RandomFloat < BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance)
                     {
                         retinueState.Died = true;
                         BLTAdoptAHeroCampaignBehavior.Current.KillRetinue(
@@ -190,10 +197,13 @@ namespace BLTAdoptAHero
                     retinueState.State = agentState;
                 }
 
-                if (runRetinue2)
+                if (runRetinue2 && BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance != 0)
                 {
+                    if (retinue2State.Died)
+                        return;
+
                     if (agentState == AgentState.Killed &&
-                        MBRandom.RandomFloat <= BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance)
+                        MBRandom.RandomFloat < BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance)
                     {
                         retinue2State.Died = true;
                         BLTAdoptAHeroCampaignBehavior.Current.KillRetinue2(
@@ -210,6 +220,12 @@ namespace BLTAdoptAHero
 
                     retinue2State.State = agentState;
                 }
+
+                if (retinue2State.Died || retinueState.Died)
+                {
+                    _retinueResolution.Remove(affectedAgent);
+                }
+
             });
         }
 

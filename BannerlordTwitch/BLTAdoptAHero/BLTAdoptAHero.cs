@@ -202,47 +202,15 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
                     //campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
                     campaignStarter.AddBehavior(new BLTClanBehavior());
+                    campaignStarter.AddBehavior(new BLTGoldIncomeBehavior()); 
+                    campaignStarter.AddBehavior(new BLTSettlementUpgradeBehavior());
                     campaignStarter.AddBehavior(new ReinforcementBehavior());
                     campaignStarter.AddBehavior(new DiplomacyHelper());
                     campaignStarter.AddBehavior(new UpgradeBehavior());
-                    campaignStarter.AddBehavior(new BLTGoldIncomeBehavior());
+                    campaignStarter.AddBehavior(new VassalBehavior());
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
-                    gameStarterObject.AddModel(
-                        new BLTPartySizeLimitModel(
-                            gameStarterObject.Models.OfType<PartySizeLimitModel>().FirstOrDefault()
-                        )
-                    );
-                    gameStarterObject.AddModel(
-                        new BLTSettlementTaxModel(
-                            gameStarterObject.Models.OfType<SettlementTaxModel>().FirstOrDefault()
-                        )
-                    );
-                    gameStarterObject.AddModel(
-                        new BLTSettlementLoyaltyModel(
-                            gameStarterObject.Models.OfType<SettlementLoyaltyModel>().FirstOrDefault()
-                        )
-                    );
-                    gameStarterObject.AddModel(
-                        new BLTSettlementProsperityModel(
-                            gameStarterObject.Models.OfType<SettlementProsperityModel>().FirstOrDefault()
-                        )
-                    );
-                    gameStarterObject.AddModel(
-                        new BLTSettlementSecurityModel(
-                            gameStarterObject.Models.OfType<SettlementSecurityModel>().FirstOrDefault()
-                        )
-                    );
-                    gameStarterObject.AddModel(
-                        new BLTSettlementMilitiaModel(
-                            gameStarterObject.Models.OfType<SettlementMilitiaModel>().FirstOrDefault()
-                        )
-                    );
-                    gameStarterObject.AddModel(
-                        new BLTSettlementFoodModel(
-                            gameStarterObject.Models.OfType<SettlementFoodModel>().FirstOrDefault()
-                        )
-                    );
+                    gameStarterObject.AddModel(new BLTPartySizeLimitModel(gameStarterObject.Models.OfType<PartySizeLimitModel>().FirstOrDefault()));
                 }
             }
             catch (Exception e)

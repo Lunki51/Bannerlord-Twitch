@@ -94,9 +94,10 @@ namespace BLTAdoptAHero
                 (heroClass?.IndexedWeapons ?? replaceableHeroWeapons)
                 .Where(s =>
                     // No shields, they aren't cool rewards and don't support any modifiers
-                    s.type != EquipmentType.Shield
+                    // Shields DO support a modifier, shield hit points, which is useful against the massive archer swarms that players often have
+                    // s.type != EquipmentType.Shield &&
                     // Exclude bolts if hero doesn't have a crossbow already
-                    && (s.type != EquipmentType.Bolts || heroWeapons.Any(i
+                    (s.type != EquipmentType.Bolts || heroWeapons.Any(i
                         => i.element.Item.WeaponComponent?.PrimaryWeapon?.AmmoClass == WeaponClass.Bolt))
                     // Exclude arrows if hero doesn't have a bow
                     && (s.type != EquipmentType.Arrows || heroWeapons.Any(i
@@ -371,10 +372,12 @@ namespace BLTAdoptAHero
                 ItemObject.ItemTypeEnum.Polearm;
             bool isWeaponRanged = itemObject.Type is
                 ItemObject.ItemTypeEnum.Crossbow or
-                ItemObject.ItemTypeEnum.Bow;
+                ItemObject.ItemTypeEnum.Bow or
+                ItemObject.ItemTypeEnum.Sling;
             bool isAmmo = itemObject.Type is
                 ItemObject.ItemTypeEnum.Bolts or
                 ItemObject.ItemTypeEnum.Arrows or
+                ItemObject.ItemTypeEnum.SlingStones or
                 ItemObject.ItemTypeEnum.Thrown;
             bool isThrown = itemObject.Type is ItemObject.ItemTypeEnum.Thrown;
             bool isShield = itemObject.Type is
@@ -390,7 +393,7 @@ namespace BLTAdoptAHero
                     // Only shields can modify HP
                     (str: "{=}{Inc}{AMOUNT} HP", mod: itemModifier.ModifyHitPoints(0), enabled: isShield),
                     // Only non-ranged weapons can modify speed, and speed refers to swing/thrust/handling
-                    (str: "{=}{Inc}{AMOUNT} Speed", mod: itemModifier.ModifySpeed(0), enabled: isWeaponMelee),
+                    (str: "{=}{Inc}{AMOUNT} Swing Speed", mod: itemModifier.ModifySpeed(0), enabled: isWeaponMelee),
                     (str: "{=}{Inc}{AMOUNT} Damage", mod: itemModifier.ModifyDamage(0), enabled: isWeaponMelee || isAmmo),
                     (str: "{=}{Inc}{AMOUNT} Missile Speed", mod: itemModifier.ModifyMissileSpeed(0), enabled: isThrown || isWeaponRanged),
                     (str: "{=}{Inc}{AMOUNT} Stack Count", mod: itemModifier.ModifyStackCount(0), enabled: isAmmo),

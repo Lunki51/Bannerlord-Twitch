@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Settlements;
 
 namespace BLTAdoptAHero.Behaviors
@@ -53,6 +54,10 @@ namespace BLTAdoptAHero.Behaviors
             if (loyaltyPercent != 0f)
                 town.Loyalty += town.Loyalty * (loyaltyPercent / 100f);
 
+            town.Loyalty = Math.Min(
+    town.Loyalty,
+    Campaign.Current.Models.SettlementLoyaltyModel.MaximumLoyaltyInSettlement);
+
             float securityFlat = UpgradeBehavior.Current.GetSecurityFlat(settlement);
             float securityPercent = UpgradeBehavior.Current.GetSecurityPercent(settlement);
 
@@ -91,8 +96,8 @@ namespace BLTAdoptAHero.Behaviors
                 settlement.Militia += settlement.Militia * (militiaPercent / 100f);
 
             int taxFlat = UpgradeBehavior.Current.GetTotalTaxBonus(settlement);
-            if (taxFlat > 0 && town.OwnerClan != null) { }
-                //town.OwnerClan.AddGold(taxFlat);
+            if (taxFlat > 0 && town.OwnerClan != null)
+                town.OwnerClan.Leader.Gold += taxFlat;
         }
 
         private void ApplyVillageBonuses(Settlement settlement)
@@ -102,9 +107,9 @@ namespace BLTAdoptAHero.Behaviors
                 return;
 
             int taxFlat = UpgradeBehavior.Current.GetTotalTaxBonus(settlement);
-
-            if (taxFlat > 0 && village.TradeTaxAccumulated > 1) { }
-                //village.OwnerClan.AddGold(taxFlat);
+        
+            if (taxFlat > 0 && village.TradeTaxAccumulated > 1)
+                village.Settlement.OwnerClan.Leader.Gold += taxFlat;
         }
     }
 }
