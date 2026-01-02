@@ -70,8 +70,8 @@ namespace BLTAdoptAHero
                 _previousClan.TryGetValue(hero1, out Clan old1);
                 _previousClan.TryGetValue(hero2, out Clan old2);
 
-                bool h1WasBlt = old1?.Name.ToString().Contains("[BLT Clan]") ?? false;
-                bool h2WasBlt = old2?.Name.ToString().Contains("[BLT Clan]") ?? false;
+                bool h1WasBlt = old1?.Leader.IsAdopted() ?? false;
+                bool h2WasBlt = old2?.Leader.IsAdopted() ?? false;
 
                 if (h1WasBlt && !h2WasBlt && !hero2.IsClanLeader)
                 {
