@@ -224,11 +224,21 @@ namespace BLTAdoptAHero
 
                     foreach (var child in bltHero.Children)
                     {
-                        if (child == null || child.IsDead || child.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                        if (child == null || child.IsDead)
                             continue;
 
-                        // Apply growth rate
-                        child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+                        if (child.Age < Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                            child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+
+                        foreach (var grandchild in child.Children)
+                        {
+                            if (child == null || child.IsDead || child.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                                continue;
+
+                            // Apply growth rate
+                            child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+
+                        }
                     }
                 }
             }

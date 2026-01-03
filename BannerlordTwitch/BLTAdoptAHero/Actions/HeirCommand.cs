@@ -115,7 +115,7 @@ namespace BLTAdoptAHero
                     if (heirHero == null)
                         return (false, "No suitable heir found in adopted hero's clan.");
 
-                    string oldName = heirHero.Name.ToString();
+                    string oldName = heirHero.FirstName.ToString();
                     heirHero.SetName(new(oldName + " Heir"), new(oldName));
                     return (true, $"Assigned heir to {heirHero.FirstName}");
                 }
@@ -123,11 +123,12 @@ namespace BLTAdoptAHero
                 {
                     heirHero = adoptedHero.Clan.Heroes
                     .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero) && !h.IsAdopted())
-                    .FirstOrDefault(h => string.Equals(h.FirstName.ToString(), contextArgs, StringComparison.CurrentCultureIgnoreCase));
+                    .FirstOrDefault(c => c.Name.ToString().IndexOf(contextArgs, StringComparison.OrdinalIgnoreCase) >= 0);
+
                     if (heirHero == null)
                         return (false, $"No hero named '{contextArgs}' found to adopt as heir.");
 
-                    string oldName = heirHero.Name.ToString();                    
+                    string oldName = heirHero.FirstName.ToString();                    
                     heirHero.SetName(new(oldName + " Heir"), new(oldName));
                     return (true, $"Assigned heir to {heirHero.FirstName}");
                 }
@@ -142,7 +143,7 @@ namespace BLTAdoptAHero
 
                     heirHero = adoptedHero.Clan.Heroes
                     .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero) && !h.IsAdopted())
-                    .FirstOrDefault(h => string.Equals(h.Name.ToString(), contextArgs, StringComparison.CurrentCultureIgnoreCase));
+                    .FirstOrDefault(c => c.Name.ToString().IndexOf(contextArgs, StringComparison.OrdinalIgnoreCase) >= 0);
                     if (heirHero == null)
                         return (false, $"No hero named '{contextArgs}' found to adopt as heir.");
 

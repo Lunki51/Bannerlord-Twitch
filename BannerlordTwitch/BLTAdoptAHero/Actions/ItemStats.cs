@@ -82,19 +82,19 @@ namespace BLTAdoptAHero
                                             var rW = new System.Text.StringBuilder();
 
                                             rW.Append("{=6eAEEYD4} - Damage: {dmg} - MissileSpeed: {spd}"
-                                                .Translate(("dmg", w.GetModifiedMissileDamage(element.ItemModifier)), ("spd", w.GetModifiedMissileSpeed(element.ItemModifier))));
+                                                .Translate(("dmg", w?.GetModifiedMissileDamage(element.ItemModifier)), ("spd", w?.GetModifiedMissileSpeed(element.ItemModifier))));
 
-                                            if ((int)w.GetModifiedStackCount(element.ItemModifier) > 1)
+                                            if ((int)w?.GetModifiedStackCount(element.ItemModifier) > 1)
                                                 rW.Append("{=6oAUemDk} - Stack: {stk}"
-                                                    .Translate(("stk", (int)w.GetModifiedStackCount(element.ItemModifier))));
+                                                    .Translate(("stk", (int)w?.GetModifiedStackCount(element.ItemModifier))));
 
                                             inv += rW.ToString();
                                         }
                                         else if (w.IsMeleeWeapon)
                                         {
                                             inv += "{=4JDkt6Vj} - Damage(swing/thrust): {sw}/{th} - Speed(swing/thrust): {sps}/{spt} - Length: {len}"
-                                                .Translate(("sw", w.GetModifiedSwingDamage(element.ItemModifier)), ("th", w.GetModifiedThrustDamage(element.ItemModifier)),
-                                                           ("sps", w.GetModifiedSwingSpeed(element.ItemModifier)), ("spt", w.GetModifiedThrustDamage(element.ItemModifier)), ("len", w.WeaponLength));
+                                                .Translate(("sw", w?.GetModifiedSwingDamage(element.ItemModifier)), ("th", w?.GetModifiedThrustDamage(element.ItemModifier)),
+                                                           ("sps", w?.GetModifiedSwingSpeed(element.ItemModifier)), ("spt", w?.GetModifiedThrustSpeed(element.ItemModifier)), ("len", w.WeaponLength));
                                         }
                                         else if (w.IsShield)
                                         {
@@ -103,8 +103,8 @@ namespace BLTAdoptAHero
                                         else if (w.IsAmmo)
                                         {
                                             inv += "{=ACds6V3a} - Damage: {dmg} Speed: {spd} - Stack: {stk}"
-                                        .Translate(("dmg", w.GetModifiedMissileDamage(element.ItemModifier)), ("spd", (int)w.GetModifiedMissileSpeed(element.ItemModifier)),
-                                                   ("stk", (int)w.GetModifiedStackCount(element.ItemModifier)));
+                                        .Translate(("dmg", w?.GetModifiedMissileDamage(element.ItemModifier)), ("spd", (int)w?.GetModifiedMissileSpeed(element.ItemModifier)),
+                                                   ("stk", (int)w?.GetModifiedStackCount(element.ItemModifier)));
                                         }
                                         else if (item.BannerComponent?.BannerEffect != null)
                                         {
