@@ -13,6 +13,7 @@ using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
+using Helpers;
 
 namespace BLTAdoptAHero
 {
@@ -49,6 +50,7 @@ namespace BLTAdoptAHero
             var splitArgs = context.Args.Split(' ');
             var mode = splitArgs[0];
             var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
+            
 
             switch (mode)
             {
@@ -233,20 +235,10 @@ namespace BLTAdoptAHero
             var sb = new StringBuilder();
             foreach (var k in Kingdom.All)
             {
-                int p1 = 0;
-                int p2 = 0;
-                foreach (var prisoner in desiredKingdom.Heroes)
-                {
-                    if (prisoner.IsPrisoner && prisoner.PartyBelongedToAsPrisoner?.MapFaction == k)
-                        p1++;
-                }
-                foreach (var prisoner in k.Heroes)
-                {
-                    if (prisoner.IsPrisoner && prisoner.PartyBelongedToAsPrisoner?.MapFaction == desiredKingdom)
-                        p2++;
-                }
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
+                    int p1 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(desiredKingdom, k).Count;
+                    int p2 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(k, desiredKingdom).Count;
                     var stance = desiredKingdom.GetStanceWith(k);
                     sb.Append("{=N9b5k8FR}{k1} VS {k2} = Casualties: {c1}/{c2} - Prisoners: {p1}/{p2} - Raids: {r1}/{r2} - Sieges: {s1}/{s2} - Progress: {pr1}/{pr2} Started: {date}"
                         .Translate(

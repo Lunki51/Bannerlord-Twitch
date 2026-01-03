@@ -8,7 +8,7 @@ using TaleWorlds.ObjectSystem;
 
 namespace BLTAdoptAHero
 {
-    public class DiplomacyHelper : CampaignBehaviorBase
+    public class BLTDiplomacyHelper : CampaignBehaviorBase
     {
         private readonly Dictionary<(IFaction, IFaction), bool> _blockedPeaceWars = new();
 
