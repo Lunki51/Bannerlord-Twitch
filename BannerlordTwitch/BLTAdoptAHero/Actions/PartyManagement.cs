@@ -31,15 +31,31 @@ namespace BLTAdoptAHero.Actions
 {
     public class PartyManagement : HeroCommandHandlerBase
     {
-        private class Documentation : IDocumentable
+        [CategoryOrder("War", 0)]
+        private class Settings : IDocumentable
         {
+            [LocDisplayName("{=TESTING}Army"),
+             LocCategory("Army", "{=TESTING}Army"),
+             LocDescription("{=TESTING}Enable creating army command"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool ArmyEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Price"),
+             LocCategory("Army", "{=TESTING}Army"),
+             LocDescription("{=TESTING}Army command price"),
+             PropertyOrder(2), UsedImplicitly]
+            public int ArmyPrice { get; set; } = 50000;
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 generator.Value("!party/!party create/!party govern (fief)/!party stats");
+                if (ArmyEnabled)
+                    generator.Value("<strong>Army Config: </strong>" +
+                                    "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
             }
         }
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
+            if (config is not Settings settings) return;
             if (adoptedHero == null)
             {
                 onFailure(AdoptAHero.NoHeroMessage);
@@ -425,6 +441,98 @@ namespace BLTAdoptAHero.Actions
                         if (location != null)
                             partyStats.Append($"| Near: {location.Name}");
                         onSuccess(partyStats.ToString());
+                        break;
+                    }
+                case "army":
+                    {
+                        if (!settings.ArmyEnabled)
+                        {
+                            onFailure("Army disabled");
+                            return;
+                        }
+                        if (adoptedHero.Clan.Kingdom == null)
+                        {
+                            onFailure("Not in a kingdom");
+                            return;
+                        }
+                        if (adoptedHero.MapFaction.FactionsAtWarWith.Count == 0)
+                        {
+                            onFailure("No wars");
+                            return;
+                        }
+                        if (adoptedHero.IsPrisoner)
+                        {
+                            onFailure("{=TESTING}You are prisoner!".Translate());
+                            return;
+                        }
+                        if (!adoptedHero.IsPartyLeader)
+                        {
+                            onFailure("{=LVFh1Pd5}Your hero is not leading a party".Translate());
+                            return;
+                        }
+                        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty != adoptedHero.PartyBelongedTo)
+                        {
+                            onFailure("Already in an army!");
+                            return;
+                        }
+                        if (adoptedHero.PartyBelongedTo.MapEvent != null)
+                        {
+                            onFailure("Your party is busy.");
+                            return;
+                        }
+                        Army.ArmyTypes armyType;
+                        if (splitArgs.Length < 2)
+                        {
+                            onFailure("Specify an army type: defend/siege/raid/patrol");
+                            return;
+                        }
+                        switch (desiredName)
+                        {
+                            case "siege":
+                                armyType = Army.ArmyTypes.Besieger;
+                                break;
+                            //case "raid":
+                            //    armyType = Army.ArmyTypes.Raider;
+                            //    break;
+                            case "defend":
+                                armyType = Army.ArmyTypes.Defender;
+                                break;
+                            case "patrol":
+                                armyType = Army.ArmyTypes.Patrolling;
+                                break;
+                            default:
+                                onFailure($"Invalid army type: {desiredName}");
+                                return;
+                        }
+                        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty == adoptedHero.PartyBelongedTo)
+                        {
+                            adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
+                            onSuccess($"Changed army type to {armyType}");
+                            return;
+                        }
+                        if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ArmyPrice)
+                        {
+                            onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                            return;
+                        }
+                        var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
+                        var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
+                        var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
+                            .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
+                            .ToList();
+
+                        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
+                        Army aarmy = adoptedHero.PartyBelongedTo.Army;
+
+                        //int addedPartiesCount = 0;
+                        foreach (var pparty in sameClanParties)
+                        {
+                            party.Army = army;
+                        }
+
+                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
+
+                        onSuccess($"Gathering {armyType} army({army.Parties.Count}) at {pos}");
                         break;
                     }
             }

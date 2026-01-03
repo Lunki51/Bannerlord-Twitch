@@ -70,8 +70,8 @@ namespace BLTAdoptAHero
                 _previousClan.TryGetValue(hero1, out Clan old1);
                 _previousClan.TryGetValue(hero2, out Clan old2);
 
-                bool h1WasBlt = old1?.Name.ToString().Contains("[BLT Clan]") ?? false;
-                bool h2WasBlt = old2?.Name.ToString().Contains("[BLT Clan]") ?? false;
+                bool h1WasBlt = old1?.Leader.IsAdopted() ?? false;
+                bool h2WasBlt = old2?.Leader.IsAdopted() ?? false;
 
                 if (h1WasBlt && !h2WasBlt && !hero2.IsClanLeader)
                 {
@@ -224,11 +224,21 @@ namespace BLTAdoptAHero
 
                     foreach (var child in bltHero.Children)
                     {
-                        if (child == null || child.IsDead || child.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                        if (child == null || child.IsDead)
                             continue;
 
-                        // Apply growth rate
-                        child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+                        if (child.Age < Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                            child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+
+                        foreach (var grandchild in child.Children)
+                        {
+                            if (child == null || child.IsDead || child.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                                continue;
+
+                            // Apply growth rate
+                            child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+
+                        }
                     }
                 }
             }

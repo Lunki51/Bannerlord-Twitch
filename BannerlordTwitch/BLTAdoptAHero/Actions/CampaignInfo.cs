@@ -277,8 +277,14 @@ namespace BLTAdoptAHero
                 ActionManager.SendReply(context, "{=TESTING}Need fief name".Translate());
                 return;
             }
+            
             var desiredFief = Settlement.All.FirstOrDefault(c =>
+                c.Name.ToString().ToLower() == desiredName.ToLower());
+            if (desiredFief == null)
+            {
+                desiredFief = Settlement.All.FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }               
             if (desiredFief == null)
             {
                 ActionManager.SendReply(context,
