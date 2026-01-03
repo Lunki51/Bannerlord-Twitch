@@ -214,7 +214,7 @@ namespace BLTAdoptAHero.Actions
 
             int mult = Math.Min(BLTAdoptAHeroModule.CommonConfig.MercenaryMultiplier, 100);
             var creator = Campaign.Current.KingdomManager;
-            int contract = creator.GetMercenaryWageAmount(clan.Leader);
+            int contract = Math.Max((int)((double)creator.GetMercenaryWageAmount(clan.Leader) * 0.2), clan.MercenaryAwardMultiplier);
 
             if (contract <= 0)
                 return 0;
