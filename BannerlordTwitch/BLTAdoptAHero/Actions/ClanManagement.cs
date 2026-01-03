@@ -643,7 +643,16 @@ namespace BLTAdoptAHero.Actions
             clanStats.Append("{=Ki8jvwkw}Clan Name: {name} | ".Translate(("name", adoptedHero.Clan.Name.ToString())));
             clanStats.Append("{=sZcYhSOL}Leader: {leader} | ".Translate(("leader", adoptedHero.Clan.Leader.Name.ToString())));
             if (adoptedHero.Clan.Kingdom != null)
+            {
                 clanStats.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())));
+                clanStats.Append("{=6VFGXqRe}Influence: {influence} | ".Translate(("influence", Math.Round(adoptedHero.Clan.Influence).ToString())));
+                if (adoptedHero.Clan.IsUnderMercenaryService)
+                {
+                    string mercGold = (adoptedHero.Clan.MercenaryAwardMultiplier * Math.Round(adoptedHero.Clan.Influence / 5f)).ToString() + "/" + adoptedHero.Clan.MercenaryAwardMultiplier.ToString();
+                    clanStats.Append("{=PbxexPi9}Mercenary💰: {mercenary} | ".Translate(("mercenary", mercGold)));
+                }
+            }
+                
             clanStats.Append("{=Sg11nEUe}Tier: {tier}({renown}) | ".Translate(("tier", adoptedHero.Clan.Tier.ToString()), ("renown", Math.Round(adoptedHero.Clan.Renown).ToString())));
             clanStats.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.CurrentTotalStrength).ToString())));
             if (adoptedHero.IsPrisoner && adoptedHero.PartyBelongedToAsPrisoner.IsMobile)
@@ -652,7 +661,7 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=zVDODxiN}Prisoner: {prisoner} | ".Translate(("prisoner", adoptedHero.PartyBelongedToAsPrisoner.Settlement.Name.ToString())));
             int income = Campaign.Current.Models.ClanFinanceModel.CalculateClanGoldChange(adoptedHero.Clan).RoundedResultNumber;
             clanStats.Append("{=SDVLj0nw}Wealth: {wealth}({income}) | ".Translate(("wealth", adoptedHero.Clan.Leader.Gold.ToString()),("income", income)));
-            clanStats.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
+            clanStats.Append("{=eHJYAZha}Members: {members} ".Translate(("members", adoptedHero.Clan.Heroes.Count.ToString())));
             int parties = 0;
             int ships = 0;
             if (adoptedHero.Clan.WarPartyComponents.Count > 0)
@@ -666,10 +675,10 @@ namespace BLTAdoptAHero.Actions
                     if (party.IsLordParty) parties += 1;
                     ships += party.Ships.Count;
                 }
-            }
-            clanStats.Append("{=Ib213Hp9}Parties: {cparties}/{mparties} | ".Translate(("cparties", parties), ("mparties", adoptedHero.Clan.CommanderLimit)));
-            clanStats.Append("{=TESTING}Ships: {ships} |".Translate(("ships", ships)));
-            if (adoptedHero.Clan.Fiefs.Count >= 1)
+                clanStats.Append("{=Ib213Hp9}| Parties: {cparties}/{mparties} | ".Translate(("cparties", parties), ("mparties", adoptedHero.Clan.CommanderLimit)));
+                clanStats.Append("{=TESTING}Ships: {ships} ".Translate(("ships", ships)));
+            }            
+            if (adoptedHero.Clan.Fiefs.Count > 0)
             {
                 int townCount = 0;
                 int castleCount = 0;
@@ -684,7 +693,7 @@ namespace BLTAdoptAHero.Actions
                         castleCount++;
                     }
                 }
-                clanStats.Append("{=BwuFSJU1} Towns: {towns} | ".Translate(("towns", (object)townCount)));
+                clanStats.Append("{=BwuFSJU1}| Towns: {towns} | ".Translate(("towns", (object)townCount)));
                 clanStats.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleCount)));
             }
             onSuccess("{=TESTING}{stats}".Translate(("stats", clanStats.ToString())));

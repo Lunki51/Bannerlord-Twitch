@@ -205,7 +205,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTGoldIncomeBehavior()); 
                     campaignStarter.AddBehavior(new BLTSettlementUpgradeBehavior());
                     campaignStarter.AddBehavior(new ReinforcementBehavior());
-                    campaignStarter.AddBehavior(new DiplomacyHelper());
+                    campaignStarter.AddBehavior(new BLTDiplomacyHelper());
                     campaignStarter.AddBehavior(new UpgradeBehavior());
                     campaignStarter.AddBehavior(new VassalBehavior());
                     campaignStarter.AddBehavior(new KingdomTaxBehavior());
