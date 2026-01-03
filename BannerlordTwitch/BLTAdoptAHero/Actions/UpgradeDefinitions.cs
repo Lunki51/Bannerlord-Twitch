@@ -153,6 +153,23 @@ namespace BLTAdoptAHero.Actions.Upgrades
             }
         }
 
+        private bool _canBeRemoved = false;
+        [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
+         LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
+         PropertyOrder(8), UsedImplicitly]
+        public bool CanBeRemoved
+        {
+            get => _canBeRemoved;
+            set
+            {
+                if (_canBeRemoved != value)
+                {
+                    _canBeRemoved = value;
+                    OnPropertyChanged(nameof(CanBeRemoved));
+                }
+            }
+        }
+
         public virtual string GetCostString()
         {
             return $"{GoldCost}{Naming.Gold}";

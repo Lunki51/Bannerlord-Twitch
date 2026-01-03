@@ -75,15 +75,19 @@ namespace BLTAdoptAHero.Behaviors
             float foodFlat = UpgradeBehavior.Current.GetFoodFlat(settlement);
             float foodPercent = UpgradeBehavior.Current.GetFoodPercent(settlement);
 
+            int maxLimit = Campaign.Current.Models.SettlementFoodModel.FoodStocksUpperLimit;
+
             if (foodFlat != 0f)
-                town.FoodStocks += foodFlat;
+            {
+                // Prevent overflow by clamping before assignment
+                town.FoodStocks = (int)Math.Min((long)town.FoodStocks + (long)foodFlat, maxLimit);
+            }
 
             if (foodPercent != 0f)
-                town.FoodStocks += town.FoodStocks * (foodPercent / 100f);
-
-            town.FoodStocks = Math.Min(
-    town.FoodStocks,
-    Campaign.Current.Models.SettlementFoodModel.FoodStocksUpperLimit);
+            {
+                long newValue = (long)(town.FoodStocks * (1f + foodPercent / 100f));
+                town.FoodStocks = (int)Math.Min(newValue, maxLimit);
+            }
 
 
             float militiaFlat = UpgradeBehavior.Current.GetMilitiaFlat(settlement);

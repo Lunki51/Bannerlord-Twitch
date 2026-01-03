@@ -128,7 +128,7 @@ namespace BLTAdoptAHero.Actions
 
             if (context.Args.IsEmpty())
             {
-                onFailure("Usage:  <fief|clan|kingdom> <name> <upgrade>  OR  info <fief|clan|kingdom> <name>  OR  list [fief|clan|kingdom]");
+                onFailure("Usage:  <fief|clan|kingdom> <name> <upgrade>  OR  info <fief|clan|kingdom> <name>  OR  list [fief|clan|kingdom]  OR  remove <fief|clan|kingdom> <name> <upgrade>");
                 return;
             }
 
@@ -169,6 +169,37 @@ namespace BLTAdoptAHero.Actions
                 string type = args[1].ToLowerInvariant();
                 string name = string.Join(" ", args.Skip(2));
                 HandleInfoCommand(type, name, adoptedHero, globalConfig, onSuccess, onFailure);
+                return;
+            }
+
+            // Handle remove command
+            if (command == "remove")
+            {
+                if (args.Length < 3)
+                {
+                    onFailure("Usage: remove <fief|clan|kingdom> <settlement_name/upgrade_id> [upgrade_id]");
+                    return;
+                }
+
+                string type = args[1].ToLowerInvariant();
+
+                // Parse based on type
+                if (type == "fief")
+                {
+                    if (args.Length < 4)
+                    {
+                        onFailure("Usage: remove fief <settlement_name> <upgrade_id>");
+                        return;
+                    }
+                    string tName = string.Join(" ", args.Skip(2).Take(args.Length - 3));
+                    string uId = args.Last();
+                    HandleRemoveCommand(type, tName, uId, adoptedHero, settings, globalConfig, onSuccess, onFailure);
+                }
+                else // clan or kingdom
+                {
+                    string uId = args[2];
+                    HandleRemoveCommand(type, null, uId, adoptedHero, settings, globalConfig, onSuccess, onFailure);
+                }
                 return;
             }
 
@@ -319,11 +350,16 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 sb.AppendLine("Active Upgrades:");
-                foreach (var upgradeId in upgrades)
+                // Get upgrade objects and sort alphabetically by name
+                var sortedUpgrades = upgrades
+                    .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+                    .Where(upgrade => upgrade != null)
+                    .OrderBy(upgrade => upgrade.Name)
+                    .ToList();
+
+                foreach (var upgrade in sortedUpgrades)
                 {
-                    var upgrade = globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                    if (upgrade != null)
-                        sb.AppendLine($"  • {upgrade.Name}");
+                    sb.AppendLine($"  • {upgrade.Name}");
                 }
             }
 
@@ -350,11 +386,16 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 sb.AppendLine("Active Upgrades:");
-                foreach (var upgradeId in upgrades)
+                // Get upgrade objects and sort alphabetically by name
+                var sortedUpgrades = upgrades
+                    .Select(upgradeId => globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+                    .Where(upgrade => upgrade != null)
+                    .OrderBy(upgrade => upgrade.Name)
+                    .ToList();
+
+                foreach (var upgrade in sortedUpgrades)
                 {
-                    var upgrade = globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                    if (upgrade != null)
-                        sb.AppendLine($"  • {upgrade.Name}");
+                    sb.AppendLine($"  • {upgrade.Name}");
                 }
             }
 
@@ -387,11 +428,16 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 sb.AppendLine("Active Upgrades:");
-                foreach (var upgradeId in upgrades)
+                // Get upgrade objects and sort alphabetically by name
+                var sortedUpgrades = upgrades
+                    .Select(upgradeId => globalConfig.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+                    .Where(upgrade => upgrade != null)
+                    .OrderBy(upgrade => upgrade.Name)
+                    .ToList();
+
+                foreach (var upgrade in sortedUpgrades)
                 {
-                    var upgrade = globalConfig.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                    if (upgrade != null)
-                        sb.AppendLine($"  • {upgrade.Name}");
+                    sb.AppendLine($"  • {upgrade.Name}");
                 }
             }
 
@@ -662,6 +708,183 @@ namespace BLTAdoptAHero.Actions
                 settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
             }
             return settlement;
+        }
+
+        private void HandleRemoveCommand(string type, string name, string upgradeId, Hero hero, Settings settings, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
+        {
+            switch (type)
+            {
+                case "fief":
+                    RemoveFiefUpgrade(name, upgradeId, hero, settings, globalConfig, onSuccess, onFailure);
+                    break;
+                case "clan":
+                    RemoveClanUpgrade(upgradeId, hero, settings, globalConfig, onSuccess, onFailure);
+                    break;
+                case "kingdom":
+                    RemoveKingdomUpgrade(upgradeId, hero, globalConfig, onSuccess, onFailure);
+                    break;
+                default:
+                    onFailure("Invalid type. Use 'fief', 'clan', or 'kingdom'");
+                    break;
+            }
+        }
+
+        private void RemoveFiefUpgrade(string name, string upgradeId, Hero hero, Settings settings, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
+        {
+            var settlement = FindSettlement(name);
+            if (settlement == null)
+            {
+                onFailure($"Settlement '{name}' not found");
+                return;
+            }
+
+            if (settlement.Town == null)
+            {
+                onFailure("Only towns and castles can have upgrades");
+                return;
+            }
+
+            // Check permissions
+            bool isOwner = settlement.OwnerClan == hero.Clan;
+            bool isKingdomLeader = settings.AllowKingdomLeadersForFiefs &&
+                                   hero.Clan?.Kingdom != null &&
+                                   hero.Clan.Kingdom.Leader == hero &&
+                                   settlement.OwnerClan?.Kingdom == hero.Clan.Kingdom;
+
+            if (!isOwner && !isKingdomLeader)
+            {
+                onFailure($"You don't have permission to modify {settlement.Name}");
+                return;
+            }
+
+            if (!hero.IsClanLeader && !isKingdomLeader)
+            {
+                onFailure("Only clan leaders can remove fief upgrades");
+                return;
+            }
+
+            // Find upgrade
+            var upgrade = globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+            if (upgrade == null)
+            {
+                onFailure($"Upgrade '{upgradeId}' not found");
+                return;
+            }
+
+            // Check if upgrade is removable
+            if (!upgrade.CanBeRemoved)
+            {
+                onFailure($"'{upgrade.Name}' cannot be removed");
+                return;
+            }
+
+            // Check if upgrade exists
+            if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) != true)
+            {
+                onFailure($"{settlement.Name} doesn't have this upgrade");
+                return;
+            }
+
+            // Remove upgrade
+            UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
+
+            onSuccess($"Removed '{upgrade.Name}' from {settlement.Name}!");
+            Log.ShowInformation($"{hero.Name} removed {upgrade.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
+        }
+
+        private void RemoveClanUpgrade(string upgradeId, Hero hero, Settings settings, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
+        {
+            var clan = hero?.Clan;
+            if (clan == null)
+            {
+                onFailure("You are not in a clan!");
+                return;
+            }
+
+            if (!settings.AllowAnyClanMemberForClanUpgrades && !hero.IsClanLeader)
+            {
+                onFailure("Only clan leaders can remove clan upgrades");
+                return;
+            }
+
+            // Find upgrade
+            var upgrade = globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+            if (upgrade == null)
+            {
+                onFailure($"Upgrade '{upgradeId}' not found");
+                return;
+            }
+
+            // Check if upgrade is removable
+            if (!upgrade.CanBeRemoved)
+            {
+                onFailure($"'{upgrade.Name}' cannot be removed");
+                return;
+            }
+
+            // Check if upgrade exists
+            if (UpgradeBehavior.Current?.HasClanUpgrade(clan, upgradeId) != true)
+            {
+                onFailure($"{clan.Name} doesn't have this upgrade");
+                return;
+            }
+
+            // Remove upgrade
+            UpgradeBehavior.Current?.RemoveClanUpgrade(clan, upgradeId);
+
+            onSuccess($"Removed '{upgrade.Name}' from {clan.Name}!");
+            Log.ShowInformation($"{hero.Name} removed {upgrade.Name} from {clan.Name}", hero.CharacterObject, Log.Sound.Notification1);
+        }
+
+        private void RemoveKingdomUpgrade(string upgradeId, Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
+        {
+            var kingdom = hero?.Clan?.Kingdom;
+            if (hero.Clan == null)
+            {
+                onFailure("You're not in a clan!");
+                return;
+            }
+
+            if (kingdom == null)
+            {
+                onFailure("You're not in a kingdom!");
+                return;
+            }
+
+            // Check permissions - only kingdom ruler
+            if (kingdom.Leader != hero)
+            {
+                onFailure("Only the kingdom ruler can remove kingdom upgrades");
+                return;
+            }
+
+            // Find upgrade
+            var upgrade = globalConfig.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+            if (upgrade == null)
+            {
+                onFailure($"Upgrade '{upgradeId}' not found");
+                return;
+            }
+
+            // Check if upgrade is removable
+            if (!upgrade.CanBeRemoved)
+            {
+                onFailure($"'{upgrade.Name}' cannot be removed");
+                return;
+            }
+
+            // Check if upgrade exists
+            if (UpgradeBehavior.Current?.HasKingdomUpgrade(kingdom, upgradeId) != true)
+            {
+                onFailure($"{kingdom.Name} doesn't have this upgrade");
+                return;
+            }
+
+            // Remove upgrade
+            UpgradeBehavior.Current?.RemoveKingdomUpgrade(kingdom, upgradeId);
+
+            onSuccess($"Removed '{upgrade.Name}' from {kingdom.Name}!");
+            Log.ShowInformation($"{hero.Name} removed {upgrade.Name} from {kingdom.Name}", hero.CharacterObject, Log.Sound.Horns2);
         }
     }
 }

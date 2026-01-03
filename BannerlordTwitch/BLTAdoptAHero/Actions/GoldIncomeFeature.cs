@@ -8,12 +8,14 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
 using BLTAdoptAHero.Annotations;
+using BLTAdoptAHero.Behaviors;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
+using static TaleWorlds.CampaignSystem.CharacterDevelopment.DefaultPerks;
 
 namespace BLTAdoptAHero.Actions
 {
@@ -90,9 +92,75 @@ namespace BLTAdoptAHero.Actions
                 sb.Append($"{s.Name}: {(income >= 0 ? "+" : "")}{income} | ");
             }
 
+            int totalBeforeTax = totalIncome + vassalincome;
+
             var result = sb.ToString().TrimEnd(' ', '|');
-            result += $" | Total: {(totalIncome >= 0 ? "+" : "")}{totalIncome}/day | " +
-                $"Total income from Vassals' fiefs: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day";
+            result += $" | Total income from Vassals' fiefs: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day";
+
+            // Check if this is the ruling clan
+            bool isRulingClan = masterclan.Kingdom != null && masterclan.Kingdom.RulingClan == masterclan;
+
+            if (isRulingClan && KingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
+            {
+                // Calculate total tax revenue from all kingdom clans
+                float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
+                if (taxRate > 0f)
+                {
+                    int totalTaxRevenue = 0;
+
+                    foreach (var clan in masterclan.Kingdom.Clans)
+                    {
+                        if (clan == masterclan || clan == null)
+                            continue;
+
+                        // Calculate this clan's fief income
+                        int fiefIncome = 0;
+                        if (clan.Settlements != null)
+                        {
+                            foreach (var settlement in clan.Settlements)
+                            {
+                                fiefIncome += CalculateSettlementIncome(settlement);
+                            }
+                        }
+
+                        // Add vassal fief income if applicable
+                        if (VassalBehavior.Current != null)
+                        {
+                            fiefIncome += VassalBehavior.Current.CalculateVassalFiefIncome(clan);
+                        }
+
+                        if (fiefIncome > 0)
+                        {
+                            totalTaxRevenue += (int)(fiefIncome * taxRate);
+                        }
+                    }
+
+                    result += $" | Tax revenue ({(taxRate * 100f):F1}%): +{totalTaxRevenue}/day";
+                }
+                else
+                {
+                    result += " | Tax revenue: +0/day (0% tax)";
+                }
+
+                result += $" | Total: {(totalBeforeTax >= 0 ? "+" : "")}{totalBeforeTax}/day";
+            }
+            else
+            {
+                // Apply tax if in a kingdom and not ruling clan
+                if (KingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
+                {
+                    float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
+                    if (taxRate > 0f)
+                    {
+                        var taxResult = KingdomTaxBehavior.Current.CalculateTax(masterclan, totalBeforeTax);
+                        int taxAmount = taxResult.taxAmount;
+                        totalBeforeTax = taxResult.incomeAfterTax;
+                        result += $" | Tax ({(taxRate * 100f):F1}%): -{taxAmount}";
+                    }
+                }
+
+                result += $" | Total after tax: {(totalBeforeTax >= 0 ? "+" : "")}{totalBeforeTax}/day";
+            }
 
             onSuccess(result);
         }

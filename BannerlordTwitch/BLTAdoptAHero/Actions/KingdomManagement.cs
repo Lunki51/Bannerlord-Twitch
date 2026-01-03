@@ -18,6 +18,7 @@ using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 using System.ComponentModel.DataAnnotations;
+using BLTAdoptAHero.Behaviors;
 
 namespace BLTAdoptAHero.Actions
 {
@@ -31,7 +32,10 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Leave", 2),
          CategoryOrder("Create", 3),
          CategoryOrder("Vassal", 4),
-         CategoryOrder("Stats", 5)]
+         CategoryOrder("Stats", 5),
+         CategoryOrder("Release", 6),
+         CategoryOrder("Expel", 7),
+         CategoryOrder("Tax", 8)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -180,6 +184,50 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool StatsEnabled { get; set; } = true;
 
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Release", "{=TESTING}Release"),
+             LocDescription("{=TESTING}Enable king to release clans from kingdom (with their land)"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool ReleaseEnabled { get; set; } = true;
+
+            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
+             LocCategory("Release", "{=TESTING}Release"),
+             LocDescription("{=TESTING}Cost for king to release a clan"),
+             PropertyOrder(2), UsedImplicitly]
+            public int ReleasePrice { get; set; } = 50000;
+
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Expel", "{=TESTING}Expel"),
+             LocDescription("{=TESTING}Enable king to expel clans from kingdom (takes their land first)"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool ExpelEnabled { get; set; } = true;
+
+            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
+             LocCategory("Expel", "{=TESTING}Expel"),
+             LocDescription("{=TESTING}Cost for king to expel a clan"),
+             PropertyOrder(2), UsedImplicitly]
+            public int ExpelPrice { get; set; } = 100000;
+
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Tax", "{=TESTING}Tax"),
+             LocDescription("{=TESTING}Enable kingdom taxation system"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool TaxEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Minimum Tax Rate %"),
+             LocCategory("Tax", "{=TESTING}Tax"),
+             LocDescription("{=TESTING}Minimum tax rate kings can set (0-100)"),
+             PropertyOrder(2), UsedImplicitly,
+             Range(0f, 100f)]
+            public float MinTaxRate { get; set; } = 0f;
+
+            [LocDisplayName("{=TESTING}Maximum Tax Rate %"),
+             LocCategory("Tax", "{=TESTING}Tax"),
+             LocDescription("{=TESTING}Maximum tax rate kings can set (0-100)"),
+             PropertyOrder(3), UsedImplicitly,
+             Range(0f, 100f)]
+            public float MaxTaxRate { get; set; } = 50f;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var EnabledCommands = new StringBuilder();
@@ -198,6 +246,12 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Vassal, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
+                if (ReleaseEnabled)
+                    EnabledCommands.Append("Release, ");
+                if (ExpelEnabled)
+                    EnabledCommands.Append("Expel, ");
+                if (TaxEnabled)
+                    EnabledCommands.Append("Tax, ");
 
                 if (EnabledCommands.Length > 0)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString(0, EnabledCommands.Length - 2))));
@@ -236,6 +290,15 @@ namespace BLTAdoptAHero.Actions
                     generator.Value("<strong>Vassal: </strong>" +
                                     $"Max vassals:{VassalAmount}, " +
                                     $"Price={VassalPrice.ToString()}{Naming.Gold}");
+                if (ReleaseEnabled)
+                    generator.Value("<strong>Release: </strong>" +
+                                    $"Price={ReleasePrice.ToString()}{Naming.Gold}");
+                if (ExpelEnabled)
+                    generator.Value("<strong>Expel: </strong>" +
+                                    $"Price={ExpelPrice.ToString()}{Naming.Gold}");
+                if (TaxEnabled)
+                    generator.Value("<strong>Tax: </strong>" +
+                                    $"Min Rate={MinTaxRate}%, Max Rate={MaxTaxRate}%");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -306,11 +369,20 @@ namespace BLTAdoptAHero.Actions
                 case "vassal":
                     VassalCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                         break;
+                case "release":
+                    HandleReleaseCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
+                case "expel":
+                    HandleExpelCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
                 case "stats":
                     HandleStatsCommand(diplomacyHelper, settings, adoptedHero, onSuccess, onFailure);
                     break;
+                case "tax":
+                    HandleTaxCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
                 default:
-                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/stats)".Translate());
+                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats)".Translate());
                     break;
             }
 
@@ -350,7 +422,7 @@ namespace BLTAdoptAHero.Actions
             onFailure("Rebellion block");
             return;
             }
-            if (desiredKingdom.Clans.Count >= settings.JoinMaxClans)
+            if (desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c)).Count() >= settings.JoinMaxClans)
             {
                 onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
                 return;
@@ -674,7 +746,7 @@ namespace BLTAdoptAHero.Actions
             {
                 mercforPlayer = true;
             }
-            if (desiredKingdom.Clans.Count >= settings.JoinMaxClans)
+            if (desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c)).Count() >= settings.JoinMaxClans)
             {
                 onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
                 return;
@@ -887,6 +959,276 @@ namespace BLTAdoptAHero.Actions
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
             string response = $"Vassal created by {adoptedHero.FirstName.ToString()}: {newClan.Name.ToString()}";
             Log.LogFeedResponse(response);
+        }
+        private void HandleReleaseCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, string targetName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.ReleaseEnabled)
+            {
+                onFailure("Release is disabled");
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
+            {
+                onFailure("You must be the kingdom leader to release clans");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(targetName))
+            {
+                onFailure("Usage: (release) (hero name or clan name)");
+                return;
+            }
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ReleasePrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.ReleasePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
+
+            // Find the target clan by searching for clan name or leader name with possible prefixes/suffixes
+            Clan targetClan = null;
+            var possiblePrefixes = new[] { "", "[Vassal] ", "[BLT Clan] " };
+            var possibleSuffixes = new[] { "", " [BLT]", " [DEV]" };
+
+            // Search by clan name with prefixes
+            foreach (var prefix in possiblePrefixes)
+            {
+                var searchName = prefix + targetName;
+                targetClan = adoptedHero.Clan.Kingdom.Clans
+                    .FirstOrDefault(c => c.Name.ToString().Equals(searchName, StringComparison.OrdinalIgnoreCase));
+
+                if (targetClan != null) break;
+            }
+
+            // If not found, search by leader name with suffixes
+            if (targetClan == null)
+            {
+                foreach (var suffix in possibleSuffixes)
+                {
+                    var searchName = targetName + suffix;
+                    targetClan = adoptedHero.Clan.Kingdom.Clans
+                        .FirstOrDefault(c => c.Leader?.FirstName.ToString().Equals(searchName, StringComparison.OrdinalIgnoreCase) == true);
+
+                    if (targetClan != null) break;
+                }
+            }
+
+            if (targetClan == null)
+            {
+                onFailure($"Could not find clan or hero named {targetName} in your kingdom");
+                return;
+            }
+
+            if (targetClan == adoptedHero.Clan)
+            {
+                onFailure("You cannot release your own clan");
+                return;
+            }
+            if (targetClan.Kingdom != adoptedHero.Clan.Kingdom)
+            {
+                onFailure($"{targetClan.Name} is not in your kingdom");
+                return;
+            }
+
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ReleasePrice, true);
+
+            // Release vassals first
+            if (VassalBehavior.Current != null)
+            {
+                var vassals = VassalBehavior.Current.GetVassalClans(targetClan).ToList();
+                foreach (var vassal in vassals)
+                {
+                    AdoptedHeroFlags._allowKingdomMove = true;
+                    vassal.ClanLeaveKingdom();
+                    AdoptedHeroFlags._allowKingdomMove = false;
+                    VassalBehavior.Current.OnClanChangedKingdom(vassal, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+                }
+            }
+
+            // Release the main clan
+            AdoptedHeroFlags._allowKingdomMove = true;
+            if (targetClan.IsUnderMercenaryService)
+            {
+                targetClan.EndMercenaryService(true);
+            }
+            targetClan.ClanLeaveKingdom();
+            AdoptedHeroFlags._allowKingdomMove = false;
+
+            if (VassalBehavior.Current != null)
+            {
+                VassalBehavior.Current.OnClanChangedKingdom(targetClan, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+            }
+
+            onSuccess($"Released {targetClan.Name} from {adoptedHero.Clan.Kingdom.Name} with all their lands");
+            Log.ShowInformation($"{adoptedHero.Name} has released {targetClan.Name} from {adoptedHero.Clan.Kingdom.Name}!", adoptedHero.CharacterObject, Log.Sound.Horns2);
+        }
+
+        private void HandleExpelCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, string targetName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.ExpelEnabled)
+            {
+                onFailure("Expel is disabled");
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
+            {
+                onFailure("You must be the kingdom leader to expel clans");
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(targetName))
+            {
+                onFailure("Usage: (expel) (hero name or clan name)");
+                return;
+            }
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ExpelPrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.ExpelPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                return;
+            }
+
+            // Find the target clan by searching for clan name or leader name with possible prefixes/suffixes
+            Clan targetClan = null;
+            var possiblePrefixes = new[] { "", "[Vassal] ", "[BLT Clan] " };
+            var possibleSuffixes = new[] { "", " [BLT]", " [DEV]" };
+
+            // Search by clan name with prefixes
+            foreach (var prefix in possiblePrefixes)
+            {
+                var searchName = prefix + targetName;
+                targetClan = adoptedHero.Clan.Kingdom.Clans
+                    .FirstOrDefault(c => c.Name.ToString().Equals(searchName, StringComparison.OrdinalIgnoreCase));
+
+                if (targetClan != null) break;
+            }
+
+            // If not found, search by leader name with suffixes
+            if (targetClan == null)
+            {
+                foreach (var suffix in possibleSuffixes)
+                {
+                    var searchName = targetName + suffix;
+                    targetClan = adoptedHero.Clan.Kingdom.Clans
+                        .FirstOrDefault(c => c.Leader?.FirstName.ToString().Equals(searchName, StringComparison.OrdinalIgnoreCase) == true);
+
+                    if (targetClan != null) break;
+                }
+            }
+
+            if (targetClan == null)
+            {
+                onFailure($"Could not find clan or hero named {targetName} in your kingdom");
+                return;
+            }
+
+            if (targetClan == adoptedHero.Clan)
+            {
+                onFailure("You cannot expel your own clan");
+                return;
+            }
+            if (targetClan.Kingdom != adoptedHero.Clan.Kingdom)
+            {
+                onFailure($"{targetClan.Name} is not in your kingdom");
+                return;
+            }
+
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ExpelPrice, true);
+
+            // Transfer all fiefs from vassals first
+            if (VassalBehavior.Current != null)
+            {
+                var vassals = VassalBehavior.Current.GetVassalClans(targetClan).ToList();
+                foreach (var vassal in vassals)
+                {
+                    AdoptedHeroFlags._allowKingdomMove = true;
+                    foreach (var fief in vassal.Settlements.ToList())
+                    {
+                        ChangeOwnerOfSettlementAction.ApplyByDefault(adoptedHero, fief);
+                    }
+                    vassal.ClanLeaveKingdom();
+                    AdoptedHeroFlags._allowKingdomMove = false;
+                    VassalBehavior.Current.OnClanChangedKingdom(vassal, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+                }
+            }
+
+            // Transfer all fiefs from the main clan to the king
+            AdoptedHeroFlags._allowKingdomMove = true;
+            foreach (var fief in targetClan.Settlements.ToList())
+            {
+                ChangeOwnerOfSettlementAction.ApplyByDefault(adoptedHero, fief);
+            }
+
+            // Expel the clan
+            if (targetClan.IsUnderMercenaryService)
+            {
+                targetClan.EndMercenaryService(true);
+            }
+            targetClan.ClanLeaveKingdom();
+            AdoptedHeroFlags._allowKingdomMove = false;
+
+            if (VassalBehavior.Current != null)
+            {
+                VassalBehavior.Current.OnClanChangedKingdom(targetClan, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+            }
+
+            onSuccess($"Expelled {targetClan.Name} from {adoptedHero.Clan.Kingdom.Name} and seized all their lands");
+            Log.ShowInformation($"{adoptedHero.Name} has expelled {targetClan.Name} from {adoptedHero.Clan.Kingdom.Name}!", adoptedHero.CharacterObject, Log.Sound.Horns2);
+        }
+        private void HandleTaxCommand(DiplomacyHelper diplomacyHelper, Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.TaxEnabled)
+            {
+                onFailure("Kingdom taxation is disabled");
+                return;
+            }
+
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("You need to be in a kingdom to view tax rates");
+                return;
+            }
+
+            if (KingdomTaxBehavior.Current == null)
+            {
+                onFailure("Tax system is not initialized");
+                return;
+            }
+
+            bool isKing = adoptedHero.Clan.Kingdom.Leader == adoptedHero;
+            float currentRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(adoptedHero.Clan.Kingdom);
+
+            // If not king, just show the tax rate
+            if (!isKing)
+            {
+                onSuccess($"{adoptedHero.Clan.Kingdom.Name} has a tax rate of {(currentRate * 100f):F1}%");
+                return;
+            }
+
+            // King functionality
+            // If no args, show current tax rate and instructions
+            if (string.IsNullOrWhiteSpace(args))
+            {
+                onSuccess($"Current tax rate: {(currentRate * 100f):F1}% | Range: {settings.MinTaxRate}%-{settings.MaxTaxRate}% | Usage: !kingdom tax <rate>");
+                return;
+            }
+
+            // Parse the tax rate
+            if (!float.TryParse(args, out float newRate))
+            {
+                onFailure("Invalid tax rate. Usage: !kingdom tax <rate> (e.g., !kingdom tax 15 for 15%)");
+                return;
+            }
+
+            // Validate range
+            if (newRate < settings.MinTaxRate || newRate > settings.MaxTaxRate)
+            {
+                onFailure($"Tax rate must be between {settings.MinTaxRate}% and {settings.MaxTaxRate}%");
+                return;
+            }
+
+            // Set the new tax rate (convert percentage to decimal)
+            float taxRateDecimal = newRate / 100f;
+            KingdomTaxBehavior.Current.SetKingdomTaxRate(adoptedHero.Clan.Kingdom, taxRateDecimal);
+
+            onSuccess($"Set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%");
+            Log.ShowInformation($"{adoptedHero.Name} has set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%!", adoptedHero.CharacterObject);
         }
     }
 }
