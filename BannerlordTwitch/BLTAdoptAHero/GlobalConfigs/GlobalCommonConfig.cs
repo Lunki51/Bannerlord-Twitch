@@ -78,8 +78,14 @@ namespace BLTAdoptAHero
         [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Show Campaign Map Overlay"),
          LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Enable or disable the campaign map overlay that shows in the top portion of the overlay. The map automatically hides during missions."),
         LocCategory("General", "{=C5T6nnix}General"),
-         PropertyOrder(100)]
+         PropertyOrder(6)]
         public bool ShowCampaignMapOverlay { get; set; } = false;
+
+        [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
+         LocDescription("{=}Enable or disable the vanilla maximum of 300 foodstocks in towns and castles for all settlements."),
+        LocCategory("General", "{=C5T6nnix}General"),
+         PropertyOrder(7)]
+        public bool UncapFoodStocks { get; set; } = false;
 
         #endregion
 
