@@ -47,7 +47,7 @@ namespace BLTAdoptAHero.Actions
             public int ArmyPrice { get; set; } = 50000;
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value("!party/!party create/!party govern (fief)/!party stats");
+                generator.Value("!party/!party create/!party govern (fief)/!party stats/!party army (siege/defend/patrol)");
                 if (ArmyEnabled)
                     generator.Value("<strong>Army Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
