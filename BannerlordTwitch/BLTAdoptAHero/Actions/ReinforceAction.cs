@@ -194,8 +194,8 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                int militiaStored = ReinforcementBehavior.Current?.GetReinforcements(settlement) ?? 0;
-                int eliteStored = ReinforcementBehavior.Current?.GetEliteReinforcements(settlement) ?? 0;
+                int militiaStored = BLTReinforcementBehavior.Current?.GetReinforcements(settlement) ?? 0;
+                int eliteStored = BLTReinforcementBehavior.Current?.GetEliteReinforcements(settlement) ?? 0;
                 int militiaCap = settings.MilitiaCap;
                 int eliteCap = settings.EliteMilitiaCap;
                 int militiaRemaining = militiaCap > 0 ? Math.Max(0, militiaCap - militiaStored) : -1;
@@ -306,7 +306,7 @@ namespace BLTAdoptAHero.Actions
 
                 int maxByGold = heroGold / perCost;
                 maxByGold = Math.Min(maxByGold, maxAmount);
-                int capRem = cap > 0 ? (isElite ? ReinforcementBehavior.Current.GetRemainingEliteCapacity(targetSettlement, cap) : ReinforcementBehavior.Current.GetRemainingCapacity(targetSettlement, cap)) : int.MaxValue;
+                int capRem = cap > 0 ? (isElite ? BLTReinforcementBehavior.Current.GetRemainingEliteCapacity(targetSettlement, cap) : BLTReinforcementBehavior.Current.GetRemainingCapacity(targetSettlement, cap)) : int.MaxValue;
                 amountRequested = Math.Min(maxByGold, capRem);
                 if (amountRequested <= 0)
                 {
@@ -336,10 +336,10 @@ namespace BLTAdoptAHero.Actions
             }
 
             // cap / partial-add
-            var behavior = ReinforcementBehavior.Current;
+            var behavior = BLTReinforcementBehavior.Current;
             if (behavior == null)
             {
-                InformationManager.DisplayMessage(new InformationMessage("[BLT Reinforcement] ReinforcementBehavior not initialized."));
+                InformationManager.DisplayMessage(new InformationMessage("[BLT Reinforcement] BLTReinforcementBehavior not initialized."));
                 return;
             }
 
@@ -372,8 +372,8 @@ namespace BLTAdoptAHero.Actions
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -totalCost, true);
 
                 int actuallyAdded = isElite
-                    ? ReinforcementBehavior.Current.AddEliteReinforcements(targetSettlement, toAdd, cap)
-                    : ReinforcementBehavior.Current.AddReinforcements(targetSettlement, toAdd, cap);
+                    ? BLTReinforcementBehavior.Current.AddEliteReinforcements(targetSettlement, toAdd, cap)
+                    : BLTReinforcementBehavior.Current.AddReinforcements(targetSettlement, toAdd, cap);
 
                 if (actuallyAdded <= 0)
                 {

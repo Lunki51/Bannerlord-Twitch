@@ -19,9 +19,9 @@ namespace BLTAdoptAHero
     /// Persisted: _reinforcements (stringId -> int), _eliteReinforcements (stringId -> int)
     /// Runtime-only: _openSiegeParties & _openEliteSiegeParties
     /// </summary>
-    public class ReinforcementBehavior : CampaignBehaviorBase
+    public class BLTReinforcementBehavior : CampaignBehaviorBase
     {
-        public static ReinforcementBehavior Current { get; private set; }
+        public static BLTReinforcementBehavior Current { get; private set; }
 
         // persisted across saves
         private Dictionary<string, int> _reinforcements = new();
@@ -34,7 +34,7 @@ namespace BLTAdoptAHero
         private HashSet<string> _finalizedSieges = new();
 
 
-        public ReinforcementBehavior()
+        public BLTReinforcementBehavior()
         {
             Current = this;
             Initialize();
@@ -45,7 +45,7 @@ namespace BLTAdoptAHero
         {
             static void Postfix(SiegeEvent __result)
             {
-                ReinforcementBehavior.Current?.OnSiegeEventCreated(__result);
+                BLTReinforcementBehavior.Current?.OnSiegeEventCreated(__result);
             }
         }
 

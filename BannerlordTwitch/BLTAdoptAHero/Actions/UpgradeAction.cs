@@ -339,7 +339,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            var upgrades = UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>();
+            var upgrades = BLTUpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>();
             var sb = new StringBuilder();
             sb.AppendLine($"=== {settlement.Name} Upgrades ===");
 
@@ -375,7 +375,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            var upgrades = UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
+            var upgrades = BLTUpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
             var sb = new StringBuilder();
             sb.AppendLine($"=== {clan.Name} Upgrades ===");
 
@@ -417,7 +417,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            var upgrades = UpgradeBehavior.Current?.GetKingdomUpgrades(kingdom) ?? new List<string>();
+            var upgrades = BLTUpgradeBehavior.Current?.GetKingdomUpgrades(kingdom) ?? new List<string>();
             var sb = new StringBuilder();
             sb.AppendLine($"=== {kingdom.Name} Upgrades ===");
 
@@ -503,7 +503,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check if already purchased
-            if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) == true)
+            if (BLTUpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) == true)
             {
                 onFailure($"{settlement.Name} already has this upgrade");
                 return;
@@ -514,7 +514,7 @@ namespace BLTAdoptAHero.Actions
             if (requiredIds.Count > 0)
             {
                 var ownedUpgrades = new HashSet<string>(
-                    UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>(),
+                    BLTUpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>(),
                     StringComparer.OrdinalIgnoreCase
                 );
 
@@ -539,7 +539,7 @@ namespace BLTAdoptAHero.Actions
 
             // Purchase
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -upgrade.GoldCost, true);
-            UpgradeBehavior.Current?.AddFiefUpgrade(settlement, upgradeId);
+            BLTUpgradeBehavior.Current?.AddFiefUpgrade(settlement, upgradeId);
 
             onSuccess($"Purchased '{upgrade.Name}' for {settlement.Name}!");
             Log.ShowInformation($"{hero.Name} purchased {upgrade.Name} for {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
@@ -569,7 +569,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check if already purchased
-            if (UpgradeBehavior.Current?.HasClanUpgrade(clan, upgradeId) == true)
+            if (BLTUpgradeBehavior.Current?.HasClanUpgrade(clan, upgradeId) == true)
             {
                 onFailure($"{clan.Name} already has this upgrade");
                 return;
@@ -580,7 +580,7 @@ namespace BLTAdoptAHero.Actions
             if (requiredIds.Count > 0)
             {
                 var ownedUpgrades = new HashSet<string>(
-                    UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>(),
+                    BLTUpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>(),
                     StringComparer.OrdinalIgnoreCase
                 );
 
@@ -605,7 +605,7 @@ namespace BLTAdoptAHero.Actions
 
             // Purchase
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -upgrade.GoldCost, true);
-            UpgradeBehavior.Current?.AddClanUpgrade(clan, upgradeId);
+            BLTUpgradeBehavior.Current?.AddClanUpgrade(clan, upgradeId);
 
             onSuccess($"Purchased '{upgrade.Name}' for {clan.Name}!");
             Log.ShowInformation($"{hero.Name} purchased {upgrade.Name} for {clan.Name}", hero.CharacterObject, Log.Sound.Notification1);
@@ -642,7 +642,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check if already purchased
-            if (UpgradeBehavior.Current?.HasKingdomUpgrade(kingdom, upgradeId) == true)
+            if (BLTUpgradeBehavior.Current?.HasKingdomUpgrade(kingdom, upgradeId) == true)
             {
                 onFailure($"{kingdom.Name} already has this upgrade");
                 return;
@@ -653,7 +653,7 @@ namespace BLTAdoptAHero.Actions
             if (requiredIds.Count > 0)
             {
                 var ownedUpgrades = new HashSet<string>(
-                    UpgradeBehavior.Current?.GetKingdomUpgrades(kingdom) ?? new List<string>(),
+                    BLTUpgradeBehavior.Current?.GetKingdomUpgrades(kingdom) ?? new List<string>(),
                     StringComparer.OrdinalIgnoreCase
                 );
 
@@ -692,7 +692,7 @@ namespace BLTAdoptAHero.Actions
             {
                 hero.Clan.Influence -= upgrade.InfluenceCost;
             }
-            UpgradeBehavior.Current?.AddKingdomUpgrade(kingdom, upgradeId);
+            BLTUpgradeBehavior.Current?.AddKingdomUpgrade(kingdom, upgradeId);
 
             onSuccess($"Purchased '{upgrade.Name}' for {kingdom.Name}!");
             Log.ShowInformation($"{hero.Name} purchased {upgrade.Name} for {kingdom.Name}", hero.CharacterObject, Log.Sound.Horns2);
@@ -779,14 +779,14 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check if upgrade exists
-            if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) != true)
+            if (BLTUpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) != true)
             {
                 onFailure($"{settlement.Name} doesn't have this upgrade");
                 return;
             }
 
             // Remove upgrade
-            UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
+            BLTUpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
 
             onSuccess($"Removed '{upgrade.Name}' from {settlement.Name}!");
             Log.ShowInformation($"{hero.Name} removed {upgrade.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
@@ -823,14 +823,14 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check if upgrade exists
-            if (UpgradeBehavior.Current?.HasClanUpgrade(clan, upgradeId) != true)
+            if (BLTUpgradeBehavior.Current?.HasClanUpgrade(clan, upgradeId) != true)
             {
                 onFailure($"{clan.Name} doesn't have this upgrade");
                 return;
             }
 
             // Remove upgrade
-            UpgradeBehavior.Current?.RemoveClanUpgrade(clan, upgradeId);
+            BLTUpgradeBehavior.Current?.RemoveClanUpgrade(clan, upgradeId);
 
             onSuccess($"Removed '{upgrade.Name}' from {clan.Name}!");
             Log.ShowInformation($"{hero.Name} removed {upgrade.Name} from {clan.Name}", hero.CharacterObject, Log.Sound.Notification1);
@@ -874,14 +874,14 @@ namespace BLTAdoptAHero.Actions
             }
 
             // Check if upgrade exists
-            if (UpgradeBehavior.Current?.HasKingdomUpgrade(kingdom, upgradeId) != true)
+            if (BLTUpgradeBehavior.Current?.HasKingdomUpgrade(kingdom, upgradeId) != true)
             {
                 onFailure($"{kingdom.Name} doesn't have this upgrade");
                 return;
             }
 
             // Remove upgrade
-            UpgradeBehavior.Current?.RemoveKingdomUpgrade(kingdom, upgradeId);
+            BLTUpgradeBehavior.Current?.RemoveKingdomUpgrade(kingdom, upgradeId);
 
             onSuccess($"Removed '{upgrade.Name}' from {kingdom.Name}!");
             Log.ShowInformation($"{hero.Name} removed {upgrade.Name} from {kingdom.Name}", hero.CharacterObject, Log.Sound.Horns2);

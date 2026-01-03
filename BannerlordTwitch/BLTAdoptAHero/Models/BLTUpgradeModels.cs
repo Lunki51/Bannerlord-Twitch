@@ -48,9 +48,9 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.GetPartyMemberSizeLimit(party, includeDescriptions);
 
-            if (party?.LeaderHero != null && UpgradeBehavior.Current != null)
+            if (party?.LeaderHero != null && BLTUpgradeBehavior.Current != null)
             {
-                int bonus = UpgradeBehavior.Current.GetTotalPartySizeBonus(party.LeaderHero);
+                int bonus = BLTUpgradeBehavior.Current.GetTotalPartySizeBonus(party.LeaderHero);
                 if (bonus != 0)
                     result.Add(bonus, Text);
             }
@@ -64,9 +64,9 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.CalculateGarrisonPartySizeLimit(settlement, includeDescriptions);
 
-            if (settlement != null && UpgradeBehavior.Current != null)
+            if (settlement != null && BLTUpgradeBehavior.Current != null)
             {
-                int bonus = UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
+                int bonus = BLTUpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
                 if (bonus != 0)
                     result.Add(bonus, Text);
             }

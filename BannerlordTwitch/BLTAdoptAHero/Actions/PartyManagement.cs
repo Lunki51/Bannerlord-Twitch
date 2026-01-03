@@ -516,7 +516,7 @@ namespace BLTAdoptAHero.Actions
                             return;
                         }
                         var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
-                        var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
+                        var vassals = BLTVassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
                         var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
                             .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
