@@ -13,6 +13,7 @@ using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
 using NavalDLC.CharacterDevelopment;
 using BannerlordTwitch.Util;
+using TaleWorlds.CampaignSystem.GameComponents;
 
 namespace BLTAdoptAHero
 {
@@ -342,6 +343,21 @@ namespace BLTAdoptAHero
         }
     }
 
+    #endregion
+
+    #region TownFoodStocks
+    
+    [HarmonyPatch(nameof(DefaultSettlementFoodModel), "FoodStocksUpperLimit")]
+    [HarmonyPatch(MethodType.Getter)]
+    internal static class FoodStocksUpperLimitUncap
+    {
+        [HarmonyPrefix]
+        public static bool FoodStocksUpperLimitPrefix(ref int __result)
+        {
+            __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
+            return false; // Skip original method
+        }
+    }
     #endregion
 
 }

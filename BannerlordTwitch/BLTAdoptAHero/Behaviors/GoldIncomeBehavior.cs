@@ -1,4 +1,5 @@
-﻿using BLTAdoptAHero.Actions;
+﻿using BannerlordTwitch.Util;
+using BLTAdoptAHero.Actions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,7 +25,6 @@ namespace BLTAdoptAHero.Behaviors
         {
             if (clan == null)
                 return;
-
             if (!BLTAdoptAHeroModule.CommonConfig.GoldIncomeEnabled)
                 return;
 
@@ -32,41 +32,133 @@ namespace BLTAdoptAHero.Behaviors
             if (leader == null || !leader.IsAdopted())
                 return;
 
-            int total = 0;
+            // Check if this is a ruling clan - if so, collect all kingdom taxes
+            bool isRulingClan = clan.Kingdom != null && clan.Kingdom.RulingClan == clan;
 
-            // Calculate fief income
-            if (BLTAdoptAHeroModule.CommonConfig.FiefIncomeEnabled && clan.Settlements != null)
+            if (isRulingClan && BLTAdoptAHeroModule.CommonConfig.FiefIncomeEnabled && KingdomTaxBehavior.Current != null)
             {
-                foreach (var settlement in clan.Settlements)
-                {
-                    total += GoldIncomeAction.CalculateSettlementIncome(settlement);
-                }
+                CollectKingdomTaxes(clan);
             }
 
-            // Calculate bonus from vassal fief income
-            if (BLTAdoptAHeroModule.CommonConfig.FiefIncomeEnabled)
-            {
-                total += VassalBehavior.Current.CalculateVassalFiefIncome(clan);
-            }
-
-            // Calculate mercenary income for this BLT clan
-            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
-            {
-                total += GoldIncomeAction.CalculateMercenaryIncome(clan);
-            }
-
-            // Calculate bonus from vassal mercenary contracts
-            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && VassalBehavior.Current != null)
-            {
-                int vassalBonus = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
-                total += vassalBonus;
-            }
+            // Calculate this clan's income
+            int total = CalculateClanIncome(clan, !isRulingClan);
 
             // Apply gold change if there's any income
             if (total != 0)
             {
                 BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(leader, total, false);
             }
+        }
+
+        private void CollectKingdomTaxes(Clan rulingClan)
+        {
+            if (rulingClan?.Kingdom == null || KingdomTaxBehavior.Current == null)
+                return;
+
+            float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(rulingClan.Kingdom);
+            if (taxRate <= 0f)
+                return;
+
+            int totalTaxCollected = 0;
+            var taxBreakdown = new StringBuilder();
+
+            // Collect taxes from all clans in the kingdom (except ruling clan)
+            foreach (var clan in rulingClan.Kingdom.Clans)
+            {
+                if (clan == rulingClan || clan == null)
+                    continue;
+
+                // Calculate this clan's fief income
+                int fiefIncome = 0;
+                if (clan.Settlements != null)
+                {
+                    foreach (var settlement in clan.Settlements)
+                    {
+                        fiefIncome += GoldIncomeAction.CalculateSettlementIncome(settlement);
+                    }
+                }
+
+                // Add vassal fief income if applicable
+                if (VassalBehavior.Current != null)
+                {
+                    fiefIncome += VassalBehavior.Current.CalculateVassalFiefIncome(clan);
+                }
+
+                if (fiefIncome <= 0)
+                    continue;
+
+                // Calculate tax
+                int taxAmount = (int)(fiefIncome * taxRate);
+                if (taxAmount <= 0)
+                    continue;
+
+                totalTaxCollected += taxAmount;
+
+                // If this is a BLT clan, deduct the tax from their gold
+                // (This will happen when their tick processes and they see reduced income)
+                // For AI clans, we just collect the tax from thin air
+
+                // Build breakdown for display
+                if (taxBreakdown.Length > 0)
+                    taxBreakdown.Append(", ");
+                taxBreakdown.Append($"{clan.Name}: +{taxAmount}");
+            }
+
+            // Give total tax to ruling clan
+            if (totalTaxCollected > 0)
+            {
+                BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(rulingClan.Leader, totalTaxCollected, false);
+
+                // Log tax collection
+                string taxMessage = $"Tax collected: +{totalTaxCollected}/day ({(taxRate * 100f):F1}% rate) [{taxBreakdown}]";
+                Log.LogFeedResponse(taxMessage);
+            }
+        }
+
+        private int CalculateClanIncome(Clan clan, bool applyTax)
+        {
+            int total = 0;
+            int fiefIncome = 0;
+
+            // Calculate fief income
+            if (BLTAdoptAHeroModule.CommonConfig.FiefIncomeEnabled && clan.Settlements != null)
+            {
+                foreach (var settlement in clan.Settlements)
+                {
+                    fiefIncome += GoldIncomeAction.CalculateSettlementIncome(settlement);
+                }
+            }
+
+            // Calculate bonus from vassal fief income
+            if (BLTAdoptAHeroModule.CommonConfig.FiefIncomeEnabled && VassalBehavior.Current != null)
+            {
+                fiefIncome += VassalBehavior.Current.CalculateVassalFiefIncome(clan);
+            }
+
+            // Apply kingdom taxes to fief income (for non-ruling clans only)
+            if (applyTax && KingdomTaxBehavior.Current != null && clan.Kingdom != null)
+            {
+                var taxResult = KingdomTaxBehavior.Current.CalculateTax(clan, fiefIncome);
+                fiefIncome = taxResult.incomeAfterTax;
+                // Note: The tax amount was already collected by the ruling clan's tick
+            }
+
+            total += fiefIncome;
+
+            // Calculate mercenary income for this BLT clan (not taxed)
+            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
+            {
+                total += GoldIncomeAction.CalculateMercenaryIncome(clan);
+            }
+
+            // Calculate bonus from vassal mercenary contracts (not taxed)
+            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && VassalBehavior.Current != null)
+            {
+                int vassalBonus = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
+                total += vassalBonus;
+            }
+
+            return total;
         }
     }
 }

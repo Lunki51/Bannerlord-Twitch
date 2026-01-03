@@ -161,7 +161,7 @@ namespace BLTAdoptAHero
 
             var sorted = heroVMs
                                 .Where(h => h.vm.IsVisible)
-                                .OrderBy(h => h.dist)
+                                .OrderBy(h => h.vm.PositionY)
                                 .ToList();
 
             float minOverlapY = 4f;
