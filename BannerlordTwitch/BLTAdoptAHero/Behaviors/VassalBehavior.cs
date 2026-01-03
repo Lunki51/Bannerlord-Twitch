@@ -408,10 +408,13 @@ namespace BLTAdoptAHero
                                         rebel = true;
                                     }
                                     vassal.ClanLeaveKingdom(false);
-                                    foreach (var fief in transferred)
+                                    if (rebel)
                                     {
-                                        ChangeOwnerOfSettlementAction.ApplyByDefault(vassal.Leader, fief);
-                                        transferred.Remove(fief);
+                                        foreach (var fief in transferred)
+                                        {
+                                            ChangeOwnerOfSettlementAction.ApplyByDefault(vassal.Leader, fief);
+                                            transferred.Remove(fief);
+                                        }
                                     }
 
                                     AdoptedHeroFlags._allowKingdomMove = false;
