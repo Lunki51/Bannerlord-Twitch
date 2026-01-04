@@ -302,7 +302,6 @@ namespace BLTAdoptAHero.Actions
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
-        
 
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
@@ -353,34 +352,34 @@ namespace BLTAdoptAHero.Actions
             switch (command.ToLower())
             {
                 case "join":
-                    HandleJoinCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleJoinCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "merc":
-                    HandleMercenaryCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleMercenaryCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "rebel":
-                    HandleRebelCommand(settings, adoptedHero, onSuccess, onFailure);
+                    HandleRebelCommand(diplomacyHelper, settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "leave":
-                    HandleLeaveCommand(settings, adoptedHero, onSuccess, onFailure);
+                    HandleLeaveCommand(diplomacyHelper, settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "create":
-                    HandleKCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleKCreateCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "vassal":
-                    VassalCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    VassalCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                         break;
                 case "release":
-                    HandleReleaseCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleReleaseCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "expel":
-                    HandleExpelCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleExpelCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "stats":
-                    HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
+                    HandleStatsCommand(diplomacyHelper, settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "tax":
-                    HandleTaxCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleTaxCommand(diplomacyHelper, settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 default:
                     onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats)".Translate());
@@ -418,7 +417,6 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
                 return;
             }
-            var diplomacyHelper = Campaign.Current.GetCampaignBehavior<BLTDiplomacyHelper>();
             if (diplomacyHelper.IsPeaceBlocked(adoptedHero.Clan, desiredKingdom))
             {
                 onFailure("Rebellion block");
@@ -609,6 +607,12 @@ namespace BLTAdoptAHero.Actions
             clanStats.Append("{=Ss588M9l}Ruling Clan: {rulingClan} | ".Translate(("rulingClan", adoptedHero.Clan.Kingdom.RulingClan.Name.ToString())));
             clanStats.Append("{=T1FhhCH9}Clan Count: {clanCount} | ".Translate(("clanCount", adoptedHero.Clan.Kingdom.Clans.Count.ToString())));
             clanStats.Append("{=TUOmh7NY}Strength: {strength} | ".Translate(("strength", Math.Round(adoptedHero.Clan.Kingdom.CurrentTotalStrength).ToString())));
+            clanStats.Append("{=6VFGXqRe}Influence: {influence} | ".Translate(("influence", Math.Round(adoptedHero.Clan.Influence).ToString())));
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                string mercGold = (adoptedHero.Clan.MercenaryAwardMultiplier * (Math.Round(adoptedHero.Clan.Influence / 5f) + 1)).ToString() + "/" + adoptedHero.Clan.MercenaryAwardMultiplier.ToString();
+                clanStats.Append("{=PbxexPi9}Mercenary💰: {mercenary} | ".Translate(("mercenary", mercGold)));
+            }
             if (war)
                 clanStats.Append("{=QadZnUKh}Wars: {wars} | ".Translate(("wars", warList.ToString())));
             if (ally)
@@ -728,11 +732,10 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
                 return;
             }
-            var diplomacyHelper = Campaign.Current.GetCampaignBehavior<BLTDiplomacyHelper>();
             if (diplomacyHelper.IsPeaceBlocked(adoptedHero.Clan, desiredKingdom))
             {
-                onFailure("Rebellion block");
-                return;
+            onFailure("Rebellion block");
+            return;
             }
             if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.Clan == Hero.MainHero.Clan.Kingdom.RulingClan && !settings.JoinAllowPlayer)
             {
@@ -815,14 +818,27 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.CreateKPrice, true);
-
             var creator = Campaign.Current.KingdomManager;
+
+            //var newKingdom = Kingdom.CreateKingdom(desiredName);
             var culture = adoptedHero.Culture;
+            //var banner = adoptedHero.Clan.Banner;
+            //var color1 = adoptedHero.Clan.Banner.GetPrimaryColor();
+            //var color2 = adoptedHero.Clan.Banner.GetSecondaryColor();
+            //var home = adoptedHero.Clan.HomeSettlement;
+            //string title = adoptedHero.IsFemale ? "Queen" : "King";
+            //string descText = adoptedHero.Name.ToString();
+            //Keep clan wars HERE
+            //var warTargets = adoptedHero.Clan.FactionsAtWarWith;
+
             creator.CreateKingdom(new TextObject(desiredName), new TextObject(desiredName), culture, adoptedHero.Clan, null, null, null, null);
             var newKingdom = adoptedHero.Clan.Kingdom;
             newKingdom.KingdomBudgetWallet = 2000000;
             adoptedHero.Clan.Influence = 2000;
-
+            //foreach(Kingdom target in warTargets)
+            //{
+            //    DeclareWarAction.ApplyByRebellion(newKingdom, target);
+            //}
             onSuccess("{=TESTING}Created kingdom {name}".Translate(("name", desiredName)));
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
