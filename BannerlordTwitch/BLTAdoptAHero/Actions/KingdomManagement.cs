@@ -853,12 +853,12 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=ETfJQatX}Usage: (vassal) (hero name) (clan name)".Translate());
                 return;
             }
-            //var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == desiredName);
-            //if (existingClan != null)
-            //{
-            //    onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", desiredName)));
-            //    return;
-            //}
+            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == setname || c.Name.ToString() == $"[Vassal] {setname}" || c.Name.ToString() == $"[BLT Clan] {setname}");
+            if (existingClan != null)
+            {
+                onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", setname)));
+                return;
+            }
             if (VassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= settings.VassalAmount)
             {
                 onFailure($"Max vassals{settings.VassalAmount}");
@@ -872,6 +872,7 @@ namespace BLTAdoptAHero.Actions
 
 
             Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.FirstName.ToString().ToLower() == childName.ToLower());
+
             if (vassal == null)
             {
                 onFailure($"No hero named {childName}");
@@ -879,23 +880,33 @@ namespace BLTAdoptAHero.Actions
             }
             if (vassal.Age < 18)
             {
-            onFailure($"{childName} is too young");
-            return;
+                onFailure($"{childName} is too young");
+                return;
             }
             if (vassal.Spouse != null && vassal.Spouse.IsAdopted())
             {
-            onFailure("Cannot vassal a blt spouse");
-            return;
+                onFailure("Cannot vassal a blt spouse");
+                return;
+            }
+            if (vassal.IsAdopted())
+            {
+                onFailure("Cannot vassal a blt");
+                return;                  
             }
             if (vassal.PartyBelongedTo != null)
             {
-            onFailure($"{childName} is in a party");
-            return;
+                onFailure($"{childName} is in a party");
+                return;
             }
             if (vassal.IsPrisoner)
             {
-            onFailure($"{childName} is prisoner");
-            return;
+                onFailure($"{childName} is prisoner");
+                return;
+            }
+            if (vassal.HeroState == Hero.CharacterStates.Fugitive || vassal.HeroState == Hero.CharacterStates.Released || vassal.HeroState == Hero.CharacterStates.Traveling)
+            {
+                onFailure($"{childName} is busy");
+                return;
             }
             if (vassal.Spouse == null)
             {

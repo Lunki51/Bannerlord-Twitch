@@ -181,7 +181,7 @@ namespace BLTAdoptAHero
             
             int towns = desiredKingdom.Fiefs.Count(f => !f.IsCastle);
             int castles = desiredKingdom.Fiefs.Count(f => f.IsCastle);
-            sb.Append("{=BwuFSJU1}Towns: {towns} | ".Translate(("towns", towns)));
+            sb.Append("{=BwuFSJU1}| Towns: {towns} | ".Translate(("towns", towns)));
             sb.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", castles)));
 
             ActionManager.SendReply(context, sb.ToString());
