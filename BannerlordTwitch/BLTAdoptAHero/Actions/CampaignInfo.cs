@@ -233,18 +233,8 @@ namespace BLTAdoptAHero
             var sb = new StringBuilder();
             foreach (var k in Kingdom.All)
             {
-                int p1 = 0;
-                int p2 = 0;
-                foreach (var prisoner in desiredKingdom.Heroes)
-                {
-                    if (prisoner.IsPrisoner && prisoner.PartyBelongedToAsPrisoner?.MapFaction == k)
-                        p1++;
-                }
-                foreach (var prisoner in k.Heroes)
-                {
-                    if (prisoner.IsPrisoner && prisoner.PartyBelongedToAsPrisoner?.MapFaction == desiredKingdom)
-                        p2++;
-                }
+                int p1 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(desiredKingdom, k).Count;
+                int p2 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(k, desiredKingdom).Count;
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     var stance = desiredKingdom.GetStanceWith(k);

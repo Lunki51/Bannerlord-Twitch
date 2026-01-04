@@ -47,7 +47,7 @@ namespace BLTAdoptAHero.Actions
                 case "spouse":
                     HandleSpouseCommand(adoptedHero, splitArgs, onSuccess, onFailure);
                     break;
-                case "child":
+                case "children":
                     HandleChildListCommand(adoptedHero, onSuccess, onFailure);
                     break;
                 default:
@@ -94,6 +94,24 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
+            if (args.Length > 1 && args[1].ToLower() == "rename")
+            {
+                if (adoptedHero.Spouse == null)
+                {
+                    onFailure("{=NoSpouse}You have no spouse".Translate());
+                    return;
+                }
+
+                if (args.Length < 3)
+                {
+                    onFailure("{=ProvideNewName}Please provide a new name".Translate());
+                    return;
+                }
+                string newName = string.Join(" ", args.Skip(2));
+                RenameHero(adoptedHero.Spouse, newName, onSuccess, onFailure);
+                return;
+            }
+
             if (adoptedHero.Spouse == null)
             {
                 if (adoptedHero.ExSpouses.Count > 0)
@@ -126,10 +144,6 @@ namespace BLTAdoptAHero.Actions
                 sb.Append(" | {=SpousePregnant}Your spouse is pregnant".Translate());
             }
 
-            if (spouse.IsDead)
-            {
-                sb.Append(" | {=Deceased}DECEASED".Translate());
-            }
 
             onSuccess(sb.ToString());
         }
