@@ -173,19 +173,19 @@ namespace BLTAdoptAHero
                 }
 
 
-                if (runRetinue1 && BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance != 0)
+                if (runRetinue1)
                 {
                     if (retinueState.Died)
                         return;
 
-                    if (agentState == AgentState.Killed &&
+                    if (BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance != 0f &&
+                        agentState == AgentState.Killed &&
                         MBRandom.RandomFloat < BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance)
                     {
                         retinueState.Died = true;
                         BLTAdoptAHeroCampaignBehavior.Current.KillRetinue(
                             retinueOwner.Hero,
                             affectedAgent.Character);
-
                         if (retinueOwner.Hero.FirstName != null)
                         {
                             Log.LogFeedResponse(
@@ -193,23 +193,22 @@ namespace BLTAdoptAHero
                                 $"Your {affectedAgent.Character} was killed in battle!");
                         }
                     }
-
-                    retinueState.State = agentState;
+                    retinueState.State = agentState;  // Always update state
                 }
 
-                if (runRetinue2 && BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance != 0)
+                if (runRetinue2)
                 {
                     if (retinue2State.Died)
                         return;
 
-                    if (agentState == AgentState.Killed &&
+                    if (BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance != 0f &&
+                        agentState == AgentState.Killed &&
                         MBRandom.RandomFloat < BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance)
                     {
                         retinue2State.Died = true;
                         BLTAdoptAHeroCampaignBehavior.Current.KillRetinue2(
                             retinue2Owner.Hero,
                             affectedAgent.Character);
-
                         if (retinue2Owner.Hero.FirstName != null)
                         {
                             Log.LogFeedResponse(
@@ -217,11 +216,10 @@ namespace BLTAdoptAHero
                                 $"Your {affectedAgent.Character} was killed in battle!");
                         }
                     }
-
-                    retinue2State.State = agentState;
+                    retinue2State.State = agentState;  // Always update state
                 }
 
-                if (retinue2State.Died || retinueState.Died)
+                if ((retinue2State != null && retinue2State.Died) || (retinueState != null && retinueState.Died))
                 {
                     _retinueResolution.Remove(affectedAgent);
                 }
