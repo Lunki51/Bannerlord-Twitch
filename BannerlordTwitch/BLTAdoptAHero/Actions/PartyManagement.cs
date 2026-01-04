@@ -29,6 +29,9 @@ using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero.Actions
 {
+    [LocDisplayName("Party Management"),
+     LocDescription("Allow viewer to manage their party"),
+     UsedImplicitly]
     public class PartyManagement : HeroCommandHandlerBase
     {
         [CategoryOrder("Army", 0)]
@@ -292,6 +295,11 @@ namespace BLTAdoptAHero.Actions
                     }
                 case "create":
                     {
+                        if (adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
+                        {
+                            onFailure("Cannot create party in player clan");
+                            return;
+                        }
                         if (adoptedHero.HeroState == Hero.CharacterStates.Released)
                         {
                             onFailure("Your hero has just been released");
@@ -329,12 +337,7 @@ namespace BLTAdoptAHero.Actions
                                 }
                             }
                             return;
-                        }
-                        if (adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
-                        {
-                            onFailure("Cannot create party in player clan");
-                            return;
-                        }
+                        }                       
                         int parties = adoptedHero.Clan.WarPartyComponents.Count;
                         if (!adoptedHero.IsClanLeader && parties >= adoptedHero.Clan.CommanderLimit)
                         {
@@ -438,7 +441,8 @@ namespace BLTAdoptAHero.Actions
                         partyStats.Append($"Morale: {(int)party.Morale} | ");
                         partyStats.Append($"Sight: {Math.Round(party.SeeingRange, 1)} | ");
                         partyStats.Append($"Wage: {party.TotalWage} ");
-                        Settlement location = HeroHelper.GetClosestSettlement(adoptedHero);
+                        var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
+                        Settlement location = SettlementHelper.FindNearestSettlementToMobileParty(party, nav);
                         if (location != null)
                             partyStats.Append($"| Near: {location.Name}");
                         onSuccess(partyStats.ToString());
@@ -522,6 +526,7 @@ namespace BLTAdoptAHero.Actions
                             .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
 
+                        adoptedHero.Clan.Influence += 200f;
                         adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
                         Army aarmy = adoptedHero.PartyBelongedTo.Army;
 

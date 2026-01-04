@@ -13,6 +13,7 @@ using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
+using Helpers;
 
 namespace BLTAdoptAHero
 {
