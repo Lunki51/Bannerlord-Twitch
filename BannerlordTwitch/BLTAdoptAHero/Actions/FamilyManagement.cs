@@ -47,7 +47,7 @@ namespace BLTAdoptAHero.Actions
                 case "spouse":
                     HandleSpouseCommand(adoptedHero, splitArgs, onSuccess, onFailure);
                     break;
-                case "child":
+                case "children":
                     HandleChildListCommand(adoptedHero, onSuccess, onFailure);
                     break;
                 default:
@@ -61,14 +61,12 @@ namespace BLTAdoptAHero.Actions
             int spouseCount = (adoptedHero.Spouse != null ? 1 : 0) + adoptedHero.ExSpouses.Count;
             int childrenCount = adoptedHero.Children.Count;
             int grandchildrenCount = adoptedHero.Children.Sum(c => c.Children.Count);
-            int totalFamily = spouseCount + childrenCount + grandchildrenCount;
 
             var sb = new StringBuilder();
             sb.Append("{=FamilyOverview}Family Overview: ".Translate());
             sb.Append("{=SpouseCount}Spouses: {count} | ".Translate(("count", spouseCount)));
             sb.Append("{=ChildCount}Children: {count} | ".Translate(("count", childrenCount)));
-            sb.Append("{=GrandchildCount}Grandchildren: {count} | ".Translate(("count", grandchildrenCount)));
-            sb.Append("{=TotalFamily}Total Family: {count}".Translate(("count", totalFamily)));
+            sb.Append("{=GrandchildCount}Grandchildren: {count}".Translate(("count", grandchildrenCount)));
 
             onSuccess(sb.ToString());
         }
@@ -91,6 +89,24 @@ namespace BLTAdoptAHero.Actions
 
                 string appearanceArg = string.Join(" ", args.Skip(2));
                 ApplyLooks(adoptedHero.Spouse, appearanceArg, onSuccess, onFailure);
+                return;
+            }
+
+            if (args.Length > 1 && args[1].ToLower() == "rename")
+            {
+                if (adoptedHero.Spouse == null)
+                {
+                    onFailure("{=NoSpouse}You have no spouse".Translate());
+                    return;
+                }
+
+                if (args.Length < 3)
+                {
+                    onFailure("{=ProvideNewName}Please provide a new name".Translate());
+                    return;
+                }
+                string newName = string.Join(" ", args.Skip(2));
+                RenameHero(adoptedHero.Spouse, newName, onSuccess, onFailure);
                 return;
             }
 
@@ -126,10 +142,6 @@ namespace BLTAdoptAHero.Actions
                 sb.Append(" | {=SpousePregnant}Your spouse is pregnant".Translate());
             }
 
-            if (spouse.IsDead)
-            {
-                sb.Append(" | {=Deceased}DECEASED".Translate());
-            }
 
             onSuccess(sb.ToString());
         }
@@ -152,6 +164,8 @@ namespace BLTAdoptAHero.Actions
                 sb.Append(CleanName(child.Name.ToString()));
                 sb.Append($" ({(int)child.Age}, ");
                 sb.Append(child.IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
+                if (child.Spouse != null)
+                    sb.Append($", 💍{child.Spouse.Name}");
                 sb.Append(")");
 
                 if (i < children.Count - 1)
