@@ -156,7 +156,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
         private bool _canBeRemoved = false;
         [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
          LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
-         PropertyOrder(8), UsedImplicitly]
+         PropertyOrder(8), UsedImplicitly,
+         DefaultValue(false)]
         public bool CanBeRemoved
         {
             get => _canBeRemoved;
