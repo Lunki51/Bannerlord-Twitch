@@ -83,11 +83,24 @@ namespace BLTAdoptAHero
                 return;
             }
             var splitArgs = context.Args.Split(' ');
-            string args = splitArgs[0];
-            Focus(settings, adoptedHero, args, onSuccess, onFailure);
+
+            string args;
+            int num;
+
+            if (int.TryParse(splitArgs.Last(), out var v))
+            {
+                num = v;
+                args = string.Join(" ", splitArgs.Take(splitArgs.Length - 1));
+            }
+            else
+            {
+                num = 1;
+                args = string.Join(" ", splitArgs);
+            }
+            Focus(settings, adoptedHero, args, num, onSuccess, onFailure);
         }
 
-        private void Focus(FocusPointsSettings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
+        private void Focus(FocusPointsSettings settings, Hero adoptedHero, string args, int num, Action<string> onSuccess, Action<string> onFailure)
         {
 
             if (string.IsNullOrWhiteSpace(args))
@@ -97,14 +110,13 @@ namespace BLTAdoptAHero
                 return;
             }
             var skill = Skills.All.Find(c =>
-               c.Name.ToString() == args);
+               c.Name.ToString().ToLower() == args.ToLower());
 
             if (skill == null)
             {
                 skill = Skills.All.Find(c =>
                 c.Name.ToString().IndexOf(args, StringComparison.OrdinalIgnoreCase) >= 0);
             }
-
 
             if (skill == null)
             {
@@ -114,25 +126,30 @@ namespace BLTAdoptAHero
                 return;
             }
             int focus = adoptedHero.HeroDeveloper.GetFocus(skill);
-            int cost = settings.GetFocusCost(focus);
             if (focus >= 5)
             {
                 onFailure($"Max focus for {skill.Name}");
                 return;
+            }
+                       
+            if (focus + num > 5)
+                num = 5 - focus;
+
+            int cost = 0;
+            for (int i = 0; i < num; i++)
+            {
+                cost += settings.GetFocusCost(focus + i);
             }
             if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < cost)
             {
                 onFailure(Naming.NotEnoughGold(cost, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
             }
-
-            adoptedHero.HeroDeveloper.AddFocus(skill, 1, checkUnspentFocusPoints: false);
+            adoptedHero.HeroDeveloper.AddFocus(skill, num, checkUnspentFocusPoints: false);
             int newFocus = adoptedHero.HeroDeveloper.GetFocus(skill);
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -cost, true);
-            onSuccess(
-                ("{=HLFMWOJA}You have gained a focus point in {Skill}, you now have {NewAmount}!")
-                .Translate(("Skill", skill.Name), ("NewAmount", newFocus)));
-            return;
+            onSuccess($"You have gained {num} focus point in {skill.Name}, you now have {newFocus}!");            
+            
         }
     }
 }

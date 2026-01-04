@@ -31,7 +31,7 @@ namespace BLTAdoptAHero.Actions
 {
     public class PartyManagement : HeroCommandHandlerBase
     {
-        [CategoryOrder("War", 0)]
+        [CategoryOrder("Army", 0)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=TESTING}Army"),
@@ -53,6 +53,7 @@ namespace BLTAdoptAHero.Actions
                                     "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
             }
         }
+        public override Type HandlerConfigType => typeof(Settings);
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
             if (config is not Settings settings) return;

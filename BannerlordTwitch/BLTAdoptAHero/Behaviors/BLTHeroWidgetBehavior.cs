@@ -37,6 +37,10 @@ namespace BLTAdoptAHero
         private readonly InputKey configToggleKey = Enum.TryParse(GlobalCommonConfig.Get().NametagKey, out InputKey key) ? key : InputKey.H;
         private bool _hideUI = false;
 
+        // Cache for tournament team colors to avoid scanning agents every frame
+        private readonly Dictionary<Hero, string> _tournamentTeamColorCache = new();
+        private MissionMode _lastMissionMode = MissionMode.StartUp;
+
         public override void OnMissionScreenTick(float dt)
         {
             if (!GlobalCommonConfig.Get().NametagEnabled)
@@ -52,6 +56,9 @@ namespace BLTAdoptAHero
             if (heroBehavior == null || MissionScreen == null || combatMission == Mission.MissionCombatType.NoCombat)
                 return;
 
+            // Detect tournament round changes to clear team cache
+            DetectTournamentRoundChange();
+
             if (!_isInitialized)
             {
                 if (heroBehavior.activeHeroes.Count > 0)
@@ -62,7 +69,39 @@ namespace BLTAdoptAHero
             }
             else
             {
-                UpdateHeroIcons(heroBehavior);               
+                UpdateHeroIcons(heroBehavior);
+            }
+        }
+
+        private void DetectTournamentRoundChange()
+        {
+            if (!MissionHelpers.InTournament())
+            {
+                // Clear cache when leaving tournament
+                if (_tournamentTeamColorCache.Count > 0)
+                {
+                    _tournamentTeamColorCache.Clear();
+                }
+                return;
+            }
+
+            var currentMode = Mission.Current?.Mode ?? MissionMode.StartUp;
+
+            // Clear cache on mission mode changes (new round starting)
+            if (currentMode != _lastMissionMode)
+            {
+                _tournamentTeamColorCache.Clear();
+                _lastMissionMode = currentMode;
+            }
+
+            // Also track tournament match end as backup
+            var tournamentBehavior = Mission.Current?.GetMissionBehavior<TournamentFightMissionController>();
+            if (tournamentBehavior != null)
+            {
+                if (tournamentBehavior.IsMatchEnded())
+                {
+                    _tournamentTeamColorCache.Clear();
+                }
             }
         }
 
@@ -71,18 +110,18 @@ namespace BLTAdoptAHero
             //Log.Trace("BLTAdoptAHero: Initializing UI.");
             this._vm = new HeroWidgetVM();
             this._layer = new GauntletLayer("BLTHeroWidgetLayer", 15, false);
-            this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);            
+            this._gauntletMovie = this._layer.LoadMovie("BLTHeroNametag", _vm);
             this.MissionScreen.AddLayer(_layer);
             //Log.Trace("BLTAdoptAHero: Layer added to MissionScreen.");
             //Log.Trace($"BLTAdoptAHero: Movie loaded. RootWidget is Null? {_gauntletMovie.RootWidget == null}");
-            this._camera = MissionScreen.CombatCamera;           
+            this._camera = MissionScreen.CombatCamera;
         }
 
         internal void UpdateHeroIcons(BLTAdoptAHeroCommonMissionBehavior heroBehavior)
         {
             bool inTournament = MissionHelpers.InTournament();
             if (!_isInitialized || _camera == null) return;
-            
+
             var heroVMs = new List<(Hero hero, HeroIconVM vm, float dist)>();
 
             var heroTeamCache = new Dictionary<Hero, string>();
@@ -145,7 +184,7 @@ namespace BLTAdoptAHero
                                 vm.IsVisible = false;
                             }
 
-                        }   
+                        }
                     }
                     else
                     {
@@ -215,41 +254,44 @@ namespace BLTAdoptAHero
         private string GetTournamentTeamColor(Hero hero)
         {
             if (!MissionHelpers.InTournament() || hero == null)
-                return "#FFFFFFF0"; // fallback if not in a tournament
+                return "#FFFFFFF0";
 
+            // Use cached value if available
+            if (_tournamentTeamColorCache.TryGetValue(hero, out var cachedColor))
+                return cachedColor;
+
+            // Otherwise scan and cache
             var agents = Mission.Current?.Agents;
             if (agents == null) return "#FFFFFFF0";
 
             foreach (var agent in agents)
             {
                 var agentHero = agent.GetAdoptedHero();
-                if (agentHero == null) continue;
-
                 if (agentHero == hero)
                 {
                     int teamIndex = agent.Team?.TeamIndex ?? -1;
-
-                    // Map team index to a color
                     string[] teamColors = { "#0000FFF0", "#FF0000F0", "#00FF00F0", "#FFFF00F0" };
-                    if (teamIndex < 0 || teamIndex >= teamColors.Length)
-                        return "#FFFFFFF0"; // fallback for unexpected team index
+                    string color = (teamIndex >= 0 && teamIndex < teamColors.Length)
+                        ? teamColors[teamIndex]
+                        : "#FFFFFFF0";
 
-                    return teamColors[teamIndex];
+                    _tournamentTeamColorCache[hero] = color;
+                    return color;
                 }
             }
 
-            // Hero not found in tournament
             return "#FFFFFFF0";
         }
 
         public override void OnRemoveBehavior()
         {
             _heroToVM.Clear();
+            _tournamentTeamColorCache.Clear();
             _vm?.Heroes.Clear();
-            
-            if (_layer != null && MissionScreen != null)            
+
+            if (_layer != null && MissionScreen != null)
                 MissionScreen.RemoveLayer(_layer);
-                
+
             _layer = null;
             _vm = null;
             _camera = null;

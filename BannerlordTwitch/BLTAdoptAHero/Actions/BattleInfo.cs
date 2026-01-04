@@ -90,7 +90,8 @@ namespace BLTAdoptAHero
                     || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Crossbow
                     || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Pistol
                     || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Musket
-                    || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Thrown)
+                    || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Thrown
+                    || mainItemObj.ItemType == ItemObject.ItemTypeEnum.Sling)
                 {
                     int ammo = equipment.GetAmmoAmount(mainIndex);
                     int maxAmmo = equipment.GetMaxAmmo(mainIndex);
