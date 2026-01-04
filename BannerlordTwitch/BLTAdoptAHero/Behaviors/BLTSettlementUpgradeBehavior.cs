@@ -23,7 +23,7 @@ namespace BLTAdoptAHero.Behaviors
 
         private void OnDailyTickSettlement(Settlement settlement)
         {
-            if (settlement == null || UpgradeBehavior.Current == null)
+            if (settlement == null || BLTUpgradeBehavior.Current == null)
                 return;
 
             ApplyTownBonuses(settlement);
@@ -36,8 +36,8 @@ namespace BLTAdoptAHero.Behaviors
             if (town == null)
                 return;
 
-            float prosperityFlat = UpgradeBehavior.Current.GetProsperityFlat(settlement);
-            float prosperityPercent = UpgradeBehavior.Current.GetProsperityPercent(settlement);
+            float prosperityFlat = BLTUpgradeBehavior.Current.GetProsperityFlat(settlement);
+            float prosperityPercent = BLTUpgradeBehavior.Current.GetProsperityPercent(settlement);
 
             if (prosperityFlat != 0f)
                 town.Prosperity += prosperityFlat;
@@ -45,8 +45,8 @@ namespace BLTAdoptAHero.Behaviors
             if (prosperityPercent != 0f)
                 town.Prosperity += town.Prosperity * (prosperityPercent / 100f);
 
-            float loyaltyFlat = UpgradeBehavior.Current.GetLoyaltyFlat(settlement);
-            float loyaltyPercent = UpgradeBehavior.Current.GetLoyaltyPercent(settlement);
+            float loyaltyFlat = BLTUpgradeBehavior.Current.GetLoyaltyFlat(settlement);
+            float loyaltyPercent = BLTUpgradeBehavior.Current.GetLoyaltyPercent(settlement);
 
             if (loyaltyFlat != 0f)
                 town.Loyalty += loyaltyFlat;
@@ -58,8 +58,8 @@ namespace BLTAdoptAHero.Behaviors
     town.Loyalty,
     Campaign.Current.Models.SettlementLoyaltyModel.MaximumLoyaltyInSettlement);
 
-            float securityFlat = UpgradeBehavior.Current.GetSecurityFlat(settlement);
-            float securityPercent = UpgradeBehavior.Current.GetSecurityPercent(settlement);
+            float securityFlat = BLTUpgradeBehavior.Current.GetSecurityFlat(settlement);
+            float securityPercent = BLTUpgradeBehavior.Current.GetSecurityPercent(settlement);
 
             if (securityFlat != 0f)
                 town.Security += securityFlat;
@@ -72,8 +72,8 @@ namespace BLTAdoptAHero.Behaviors
     Campaign.Current.Models.SettlementSecurityModel.MaximumSecurityInSettlement);
 
 
-            float foodFlat = UpgradeBehavior.Current.GetFoodFlat(settlement);
-            float foodPercent = UpgradeBehavior.Current.GetFoodPercent(settlement);
+            float foodFlat = BLTUpgradeBehavior.Current.GetFoodFlat(settlement);
+            float foodPercent = BLTUpgradeBehavior.Current.GetFoodPercent(settlement);
 
             int maxLimit = Campaign.Current.Models.SettlementFoodModel.FoodStocksUpperLimit;
 
@@ -90,8 +90,8 @@ namespace BLTAdoptAHero.Behaviors
             }
 
 
-            float militiaFlat = UpgradeBehavior.Current.GetMilitiaFlat(settlement);
-            float militiaPercent = UpgradeBehavior.Current.GetMilitiaPercent(settlement);
+            float militiaFlat = BLTUpgradeBehavior.Current.GetMilitiaFlat(settlement);
+            float militiaPercent = BLTUpgradeBehavior.Current.GetMilitiaPercent(settlement);
 
             if (militiaFlat != 0f)
                 settlement.Militia += militiaFlat;
@@ -99,7 +99,7 @@ namespace BLTAdoptAHero.Behaviors
             if (militiaPercent != 0f)
                 settlement.Militia += settlement.Militia * (militiaPercent / 100f);
 
-            int taxFlat = UpgradeBehavior.Current.GetTotalTaxBonus(settlement);
+            int taxFlat = BLTUpgradeBehavior.Current.GetTotalTaxBonus(settlement);
             if (taxFlat > 0 && town.OwnerClan != null)
                 town.OwnerClan.Leader.Gold += taxFlat;
         }
@@ -110,7 +110,7 @@ namespace BLTAdoptAHero.Behaviors
             if (village == null)
                 return;
 
-            int taxFlat = UpgradeBehavior.Current.GetTotalTaxBonus(settlement);
+            int taxFlat = BLTUpgradeBehavior.Current.GetTotalTaxBonus(settlement);
         
             if (taxFlat > 0 && village.TradeTaxAccumulated > 1)
                 village.Settlement.OwnerClan.Leader.Gold += taxFlat;

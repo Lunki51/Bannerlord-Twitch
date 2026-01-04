@@ -11,14 +11,14 @@ using static BLTAdoptAHero.Actions.UpgradeAction;  // contains FiefUpgrade, Clan
 namespace BLTAdoptAHero
 {
     /// <summary>
-    /// UpgradeBehavior - typed, safe, non-mutating provider.
+    /// BLTUpgradeBehavior - typed, safe, non-mutating provider.
     /// - Persists upgrades as comma-separated strings per fief/clan/kingdom
     /// - Exposes Get/Has/Add/Remove helpers used by UI/actions
     /// - Exposes typed aggregated getters that consult the injected Settings instance
     /// </summary>
-    public class UpgradeBehavior : CampaignBehaviorBase
+    public class BLTUpgradeBehavior : CampaignBehaviorBase
     {
-        public static UpgradeBehavior Current { get; private set; }
+        public static BLTUpgradeBehavior Current { get; private set; }
 
         // persisted storage (CSV strings per id) - compatible with older saves
         private Dictionary<string, string> _fiefUpgrades = new();
@@ -31,7 +31,7 @@ namespace BLTAdoptAHero
         // REPLACE WITH:
         private GlobalCommonConfig ConfigSafe => GlobalCommonConfig.Get();
 
-        public UpgradeBehavior()
+        public BLTUpgradeBehavior()
         {
             Current = this;
         }

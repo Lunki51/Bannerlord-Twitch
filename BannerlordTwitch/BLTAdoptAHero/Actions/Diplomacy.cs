@@ -235,6 +235,22 @@ namespace BLTAdoptAHero
                             onFailure(Naming.NotEnoughGold(settings.WarPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
+                        //BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.WarPrice, true);
+                        //if (kingdom == Hero.MainHero.Clan.Kingdom)
+                        //{
+                        //    bool isAlreadyProposed = kingdom.UnresolvedDecisions
+                        //    .Any(d => d is DeclareWarDecision warDecision &&
+                        //              warDecision.FactionToDeclareWarOn == desiredKingdom);
+                        //    if (isAlreadyProposed)
+                        //    {
+                        //        Log.LogFeedMessage($"Vote already ongoing.");
+                        //        return;
+                        //    }
+
+                        //    DeclareWarDecision newWarProposal = new DeclareWarDecision(adoptedHero.Clan, desiredKingdom);
+                        //    adoptedHero.Clan.Kingdom.AddDecision(newWarProposal);
+                        //    onSuccess("Proposed war decision.");
+                        //}
                         else
                         {
                             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.WarPrice, true);
@@ -407,7 +423,84 @@ namespace BLTAdoptAHero
                         }
                         else { onFailure("Invalid action"); }
                         break;
-                    }          
+                    }
+                //case "army":
+                //    {
+                //        if (!settings.ArmyEnabled)
+                //        {
+                //            onFailure("Army disabled");
+                //            return;
+                //        }
+                //        if (!atWar)
+                //        {
+                //            onFailure("No wars");
+                //            return;
+                //        }
+                //        if (adoptedHero.IsPrisoner)
+                //        {
+                //            onFailure("{=TESTING}You are prisoner!".Translate());
+                //            return;
+                //        }
+                //        if (!adoptedHero.IsPartyLeader)
+                //        {
+                //            onFailure("{=LVFh1Pd5}Your hero is not leading a party".Translate());
+                //            return;
+                //        }
+                //        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty != adoptedHero.PartyBelongedTo)
+                //        {
+                //            onFailure("Already in an army!");
+                //            return;
+                //        }
+                //        if (adoptedHero.PartyBelongedTo.MapEvent != null)
+                //        {
+                //            onFailure("Your party is busy.");
+                //            return;
+                //        }
+                //        Army.ArmyTypes armyType;
+                //        if (splitArgs.Length < 2)
+                //        {
+                //            onFailure("Specify an army type: defend/siege/patrol");
+                //            return;
+                //        }
+                //        switch (desiredName)
+                //        {
+                //            case "siege":
+                //                armyType = Army.ArmyTypes.Besieger;
+                //                break;
+                //            //case "raid":
+                //            //    armyType = Army.ArmyTypes.Raider;
+                //            //    break;
+                //            case "defend":
+                //                armyType = Army.ArmyTypes.Defender;
+                //                break;
+                //            case "patrol":
+                //                armyType = Army.ArmyTypes.Patrolling;
+                //                break;
+                //            default:
+                //                onFailure($"Invalid army type: {desiredName}");
+                //                return;
+                //        }
+                //        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty == adoptedHero.PartyBelongedTo)
+                //        {
+                //            adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
+                //            onSuccess($"Changed army type to {armyType}");
+                //            return;
+                //        }
+                //        if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ArmyPrice)
+                //        {
+                //            onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                //            return;
+                //        }
+                //        var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
+                //        var sameClanParties = kingdom.AllParties
+                //            .Where(p => p?.ActualClan == adoptedHero.Clan && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
+                //            .ToList();
+                //
+                //        adoptedHero.Clan.Influence += 50;
+                //        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
+                //        Army army = adoptedHero.PartyBelongedTo.Army;
+                //
+                //    }            
                 case "alliance":
                     {
 

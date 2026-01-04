@@ -328,7 +328,7 @@ namespace BannerlordTwitch
             {
                 string path = Path.Combine(DocumentationRootDir, localPath);
                 texture.TransformRenderTargetToResource(localPath);
-                texture.SaveToFile(localPath, false);
+                texture.SaveToFile(localPath);
                 for (int i = 0; i < 100 && !File.Exists(localPath); i++)
                 {
                     await Task.Delay(100);

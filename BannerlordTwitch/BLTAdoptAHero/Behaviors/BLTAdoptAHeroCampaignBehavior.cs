@@ -2285,7 +2285,7 @@ namespace BLTAdoptAHero
                 return "Campaign is not active";
             }
 
-            if (VassalBehavior.Current == null)
+            if (BLTVassalBehavior.Current == null)
             {
                 return "Vassal Behavior is not active";
             }
@@ -2304,12 +2304,12 @@ namespace BLTAdoptAHero
                     if (clan == null) continue;
 
                     // Check if this is a vassal clan
-                    if (!VassalBehavior.Current.IsVassal(clan))
+                    if (!BLTVassalBehavior.Current.IsVassal(clan))
                         continue;
 
                     checkedCount++;
 
-                    var masterClan = VassalBehavior.Current.GetMasterClan(clan);
+                    var masterClan = BLTVassalBehavior.Current.GetMasterClan(clan);
 
                     if (masterClan == null)
                     {

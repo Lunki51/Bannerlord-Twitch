@@ -216,7 +216,7 @@ namespace BLTAdoptAHero
                     var farther = sorted[j].vm;
                     if (!farther.IsVisible) continue;
 
-                    if (Math.Abs(farther.PositionY - (anchor.PositionY + anchor.Height)) > 50f)
+                    if (farther.PositionY - (anchor.PositionY + anchor.Height) > 50f)
                         break;
 
                     bool overlapX = farther.PositionX < anchor.PositionX + anchor.Width * 0.9f &&
