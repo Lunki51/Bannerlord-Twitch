@@ -545,7 +545,7 @@ namespace BLTAdoptAHero
                 default:
                     {
                         ActionManager.SendReply(context,
-                        context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), alliance (kingdom), trade (kingdom), army (defend/siege/patrol)".Translate()));
+                        context.ArgsErrorMessage("{=TESTING}invalid mode (use war (kingdom), peace (kingdom), alliance (kingdom), trade (kingdom)".Translate()));
                         break;
                     }
             }

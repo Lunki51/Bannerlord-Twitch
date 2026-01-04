@@ -173,7 +173,7 @@ namespace BLTAdoptAHero
                 }
 
 
-                if (runRetinue1 && BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance != 0)
+                if (runRetinue1 && retinueState != null && BLTAdoptAHeroModule.CommonConfig.RetinueDeathChance != 0)
                 {
                     if (retinueState.Died)
                         return;
@@ -197,7 +197,7 @@ namespace BLTAdoptAHero
                     retinueState.State = agentState;
                 }
 
-                if (runRetinue2 && BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance != 0)
+                if (runRetinue2 && retinue2State != null && BLTAdoptAHeroModule.CommonConfig.Retinue2DeathChance != 0)
                 {
                     if (retinue2State.Died)
                         return;
@@ -221,7 +221,7 @@ namespace BLTAdoptAHero
                     retinue2State.State = agentState;
                 }
 
-                if (retinue2State.Died || retinueState.Died)
+                if ((retinueState?.Died == true) || (retinue2State?.Died == true))
                 {
                     _retinueResolution.Remove(affectedAgent);
                 }
