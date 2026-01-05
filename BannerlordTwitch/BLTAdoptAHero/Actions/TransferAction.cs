@@ -330,10 +330,15 @@ namespace BLTAdoptAHero.Actions
                 }
             }
 
-            // Final safety checks: cannot transfer to the same clan that already owns it
+            // Final safety checks: cannot transfer to the same clan that already owns it, cannot transfer to mercenary clans
             if (owningClan == targetClan)
             {
                 onFailure($"{targetSettlement.Name} is already owned by {targetClan.Name}.");
+                return;
+            }
+            if (targetClan.IsUnderMercenaryService)
+            {
+                onFailure($"{targetClan.Name} is a Mercenary, which cannot own land.");
                 return;
             }
 
