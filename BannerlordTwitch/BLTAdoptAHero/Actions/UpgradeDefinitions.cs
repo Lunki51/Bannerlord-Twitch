@@ -156,8 +156,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
         private bool _canBeRemoved = false;
         [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
          LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
-         PropertyOrder(8), UsedImplicitly,
-         DefaultValue(false)]
+         PropertyOrder(8), UsedImplicitly, DefaultValue(false)]
         public bool CanBeRemoved
         {
             get => _canBeRemoved;
@@ -184,6 +183,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             desc += $"\n{Description}\nCost: {GetCostString()}";
             if (!string.IsNullOrEmpty(RequiredUpgradeID))
                 desc += $"\nRequires: {RequiredUpgradeID}";
+            desc += $"\nCan be removed: {CanBeRemoved}";
             return desc;
         }
 
@@ -281,6 +281,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(3), UsedImplicitly]
         public int GarrisonCapacityBonus { get; set; } = 0;
 
+        [LocDisplayName("{=BLT_Hearth}Hearth Daily"),
+         LocCategory("Static Bonuses", "{=BLT_StaticBonuses}Static Bonuses"),
+         LocDescription("{=BLT_HearthDesc}Flat daily hearth bonus to this fief's villages"),
+         PropertyOrder(4), UsedImplicitly, DefaultValue(0)]
+        public int HearthDaily { get; set; } = 0;
+
         public override string GetFullDescription()
         {
             string desc = base.GetFullDescription();
@@ -299,6 +305,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (TaxIncomeFlat != 0) desc += $"\n  Tax Income: {(TaxIncomeFlat > 0 ? "+" : "")}{TaxIncomeFlat}{Naming.Gold}/day";
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
             if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";
+            if (HearthDaily != 0) desc += $"\n  Hearth: {(HearthDaily > 0 ? "+" : "")}{HearthDaily}";
 
             return desc;
         }
@@ -328,7 +335,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_PartySize}Party Movement Speed Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_PartySizeDesc}Additional Flat Movement Speed for all clan parties"),
-         PropertyOrder(2), UsedImplicitly]
+         PropertyOrder(3), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
 
         // Settlement effects (applied to all clan settlements)
@@ -395,20 +402,26 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_TaxFlat}Tax Income (Flat)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
          LocDescription("{=BLT_TaxFlatDesc}Flat daily gold bonus from taxes for all clan settlements"),
-         PropertyOrder(9), UsedImplicitly]
+         PropertyOrder(11), UsedImplicitly]
         public int TaxIncomeFlat { get; set; } = 0;
 
         [LocDisplayName("{=BLT_TaxPercent}Tax Income (%)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
          LocDescription("{=BLT_TaxPercentDesc}Percentage bonus to tax income for all clan settlements"),
-         PropertyOrder(10), UsedImplicitly]
+         PropertyOrder(12), UsedImplicitly]
         public float TaxIncomePercent { get; set; } = 0f;
 
         [LocDisplayName("{=BLT_GarrisonCap}Garrison Capacity Bonus"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
          LocDescription("{=BLT_GarrisonCapDesc}Additional garrison troop capacity (Warning: High values may cause issues)"),
-         PropertyOrder(3), UsedImplicitly]
+         PropertyOrder(13), UsedImplicitly]
         public int GarrisonCapacityBonus { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_Hearth}Hearth Daily"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocDescription("{=BLT_HearthDesc}Flat daily hearth bonus to all clan villages"),
+         PropertyOrder(14), UsedImplicitly, DefaultValue(0)]
+        public int HearthDaily { get; set; } = 0;
 
         public override string GetFullDescription()
         {
@@ -433,6 +446,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (TaxIncomeFlat != 0) desc += $"\n  Tax Income: {(TaxIncomeFlat > 0 ? "+" : "")}{TaxIncomeFlat}{Naming.Gold}/day per settlement";
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
             if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";
+            if (HearthDaily != 0) desc += $"\n  Hearth: {(HearthDaily > 0 ? "+" : "")}{HearthDaily}";
 
             return desc;
         }
@@ -543,20 +557,26 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_TaxFlat}Tax Income (Flat)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
          LocDescription("{=BLT_TaxFlatDesc}Flat daily gold bonus from taxes for all kingdom settlements"),
-         PropertyOrder(9), UsedImplicitly]
+         PropertyOrder(11), UsedImplicitly]
         public int TaxIncomeFlat { get; set; } = 0;
 
         [LocDisplayName("{=BLT_TaxPercent}Tax Income (%)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
          LocDescription("{=BLT_TaxPercentDesc}Percentage bonus to tax income for all kingdom settlements"),
-         PropertyOrder(10), UsedImplicitly]
+         PropertyOrder(12), UsedImplicitly]
         public float TaxIncomePercent { get; set; } = 0f;
 
         [LocDisplayName("{=BLT_GarrisonCap}Garrison Capacity Bonus"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
          LocDescription("{=BLT_GarrisonCapDesc}Additional garrison troop capacity (Warning: High values may cause issues)"),
-         PropertyOrder(3), UsedImplicitly]
+         PropertyOrder(13), UsedImplicitly]
         public int GarrisonCapacityBonus { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_Hearth}Hearth Daily"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
+         LocDescription("{=BLT_HearthDesc}Flat daily hearth bonus to all kingdom villages"),
+         PropertyOrder(13), UsedImplicitly, DefaultValue(0)]
+        public int HearthDaily { get; set; } = 0;
 
         public override string GetCostString()
         {
@@ -592,6 +612,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (TaxIncomeFlat != 0) desc += $"\n  Tax Income: {(TaxIncomeFlat > 0 ? "+" : "")}{TaxIncomeFlat}{Naming.Gold}/day per settlement";
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
             if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";
+            if (HearthDaily != 0) desc += $"\n  Hearth: {(HearthDaily > 0 ? "+" : "")}{HearthDaily}";
 
             return desc;
         }

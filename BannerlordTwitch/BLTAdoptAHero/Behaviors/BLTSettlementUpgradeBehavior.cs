@@ -111,9 +111,13 @@ namespace BLTAdoptAHero.Behaviors
                 return;
 
             int taxFlat = BLTUpgradeBehavior.Current.GetTotalTaxBonus(settlement);
-        
+            int hearth = BLTUpgradeBehavior.Current.GetTotalHearthDaily(settlement);
+
             if (taxFlat > 0 && village.TradeTaxAccumulated > 1)
                 village.Settlement.OwnerClan.Leader.Gold += taxFlat;
+
+            if (hearth > 0)
+                village.Hearth += hearth;
         }
     }
 }

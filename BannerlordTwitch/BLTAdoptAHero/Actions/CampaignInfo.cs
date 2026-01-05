@@ -14,6 +14,8 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
 using Helpers;
+using TaleWorlds.Core;
+using BLTAdoptAHero.Models;
 
 namespace BLTAdoptAHero
 {
@@ -294,7 +296,7 @@ namespace BLTAdoptAHero
                 sb.Append(" | ");
                 sb.Append("{=TESTING}Village | ".Translate());
                 sb.Append("{=TESTING}Culture: {culture} | ".Translate(("culture", desiredFief.Culture.ToString())));
-                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth), ("change", (vill.HearthChange >= 0 ? "+" : "") + Math.Round(vill.HearthChange, 2))));
+                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth), ("change", (vill.HearthChange + BLTUpgradeBehavior.Current.GetTotalHearthDaily(vill.Bound.Town.Settlement) >= 0 ? "+" : "") + Math.Round(vill.HearthChange + BLTUpgradeBehavior.Current.GetTotalHearthDaily(vill.Bound.Town.Settlement), 2))));
                 var parent = Settlement.All.FirstOrDefault(s => s.BoundVillages.Any(v => v.Name.ToString() == desiredFief.Name.ToString()));
                 sb.Append("{=TESTING}Bound to {parent}".Translate(("parent", parent.Name)));
                 ActionManager.SendReply(context, sb.ToString());
@@ -333,10 +335,20 @@ namespace BLTAdoptAHero
                 sb.Append("{=TESTING}Food:{food}({change}) | ".Translate(("food", (int)town.FoodStocks), ("change", (town.FoodChange + BLTUpgradeBehavior.Current.GetFoodFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.FoodChange + BLTUpgradeBehavior.Current.GetFoodFlat(town.Settlement), 2))));
                 sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));
                 sb.Append("{=TESTING}Militia:{mil}({change}) | ".Translate(("mil", (int)town.Militia), ("change", (town.MilitiaChange + BLTUpgradeBehavior.Current.GetMilitiaFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.MilitiaChange + BLTUpgradeBehavior.Current.GetMilitiaFlat(town.Settlement), 2))));
-                sb.Append("{=TESTING}Garrison:{gar} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount)));
-                var villList = town.Settlement.BoundVillages.Select(v => v.Name.ToString()).ToList();
-                var villNames = string.Join(", ", villList);
-                sb.Append("{=TESTING}Villages:{villNames}".Translate(("villNames", villNames)));
+                var garmodel = Campaign.Current.Models.PartySizeLimitModel;
+                sb.Append("{=TESTING}Garrison:{gar}/{garcap} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("garcap", (int)garmodel.CalculateGarrisonPartySizeLimit(town.Settlement, false).ResultNumber))); // + BLTUpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(town.Settlement)
+                var villList = town.Settlement.BoundVillages.Select(v => v).ToList();
+                string villNames = "";
+                foreach (Village v in villList)
+                {
+                    string constructor = "{vil} ({hearth} +{hearthchange}), ".Translate(
+                        ("vil",v.Name),
+                        ("hearth",v.Hearth),
+                        ("hearthchange", (int)(v.HearthChange + BLTUpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement))));
+                    villNames.Add(constructor);
+                }
+                villNames.TrimEnd(' ', ',');
+                sb.Append("{=TESTING}Villages + Hearth: {villNames}".Translate(("villNames", villNames)));
 
                 ActionManager.SendReply(context, sb.ToString());
             }

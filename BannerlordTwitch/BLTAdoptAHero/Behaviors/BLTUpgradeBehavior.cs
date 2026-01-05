@@ -371,6 +371,13 @@ namespace BLTAdoptAHero
                 c => (int)c.TaxIncomeFlat,
                 k => (int)k.TaxIncomeFlat);
 
+        // Hearth
+        public int GetTotalHearthDaily(Settlement settlement)
+            => SumSettlementIntTyped(settlement,
+                f => (int)f.HearthDaily,
+                c => (int)c.HearthDaily,
+                k => (int)k.HearthDaily);
+
         // Garrison capacity (sum fief+clan+kingdom)
         public int GetTotalGarrisonCapacityBonus(Settlement settlement)
             => SumSettlementIntTyped(settlement,
@@ -395,16 +402,16 @@ namespace BLTAdoptAHero
         }
 
         // Party speed
-        public int GetClanPartySpeedBonus(Clan clan)
-            => SumClanInt(clan, c => c.PartySpeedBonus);
+        public float GetClanPartySpeedBonus(Clan clan)
+            => SumClanFloat(clan, c => c.PartySpeedBonus);
 
-        public int GetKingdomPartySpeedBonus(Kingdom kingdom)
-            => SumKingdomInt(kingdom, k => k.PartySpeedBonus);
+        public float GetKingdomPartySpeedBonus(Kingdom kingdom)
+            => SumKingdomFloat(kingdom, k => k.PartySpeedBonus);
 
-        public int GetTotalPartySpeedBonus(Hero hero)
+        public float GetTotalPartySpeedBonus(Hero hero)
         {
             if (hero?.Clan == null) return 0;
-            int bonus = 0;
+            float bonus = 0f;
             bonus += GetClanPartySpeedBonus(hero.Clan);
             if (hero.Clan.Kingdom != null) bonus += GetKingdomPartySpeedBonus(hero.Clan.Kingdom);
             return bonus;
