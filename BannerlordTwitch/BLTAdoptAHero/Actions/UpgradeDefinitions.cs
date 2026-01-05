@@ -325,6 +325,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(2), UsedImplicitly]
         public int PartySizeBonus { get; set; } = 0;
 
+        [LocDisplayName("{=BLT_PartySize}Party Movement Speed Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription("{=BLT_PartySizeDesc}Additional Flat Movement Speed for all clan parties"),
+         PropertyOrder(2), UsedImplicitly]
+        public float PartySpeedBonus { get; set; } = 0f;
+
         // Settlement effects (applied to all clan settlements)
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
@@ -411,6 +417,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
 
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day";
             if (PartySizeBonus != 0) desc += $"\n  Party Size: {(PartySizeBonus > 0 ? "+" : "")}{PartySizeBonus}";
+            if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
 
             desc += "\n\nSettlement Effects (All Clan Settlements):";
             if (LoyaltyDailyFlat != 0) desc += $"\n  Loyalty: {(LoyaltyDailyFlat > 0 ? "+" : "")}{LoyaltyDailyFlat}/day";
@@ -465,6 +472,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          LocDescription("{=BLT_PartySizeDesc}Additional party size limit for all kingdom parties"),
          PropertyOrder(2), UsedImplicitly]
         public int PartySizeBonus { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_PartySize}Party Size Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
+         LocDescription("{=BLT_PartySizeDesc}Additional party size limit for all kingdom parties"),
+         PropertyOrder(2), UsedImplicitly]
+        public float PartySpeedBonus { get; set; } = 0f;
 
         // Settlement effects (applied to all kingdom settlements)
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
@@ -563,6 +576,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             desc += "\n\nClan Effects (All Kingdom Clans):";
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day per clan";
             if (PartySizeBonus != 0) desc += $"\n  Party Size: {(PartySizeBonus > 0 ? "+" : "")}{PartySizeBonus}";
+            if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
 
             desc += "\n\nSettlement Effects (All Kingdom Settlements):";
             if (LoyaltyDailyFlat != 0) desc += $"\n  Loyalty: {(LoyaltyDailyFlat > 0 ? "+" : "")}{LoyaltyDailyFlat}/day";

@@ -27,6 +27,37 @@ namespace BLTAdoptAHero.Models
         }
     }
 
+    // ---------------- PARTY SPEED ----------------
+    
+    public class BLTPartySpeedModel : PartySpeedModel
+    {
+        private readonly PartySpeedModel _previous;
+        private static readonly TextObject Text =
+            new TextObject("{=BLT_UpgradePartySpeed}Upgrade bonuses");
+
+        public BLTPartySpeedModel(PartySpeedModel previous)
+        {
+            _previous = previous;
+        }
+        public override float BaseSpeed { get; }
+
+        public override float MinimumSpeed { get; }
+
+        public override ExplainedNumber CalculateBaseSpeed(MobileParty party, bool includeDescriptions = false, int additionalTroopOnFootCount = 0, int additionalTroopOnHorseCount = 0)
+        {
+            return _previous.CalculateBaseSpeed(party, includeDescriptions, additionalTroopOnFootCount, additionalTroopOnHorseCount);
+        }
+
+        public override ExplainedNumber CalculateFinalSpeed(MobileParty mobileParty, ExplainedNumber finalSpeed)
+        {
+            var result = _previous.CalculateFinalSpeed(mobileParty, finalSpeed);
+
+            result.Add(BLTUpgradeBehavior.Current.GetTotalPartySpeedBonus(mobileParty.LeaderHero), Text);
+
+            return result;
+        }
+    }
+    
     // ---------------- PARTY SIZE ----------------
 
     public class BLTPartySizeLimitModel : PartySizeLimitModel

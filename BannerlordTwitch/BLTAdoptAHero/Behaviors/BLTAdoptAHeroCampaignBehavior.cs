@@ -242,7 +242,7 @@ namespace BLTAdoptAHero
                     MapEvent.BattleTypes.Siege => "siege",
                     MapEvent.BattleTypes.Hideout => "hideout battle",
                     MapEvent.BattleTypes.SallyOut => "sally out",
-                    MapEvent.BattleTypes.SiegeOutside => "outside siege",
+                    MapEvent.BattleTypes.SiegeOutside => "siege relief",
                     _ => "unknown battle"
                 };
                 

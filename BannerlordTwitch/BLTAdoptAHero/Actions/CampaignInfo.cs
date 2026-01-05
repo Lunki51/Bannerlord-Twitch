@@ -234,8 +234,8 @@ namespace BLTAdoptAHero
             var sb = new StringBuilder();
             foreach (var k in Kingdom.All)
             {
-                int p1 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(desiredKingdom, k).Count;
-                int p2 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(k, desiredKingdom).Count;
+                int p1 = Helpers.DiplomacyHelper.GetPrisonersOfWarTakenByFaction(desiredKingdom, k).Count;
+                int p2 = Helpers.DiplomacyHelper.GetPrisonersOfWarTakenByFaction(k, desiredKingdom).Count;
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     var stance = desiredKingdom.GetStanceWith(k);

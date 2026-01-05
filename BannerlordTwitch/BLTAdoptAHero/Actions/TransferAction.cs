@@ -213,6 +213,8 @@ namespace BLTAdoptAHero.Actions
                 targetClan = FindClan(targetSpecifier);
                 var targetBLTClan = FindClan("[BLT Clan]".Add(targetSpecifier, false));
                 var safetargetBLTClan = FindClan("[BLT Clan] ".Add(targetSpecifier, false));
+                var targetVassalClan = FindClan("[Vassal]".Add(targetSpecifier, false));
+                var safetargetVassalClan = FindClan("[Vassal] ".Add(targetSpecifier, false));
 
                 if (targetClan == null)
                 {
@@ -223,6 +225,14 @@ namespace BLTAdoptAHero.Actions
                     else if (safetargetBLTClan != null)
                     {
                         targetClan = safetargetBLTClan;
+                    }
+                    else if (targetVassalClan != null)
+                    {
+                        targetClan = targetVassalClan;
+                    }
+                    else if (safetargetVassalClan != null)
+                    {
+                        targetClan = safetargetVassalClan;
                     }
                 }
 

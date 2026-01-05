@@ -178,6 +178,13 @@ namespace BLTAdoptAHero.Actions
              Range(0f, 2f)]
             public float VassalFiefIncomeShare { get; set; } = 0.25f; // 25% default
 
+            [LocDisplayName("{=TESTING}Vassal Fief Income Share %"),
+             LocCategory("Vassal", "{=TESTING}Vassal"),
+             LocDescription("{=TESTING}Percentage of vassal fief income shared with master (0.0 - 2.0, 0.25 = 25%)"),
+             PropertyOrder(6), UsedImplicitly,
+             Range(0f, 2f)]
+            public bool KingVassalsOnly { get; set; } = false;
+
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
              LocDescription("{=CFBJIpux}Enable stats command"),
@@ -285,11 +292,16 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "Price={price}{icon}, ".Translate(("price", CreateKPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}, ".Translate(("tier", CreateKTierMinimum.ToString())) +
-                                    "Minimum fiefs amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
+                                    "Minimum Fiefs Amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
                 if (VassalEnabled)
                     generator.Value("<strong>Vassal: </strong>" +
-                                    $"Max vassals:{VassalAmount}, " +
-                                    $"Price={VassalPrice.ToString()}{Naming.Gold}");
+                                    $"Only Kings can make Vassals: {KingVassalsOnly}, " +
+                                    $"Max Vassals: {VassalAmount}, " +
+                                    $"Price={VassalPrice.ToString()}{Naming.Gold}" +
+                                    $"Percent of Vassal's Mercenary Income given to Parent: " +
+                                    $"{(int)(VassalMercIncomeShare * 100)}%, " + 
+                                    $"Percent of Vassal's Fief Income given to Parent: " + 
+                                    $"{(int)(VassalFiefIncomeShare * 100)}%");
                 if (ReleaseEnabled)
                     generator.Value("<strong>Release: </strong>" +
                                     $"Price={ReleasePrice.ToString()}{Naming.Gold}");
@@ -367,7 +379,7 @@ namespace BLTAdoptAHero.Actions
                     HandleKCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "vassal":
-                    VassalCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    HandleVassalCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                         break;
                 case "release":
                     HandleReleaseCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
@@ -417,8 +429,26 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
                 return;
             }
+            
             var diplomacyHelper = Campaign.Current.GetCampaignBehavior<BLTDiplomacyHelper>();
-            if (diplomacyHelper.IsPeaceBlocked(adoptedHero.Clan, desiredKingdom))
+            bool hassharedwar = false;
+            if (!desiredKingdom.IsAtWarWith(adoptedHero.Clan))
+            {
+                foreach (Kingdom k in Kingdom.All.ToList())
+                {
+                    if (desiredKingdom.IsAtWarWith(k) && adoptedHero.Clan.IsAtWarWith(k))
+                    {
+                        hassharedwar = true;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                hassharedwar = false;
+            }
+
+            if (diplomacyHelper.IsPeaceBlocked(adoptedHero.Clan, desiredKingdom) && !hassharedwar)
             {
                 onFailure("Rebellion block");
                 return;
@@ -827,7 +857,7 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
 
-        private void VassalCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleVassalCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.VassalEnabled)
             {
@@ -838,11 +868,11 @@ namespace BLTAdoptAHero.Actions
             var splitargs = args.Split(' ');
             var childName = splitargs[0];
             var setname = string.Join(" ", splitargs.Skip(1)).Trim();
-            //if (adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
-            //{
-            //    onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
-            //    return;
-            //}
+            if (settings.KingVassalsOnly && adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
+            {
+                onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
+                return;
+            }
             if (!adoptedHero.IsClanLeader)
             {
                 onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
@@ -853,7 +883,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=ETfJQatX}Usage: (vassal) (hero name) (clan name)".Translate());
                 return;
             }
-            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString() == setname || c.Name.ToString() == $"[Vassal] {setname}" || c.Name.ToString() == $"[BLT Clan] {setname}");
+            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString().ToLower() == setname.ToLower() || c.Name.ToString().ToLower() == $"[Vassal] {setname.ToLower()}" || c.Name.ToString().ToLower() == $"[BLT Clan] {setname.ToLower()}");
             if (existingClan != null)
             {
                 onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", setname)));

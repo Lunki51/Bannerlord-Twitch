@@ -375,6 +375,7 @@
     <Compile Include="Actions\Util\ItemModifierAccess.cs" />
     <Compile Include="Actions\Util\KillStreakDef.cs" />
     <Compile Include="Actions\Util\SkillRangeDef.cs" />
+    <Compile Include="BehaviorCompatibilityStubs.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCampaignBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCommonMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCustomMissionBehavior.cs" />

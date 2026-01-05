@@ -394,6 +394,22 @@ namespace BLTAdoptAHero
             return bonus;
         }
 
+        // Party speed
+        public int GetClanPartySpeedBonus(Clan clan)
+            => SumClanInt(clan, c => c.PartySpeedBonus);
+
+        public int GetKingdomPartySpeedBonus(Kingdom kingdom)
+            => SumKingdomInt(kingdom, k => k.PartySpeedBonus);
+
+        public int GetTotalPartySpeedBonus(Hero hero)
+        {
+            if (hero?.Clan == null) return 0;
+            int bonus = 0;
+            bonus += GetClanPartySpeedBonus(hero.Clan);
+            if (hero.Clan.Kingdom != null) bonus += GetKingdomPartySpeedBonus(hero.Clan.Kingdom);
+            return bonus;
+        }
+
         // Renown
         public float GetClanRenownDaily(Clan clan)
             => SumClanFloat(clan, c => c.RenownDaily);

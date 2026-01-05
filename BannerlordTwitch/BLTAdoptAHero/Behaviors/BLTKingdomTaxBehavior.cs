@@ -4,7 +4,7 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.SaveSystem;
 
-namespace BLTAdoptAHero.Behaviors
+namespace BLTAdoptAHero
 {
     public class BLTKingdomTaxBehavior : CampaignBehaviorBase
     {
