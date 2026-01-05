@@ -453,7 +453,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Rebellion block");
                 return;
             }
-            if (desiredKingdom.Clans.Where(c => !BLTVassalBehavior.Current.IsVassal(c)).Count() >= settings.JoinMaxClans)
+            if (desiredKingdom.Clans.Where(c => !BLTVassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
             {
                 onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
                 return;
@@ -772,7 +772,7 @@ namespace BLTAdoptAHero.Actions
             {
                 mercforPlayer = true;
             }
-            if (desiredKingdom.Clans.Where(c => !BLTVassalBehavior.Current.IsVassal(c)).Count() >= settings.JoinMaxClans)
+            if (desiredKingdom.Clans.Where(c => !BLTVassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
             {
                 onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
                 return;
