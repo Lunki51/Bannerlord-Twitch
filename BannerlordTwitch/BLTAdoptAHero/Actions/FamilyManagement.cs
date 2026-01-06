@@ -343,7 +343,7 @@ namespace BLTAdoptAHero.Actions
                 .OrderByDescending(s => child.GetSkillValue(s))
                 .FirstOrDefault();
 
-            sb.Append($" | TopSkill:{highestSkill.Name}");
+            sb.Append($" | TopSkill:{SkillXP.GetShortSkillName(highestSkill)} {child.GetSkillValue(highestSkill)}");
 
             if (child.Children.Count > 0)
             {
