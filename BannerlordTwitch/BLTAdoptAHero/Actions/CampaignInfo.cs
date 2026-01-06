@@ -37,7 +37,7 @@ namespace BLTAdoptAHero
                 "kingdomlist, culturelist, warlist, "+
                 "kingdom (kingdom), "+
                 "war (kingdom), "+
-                "fief (town/castle), "+
+                "fief (town/castle/village), "+
                 "clan (kingdom/clan)"
                 );
         }
@@ -45,7 +45,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle), clan (kingdom/clan))".Translate());
+                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate());
                 return;
             }
 
@@ -86,7 +86,7 @@ namespace BLTAdoptAHero
                     break;
                 default:
                     ActionManager.SendReply(context,
-                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle))".Translate());
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate());
                     break;
             }
         }

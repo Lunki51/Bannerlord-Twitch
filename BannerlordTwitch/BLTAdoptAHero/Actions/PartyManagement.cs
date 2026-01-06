@@ -488,7 +488,7 @@ namespace BLTAdoptAHero.Actions
                         Army.ArmyTypes armyType;
                         if (splitArgs.Length < 2)
                         {
-                            onFailure("Specify an army type: defend/siege/raid/patrol");
+                            onFailure("Specify an army type: defend/siege/patrol");
                             return;
                         }
                         switch (desiredName)
@@ -505,6 +505,16 @@ namespace BLTAdoptAHero.Actions
                             case "patrol":
                                 armyType = Army.ArmyTypes.Patrolling;
                                 break;
+                            //case "dismiss:":
+                            //    {
+                            //        
+                            //        if (army != null && army.LeaderParty == party)
+                            //        {
+                            //            army.
+                            //        }
+                            //        break;
+                            //    }
+                                
                             default:
                                 onFailure($"Invalid army type: {desiredName}");
                                 return;
@@ -520,22 +530,25 @@ namespace BLTAdoptAHero.Actions
                             onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
+                        adoptedHero.Clan.Influence += 200f;
                         var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
-                        Settlement pos = SettlementHelper.FindNearestSettlementToMobileParty(party, nav);
+                        Settlement pos = SettlementHelper.FindNearestSettlementToMobileParty(party, nav) ?? adoptedHero.HomeSettlement;
                         var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
                         var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
-                            .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != party && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
-                            .ToList();
-
-                        adoptedHero.Clan.Influence += 200f;
-                        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
+                            .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != party && p.Army == null && p.AttachedTo == null && p.LeaderHero != null && p.MapEvent == null && !p.IsDisbanding)
+                            .ToMBList();
+                        var armyModel = Campaign.Current.Models.ArmyManagementCalculationModel;
+                        var partyList = armyModel.GetMobilePartiesToCallToArmy(party);
+                        var mergedParties = sameClanParties
+                            .Concat(partyList)
+                            .Where(p => p != null)
+                            .Distinct()
+                            .ToMBList();
+                        
+                        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType, mergedParties);
                         Army newArmy = party.Army;
 
                         //int addedPartiesCount = 0;
-                        foreach (var parties in sameClanParties)
-                        {
-                            parties.Army = newArmy;
-                        }
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
 
