@@ -92,7 +92,7 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Create", "{=9lAIycwE}Create"),
              LocDescription("{=KvYA5eAy}Cost of creating a clan"),
              PropertyOrder(2), UsedImplicitly]
-            public int CreatePrice { get; set; } = 2500000;
+            public int CreatePrice { get; set; } = 1000000;
 
             [LocDisplayName("{=d5WMYSvO}Starting renown"),
              LocCategory("Create", "{=9lAIycwE}Create"),

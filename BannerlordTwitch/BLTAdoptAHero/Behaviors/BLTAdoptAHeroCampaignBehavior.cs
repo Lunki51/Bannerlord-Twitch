@@ -588,7 +588,7 @@ namespace BLTAdoptAHero
             }
 
             string finalName = $"{baseName} {ToRoman(highest + 1)} {desc}";
-            CampaignHelpers.SetHeroName(hero, new TextObject(finalName));
+            CampaignHelpers.SetHeroName(hero, new TextObject(finalName), new TextObject(baseName));
             CampaignHelpers.RemoveEncyclopediaBookmarkFromItem(hero);
             BLTTournamentQueueBehavior.Current.RemoveFromQueue(hero);
 
