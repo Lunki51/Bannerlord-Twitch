@@ -52,7 +52,7 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.CalculateFinalSpeed(mobileParty, finalSpeed);
 
-            result.Add(BLTUpgradeBehavior.Current.GetTotalPartySpeedBonus(mobileParty.LeaderHero), Text);
+            result.Add(UpgradeBehavior.Current.GetTotalPartySpeedBonus(mobileParty.LeaderHero), Text);
 
             return result;
         }
@@ -79,9 +79,9 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.GetPartyMemberSizeLimit(party, includeDescriptions);
 
-            if (party?.LeaderHero != null && BLTUpgradeBehavior.Current != null)
+            if (party?.LeaderHero != null && UpgradeBehavior.Current != null)
             {
-                int bonus = BLTUpgradeBehavior.Current.GetTotalPartySizeBonus(party.LeaderHero);
+                int bonus = UpgradeBehavior.Current.GetTotalPartySizeBonus(party.LeaderHero);
                 if (bonus != 0)
                     result.Add(bonus, Text);
             }
@@ -95,9 +95,9 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.CalculateGarrisonPartySizeLimit(settlement, includeDescriptions);
 
-            if (settlement != null && BLTUpgradeBehavior.Current != null)
+            if (settlement != null && UpgradeBehavior.Current != null)
             {
-                int bonus = BLTUpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
+                int bonus = UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
                 if (bonus != 0)
                     result.Add(bonus, Text);
             }

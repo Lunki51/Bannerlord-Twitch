@@ -18,9 +18,9 @@ namespace BLTAdoptAHero
     /// Ensures vassals follow their masters through kingdom changes, wars, and rebellions.
     /// Persisted: _vassalToMaster (vassal clan stringId -> master clan stringId)
     /// </summary>
-    public class BLTVassalBehavior : CampaignBehaviorBase
+    public class VassalBehavior : CampaignBehaviorBase
     {
-        public static BLTVassalBehavior Current { get; private set; }
+        public static VassalBehavior Current { get; private set; }
 
         public static float MercenaryIncomeSharePercent { get; set; } = 0.25f; // 25% default
 
@@ -29,7 +29,7 @@ namespace BLTAdoptAHero
         // Persisted: maps vassal clan StringId to master clan StringId
         private Dictionary<string, string> _vassalToMaster = new();
 
-        public BLTVassalBehavior()
+        public VassalBehavior()
         {
             Current = this;
             Initialize();

@@ -76,9 +76,9 @@ namespace BLTAdoptAHero.Actions
             var sb = new StringBuilder();
             int totalIncome = 0;
             int vassalincome;
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                vassalincome = BLTVassalBehavior.Current.CalculateVassalFiefIncome(masterclan);
+                vassalincome = VassalBehavior.Current.CalculateVassalFiefIncome(masterclan);
             }
             else
             {
@@ -100,10 +100,10 @@ namespace BLTAdoptAHero.Actions
             // Check if this is the ruling clan
             bool isRulingClan = masterclan.Kingdom != null && masterclan.Kingdom.RulingClan == masterclan;
 
-            if (isRulingClan && BLTKingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
+            if (isRulingClan && KingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
             {
                 // Calculate total tax revenue from all kingdom clans
-                float taxRate = BLTKingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
+                float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
                 if (taxRate > 0f)
                 {
                     int totalTaxRevenue = 0;
@@ -124,9 +124,9 @@ namespace BLTAdoptAHero.Actions
                         }
 
                         // Add vassal fief income if applicable
-                        if (BLTVassalBehavior.Current != null)
+                        if (VassalBehavior.Current != null)
                         {
-                            fiefIncome += BLTVassalBehavior.Current.CalculateVassalFiefIncome(clan);
+                            fiefIncome += VassalBehavior.Current.CalculateVassalFiefIncome(clan);
                         }
 
                         if (fiefIncome > 0)
@@ -147,12 +147,12 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 // Apply tax if in a kingdom and not ruling clan
-                if (BLTKingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
+                if (KingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
                 {
-                    float taxRate = BLTKingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
+                    float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
                     if (taxRate > 0f)
                     {
-                        var taxResult = BLTKingdomTaxBehavior.Current.CalculateTax(masterclan, totalBeforeTax);
+                        var taxResult = KingdomTaxBehavior.Current.CalculateTax(masterclan, totalBeforeTax);
                         int taxAmount = taxResult.taxAmount;
                         totalBeforeTax = taxResult.incomeAfterTax;
                         result += $" | Tax ({(taxRate * 100f):F1}%): -{taxAmount}";
@@ -169,9 +169,9 @@ namespace BLTAdoptAHero.Actions
         {
             int income = CalculateMercenaryIncome(clan);
             int vassalincome;
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                vassalincome = BLTVassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
+                vassalincome = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
             }
             else
             {

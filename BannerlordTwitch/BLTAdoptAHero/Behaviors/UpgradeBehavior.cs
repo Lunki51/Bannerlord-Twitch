@@ -16,9 +16,9 @@ namespace BLTAdoptAHero
     /// - Exposes Get/Has/Add/Remove helpers used by UI/actions
     /// - Exposes typed aggregated getters that consult the injected Settings instance
     /// </summary>
-    public class BLTUpgradeBehavior : CampaignBehaviorBase
+    public class UpgradeBehavior : CampaignBehaviorBase
     {
-        public static BLTUpgradeBehavior Current { get; private set; }
+        public static UpgradeBehavior Current { get; private set; }
 
         // persisted storage (CSV strings per id) - compatible with older saves
         private Dictionary<string, string> _fiefUpgrades = new();
@@ -31,7 +31,7 @@ namespace BLTAdoptAHero
         // REPLACE WITH:
         private GlobalCommonConfig ConfigSafe => GlobalCommonConfig.Get();
 
-        public BLTUpgradeBehavior()
+        public UpgradeBehavior()
         {
             Current = this;
         }
@@ -372,11 +372,11 @@ namespace BLTAdoptAHero
                 k => (int)k.TaxIncomeFlat);
 
         // Hearth
-        public int GetTotalHearthDaily(Settlement settlement)
-            => SumSettlementIntTyped(settlement,
-                f => (int)f.HearthDaily,
-                c => (int)c.HearthDaily,
-                k => (int)k.HearthDaily);
+        public float GetTotalHearthDaily(Settlement settlement)
+            => SumSettlementFloatTyped(settlement,
+                f => (float)f.HearthDaily,
+                c => (float)c.HearthDaily,
+                k => (float)k.HearthDaily);
 
         // Garrison capacity (sum fief+clan+kingdom)
         public int GetTotalGarrisonCapacityBonus(Settlement settlement)

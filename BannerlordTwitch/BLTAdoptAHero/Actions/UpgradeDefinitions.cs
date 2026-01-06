@@ -156,7 +156,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
         private bool _canBeRemoved = false;
         [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
          LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
-         PropertyOrder(8), UsedImplicitly, DefaultValue(false)]
+         PropertyOrder(8), UsedImplicitly]
         public bool CanBeRemoved
         {
             get => _canBeRemoved;
@@ -284,8 +284,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_Hearth}Hearth Daily"),
          LocCategory("Static Bonuses", "{=BLT_StaticBonuses}Static Bonuses"),
          LocDescription("{=BLT_HearthDesc}Flat daily hearth bonus to this fief's villages"),
-         PropertyOrder(4), UsedImplicitly, DefaultValue(0)]
-        public int HearthDaily { get; set; } = 0;
+         PropertyOrder(4), UsedImplicitly]
+        public float HearthDaily { get; set; } = 0f;
 
         public override string GetFullDescription()
         {
@@ -420,8 +420,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_Hearth}Hearth Daily"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
          LocDescription("{=BLT_HearthDesc}Flat daily hearth bonus to all clan villages"),
-         PropertyOrder(14), UsedImplicitly, DefaultValue(0)]
-        public int HearthDaily { get; set; } = 0;
+         PropertyOrder(14), UsedImplicitly]
+        public float HearthDaily { get; set; } = 0f;
 
         public override string GetFullDescription()
         {
@@ -575,8 +575,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_Hearth}Hearth Daily"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Kingdom Settlements)"),
          LocDescription("{=BLT_HearthDesc}Flat daily hearth bonus to all kingdom villages"),
-         PropertyOrder(13), UsedImplicitly, DefaultValue(0)]
-        public int HearthDaily { get; set; } = 0;
+         PropertyOrder(13), UsedImplicitly]
+        public float HearthDaily { get; set; } = 0f;
 
         public override string GetCostString()
         {

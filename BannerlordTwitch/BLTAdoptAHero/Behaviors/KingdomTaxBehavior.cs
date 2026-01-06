@@ -6,15 +6,15 @@ using TaleWorlds.SaveSystem;
 
 namespace BLTAdoptAHero
 {
-    public class BLTKingdomTaxBehavior : CampaignBehaviorBase
+    public class KingdomTaxBehavior : CampaignBehaviorBase
     {
         // Store tax rates per kingdom (kingdom string ID -> tax rate percentage)
         [SaveableField(1)]
         private Dictionary<string, float> kingdomTaxRates = new Dictionary<string, float>();
 
-        public static BLTKingdomTaxBehavior Current { get; private set; }
+        public static KingdomTaxBehavior Current { get; private set; }
 
-        public BLTKingdomTaxBehavior()
+        public KingdomTaxBehavior()
         {
             Current = this;
         }

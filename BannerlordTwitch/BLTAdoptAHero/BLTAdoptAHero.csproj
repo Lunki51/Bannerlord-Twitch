@@ -375,7 +375,6 @@
     <Compile Include="Actions\Util\ItemModifierAccess.cs" />
     <Compile Include="Actions\Util\KillStreakDef.cs" />
     <Compile Include="Actions\Util\SkillRangeDef.cs" />
-    <Compile Include="BehaviorCompatibilityStubs.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCampaignBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCommonMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCustomMissionBehavior.cs" />
@@ -392,13 +391,13 @@
     <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\BLTDiplomacyHelper.cs" />
-    <Compile Include="Behaviors\BLTGoldIncomeBehavior.cs" />
+    <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
-    <Compile Include="Behaviors\BLTKingdomTaxBehavior.cs" />
+    <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
-    <Compile Include="Behaviors\BLTReinforcementBehavior.cs" />
-    <Compile Include="Behaviors\BLTUpgradeBehavior.cs" />
-    <Compile Include="Behaviors\BLTVassalBehavior.cs" />
+    <Compile Include="Behaviors\ReinforcementBehavior.cs" />
+    <Compile Include="Behaviors\UpgradeBehavior.cs" />
+    <Compile Include="Behaviors\VassalBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />

@@ -320,10 +320,10 @@ namespace BLTAdoptAHero.Actions
         {
             if (config is not Settings settings) return;
             // Set vassal mercenary income share percentage
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                BLTVassalBehavior.MercenaryIncomeSharePercent = settings.VassalMercIncomeShare;
-                BLTVassalBehavior.FiefIncomeSharePercent = settings.VassalFiefIncomeShare;
+                VassalBehavior.MercenaryIncomeSharePercent = settings.VassalMercIncomeShare;
+                VassalBehavior.FiefIncomeSharePercent = settings.VassalFiefIncomeShare;
             }
             if (adoptedHero == null)
             {
@@ -453,7 +453,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Rebellion block");
                 return;
             }
-            if (desiredKingdom.Clans.Where(c => !BLTVassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
+            if (desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
             {
                 onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
                 return;
@@ -715,9 +715,9 @@ namespace BLTAdoptAHero.Actions
             onSuccess("{=sc77IxCW}Your clan has left {oldBoss}".Translate(("oldBoss", oldBoss)));
             adoptedHero.Clan.ClanLeaveKingdom();
             AdoptedHeroFlags._allowKingdomMove = false;
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                BLTVassalBehavior.Current.OnClanChangedKingdom(adoptedHero.Clan, (Kingdom)oldBoss, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+                VassalBehavior.Current.OnClanChangedKingdom(adoptedHero.Clan, (Kingdom)oldBoss, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
             }
             return;
         }
@@ -772,11 +772,11 @@ namespace BLTAdoptAHero.Actions
             {
                 mercforPlayer = true;
             }
-            if (desiredKingdom.Clans.Where(c => !BLTVassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
-            {
-                onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
-                return;
-            }
+            //if (desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
+            //{
+            //    onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
+            //    return;
+            //}
             if (!mercforPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.MercPrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.MercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
@@ -889,7 +889,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", setname)));
                 return;
             }
-            if (BLTVassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= settings.VassalAmount)
+            if (VassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= settings.VassalAmount)
             {
                 onFailure($"Max vassals{settings.VassalAmount}");
                 return;
@@ -979,7 +979,7 @@ namespace BLTAdoptAHero.Actions
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
 
             // Register the vassal with the VassalBehavior
-            BLTVassalBehavior.Current?.RegisterVassal(newClan, adoptedHero.Clan);
+            VassalBehavior.Current?.RegisterVassal(newClan, adoptedHero.Clan);
 
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
             string response = $"Vassal created by {adoptedHero.FirstName.ToString()}: {newClan.Name.ToString()}";
@@ -1056,15 +1056,15 @@ namespace BLTAdoptAHero.Actions
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ReleasePrice, true);
 
             // Release vassals first
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                var vassals = BLTVassalBehavior.Current.GetVassalClans(targetClan).ToList();
+                var vassals = VassalBehavior.Current.GetVassalClans(targetClan).ToList();
                 foreach (var vassal in vassals)
                 {
                     AdoptedHeroFlags._allowKingdomMove = true;
                     vassal.ClanLeaveKingdom();
                     AdoptedHeroFlags._allowKingdomMove = false;
-                    BLTVassalBehavior.Current.OnClanChangedKingdom(vassal, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+                    VassalBehavior.Current.OnClanChangedKingdom(vassal, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
                 }
             }
 
@@ -1077,9 +1077,9 @@ namespace BLTAdoptAHero.Actions
             targetClan.ClanLeaveKingdom();
             AdoptedHeroFlags._allowKingdomMove = false;
 
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                BLTVassalBehavior.Current.OnClanChangedKingdom(targetClan, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+                VassalBehavior.Current.OnClanChangedKingdom(targetClan, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
             }
 
             onSuccess($"Released {targetClan.Name} from {adoptedHero.Clan.Kingdom.Name} with all their lands");
@@ -1157,9 +1157,9 @@ namespace BLTAdoptAHero.Actions
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ExpelPrice, true);
 
             // Transfer all fiefs from vassals first
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                var vassals = BLTVassalBehavior.Current.GetVassalClans(targetClan).ToList();
+                var vassals = VassalBehavior.Current.GetVassalClans(targetClan).ToList();
                 foreach (var vassal in vassals)
                 {
                     AdoptedHeroFlags._allowKingdomMove = true;
@@ -1169,7 +1169,7 @@ namespace BLTAdoptAHero.Actions
                     }
                     vassal.ClanLeaveKingdom();
                     AdoptedHeroFlags._allowKingdomMove = false;
-                    BLTVassalBehavior.Current.OnClanChangedKingdom(vassal, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+                    VassalBehavior.Current.OnClanChangedKingdom(vassal, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
                 }
             }
 
@@ -1188,9 +1188,9 @@ namespace BLTAdoptAHero.Actions
             targetClan.ClanLeaveKingdom();
             AdoptedHeroFlags._allowKingdomMove = false;
 
-            if (BLTVassalBehavior.Current != null)
+            if (VassalBehavior.Current != null)
             {
-                BLTVassalBehavior.Current.OnClanChangedKingdom(targetClan, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
+                VassalBehavior.Current.OnClanChangedKingdom(targetClan, adoptedHero.Clan.Kingdom, null, ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom, false);
             }
 
             onSuccess($"Expelled {targetClan.Name} from {adoptedHero.Clan.Kingdom.Name} and seized all their lands");
@@ -1210,14 +1210,14 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (BLTKingdomTaxBehavior.Current == null)
+            if (KingdomTaxBehavior.Current == null)
             {
                 onFailure("Tax system is not initialized");
                 return;
             }
 
             bool isKing = adoptedHero.Clan.Kingdom.Leader == adoptedHero;
-            float currentRate = BLTKingdomTaxBehavior.Current.GetKingdomTaxRate(adoptedHero.Clan.Kingdom);
+            float currentRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(adoptedHero.Clan.Kingdom);
 
             // If not king, just show the tax rate
             if (!isKing)
@@ -1250,7 +1250,7 @@ namespace BLTAdoptAHero.Actions
 
             // Set the new tax rate (convert percentage to decimal)
             float taxRateDecimal = newRate / 100f;
-            BLTKingdomTaxBehavior.Current.SetKingdomTaxRate(adoptedHero.Clan.Kingdom, taxRateDecimal);
+            KingdomTaxBehavior.Current.SetKingdomTaxRate(adoptedHero.Clan.Kingdom, taxRateDecimal);
 
             onSuccess($"Set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%");
             Log.ShowInformation($"{adoptedHero.Name} has set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%!", adoptedHero.CharacterObject);
