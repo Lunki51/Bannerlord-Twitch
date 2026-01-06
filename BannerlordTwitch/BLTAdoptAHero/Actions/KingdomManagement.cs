@@ -894,7 +894,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure($"Max vassals{settings.VassalAmount}");
                 return;
             }
-            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.CreateKPrice)
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.VassalPrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.VassalPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                 return;
