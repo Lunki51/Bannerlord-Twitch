@@ -35,7 +35,7 @@ namespace BLTAdoptAHero
                 "kingdomlist, culturelist, warlist, "+
                 "kingdom (kingdom), "+
                 "war (kingdom), "+
-                "fief (town/castle/village), "+
+                "fief (town/castle), "+
                 "clan (kingdom/clan)"
                 );
         }
@@ -43,7 +43,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate());
+                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle), clan (kingdom/clan))".Translate());
                 return;
             }
 
@@ -84,7 +84,7 @@ namespace BLTAdoptAHero
                     break;
                 default:
                     ActionManager.SendReply(context,
-                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village))".Translate());
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle))".Translate());
                     break;
             }
         }
@@ -367,7 +367,14 @@ namespace BLTAdoptAHero
                 clanSb.Append("{=Ki8jvwkw}Clan Name: {name} | ".Translate(("name", desiredClan.Name.ToString())));
                 clanSb.Append("{=sZcYhSOL}Leader: {leader} | ".Translate(("leader", desiredClan.Leader.Name.ToString())));
                 if (desiredClan.Kingdom != null)
+                {
                     clanSb.Append("{=ch83d8zT}Kingdom: {kingdom} | ".Translate(("kingdom", desiredClan.Kingdom.Name.ToString())));
+                    if (desiredClan.IsUnderMercenaryService)
+                    {
+                        string mercGold = (desiredClan.MercenaryAwardMultiplier * Math.Round(desiredClan.Influence / 5f)).ToString() + "/" + desiredClan.MercenaryAwardMultiplier.ToString();
+                        clanSb.Append("{=PbxexPi9}Mercenary💰: {mercenary} | ".Translate(("mercenary", mercGold)));
+                    }
+                }                   
                 clanSb.Append("{=Sg11nEUe}Tier: {tier}({renown}) | ".Translate(("tier", desiredClan.Tier.ToString()), ("renown", Math.Round(desiredClan.Renown).ToString())));
                 clanSb.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(desiredClan.CurrentTotalStrength).ToString())));   
                 int income = Campaign.Current.Models.ClanFinanceModel.CalculateClanGoldChange(desiredClan).RoundedResultNumber;

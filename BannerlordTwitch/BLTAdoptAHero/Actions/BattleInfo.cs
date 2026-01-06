@@ -43,10 +43,32 @@ namespace BLTAdoptAHero
             var agent = adoptedHero.GetAgent();
             var state = BLTAdoptAHeroCommonMissionBehavior.Current.GetMissionState(adoptedHero);
             var state2 = BLTSummonBehavior.Current.GetHeroSummonState(adoptedHero);
-
-            if (agent == null)
+            int cd = 0;
+            if (state2 != null)
+                cd = (int)state2.CooldownRemaining;
+            if (!BLTSummonBehavior.Current.HeroDeathSpecifics.TryGetValue(adoptedHero, out var diedInfo))
             {
-                onFailure($"Hero is not currently in battle!({state2.CooldownRemaining}s)");
+                diedInfo = (null, default); // fallback if no record exists
+            }
+            if (agent == null && !MissionHelpers.InTournament())
+            {
+                string battlestring = $"Hero is not currently in battle! ({cd}s)";
+
+                if (diedInfo.killer != null)
+                {
+                    var weapon = diedInfo.blow.OverrideKillInfo.ToString() ?? "unknown";
+
+
+                    battlestring +=
+                        $" | Killed by {diedInfo.killer.Name} with {weapon}({diedInfo.blow.InflictedDamage})";
+                }
+
+                onFailure(battlestring);
+                return;
+            }
+            else if (agent == null && MissionHelpers.InTournament())
+            {
+                onFailure($"Hero is not currently in battle!");
                 return;
             }
 
