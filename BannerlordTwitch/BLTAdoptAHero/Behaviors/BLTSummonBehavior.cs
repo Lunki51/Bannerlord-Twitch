@@ -64,6 +64,7 @@ namespace BLTAdoptAHero
             => heroSummonStates.FirstOrDefault(h => h.Retinue.Any(r => r.Agent == retinueAgent));
         public HeroSummonState GetHeroSummonStateForRetinue2(Agent retinue2Agent)
             => heroSummonStates.FirstOrDefault(h => h.Retinue2.Any(r => r.Agent == retinue2Agent));
+        public readonly Dictionary<Hero, (Agent killer, KillingBlow blow)> HeroDeathSpecifics = new();
 
         /// <summary>
         /// 
@@ -126,6 +127,8 @@ namespace BLTAdoptAHero
                 heroSummonState.SummonTime = CampaignHelpers.GetTotalMissionTime();
                 // If hero isn't registered yet then this must be a hero that is part of one of the involved parties
                 // already
+                HeroDeathSpecifics.Remove(adoptedHero);
+
             });
         }
 
@@ -137,6 +140,11 @@ namespace BLTAdoptAHero
                 if (heroSummonState != null)
                 {
                     heroSummonState.State = agentState;
+                }
+                var adoptedHero = affectedAgent.GetAdoptedHero();
+                if (adoptedHero != null && (affectedAgent.State == AgentState.Unconscious || affectedAgent.State == AgentState.Killed))
+                {
+                    HeroDeathSpecifics[adoptedHero] = (affectorAgent, blow);
                 }
 
                 // Set the final retinue states

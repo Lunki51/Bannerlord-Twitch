@@ -543,20 +543,30 @@ Commands:
     CreateKFiefMinimum: 2
     CreateKPrice: 20000000
     CreateKTierMinimum: 3
+    ExpelEnabled: true
+    ExpelPrice: 100000
     JoinAllowPlayer: true
     JoinEnabled: true
     JoinMaxClans: 30
     JoinPrice: 150000
     LeaveEnabled: true
+    MaxTaxRate: 50
     MercenaryEnabled: true
     MercPrice: 50000
+    MinTaxRate: 0
     PlayerJoinPrice: 150000
     PlayerMercPrice: 50000
     RebelClanTierMinimum: 2
     RebelEnabled: true
     RebelPrice: 500000
+    ReleaseEnabled: true
+    ReleasePrice: 50000
     StatsEnabled: true
+    TaxEnabled: true
+    VassalAmount: 3
     VassalEnabled: true
+    VassalFiefIncomeShare: 0.25
+    VassalMercIncomeShare: 0.25
     VassalPrice: 20000000
   Help: ''
   HideHelp: true
@@ -794,34 +804,6 @@ Commands:
   Name: tournament
   RespondInOverlay: true
   RespondInTwitch: false
-- Documentation: Show your heroes family information
-  Enabled: true
-  Handler: HeroInfoCommand
-  HandlerConfig:
-    MinSkillToShow: 100
-    ShowAchievements: false
-    ShowAttributes: false
-    ShowCivilianInventory: false
-    ShowEquipment: false
-    ShowFamily: true
-    ShowGeneral: false
-    ShowGold: false
-    ShowInventory: false
-    ShowPowers: false
-    ShowRetinue: false
-    ShowRetinue2: false
-    ShowRetinue2List: false
-    ShowRetinueList: false
-    ShowStorage: false
-    ShowTopSkills: false
-    ShowTrackedStats: false
-  Help: ''
-  HideHelp: true
-  ID: d94add4a-28a7-4cf7-bd26-8f0f9c3ac6b3
-  ModeratorOnly: false
-  Name: family
-  RespondInOverlay: true
-  RespondInTwitch: true
 - Documentation: ''
   Enabled: true
   Handler: ItemStats
@@ -865,6 +847,7 @@ Commands:
   HandlerConfig:
     Age: 1
     Price: 10000
+    Spouse: false
   Help: ''
   HideHelp: false
   ID: 1a8ec0e1-f46b-4c09-9102-09577b238047
@@ -910,8 +893,6 @@ Commands:
   HandlerConfig:
     AllyEnabled: true
     AllyPrice: 100000
-    ArmyEnabled: true
-    ArmyPrice: 150000
     PeaceEnabled: true
     PeacePrice: 100000
     PolicyEnabled: true
@@ -998,7 +979,9 @@ Commands:
 - Documentation: ''
   Enabled: true
   Handler: PartyManagement
-  HandlerConfig: 
+  HandlerConfig:
+    ArmyEnabled: true
+    ArmyPrice: 50000
   Help: ''
   HideHelp: false
   ID: 39691dbb-a4f0-4f39-9ec7-966e2a0b22f9
@@ -1024,237 +1007,7 @@ Commands:
     AllowAnyClanMemberForClanUpgrades: false
     AllowKingdomLeadersForFiefs: false
     AllowListCommand: true
-    ClanUpgrades:
-    - Description: Increase your clan's fame across the land
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 30000
-      ID: clan_renown_1
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Clan Prestige
-      PartySizeBonus: 0
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RenownDaily: 1
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Allow larger party sizes for all clan members
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 40000
-      ID: clan_party_1
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Recruitment Drive
-      PartySizeBonus: 20
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RenownDaily: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Improve loyalty and prosperity in all clan settlements
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 50000
-      ID: clan_settlements_1
-      LoyaltyDailyFlat: 0.3
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Clan Development
-      PartySizeBonus: 0
-      ProsperityDailyFlat: 0.5
-      ProsperityDailyPercent: 0
-      RenownDaily: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
     Enabled: true
-    FiefUpgrades:
-    - Description: Better administration increases loyalty growth
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 15000
-      ID: fief_loyalty_1
-      LoyaltyDailyFlat: 0.5
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Improved Administration
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Attract more merchants to boost prosperity
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 20000
-      ID: fief_prosperity_1
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Trade Hub
-      ProsperityDailyFlat: 1
-      ProsperityDailyPercent: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Additional guard posts improve security
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 12000
-      ID: fief_security_1
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Guard Posts
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0.5
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Train civilians as militia
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 10000
-      ID: fief_militia_1
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 2
-      MilitiaDailyPercent: 0
-      Name: Militia Training
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Larger granaries store more food
-      FoodDailyFlat: 5
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 8000
-      ID: fief_food_1
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Granary Expansion
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    KingdomUpgrades:
-    - Description: Strengthen the ruler's influence
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 100000
-      ID: kingdom_influence_1
-      InfluenceCost: 500
-      InfluenceDaily: 2
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Royal Authority
-      PartySizeBonus: 0
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RenownDaily: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Increase party sizes and militia across the kingdom
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 150000
-      ID: kingdom_military_1
-      InfluenceCost: 1000
-      InfluenceDaily: 0
-      LoyaltyDailyFlat: 0
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 1
-      MilitiaDailyPercent: 0
-      Name: Kingdom Military Reform
-      PartySizeBonus: 15
-      ProsperityDailyFlat: 0
-      ProsperityDailyPercent: 0
-      RenownDaily: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
-    - Description: Boost prosperity and loyalty in all kingdom settlements
-      FoodDailyFlat: 0
-      FoodDailyPercent: 0
-      GarrisonCapacityBonus: 0
-      GoldCost: 200000
-      ID: kingdom_prosperity_1
-      InfluenceCost: 1500
-      InfluenceDaily: 0
-      LoyaltyDailyFlat: 0.2
-      LoyaltyDailyPercent: 0
-      MilitiaDailyFlat: 0
-      MilitiaDailyPercent: 0
-      Name: Kingdom Prosperity Initiative
-      PartySizeBonus: 0
-      ProsperityDailyFlat: 0.5
-      ProsperityDailyPercent: 0
-      RenownDaily: 0
-      RequiredUpgradeID: ''
-      SecurityDailyFlat: 0
-      SecurityDailyPercent: 0
-      TaxIncomeFlat: 0
-      TaxIncomePercent: 0
-      TierLevel: 0
   Help: ''
   HideHelp: false
   ID: 70142873-1f14-4521-9be0-7d563d574a25
@@ -1262,6 +1015,17 @@ Commands:
   Name: upgrade
   RespondInOverlay: true
   RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: FamilyManagement
+  HandlerConfig: 
+  Help: ''
+  HideHelp: false
+  ID: 9557f67a-aef7-4098-949e-be84b9570df8
+  ModeratorOnly: false
+  Name: family
+  RespondInOverlay: false
+  RespondInTwitch: true
 DisableAutomaticFulfillment: false
 GlobalConfigs:
 - Config:
@@ -2320,6 +2084,76 @@ GlobalConfigs:
     ApplyDeathChanceToAllHeroes: true
     BLTChildAgeMult: 5
     CastleBaseGold: 1500
+    ClanUpgrades:
+    - CanBeRemoved: false
+      Description: Increase your clan's fame across the land
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 30000
+      ID: clan_renown_1
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Clan Prestige
+      PartySizeBonus: 0
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RenownDaily: 1
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Allow larger party sizes for all clan members
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 40000
+      ID: clan_party_1
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Recruitment Drive
+      PartySizeBonus: 20
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RenownDaily: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Improve loyalty and prosperity in all clan settlements
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 50000
+      ID: clan_settlements_1
+      LoyaltyDailyFlat: 0.3
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Clan Development
+      PartySizeBonus: 0
+      ProsperityDailyFlat: 0.5
+      ProsperityDailyPercent: 0
+      RenownDaily: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
     CustomCompanionLimit: 7
     CustomItemLimit: 8
     CustomRewardModifiers:
@@ -2367,6 +2201,112 @@ GlobalConfigs:
     DifficultyScalingOnEnemySide: true
     DifficultyScalingOnPlayersSide: true
     FiefIncomeEnabled: true
+    FiefUpgrades:
+    - CanBeRemoved: false
+      Description: Better administration increases loyalty growth
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 15000
+      ID: fief_loyalty_1
+      LoyaltyDailyFlat: 0.5
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Improved Administration
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Attract more merchants to boost prosperity
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 20000
+      ID: fief_prosperity_1
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Trade Hub
+      ProsperityDailyFlat: 1
+      ProsperityDailyPercent: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Additional guard posts improve security
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 12000
+      ID: fief_security_1
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Guard Posts
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0.5
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Train civilians as militia
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 10000
+      ID: fief_militia_1
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 2
+      MilitiaDailyPercent: 0
+      Name: Militia Training
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Larger granaries store more food
+      FoodDailyFlat: 5
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 8000
+      ID: fief_food_1
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Granary Expansion
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
     GoldIncomeEnabled: true
     GoldPerKill: 5000
     HealPerKill: 20
@@ -2382,6 +2322,82 @@ GlobalConfigs:
       NotificationText: '[viewer] is on a [name]: [kills] kills!'
       ShowNotification: false
       XPReward: 0
+    KingdomUpgrades:
+    - CanBeRemoved: false
+      Description: Strengthen the ruler's influence
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 100000
+      ID: kingdom_influence_1
+      InfluenceCost: 500
+      InfluenceDaily: 2
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Royal Authority
+      PartySizeBonus: 0
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RenownDaily: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Increase party sizes and militia across the kingdom
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 150000
+      ID: kingdom_military_1
+      InfluenceCost: 1000
+      InfluenceDaily: 0
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 1
+      MilitiaDailyPercent: 0
+      Name: Kingdom Military Reform
+      PartySizeBonus: 15
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RenownDaily: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
+    - CanBeRemoved: false
+      Description: Boost prosperity and loyalty in all kingdom settlements
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      GoldCost: 200000
+      ID: kingdom_prosperity_1
+      InfluenceCost: 1500
+      InfluenceDaily: 0
+      LoyaltyDailyFlat: 0.2
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      Name: Kingdom Prosperity Initiative
+      PartySizeBonus: 0
+      ProsperityDailyFlat: 0.5
+      ProsperityDailyPercent: 0
+      RenownDaily: 0
+      RequiredUpgradeID: ''
+      RequiredUpgradeIDs: []
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TierLevel: 0
     LevelScalingCap: 5
     LoseGold: 5000
     LoseXP: 5000
@@ -2414,6 +2430,7 @@ GlobalConfigs:
     SummonCooldownInSeconds: 60
     SummonCooldownUseMultiplier: 1.5
     TownBaseGold: 3000
+    UncapFoodStocks: false
     UseRawXP: true
     WinGold: 10000
     WinXP: 10000

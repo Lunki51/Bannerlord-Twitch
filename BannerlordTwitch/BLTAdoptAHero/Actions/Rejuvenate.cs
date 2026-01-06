@@ -16,8 +16,37 @@ namespace BLTAdoptAHero
 	[UsedImplicitly]
 	public class Rejuvenate : ActionHandlerBase
 	{
+        public class Settings : IDocumentable
+        {
 
-		protected override Type ConfigType
+            [LocDisplayName("{=7WIjNgF2}Price")]
+            [LocDescription("{=QaK58Z3j}The price of the rejuvenation")]
+            [PropertyOrder(1)]
+            [ExpandableObject]
+            [Expand]
+            [UsedImplicitly]
+            public int Price { get; set; } = 10000;
+
+            [LocDisplayName("{=eyrNUsxM}Age")]
+            [LocDescription("{=oyzYoByT}The age that will be substracted from the hero")]
+            [PropertyOrder(2)]
+            [UsedImplicitly]
+            public int Age { get; set; } = 1;
+
+            [LocDisplayName("{=TESTING}Spouse")]
+            [LocDescription("{=TESTING}Should spouse de-age with the hero")]
+            [PropertyOrder(3)]
+            [UsedImplicitly]
+            public bool Spouse { get; set; } = false;
+
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.PropertyValuePair("Age".Translate(), string.Format("{0}", this.Age));
+                generator.PropertyValuePair("Price".Translate(), string.Format("{0}", this.Price));
+            }
+        }
+
+        protected override Type ConfigType
 		{
 			get
 			{
@@ -64,50 +93,12 @@ namespace BLTAdoptAHero
 			});
 			adoptedHero.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
 			int newAge = (int)adoptedHero.Age;
-			if (settings.Spouse && adoptedHero.Spouse != null && ((adoptedHero.Spouse.Age - (float)settings.Age) >= 18))
+			if (settings.Spouse && adoptedHero.Spouse != null && ((adoptedHero.Spouse.Age - (float)settings.Age) >= 18f))
 			{
-				adoptedHero.Spouse.SetBirthDay(adoptedHero.BirthDay + CampaignTime.Years((float)settings.Age));
+				adoptedHero.Spouse.SetBirthDay(adoptedHero.Spouse.BirthDay + CampaignTime.Years((float)settings.Age));
 			}
 			onSuccess("{=XidEZXAO}Your rejuvenated of {Age} years you are now {newAge}".Translate(("Age", settings.Age), ("newAge", newAge)));
-		}
-            
-  
-  		public Rejuvenate()
-		{
-		}
-
-		public class Settings : IDocumentable
-		{
-
-			[LocDisplayName("{=7WIjNgF2}Price")]
-			[LocDescription("{=QaK58Z3j}The price of the rejuvenation")]
-			[PropertyOrder(1)]
-			[ExpandableObject]
-			[Expand]
-			[UsedImplicitly]
-			public int Price { get; set; } = 10000;
-
-			[LocDisplayName("{=eyrNUsxM}Age")]
-			[LocDescription("{=oyzYoByT}The age that will be substracted from the hero")]
-			[PropertyOrder(2)]
-			[UsedImplicitly]
-			public int Age { get; set; } = 1;
-
-			[LocDisplayName("{=TESTING}Spouse")]
-			[LocDescription("{=TESTING}Should spouse de-age with the hero")]
-			[PropertyOrder(3)]
-			[UsedImplicitly]
-			public bool Spouse { get; set; } = false;
-
-			public void GenerateDocumentation(IDocumentationGenerator generator)
-			{
-				generator.PropertyValuePair("Age".Translate(), string.Format("{0}", this.Age));
-				generator.PropertyValuePair("Price".Translate(), string.Format("{0}", this.Price));
-			}
-
-			public Settings()
-			{
-			}
-		}
+		}         
+		
 	}
 }
