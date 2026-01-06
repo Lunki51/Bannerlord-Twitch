@@ -2,11 +2,14 @@
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Collections.Generic;
 using BannerlordTwitch;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
+using BannerlordTwitch.Helpers;
 using BLTAdoptAHero.Annotations;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
@@ -159,13 +162,19 @@ namespace BLTAdoptAHero.Actions
             var sb = new StringBuilder();
             sb.Append("{=ChildrenList}Children: ".Translate());
 
-            var children = adoptedHero.Children.OrderBy(c => c.Age).ToList();
+            var children = adoptedHero.Children.OrderByDescending(c => c.Age).ToList();
             for (int i = 0; i < children.Count; i++)
             {
                 var child = children[i];
                 sb.Append(CleanName(child.Name.ToString()));
                 sb.Append($" ({(int)child.Age}, ");
                 sb.Append(child.IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
+                if (child.Spouse != null)
+                    sb.Append(", 💍");
+                if (child.IsDead)
+                    sb.Append(", 💀");
+                if (child.Children.Count > 0)
+                    sb.Append($", 👪:{child.Children.Count}");
                 sb.Append(")");
 
                 if (i < children.Count - 1)
@@ -325,21 +334,23 @@ namespace BLTAdoptAHero.Actions
             {
                 sb.Append(" | {=Deceased}DECEASED".Translate());
             }
-            else
+            if (child.Spouse != null)
             {
-                if (child.Spouse != null)
-                {
-                    sb.Append(" | ");
-                    sb.Append("{=Spouse}Spouse: {spouse}".Translate(("spouse", CleanName(child.Spouse.Name.ToString()))));
-                }
+                sb.Append(" | ");
+                sb.Append("{=Spouse}Spouse: {spouse}".Translate(("spouse", CleanName(child.Spouse.Name.ToString()))));
+            }
+            var highestSkill = CampaignHelpers.AllSkillObjects
+                .OrderByDescending(s => child.GetSkillValue(s))
+                .FirstOrDefault();
 
-                if (child.Children.Count > 0)
-                {
-                    sb.Append(" | ");
-                    sb.Append("{=Children}Children: ".Translate());
-                    var childNames = child.Children.Select(c => CleanName(c.Name.ToString())).ToList();
-                    sb.Append(string.Join(", ", childNames));
-                }
+            sb.Append($" | TopSkill:{highestSkill.Name}");
+
+            if (child.Children.Count > 0)
+            {
+                sb.Append(" | ");
+                sb.Append("{=Children}Children: ".Translate());
+                var childNames = child.Children.Select(c => CleanName(c.Name.ToString())).ToList();
+                sb.Append(string.Join(", ", childNames));
             }
 
             onSuccess(sb.ToString());

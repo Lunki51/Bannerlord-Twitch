@@ -460,7 +460,7 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Not in a kingdom");
                             return;
                         }
-                        if (adoptedHero.MapFaction.FactionsAtWarWith.Count == 0)
+                        if (adoptedHero.Clan.Kingdom.FactionsAtWarWith.Count == 0)
                         {
                             onFailure("No wars");
                             return;
@@ -475,12 +475,12 @@ namespace BLTAdoptAHero.Actions
                             onFailure("{=LVFh1Pd5}Your hero is not leading a party".Translate());
                             return;
                         }
-                        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty != adoptedHero.PartyBelongedTo)
+                        if (party.Army != null && party.Army.LeaderParty != adoptedHero.PartyBelongedTo)
                         {
                             onFailure("Already in an army!");
                             return;
                         }
-                        if (adoptedHero.PartyBelongedTo.MapEvent != null)
+                        if (party.MapEvent != null)
                         {
                             onFailure("Your party is busy.");
                             return;
@@ -509,7 +509,7 @@ namespace BLTAdoptAHero.Actions
                                 onFailure($"Invalid army type: {desiredName}");
                                 return;
                         }
-                        if (adoptedHero.PartyBelongedTo.Army != null && adoptedHero.PartyBelongedTo.Army.LeaderParty == adoptedHero.PartyBelongedTo)
+                        if (army != null && army.LeaderParty == party)
                         {
                             adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
                             onSuccess($"Changed army type to {armyType}");
@@ -520,25 +520,26 @@ namespace BLTAdoptAHero.Actions
                             onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
-                        var pos = adoptedHero.LastKnownClosestSettlement ?? adoptedHero.HomeSettlement;
-                        var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
+                        var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
+                        Settlement pos = SettlementHelper.FindNearestSettlementToMobileParty(party, nav);
+                        var vassals = BLTVassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
                         var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
-                            .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != adoptedHero.PartyBelongedTo && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
+                            .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != party && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
 
                         adoptedHero.Clan.Influence += 200f;
                         adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType);
-                        Army aarmy = adoptedHero.PartyBelongedTo.Army;
+                        Army newArmy = party.Army;
 
                         //int addedPartiesCount = 0;
-                        foreach (var pparty in sameClanParties)
+                        foreach (var parties in sameClanParties)
                         {
-                            party.Army = army;
+                            parties.Army = newArmy;
                         }
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
 
-                        onSuccess($"Gathering {armyType} army({army.Parties.Count}) at {pos}");
+                        onSuccess($"Gathering {armyType} army({newArmy.LeaderPartyAndAttachedPartiesCount}) at {pos}");
                         break;
                     }
             }

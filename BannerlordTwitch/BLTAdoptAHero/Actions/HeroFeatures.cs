@@ -559,6 +559,8 @@ namespace BLTAdoptAHero.Actions
             }
 
             var newHero = HeroCreator.CreateSpecialHero(character);
+            if (newHero == null)
+                return null;
             newHero.ChangeState(Hero.CharacterStates.Active);
 
             BLTAdoptAHeroCampaignBehavior.Current.SetIsCreatedHero(newHero, true);
@@ -590,6 +592,8 @@ namespace BLTAdoptAHero.Actions
                 : cultureToSpawn.MaleNameList.SelectRandom();
 
             CampaignHelpers.SetHeroName(newHero, name, name);
+            //clean names
+            CampaignHelpers.SetHeroName(newHero, newHero.FirstName, newHero.FirstName);
 
             if (fallback)
                 newHero.Culture = cultureToSpawn;
