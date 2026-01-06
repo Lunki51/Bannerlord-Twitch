@@ -332,9 +332,9 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(2), UsedImplicitly]
         public int PartySizeBonus { get; set; } = 0;
 
-        [LocDisplayName("{=BLT_PartySize}Party Movement Speed Bonus"),
+        [LocDisplayName("{=BLT_PartySpeed}Party Movement Speed Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
-         LocDescription("{=BLT_PartySizeDesc}Additional Flat Movement Speed for all clan parties"),
+         LocDescription("{=BLT_PartySpeedDesc}Additional Flat Movement Speed for all clan parties"),
          PropertyOrder(3), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
 
@@ -487,9 +487,9 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(2), UsedImplicitly]
         public int PartySizeBonus { get; set; } = 0;
 
-        [LocDisplayName("{=BLT_PartySize}Party Size Bonus"),
+        [LocDisplayName("{=BLT_PartySpeed}Party Speed Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
-         LocDescription("{=BLT_PartySizeDesc}Additional party size limit for all kingdom parties"),
+         LocDescription("{=BLT_PartySpeedDesc}Additional flat party speed for all kingdom parties"),
          PropertyOrder(2), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
 

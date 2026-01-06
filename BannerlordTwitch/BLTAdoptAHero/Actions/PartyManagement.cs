@@ -522,7 +522,7 @@ namespace BLTAdoptAHero.Actions
                         }
                         var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
                         Settlement pos = SettlementHelper.FindNearestSettlementToMobileParty(party, nav);
-                        var vassals = BLTVassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
+                        var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
                         var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
                             .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != party && p.Army == null && p.AttachedTo == null && p.LeaderHero != null)
                             .ToList();
