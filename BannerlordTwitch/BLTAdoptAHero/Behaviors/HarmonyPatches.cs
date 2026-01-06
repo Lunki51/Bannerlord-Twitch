@@ -147,7 +147,7 @@ namespace BLTAdoptAHero
     }
     #endregion
 
-    #region ChangeKingdomAction
+    #region KingdomActions
     [HarmonyPatch(typeof(ChangeKingdomAction))]
     internal static class ChangeKingdomActionPatches
     {
@@ -159,9 +159,6 @@ namespace BLTAdoptAHero
             {
                 try
                 {
-#if DEBUG
-                    Log.Trace("[BLT] Blocked ApplyByJoinToKingdom for adopted/vassal clan (join blocked)");
-#endif
                     return false;
                 }
                 catch (Exception ex)
@@ -180,9 +177,6 @@ namespace BLTAdoptAHero
             {
                 try
                 {
-#if DEBUG
-                    Log.Trace("[BLT] Blocked ApplyByJoinToKingdomByDefection for adopted/vassal clan (join blocked)");
-#endif
                     return false;
                 }
                 catch (Exception ex)
@@ -201,9 +195,6 @@ namespace BLTAdoptAHero
             {
                 try
                 {
-#if DEBUG
-                    Log.Trace("[BLT] Blocked ApplyByLeaveKingdom for adopted/vassal clan (leave blocked)");
-#endif
                     return false;
                 }
                 catch (Exception ex)
@@ -213,7 +204,34 @@ namespace BLTAdoptAHero
             }
             return true;
         }
+
+        [HarmonyPrefix]
+        [HarmonyPatch("ApplyByLeaveWithRebellionAgainstKingdom")]
+        private static bool Prefix_ApplyByLeaveWithRebellionAgainstKingdom(Clan clan)
+        {
+            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
+            {
+                try
+                {
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[BLT] Prefix_ApplyByLeaveWithRebellionAgainstKingdom error: {ex}");
+                }
+            }
+            return true;
+        }
     }
+
+
+    //[HarmonyPatch(typeof(KingdomDiplomacyPatches))]
+    //private static class KingdomDiplomacyPatches
+    //{
+    //    [HarmonyPrefix]
+    //    [HarmonyPatch("")]
+    //    private static 
+    //}
     #endregion
 
     #region ClanPatches
