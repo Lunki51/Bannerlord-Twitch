@@ -14,6 +14,8 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Localization;
 using Helpers;
+using TaleWorlds.Core;
+using BLTAdoptAHero.Models;
 
 namespace BLTAdoptAHero
 {
@@ -234,8 +236,8 @@ namespace BLTAdoptAHero
             var sb = new StringBuilder();
             foreach (var k in Kingdom.All)
             {
-                int p1 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(desiredKingdom, k).Count;
-                int p2 = DiplomacyHelper.GetPrisonersOfWarTakenByFaction(k, desiredKingdom).Count;
+                int p1 = Helpers.DiplomacyHelper.GetPrisonersOfWarTakenByFaction(desiredKingdom, k).Count;
+                int p2 = Helpers.DiplomacyHelper.GetPrisonersOfWarTakenByFaction(k, desiredKingdom).Count;
                 if (desiredKingdom != k && desiredKingdom.IsAtWarWith(k))
                 {
                     var stance = desiredKingdom.GetStanceWith(k);
@@ -294,7 +296,7 @@ namespace BLTAdoptAHero
                 sb.Append(" | ");
                 sb.Append("{=TESTING}Village | ".Translate());
                 sb.Append("{=TESTING}Culture: {culture} | ".Translate(("culture", desiredFief.Culture.ToString())));
-                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth), ("change", (vill.HearthChange >= 0 ? "+" : "") + Math.Round(vill.HearthChange, 2))));
+                sb.Append("{=TESTING}Hearths: {hearths}({change}) | ".Translate(("hearths", (int)vill.Hearth), ("change", (vill.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(vill.Bound.Town.Settlement) >= 0 ? "+" : "") + Math.Round(vill.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(vill.Bound.Town.Settlement), 2))));
                 var parent = Settlement.All.FirstOrDefault(s => s.BoundVillages.Any(v => v.Name.ToString() == desiredFief.Name.ToString()));
                 sb.Append("{=TESTING}Bound to {parent}".Translate(("parent", parent.Name)));
                 ActionManager.SendReply(context, sb.ToString());
@@ -308,7 +310,7 @@ namespace BLTAdoptAHero
                     Campaign.Current.Models.SettlementTaxModel.CalculateTownTax(town, false).ResultNumber +
                     Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromTariffs(town.OwnerClan, town, false).ResultNumber +
                     Campaign.Current.Models.ClanFinanceModel.CalculateTownIncomeFromProjects(town) +
-                    BLTUpgradeBehavior.Current.GetTotalTaxBonus(town.Settlement) +
+                    UpgradeBehavior.Current.GetTotalTaxBonus(town.Settlement) +
                     town.Settlement.BoundVillages.Sum(v => Campaign.Current.Models.ClanFinanceModel.CalculateVillageIncome(town.OwnerClan, v, false)) -
                     (town.GarrisonParty?.TotalWage ?? 0)
                     );
@@ -327,16 +329,22 @@ namespace BLTAdoptAHero
                     sb.Append("{=TESTING}Kingdom:{kingdom} | ".Translate(("kingdom", town.OwnerClan.Kingdom.Name)));
                 if (town.Governor != null)
                     sb.Append("{=TESTING}Governor:{gove} | ".Translate(("gove", town.Governor.Name)));
-                sb.Append("{=TESTING}Prosperity:{pros}({change}) | ".Translate(("pros", (int)town.Prosperity), ("change", (town.ProsperityChange + BLTUpgradeBehavior.Current.GetProsperityFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.ProsperityChange + BLTUpgradeBehavior.Current.GetProsperityFlat(town.Settlement), 2))));
-                sb.Append("{=TESTING}Loyalty:{loy}({change}) | ".Translate(("loy", (int)town.Loyalty), ("change", (town.LoyaltyChange + BLTUpgradeBehavior.Current.GetLoyaltyFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.LoyaltyChange + BLTUpgradeBehavior.Current.GetLoyaltyFlat(town.Settlement), 2))));
-                sb.Append("{=TESTING}Security:{sec}({change}) | ".Translate(("sec", (int)town.Security), ("change", (town.SecurityChange + BLTUpgradeBehavior.Current.GetSecurityFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.SecurityChange + BLTUpgradeBehavior.Current.GetSecurityFlat(town.Settlement), 2))));
-                sb.Append("{=TESTING}Food:{food}({change}) | ".Translate(("food", (int)town.FoodStocks), ("change", (town.FoodChange + BLTUpgradeBehavior.Current.GetFoodFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.FoodChange + BLTUpgradeBehavior.Current.GetFoodFlat(town.Settlement), 2))));
+                sb.Append("{=TESTING}Prosperity:{pros}({change}) | ".Translate(("pros", (int)town.Prosperity), ("change", (town.ProsperityChange + UpgradeBehavior.Current.GetProsperityFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.ProsperityChange + UpgradeBehavior.Current.GetProsperityFlat(town.Settlement), 2))));
+                sb.Append("{=TESTING}Loyalty:{loy}({change}) | ".Translate(("loy", (int)town.Loyalty), ("change", (town.LoyaltyChange + UpgradeBehavior.Current.GetLoyaltyFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.LoyaltyChange + UpgradeBehavior.Current.GetLoyaltyFlat(town.Settlement), 2))));
+                sb.Append("{=TESTING}Security:{sec}({change}) | ".Translate(("sec", (int)town.Security), ("change", (town.SecurityChange + UpgradeBehavior.Current.GetSecurityFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.SecurityChange + UpgradeBehavior.Current.GetSecurityFlat(town.Settlement), 2))));
+                sb.Append("{=TESTING}Food:{food}({change}) | ".Translate(("food", (int)town.FoodStocks), ("change", (town.FoodChange + UpgradeBehavior.Current.GetFoodFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.FoodChange + UpgradeBehavior.Current.GetFoodFlat(town.Settlement), 2))));
                 sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));
-                sb.Append("{=TESTING}Militia:{mil}({change}) | ".Translate(("mil", (int)town.Militia), ("change", (town.MilitiaChange + BLTUpgradeBehavior.Current.GetMilitiaFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.MilitiaChange + BLTUpgradeBehavior.Current.GetMilitiaFlat(town.Settlement), 2))));
-                sb.Append("{=TESTING}Garrison:{gar} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount)));
-                var villList = town.Settlement.BoundVillages.Select(v => v.Name.ToString()).ToList();
-                var villNames = string.Join(", ", villList);
-                sb.Append("{=TESTING}Villages:{villNames}".Translate(("villNames", villNames)));
+                sb.Append("{=TESTING}Militia:{mil}({change}) | ".Translate(("mil", (int)town.Militia), ("change", (town.MilitiaChange + UpgradeBehavior.Current.GetMilitiaFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.MilitiaChange + UpgradeBehavior.Current.GetMilitiaFlat(town.Settlement), 2))));
+                var garmodel = Campaign.Current.Models.PartySizeLimitModel;
+                sb.Append("{=TESTING}Garrison:{gar}/{garcap} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("garcap", (int)garmodel.CalculateGarrisonPartySizeLimit(town.Settlement, false).ResultNumber))); // + BLTUpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(town.Settlement)
+                var villList = town.Settlement.BoundVillages.Select(v => v).ToList();
+                string villNames = "";
+                sb.Append($"Villages + Hearth: ");
+                foreach (Village v in villList.ToList())
+                {
+                    sb.Append($"{v.Name} ({Math.Round(v.Hearth, 2)} +{Math.Round((v.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement)), 2)}), ");
+                }
+                villNames.TrimEnd(' ', ',');
 
                 ActionManager.SendReply(context, sb.ToString());
             }
@@ -419,7 +427,7 @@ namespace BLTAdoptAHero
             }
             else
             {
-                ActionManager.SendReply(context, "Could not find a kingdom/clan with the name {name}");
+                ActionManager.SendReply(context, $"Could not find a kingdom/clan with the name {desiredName}");
             }
         }
     }

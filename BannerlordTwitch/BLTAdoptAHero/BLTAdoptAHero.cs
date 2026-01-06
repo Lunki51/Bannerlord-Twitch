@@ -202,16 +202,17 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
                     //campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
                     campaignStarter.AddBehavior(new BLTClanBehavior());
-                    campaignStarter.AddBehavior(new BLTGoldIncomeBehavior()); 
+                    campaignStarter.AddBehavior(new GoldIncomeBehavior()); 
                     campaignStarter.AddBehavior(new BLTSettlementUpgradeBehavior());
-                    campaignStarter.AddBehavior(new BLTReinforcementBehavior());
+                    campaignStarter.AddBehavior(new ReinforcementBehavior());
                     campaignStarter.AddBehavior(new BLTDiplomacyHelper());
-                    campaignStarter.AddBehavior(new BLTUpgradeBehavior());
-                    campaignStarter.AddBehavior(new BLTVassalBehavior());
-                    campaignStarter.AddBehavior(new BLTKingdomTaxBehavior());
+                    campaignStarter.AddBehavior(new UpgradeBehavior());
+                    campaignStarter.AddBehavior(new VassalBehavior());
+                    campaignStarter.AddBehavior(new KingdomTaxBehavior());
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
                     gameStarterObject.AddModel(new BLTPartySizeLimitModel(gameStarterObject.Models.OfType<PartySizeLimitModel>().FirstOrDefault()));
+                    gameStarterObject.AddModel(new BLTPartySpeedModel(gameStarterObject.Models.OfType<PartySpeedModel>().FirstOrDefault()));
                 }
             }
             catch (Exception e)

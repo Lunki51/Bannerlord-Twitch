@@ -16,9 +16,9 @@ namespace BLTAdoptAHero
     /// - Exposes Get/Has/Add/Remove helpers used by UI/actions
     /// - Exposes typed aggregated getters that consult the injected Settings instance
     /// </summary>
-    public class BLTUpgradeBehavior : CampaignBehaviorBase
+    public class UpgradeBehavior : CampaignBehaviorBase
     {
-        public static BLTUpgradeBehavior Current { get; private set; }
+        public static UpgradeBehavior Current { get; private set; }
 
         // persisted storage (CSV strings per id) - compatible with older saves
         private Dictionary<string, string> _fiefUpgrades = new();
@@ -31,7 +31,7 @@ namespace BLTAdoptAHero
         // REPLACE WITH:
         private GlobalCommonConfig ConfigSafe => GlobalCommonConfig.Get();
 
-        public BLTUpgradeBehavior()
+        public UpgradeBehavior()
         {
             Current = this;
         }
@@ -371,6 +371,13 @@ namespace BLTAdoptAHero
                 c => (int)c.TaxIncomeFlat,
                 k => (int)k.TaxIncomeFlat);
 
+        // Hearth
+        public float GetTotalHearthDaily(Settlement settlement)
+            => SumSettlementFloatTyped(settlement,
+                f => (float)f.HearthDaily,
+                c => (float)c.HearthDaily,
+                k => (float)k.HearthDaily);
+
         // Garrison capacity (sum fief+clan+kingdom)
         public int GetTotalGarrisonCapacityBonus(Settlement settlement)
             => SumSettlementIntTyped(settlement,
@@ -391,6 +398,22 @@ namespace BLTAdoptAHero
             int bonus = 0;
             bonus += GetClanPartySizeBonus(hero.Clan);
             if (hero.Clan.Kingdom != null) bonus += GetKingdomPartySizeBonus(hero.Clan.Kingdom);
+            return bonus;
+        }
+
+        // Party speed
+        public float GetClanPartySpeedBonus(Clan clan)
+            => SumClanFloat(clan, c => c.PartySpeedBonus);
+
+        public float GetKingdomPartySpeedBonus(Kingdom kingdom)
+            => SumKingdomFloat(kingdom, k => k.PartySpeedBonus);
+
+        public float GetTotalPartySpeedBonus(Hero hero)
+        {
+            if (hero?.Clan == null) return 0;
+            float bonus = 0f;
+            bonus += GetClanPartySpeedBonus(hero.Clan);
+            if (hero.Clan.Kingdom != null) bonus += GetKingdomPartySpeedBonus(hero.Clan.Kingdom);
             return bonus;
         }
 
