@@ -955,8 +955,8 @@ Commands:
   ID: 4e9393c0-e9f9-4045-b1a4-1a6ba58f0fba
   ModeratorOnly: false
   Name: reinforce
-  RespondInOverlay: false
-  RespondInTwitch: true
+  RespondInOverlay: true
+  RespondInTwitch: false
 - Documentation: ''
   Enabled: true
   Handler: TransferAction
@@ -968,8 +968,8 @@ Commands:
   ID: 37127dc4-6d2c-4fd2-9f70-c8198a5047b4
   ModeratorOnly: false
   Name: transfer
-  RespondInOverlay: false
-  RespondInTwitch: true
+  RespondInOverlay: true
+  RespondInTwitch: false
 - Documentation: ''
   Enabled: true
   Handler: FocusPoints

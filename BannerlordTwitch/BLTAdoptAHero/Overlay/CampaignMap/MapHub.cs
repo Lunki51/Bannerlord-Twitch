@@ -163,14 +163,21 @@ namespace BLTAdoptAHero.UI
 
                 // Get map bounds
                 var mapBounds = GetMapBounds();
+                float worldWidth = mapBounds.maxX - mapBounds.minX;
+                float worldHeight = mapBounds.maxY - mapBounds.minY;
+
+                Log.Trace($"[MapHub] World bounds: X({mapBounds.minX:F1} to {mapBounds.maxX:F1}) Width:{worldWidth:F1}, Y({mapBounds.minY:F1} to {mapBounds.maxY:F1}) Height:{worldHeight:F1}");
 
                 // Get all settlements (only towns and castles, no villages)
                 var rawSettlements = Campaign.Current.Settlements
                     .Where(s => (s.IsTown || s.IsCastle) && (s.Position.X != 0 || s.Position.Y != 0))
                     .ToList();
 
-                // Normalize settlements to fit the viewBox (0-100 width, 0-30 height)
+                // Normalize settlements
                 var settlements = new List<SettlementData>();
+                float minNormX = 100f, maxNormX = 0f;
+                float minNormY = 95f, maxNormY = 0f;
+
                 foreach (var s in rawSettlements)
                 {
                     var settlement = new SettlementData
@@ -183,13 +190,34 @@ namespace BLTAdoptAHero.UI
                         Y = NormalizeY(s.Position.Y, mapBounds)
                     };
 
-                    // Only separate overlapping settlements
+                    // Track actual normalized range BEFORE spreading
+                    minNormX = Math.Min(minNormX, settlement.X);
+                    maxNormX = Math.Max(maxNormX, settlement.X);
+                    minNormY = Math.Min(minNormY, settlement.Y);
+                    maxNormY = Math.Max(maxNormY, settlement.Y);
+
+                    // Spread overlapping settlements
                     var (spreadX, spreadY) = SpreadSettlement(settlement.X, settlement.Y, settlements);
                     settlement.X = spreadX;
                     settlement.Y = spreadY;
 
                     settlements.Add(settlement);
                 }
+
+                float normWidth = maxNormX - minNormX;
+                float normHeight = maxNormY - minNormY;
+
+                Log.Trace($"[MapHub] Normalized BEFORE spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
+
+                // Track AFTER spreading
+                minNormX = settlements.Min(s => s.X);
+                maxNormX = settlements.Max(s => s.X);
+                minNormY = settlements.Min(s => s.Y);
+                maxNormY = settlements.Max(s => s.Y);
+                normWidth = maxNormX - minNormX;
+                normHeight = maxNormY - minNormY;
+
+                Log.Trace($"[MapHub] Normalized AFTER spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
 
                 mapData.Settlements = settlements;
 
@@ -216,20 +244,13 @@ namespace BLTAdoptAHero.UI
             if (!settlements.Any())
                 return (0, 1000, 0, 1000);
 
-            // Get the actual min/max positions
+            // Get EXACT bounds - no padding here
             var minX = settlements.Min(s => s.Position.X);
             var maxX = settlements.Max(s => s.Position.X);
             var minY = settlements.Min(s => s.Position.Y);
             var maxY = settlements.Max(s => s.Position.Y);
 
-            // Add just a tiny bit of padding so edge settlements aren't right on the border
-            float dataWidth = maxX - minX;
-            float dataHeight = maxY - minY;
-
-            float paddingX = dataWidth * 0.02f; // 2% padding
-            float paddingY = dataHeight * 0.02f;
-
-            return (minX - paddingX, maxX + paddingX, minY - paddingY, maxY + paddingY);
+            return (minX, maxX, minY, maxY);
         }
 
         private static float NormalizeX(float x, (float minX, float maxX, float minY, float maxY) bounds)
@@ -237,27 +258,31 @@ namespace BLTAdoptAHero.UI
             float width = bounds.maxX - bounds.minX;
             if (width == 0) return 50f;
 
-            // Map to viewBox width (0-100) with margins (5-95)
+            // Normalize to 0-1 range
             float normalized = (x - bounds.minX) / width;
-            return 5f + (normalized * 90f);
+
+            // STRETCH TO FULL WIDTH: Map to 0-100 (edge to edge)
+            return normalized * 100f;
         }
 
         private static float NormalizeY(float y, (float minX, float maxX, float minY, float maxY) bounds)
         {
             float height = bounds.maxY - bounds.minY;
-            if (height == 0) return 15f;
+            if (height == 0) return 47.5f;
 
+            // Normalize to 0-1 range
             float normalized = (y - bounds.minY) / height;
+
             // Invert for SVG (SVG 0 is top, Game 0 is bottom)
-            // Map to viewBox height (0-30) with margins (2-28)
-            return 2f + ((1f - normalized) * 91f);
+            // Add padding: map to 5-90 instead of 0-95 (5 units padding top/bottom)
+            return 5f + ((1f - normalized) * 85f);
         }
 
-        // Only separate overlapping settlements, don't distort the map
+        // Minimal spreading - we want to maintain the stretched layout
         private static (float x, float y) SpreadSettlement(float x, float y, List<SettlementData> existingSettlements)
         {
-            const float minDistance = 2.5f; // Minimum distance between settlements in viewBox units
-            const int maxIterations = 5;
+            const float minDistance = 0.5f; // Minimum distance between settlements
+            const int maxIterations = 100; // Minimal iterations
 
             for (int iteration = 0; iteration < maxIterations; iteration++)
             {
@@ -271,19 +296,19 @@ namespace BLTAdoptAHero.UI
 
                     if (dist < minDistance && dist > 0.01f)
                     {
-                        // Push away just enough to separate
+                        // Small push to separate overlapping settlements
                         float overlap = minDistance - dist;
-                        float pushX = (dx / dist) * overlap * 0.5f;
-                        float pushY = (dy / dist) * overlap * 0.5f;
+                        float pushX = (dx / dist) * overlap * 0.2f;
+                        float pushY = (dy / dist) * overlap * 0.3f;
                         x += pushX;
                         y += pushY;
                         moved = true;
                     }
                 }
 
-                // Keep within viewBox bounds with margins
-                x = Math.Max(3f, Math.Min(97f, x));
-                y = Math.Max(1f, Math.Min(94f, y));
+                // Keep within bounds - full X range, padded Y range
+                x = Math.Max(4f, Math.Min(96f, x));
+                y = Math.Max(5f, Math.Min(90f, y));
 
                 if (!moved) break;
             }

@@ -197,7 +197,7 @@ namespace BLTAdoptAHero
          LocCategory("Death", "{=dbU7WEKG}Death"),
          LocDescription("{=VbBUYOfc}Whether an adopted hero is allowed to die"),
          PropertyOrder(1), Document, UsedImplicitly]
-        public bool AllowDeath { get; set; }
+        public bool AllowDeath { get; set; } = true;
 
         [Browsable(false), UsedImplicitly]
         public float DeathChance { get; set; } = 0.1f;
@@ -218,7 +218,7 @@ namespace BLTAdoptAHero
          LocCategory("Death", "{=dbU7WEKG}Death"),
          LocDescription("{=nbR7NLNz}Whether to apply the Death Chance changes to all heroes, not just adopted ones"),
          PropertyOrder(5), Document, UsedImplicitly]
-        public bool ApplyDeathChanceToAllHeroes { get; set; } = true;
+        public bool ApplyDeathChanceToAllHeroes { get; set; } = false;
 
         [LocDisplayName("{=Ret2DeathChance}Retinue Death Chance Percent"),
          LocCategory("Death", "{=dbU7WEKG}Death"),
