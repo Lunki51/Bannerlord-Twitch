@@ -221,6 +221,10 @@ namespace BLTAdoptAHero.Actions
 
             // Multiply may be large, keep in int (Bannerlord uses int gold)
             long value = (long)contract * (long)mult;
+            int MercUpBonus = UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader);
+            float MercUpMult = UpgradeBehavior.Current.GetPercentClanMercBonus(clan);
+            value += MercUpBonus;
+            value = (int)(value * MercUpMult);
             if (value > BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome)
                 if (BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome < int.MaxValue)
                     return BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome;

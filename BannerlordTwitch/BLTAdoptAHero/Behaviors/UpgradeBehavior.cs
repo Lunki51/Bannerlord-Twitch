@@ -257,7 +257,10 @@ namespace BLTAdoptAHero
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += selector(up);
+                if (!up.MercOnly || (up.MercOnly && clan.IsUnderMercenaryService))
+                {
+                    if (up != null) sum += selector(up); 
+                }
             }
             return sum;
         }
@@ -433,10 +436,17 @@ namespace BLTAdoptAHero
             return bonus;
         }
 
-        public void ApplyRenownDaily(Clan clan)
+        // Renown
+        public int GetFlatClanMercBonus(Clan clan)
+            => SumClanInt(clan, c => c.MercIncomeFlat);
+        public float GetPercentClanMercBonus(Clan clan)
+            => SumClanFloat(clan, c => c.MercIncomePercent);
+
+        public int GetFlatMercBonus(Hero hero)
         {
-            float bonus = GetTotalRenownDaily(clan.Leader);
-            clan.AddRenown(bonus, false);
+            if (hero?.Clan == null) return 0;
+            int bonus = GetFlatClanMercBonus(hero.Clan);
+            return bonus;
         }
 
         // DAILY FLAT / PERCENT getters (typed)

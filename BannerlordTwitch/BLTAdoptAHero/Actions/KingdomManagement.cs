@@ -152,9 +152,9 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool VassalEnabled { get; set; } = true;
 
-            [LocDisplayName("{=6PUxQuLg}Max vassal"),
+            [LocDisplayName("{=BLT_MaxVassals}Max vassal"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Max vassal clans"),
+             LocDescription("{=BLT_MaxVassalsDesc}Max vassal clans"),
              PropertyOrder(4), UsedImplicitly]
             public int VassalAmount { get; set; } = 3;
 
@@ -178,11 +178,10 @@ namespace BLTAdoptAHero.Actions
              Range(0f, 2f)]
             public float VassalFiefIncomeShare { get; set; } = 0.25f; // 25% default
 
-            [LocDisplayName("{=TESTING}Vassal Fief Income Share %"),
+            [LocDisplayName("{=TESTING}King Vassals Only"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Percentage of vassal fief income shared with master (0.0 - 2.0, 0.25 = 25%)"),
-             PropertyOrder(6), UsedImplicitly,
-             Range(0f, 2f)]
+             LocDescription("{=TESTING}Prevents anyone except kings to create vassal clans"),
+             PropertyOrder(7), UsedImplicitly]
             public bool KingVassalsOnly { get; set; } = false;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
