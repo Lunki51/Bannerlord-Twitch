@@ -53,6 +53,8 @@ namespace BLTAdoptAHero.Actions
                 case "children":
                     HandleChildListCommand(adoptedHero, onSuccess, onFailure);
                     break;
+                case "parents":
+                    break;
                 default:
                     HandleNamedMemberCommand(adoptedHero, splitArgs, onSuccess, onFailure);
                     break;
@@ -61,16 +63,23 @@ namespace BLTAdoptAHero.Actions
 
         private void ShowFamilyOverview(Hero adoptedHero, Action<string> onSuccess)
         {
-            int spouseCount = (adoptedHero.Spouse != null ? 1 : 0) + adoptedHero.ExSpouses.Count;
-            int childrenCount = adoptedHero.Children.Count;
-            int grandchildrenCount = adoptedHero.Children.Sum(c => c.Children.Count);
-            int totalFamily = spouseCount + childrenCount + grandchildrenCount;
+            int spouseCount = (adoptedHero.Spouse != null ? 1 : 0) + adoptedHero.ExSpouses.Count(h=> !h.IsDead);
+            int childrenCount = adoptedHero.Children.Count(h => !h.IsDead);
+            int grandchildrenCount = adoptedHero.Children.Sum(c => c.Children.Count(h => !h.IsDead));
+            int parentCount = ((adoptedHero.Father != null && !adoptedHero.Father.IsDead) ? 1 : 0) + ((adoptedHero.Mother != null && !adoptedHero.Mother.IsDead) ? 1 : 0);
+            int siblingCount = adoptedHero.Siblings.Count(h => !h.IsDead);
+            int totalFamily = spouseCount + childrenCount + grandchildrenCount + parentCount + siblingCount;
 
             var sb = new StringBuilder();
             sb.Append("{=FamilyOverview}Family Overview: ".Translate());
             sb.Append("{=SpouseCount}Spouses: {count} | ".Translate(("count", spouseCount)));
             sb.Append("{=ChildCount}Children: {count} | ".Translate(("count", childrenCount)));
-            sb.Append("{=GrandchildCount}Grandchildren: {count} | ".Translate(("count", grandchildrenCount)));
+            if (grandchildrenCount > 0)
+                sb.Append("{=GrandchildCount}Grandchildren: {count} | ".Translate(("count", grandchildrenCount)));
+            if (parentCount > 0)
+                sb.Append("{=GrandchildCount}Parents: {count} | ".Translate(("count", parentCount)));
+            if (siblingCount > 0)
+                sb.Append("{=GrandchildCount}Siblings: {count} | ".Translate(("count", siblingCount)));
             sb.Append("{=TotalFamily}Total Family: {count}".Translate(("count", totalFamily)));
 
             onSuccess(sb.ToString());
@@ -80,10 +89,36 @@ namespace BLTAdoptAHero.Actions
         {
             if (args.Length > 1 && args[1].ToLower() == "looks")
             {
-                if (adoptedHero.Spouse == null)
+                if (adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count == 0)
                 {
                     onFailure("{=NoSpouse}You have no spouse".Translate());
                     return;
+                }
+                else if (adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count > 0)
+                {
+                    var sB = new StringBuilder();
+                    sB.Append("{=ChildrenList}Ex-spouses: ".Translate());
+
+                    var spouses = adoptedHero.ExSpouses.OrderByDescending(c => c.Age).ToList();
+                    for (int i = 0; i < spouses.Count; i++)
+                    {
+                        var exSpouse = spouses[i];
+                        sB.Append(CleanName(exSpouse.Name.ToString()));
+                        sB.Append($" ({(int)exSpouse.Age}, ");
+                        sB.Append(exSpouse.IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
+                        if (exSpouse.Spouse != null)
+                            sB.Append(", 💍");
+                        if (exSpouse.IsDead)
+                            sB.Append(", 💀");
+                        if (exSpouse.Children.Count > 0)
+                            sB.Append($", 👪:{exSpouse.Children.Count}");
+                        sB.Append(")");
+
+                        if (i < spouses.Count - 1)
+                        {
+                            sB.Append(", ");
+                        }
+                    }
                 }
 
                 if (args.Length < 3)
@@ -112,6 +147,18 @@ namespace BLTAdoptAHero.Actions
                 }
                 string newName = string.Join(" ", args.Skip(2));
                 RenameHero(adoptedHero.Spouse, newName, onSuccess, onFailure);
+                return;
+            }
+
+            if (args.Length > 1 && args[1].ToLower() == "skills")
+            {
+                if (adoptedHero.Spouse == null)
+                {
+                    onFailure("{=NoSpouse}You have no spouse".Translate());
+                    return;
+                }
+                string skills = ShowSkills(adoptedHero.Spouse);
+                onSuccess(skills);
                 return;
             }
 
@@ -146,7 +193,10 @@ namespace BLTAdoptAHero.Actions
             {
                 sb.Append(" | {=SpousePregnant}Your spouse is pregnant".Translate());
             }
-
+            var highestSkill = CampaignHelpers.AllSkillObjects
+                .OrderByDescending(s => spouse.GetSkillValue(s))
+                .FirstOrDefault();
+            sb.Append($" | TopSkill:{SkillXP.GetShortSkillName(highestSkill)} {spouse.GetSkillValue(highestSkill)}");
 
             onSuccess(sb.ToString());
         }
@@ -253,6 +303,13 @@ namespace BLTAdoptAHero.Actions
                         string newName = string.Join(" ", args.Skip(2));
                         RenameHero(child, newName, onSuccess, onFailure);
                         break;
+
+                    case "skills":
+                        { 
+                            string skills = ShowSkills(adoptedHero.Spouse);
+                            onSuccess(skills);
+                            return;
+                        }
 
                     default:
                         // Check if it's a grandchild name
@@ -425,6 +482,27 @@ namespace BLTAdoptAHero.Actions
                 ("newName", newName)), hero.CharacterObject);
         }
 
+        private string ShowSkills(Hero hero)
+        {
+            var stats = new StringBuilder();
+            stats.Append($"{"{=fRwyY6ms}[LVL]".Translate()} {hero.Level}");
+
+            var skillsList = CampaignHelpers.AllSkillObjects         
+                .OrderByDescending(s => hero.GetSkillValue(s))
+                .Select(skill =>
+                    $"{SkillXP.GetShortSkillName(skill)} {hero.GetSkillValue(skill)} " +
+                    $"[" +
+                    $"{"{=lHRDKsUT}f".Translate()}" +
+                    $"{hero.HeroDeveloper.GetFocus(skill)}]");
+
+            stats.Append($"{"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
+            return stats.ToString();
+        }
+
+        private void MarryHero(Hero hero, string newName, Action<string> onSuccess, Action<string> onFailure)
+        {
+
+        }
         private string CleanName(string name)
         {
             return name.StartsWith("{=") ? name.Substring(name.IndexOf("}") + 1) : name;

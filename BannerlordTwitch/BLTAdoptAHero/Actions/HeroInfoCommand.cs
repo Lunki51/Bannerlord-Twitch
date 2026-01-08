@@ -127,11 +127,13 @@ namespace BLTAdoptAHero
                 case ItemObject.ItemTypeEnum.Bow:
                 case ItemObject.ItemTypeEnum.Crossbow:
                 case ItemObject.ItemTypeEnum.Thrown:
+                case ItemObject.ItemTypeEnum.Sling:
                     return "🏹";
                 case ItemObject.ItemTypeEnum.Shield:
                     return "🛡";
                 case ItemObject.ItemTypeEnum.Arrows:
                 case ItemObject.ItemTypeEnum.Bolts:
+                case ItemObject.ItemTypeEnum.SlingStones:
                     return "➶";
                 case ItemObject.ItemTypeEnum.Horse:
                     return "🐴";
@@ -185,7 +187,7 @@ namespace BLTAdoptAHero
                     infoStrings.Add("{=4TVRrlOw}{Age} yrs".Translate(("Age", (int)Math.Truncate((double)adoptedHero.Age))));
                     var gender = adoptedHero.IsFemale ? "Female" : "Male";
                     infoStrings.Add("{=TESTING}{gender}".Translate(("gender", gender)));
-                    infoStrings.Add($"Occupation:{adoptedHero.Occupation}");
+                    infoStrings.Add($"{adoptedHero.Occupation}");
                     infoStrings.Add("{=jY2QJdA3}{HP} / {MaxHP} HP".Translate(
                         ("HP", adoptedHero.HitPoints), ("MaxHP", adoptedHero.MaxHitPoints)));
                     if (adoptedHero.LastKnownClosestSettlement != null)

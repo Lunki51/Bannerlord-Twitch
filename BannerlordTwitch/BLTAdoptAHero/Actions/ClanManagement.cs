@@ -32,20 +32,20 @@ namespace BLTAdoptAHero.Actions
      UsedImplicitly]
     public class ClanManagement : HeroCommandHandlerBase
     {
-        private static Harmony harmonyInstance = null;
-        static ClanManagement()
-        {
-            InitializeHarmony();
-        }
+        //private static Harmony harmonyInstance = null;
+        //static ClanManagement()
+        //{
+        //    InitializeHarmony();
+        //}
 
-        private static void InitializeHarmony()
-        {
-            if (harmonyInstance == null)
-            {
-                harmonyInstance = new Harmony("BLTClanManagement");
-                harmonyInstance.PatchAll();
-            }
-        }
+        //private static void InitializeHarmony()
+        //{
+        //    if (harmonyInstance == null)
+        //    {
+        //        harmonyInstance = new Harmony("BLTClanManagement");
+        //        harmonyInstance.PatchAll();
+        //    }
+        //}
         [CategoryOrder("Join", 0),
          CategoryOrder("Create", 1),
          CategoryOrder("Lead", 2),
@@ -711,7 +711,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=yPeUCq8t}You are not in a clan".Translate());
                 return;
             }
-            int count = 0;           
+            int count = 0;
             var parties = adoptedHero.Clan.WarPartyComponents.Where(pc => pc.MobileParty?.IsLordParty == true);
             foreach (var wparty in parties)
             {
@@ -719,9 +719,10 @@ namespace BLTAdoptAHero.Actions
                 if (party == null || party.LeaderHero == null)
                     continue;
                 count += 1;
-                partyStats.Append($"Party({count})[Leader:{party.LeaderHero.FirstName} - Troops:{party.MemberRoster.TotalHealthyCount}] | ");                   
+                partyStats.Append($"Party({count})[Leader:{party.LeaderHero.FirstName} - Troops:{party.MemberRoster.TotalHealthyCount}] | ");
             }
             if (count == 0) partyStats.Append("No parties");
+            else partyStats.ToString().TrimEnd('|',' ');
 
             onSuccess(partyStats.ToString());
         }

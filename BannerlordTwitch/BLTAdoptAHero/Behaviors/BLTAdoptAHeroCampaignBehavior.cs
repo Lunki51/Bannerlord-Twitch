@@ -105,6 +105,7 @@ namespace BLTAdoptAHero
         }
 
         private Dictionary<Hero, HeroData> heroData = new();
+        public Dictionary<Hero, Hero> heirList = new();
         #endregion
 
         #region CampaignBehaviorBase        
@@ -487,41 +488,21 @@ namespace BLTAdoptAHero
             return foundHero;
         }
 
-        public Hero GetHeirHero(string name)
+        public Hero GetRetiredHero(string name)
         {
-            var foundHero = heroData.FirstOrDefault(h
-                    => !h.Value.IsRetiredOrDead
-                       && (string.Equals(h.Key.FirstName?.Raw(), name, StringComparison.CurrentCultureIgnoreCase)
-                           || string.Equals(h.Value.Owner, name, StringComparison.CurrentCultureIgnoreCase)))
-                .Key;
-            if (foundHero == null)
-            {
-                foundHero = heroData.FirstOrDefault(h
+            var foundHero = heroData.LastOrDefault(h
                     => h.Value.IsRetiredOrDead
                        && (string.Equals(h.Key.FirstName?.Raw(), name, StringComparison.CurrentCultureIgnoreCase)
-                           || string.Equals(h.Value.Owner, name, StringComparison.CurrentCultureIgnoreCase)))
+                           || string.Equals(h.Value.Owner, name, StringComparison.CurrentCultureIgnoreCase) 
+                            && !h.Key.IsDead))
                 .Key;
-            }
-            if (foundHero != null)
+
+            if (foundHero?.IsDead == true)
             {
-                var heir = CampaignHelpers.AllHeroes
-                    .Where(c => !c.IsAdopted() &&
-                                (c.Father == foundHero || c.Mother == foundHero) &&
-                                (c.Name?.ToString() ?? "").Contains("Heir"))
-                    .FirstOrDefault();
-
-
-                if (heir?.IsDead == true)
-                {
-                    var oldName = heir.FirstName;
-                    heir.SetName(oldName, oldName);
-                    heir = null;
-                }
-                return heir;
+                return null;
             }
-            
 
-            return null;
+            return foundHero;
         }
 
         public void RetireHero(Hero hero)
