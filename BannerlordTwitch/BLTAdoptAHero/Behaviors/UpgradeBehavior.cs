@@ -435,8 +435,13 @@ namespace BLTAdoptAHero
             if (hero.Clan.Kingdom != null) bonus += GetKingdomRenownDaily(hero.Clan.Kingdom);
             return bonus;
         }
+        public void ApplyRenownDaily(Clan clan)
+        {
+            float bonus = GetTotalRenownDaily(clan.Leader);
+            clan.AddRenown(bonus, false);
+        }
 
-        // Renown
+        // Mercenary Income
         public int GetFlatClanMercBonus(Clan clan)
             => SumClanInt(clan, c => c.MercIncomeFlat);
         public float GetPercentClanMercBonus(Clan clan)
