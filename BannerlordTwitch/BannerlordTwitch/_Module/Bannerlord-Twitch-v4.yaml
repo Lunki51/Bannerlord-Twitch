@@ -303,10 +303,13 @@ Commands:
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
+    AllowCultureSelection: true
+    CultureGoldCost: 0
     GoldCost: 1250000
     ItemName: '{=}Champion {ITEMNAME}'
     ItemPower: 1.25
     Type: Mount
+    UseHeroCultureDefault: false
   Help: ''
   HideHelp: true
   ID: 87bed827-fbe4-472e-a300-f6f85e46dd28
@@ -318,12 +321,12 @@ Commands:
   Enabled: true
   Handler: ClanManagement
   HandlerConfig:
-    BuyTitleEnabled: true
+    BuyTitleEnabled: false
     CreateEnabled: true
-    CreatePrice: 1500000
+    CreatePrice: 1000000
     EditBannerEnabled: true
     FiefsEnabled: true
-    JoinAllowPlayer: false
+    JoinAllowPlayer: true
     JoinEnabled: true
     JoinMaxHeroes: 50
     JoinPrice: 150000
@@ -549,6 +552,7 @@ Commands:
     JoinEnabled: true
     JoinMaxClans: 30
     JoinPrice: 150000
+    KingVassalsOnly: false
     LeaveEnabled: true
     MaxTaxRate: 50
     MercenaryEnabled: true
@@ -714,10 +718,13 @@ Commands:
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
+    AllowCultureSelection: true
+    CultureGoldCost: 0
     GoldCost: 500000
     ItemName: '{=}Smithed {ITEMNAME}'
     ItemPower: 1.25
     Type: Armor
+    UseHeroCultureDefault: false
   Help: ''
   HideHelp: true
   ID: 2d829c81-f451-4b59-b9b2-ae12962986e9
@@ -729,10 +736,13 @@ Commands:
   Enabled: true
   Handler: SmithItem
   HandlerConfig:
+    AllowCultureSelection: true
+    CultureGoldCost: 0
     GoldCost: 1000000
     ItemName: '{=}Smithed {ITEMNAME}'
     ItemPower: 1.25
     Type: Weapon
+    UseHeroCultureDefault: false
   Help: ''
   HideHelp: true
   ID: a2b33796-a5f0-4bc9-be7c-8e887d3f00c4
@@ -945,8 +955,8 @@ Commands:
   ID: 4e9393c0-e9f9-4045-b1a4-1a6ba58f0fba
   ModeratorOnly: false
   Name: reinforce
-  RespondInOverlay: false
-  RespondInTwitch: true
+  RespondInOverlay: true
+  RespondInTwitch: false
 - Documentation: ''
   Enabled: true
   Handler: TransferAction
@@ -958,8 +968,8 @@ Commands:
   ID: 37127dc4-6d2c-4fd2-9f70-c8198a5047b4
   ModeratorOnly: false
   Name: transfer
-  RespondInOverlay: false
-  RespondInTwitch: true
+  RespondInOverlay: true
+  RespondInTwitch: false
 - Documentation: ''
   Enabled: true
   Handler: FocusPoints
@@ -2091,6 +2101,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 30000
+      HearthDaily: 0
       ID: clan_renown_1
       LoyaltyDailyFlat: 0
       LoyaltyDailyPercent: 0
@@ -2098,6 +2109,7 @@ GlobalConfigs:
       MilitiaDailyPercent: 0
       Name: Clan Prestige
       PartySizeBonus: 0
+      PartySpeedBonus: 0
       ProsperityDailyFlat: 0
       ProsperityDailyPercent: 0
       RenownDaily: 1
@@ -2114,6 +2126,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 40000
+      HearthDaily: 0
       ID: clan_party_1
       LoyaltyDailyFlat: 0
       LoyaltyDailyPercent: 0
@@ -2121,6 +2134,7 @@ GlobalConfigs:
       MilitiaDailyPercent: 0
       Name: Recruitment Drive
       PartySizeBonus: 20
+      PartySpeedBonus: 0
       ProsperityDailyFlat: 0
       ProsperityDailyPercent: 0
       RenownDaily: 0
@@ -2137,6 +2151,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 50000
+      HearthDaily: 0
       ID: clan_settlements_1
       LoyaltyDailyFlat: 0.3
       LoyaltyDailyPercent: 0
@@ -2144,6 +2159,7 @@ GlobalConfigs:
       MilitiaDailyPercent: 0
       Name: Clan Development
       PartySizeBonus: 0
+      PartySpeedBonus: 0
       ProsperityDailyFlat: 0.5
       ProsperityDailyPercent: 0
       RenownDaily: 0
@@ -2208,6 +2224,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 15000
+      HearthDaily: 0
       ID: fief_loyalty_1
       LoyaltyDailyFlat: 0.5
       LoyaltyDailyPercent: 0
@@ -2229,6 +2246,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 20000
+      HearthDaily: 0
       ID: fief_prosperity_1
       LoyaltyDailyFlat: 0
       LoyaltyDailyPercent: 0
@@ -2250,6 +2268,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 12000
+      HearthDaily: 0
       ID: fief_security_1
       LoyaltyDailyFlat: 0
       LoyaltyDailyPercent: 0
@@ -2271,6 +2290,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 10000
+      HearthDaily: 0
       ID: fief_militia_1
       LoyaltyDailyFlat: 0
       LoyaltyDailyPercent: 0
@@ -2292,6 +2312,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 8000
+      HearthDaily: 0
       ID: fief_food_1
       LoyaltyDailyFlat: 0
       LoyaltyDailyPercent: 0
@@ -2329,6 +2350,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 100000
+      HearthDaily: 0
       ID: kingdom_influence_1
       InfluenceCost: 500
       InfluenceDaily: 2
@@ -2338,6 +2360,7 @@ GlobalConfigs:
       MilitiaDailyPercent: 0
       Name: Royal Authority
       PartySizeBonus: 0
+      PartySpeedBonus: 0
       ProsperityDailyFlat: 0
       ProsperityDailyPercent: 0
       RenownDaily: 0
@@ -2354,6 +2377,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 150000
+      HearthDaily: 0
       ID: kingdom_military_1
       InfluenceCost: 1000
       InfluenceDaily: 0
@@ -2363,6 +2387,7 @@ GlobalConfigs:
       MilitiaDailyPercent: 0
       Name: Kingdom Military Reform
       PartySizeBonus: 15
+      PartySpeedBonus: 0
       ProsperityDailyFlat: 0
       ProsperityDailyPercent: 0
       RenownDaily: 0
@@ -2379,6 +2404,7 @@ GlobalConfigs:
       FoodDailyPercent: 0
       GarrisonCapacityBonus: 0
       GoldCost: 200000
+      HearthDaily: 0
       ID: kingdom_prosperity_1
       InfluenceCost: 1500
       InfluenceDaily: 0
@@ -2388,6 +2414,7 @@ GlobalConfigs:
       MilitiaDailyPercent: 0
       Name: Kingdom Prosperity Initiative
       PartySizeBonus: 0
+      PartySpeedBonus: 0
       ProsperityDailyFlat: 0.5
       ProsperityDailyPercent: 0
       RenownDaily: 0

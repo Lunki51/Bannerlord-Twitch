@@ -5,14 +5,15 @@
     width: 100%;
     height: 30%;
     z-index: 9999;
-    background: rgba(0,0,0,0.3);
+    background: linear-gradient(180deg, rgba(15,10,8,0.95) 0%, rgba(25,20,15,0.92) 100%);
     border-bottom: 2px solid rgba(139,115,85,0.6);
     overflow: hidden;
-    pointer-events: all;
     display: flex;
     flex-direction: column;
     padding: 0;
     margin: 0;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+    pointer-events: none;
 }
 
     #campaign-map-container.hidden {
@@ -28,6 +29,7 @@
     flex-shrink: 0;
     line-height: 1.2;
     border-bottom: 1px solid rgba(139,115,85,0.4);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
 }
 
 #campaign-map-svg {
@@ -35,49 +37,16 @@
     height: 100%;
     flex-grow: 1;
     display: block;
-    background: rgba(26,26,26,0.4);
+    background: rgba(26,26,26,0.1);
 }
 
-/* Settlement markers */
+/* Settlement markers - no interaction */
 .settlement-marker {
-    pointer-events: all;
-    transition: all 0.2s ease;
-    cursor: pointer;
+    pointer-events: none;
 }
-
-    .settlement-marker:hover {
-        filter: brightness(1.5) drop-shadow(0 0 3px rgba(255,255,255,0.8));
-        transform: scale(1.2);
-    }
 
     .settlement-marker circle,
     .settlement-marker rect {
-        stroke: #fff;
+        stroke: rgba(255,255,255,0.9);
         stroke-width: 0.4;
     }
-
-/* Tooltip */
-#map-tooltip {
-    position: fixed;
-    background: rgba(0,0,0,0.95);
-    border: 2px solid #8b7355;
-    border-radius: 4px;
-    padding: 8px 12px;
-    pointer-events: none;
-    z-index: 10000;
-    display: none;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-}
-
-#tooltip-name {
-    color: #d4af37;
-    font-weight: bold;
-    font-size: 13px;
-    margin-bottom: 4px;
-}
-
-#tooltip-info {
-    color: #ccc;
-    font-size: 11px;
-    line-height: 1.6;
-}

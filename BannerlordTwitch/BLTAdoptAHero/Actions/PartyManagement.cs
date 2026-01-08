@@ -154,7 +154,7 @@ namespace BLTAdoptAHero.Actions
                             partyStats.Append("{=D3dcUxuj}Size: {size} | ".Translate(("size", target?.MemberRoster?.TotalManCount ?? 0)));
                         }
                     }
-                    if (party?.Army != null && (party.AttachedTo != null || party.AttachedParties.Count > 0))
+                    if (party?.Army != null)
                     {
                         partyStats.Append("{=CVzSgXhT}Army: {army}".Translate(("army", army?.Name?.ToString() ?? army?.LeaderParty?.Name?.ToString() ?? "Unknown army")));
                         partyStats.Append("{=d76wc5iS}[Strength: {strength} | ".Translate(("strength", Math.Round(army.EstimatedStrength).ToString())));
@@ -460,6 +460,11 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Not in a kingdom");
                             return;
                         }
+                        if (adoptedHero.Clan.IsUnderMercenaryService)
+                        {
+                            onFailure("Mercenaries cant create armies");
+                            return;
+                        }
                         if (adoptedHero.Clan.Kingdom.FactionsAtWarWith.Count == 0)
                         {
                             onFailure("No wars");
@@ -538,7 +543,7 @@ namespace BLTAdoptAHero.Actions
                             .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != party && p.Army == null && p.AttachedTo == null && p.LeaderHero != null && p.MapEvent == null && !p.IsDisbanding)
                             .ToMBList();
                         var armyModel = Campaign.Current.Models.ArmyManagementCalculationModel;
-                        var partyList = armyModel.GetMobilePartiesToCallToArmy(party);
+                        var partyList = armyModel.GetMobilePartiesToCallToArmy(party);                      
                         var mergedParties = sameClanParties
                             .Concat(partyList)
                             .Where(p => p != null)
@@ -552,7 +557,7 @@ namespace BLTAdoptAHero.Actions
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
 
-                        onSuccess($"Gathering {armyType} army({newArmy.LeaderPartyAndAttachedPartiesCount}) at {pos}");
+                        onSuccess($"Gathering {armyType} army({mergedParties.Count}) at {pos}");
                         break;
                     }
             }

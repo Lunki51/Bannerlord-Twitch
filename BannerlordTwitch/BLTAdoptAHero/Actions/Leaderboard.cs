@@ -46,9 +46,7 @@ namespace BLTAdoptAHero
         // --- Hero leaderboard ---
         private string BuildHeroLeaderboard(Hero userHero)
         {
-            var adoptedHeroes = Hero.AllAliveHeroes
-                .Where(h => h.IsAdopted())
-                .ToList();
+            var adoptedHeroes = BLTAdoptAHeroCampaignBehavior.GetAllAdoptedHeroes();
 
             string BuildStatLine(string label, Func<Hero, int> statFunc)
             {

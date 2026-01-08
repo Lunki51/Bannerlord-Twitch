@@ -56,11 +56,11 @@ namespace BLTAdoptAHero
 
                 if (diedInfo.killer != null)
                 {
-                    var weapon = diedInfo.blow.OverrideKillInfo.ToString() ?? "unknown";
-
+                    var weaponClass = (WeaponClass)diedInfo.blow.WeaponClass;
+                    string weaponName = weaponClass.ToString();
 
                     battlestring +=
-                        $" | Killed by {diedInfo.killer.Name} with {weapon}({diedInfo.blow.InflictedDamage})";
+                        $" | Killed by {diedInfo.killer.Name} with {weaponName}({diedInfo.blow.InflictedDamage})";
                 }
 
                 onFailure(battlestring);
