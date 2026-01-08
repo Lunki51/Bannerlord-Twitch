@@ -196,7 +196,7 @@ namespace BLTAdoptAHero.UI
                     minNormY = Math.Min(minNormY, settlement.Y);
                     maxNormY = Math.Max(maxNormY, settlement.Y);
 
-                    // Spread overlapping settlements
+                    //Spread overlapping settlements
                     var (spreadX, spreadY) = SpreadSettlement(settlement.X, settlement.Y, settlements);
                     settlement.X = spreadX;
                     settlement.Y = spreadY;
@@ -281,8 +281,8 @@ namespace BLTAdoptAHero.UI
         // Minimal spreading - we want to maintain the stretched layout
         private static (float x, float y) SpreadSettlement(float x, float y, List<SettlementData> existingSettlements)
         {
-            const float minDistance = 0.5f; // Minimum distance between settlements
-            const int maxIterations = 100; // Minimal iterations
+            const float minDistance = 1f; // Minimum distance between settlements
+            const int maxIterations = 5; // Minimal iterations
 
             for (int iteration = 0; iteration < maxIterations; iteration++)
             {
@@ -298,8 +298,8 @@ namespace BLTAdoptAHero.UI
                     {
                         // Small push to separate overlapping settlements
                         float overlap = minDistance - dist;
-                        float pushX = (dx / dist) * overlap * 0.2f;
-                        float pushY = (dy / dist) * overlap * 0.3f;
+                        float pushX = (dx / dist) * overlap;// * 0.01f;
+                        float pushY = (dy / dist) * overlap;// * 0.01f;
                         x += pushX;
                         y += pushY;
                         moved = true;
@@ -307,7 +307,7 @@ namespace BLTAdoptAHero.UI
                 }
 
                 // Keep within bounds - full X range, padded Y range
-                x = Math.Max(4f, Math.Min(96f, x));
+                x = Math.Max(3f, Math.Min(97f, x));
                 y = Math.Max(5f, Math.Min(90f, y));
 
                 if (!moved) break;
