@@ -51,7 +51,10 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.CalculateFinalSpeed(mobileParty, finalSpeed);
 
-            result.Add(UpgradeBehavior.Current.GetTotalPartySpeedBonus(mobileParty.LeaderHero), Text);
+            if (UpgradeBehavior.Current != null)
+            {
+                result.Add(UpgradeBehavior.Current.GetTotalPartySpeedBonus(mobileParty.LeaderHero), Text);
+            }
 
             return result;
         }
