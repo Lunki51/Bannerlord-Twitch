@@ -39,9 +39,8 @@ namespace BLTAdoptAHero.Models
         {
             _previous = previous;
         }
-        public override float BaseSpeed { get; }
-
-        public override float MinimumSpeed { get; }
+        public override float BaseSpeed => _previous.BaseSpeed;
+        public override float MinimumSpeed => _previous.MinimumSpeed;
 
         public override ExplainedNumber CalculateBaseSpeed(MobileParty party, bool includeDescriptions = false, int additionalTroopOnFootCount = 0, int additionalTroopOnHorseCount = 0)
         {
