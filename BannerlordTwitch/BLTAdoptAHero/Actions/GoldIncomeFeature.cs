@@ -179,7 +179,7 @@ namespace BLTAdoptAHero.Actions
                 vassalincome = 0;
             }
             onSuccess(
-                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}{(bonusmerc >= 0 ? $"(+{bonusmerc})" : "")}/day | " + 
+                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}{(bonusmerc > 0 ? $"(+{bonusmerc})" : "")}/day | " + 
                 $"Total income from Vassals' contracts: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day"
                 );
         }
