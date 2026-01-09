@@ -445,7 +445,7 @@ namespace BLTAdoptAHero
         public int GetFlatClanMercBonus(Clan clan)
             => SumClanInt(clan, c => c.MercIncomeFlat);
         public float GetPercentClanMercBonus(Clan clan)
-            => SumClanFloat(clan, c => c.MercIncomePercent);
+            => 1f + SumClanFloat(clan, c => c.MercIncomePercent);
 
         public int GetFlatMercBonus(Hero hero)
         {
