@@ -167,7 +167,8 @@ namespace BLTAdoptAHero.Actions
 
         private void ShowMercIncome(Clan clan, Action<string> onSuccess)
         {
-            int income = CalculateMercenaryIncome(clan);
+            int income = CalculateMercenaryIncome(clan) - (int)(UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
+            int bonusmerc = (int)(UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
             int vassalincome;
             if (VassalBehavior.Current != null)
             {
@@ -178,7 +179,7 @@ namespace BLTAdoptAHero.Actions
                 vassalincome = 0;
             }
             onSuccess(
-                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}/day | " + 
+                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}(+{bonusmerc})/day | " + 
                 $"Total income from Vassals' contracts: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day"
                 );
         }

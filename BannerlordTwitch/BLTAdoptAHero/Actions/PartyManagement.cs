@@ -436,7 +436,7 @@ namespace BLTAdoptAHero.Actions
                         double tier = Math.Round(party.MemberRoster.GetTroopRoster().Sum(r => r.Character.Tier * r.Number) / (double)party.MemberRoster.GetTroopRoster().Sum(r => r.Number),1);
 
                         partyStats.Append($"Troops: {composition}(avg Tier {Math.Round(tier, 1)}) | ");
-                        partyStats.Append($"Speed: {Math.Round(party.Speed, 1)} | ");
+                        partyStats.Append($"Speed: {Math.Round(party.Speed, 1)} + {UpgradeBehavior.Current.GetTotalPartySpeedBonus(party.ActualClan.Leader)} | ");
                         partyStats.Append($"Food: {(int)party.Food}({Math.Round(party.FoodChange, 1)}) | ");
                         partyStats.Append($"Morale: {(int)party.Morale} | ");
                         partyStats.Append($"Sight: {Math.Round(party.SeeingRange, 1)} | ");
