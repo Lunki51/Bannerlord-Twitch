@@ -380,6 +380,7 @@ namespace BLTAdoptAHero
     [HarmonyPatch(typeof(Village), "GetHearthLevel")]
     public class HearthExpansionPatch
     {
+        [HarmonyPrefix]
         public static bool GetHearthLevelPrefix(Village __instance, ref int __result)
         {
             if (__instance.Hearth >= BLTAdoptAHeroModule.CommonConfig.HearthPerVillageTier)
