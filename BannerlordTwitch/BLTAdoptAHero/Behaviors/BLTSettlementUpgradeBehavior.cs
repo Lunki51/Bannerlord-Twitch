@@ -80,13 +80,13 @@ namespace BLTAdoptAHero.Behaviors
             if (foodFlat != 0f)
             {
                 // Prevent overflow by clamping before assignment
-                town.FoodStocks = (int)Math.Min((long)town.FoodStocks + (long)foodFlat, maxLimit);
+                town.FoodStocks = Math.Max((int)Math.Min((long)town.FoodStocks + (long)foodFlat, maxLimit), 0);
             }
 
             if (foodPercent != 0f)
             {
                 long newValue = (long)(town.FoodStocks * (1f + foodPercent / 100f));
-                town.FoodStocks = (int)Math.Min(newValue, maxLimit);
+                town.FoodStocks = Math.Max((int)Math.Min(newValue, maxLimit), 0);
             }
 
 

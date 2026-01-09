@@ -376,6 +376,26 @@ namespace BLTAdoptAHero
             return false; // Skip original method
         }
     }
+
+    [HarmonyPatch(typeof(Village), "GetHearthLevel")]
+    public class HearthExpansionPatch
+    {
+        public static bool GetHearthLevelPrefix(Village __instance, ref int __result)
+        {
+            if (__instance.Hearth >= BLTAdoptAHeroModule.CommonConfig.HearthPerVillageTier)
+            {
+                __result = (int)(__instance.Hearth / BLTAdoptAHeroModule.CommonConfig.HearthPerVillageTier);
+            }
+            else
+            {
+                __result = 0;
+            }
+
+            // Return false to prevent the original method from running
+            return false;
+        }
+    }
+
     #endregion
 
 }

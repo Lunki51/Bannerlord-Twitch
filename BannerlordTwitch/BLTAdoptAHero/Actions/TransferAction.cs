@@ -260,6 +260,13 @@ namespace BLTAdoptAHero.Actions
 
             // If issuer's clan is the owner, allow them to transfer (they can give away their own fief)
             bool issuerOwnsSettlement = adoptedHero.Clan != null && adoptedHero.Clan == owningClan;
+            foreach (Clan vassal in VassalBehavior.Current.GetVassalClans(adoptedHero.Clan))
+            {
+                if (vassal == owningClan)
+                {
+                    issuerOwnsSettlement = true;
+                }
+            }
 
             // Kingdom-level allowance: if enabled, owner kingdom's ruler may transfer any owned settlement in their kingdom
             bool issuerIsOwnerKing = false;

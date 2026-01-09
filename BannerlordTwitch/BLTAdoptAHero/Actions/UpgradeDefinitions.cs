@@ -332,11 +332,29 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(2), UsedImplicitly]
         public int PartySizeBonus { get; set; } = 0;
 
-        [LocDisplayName("{=BLT_PartySize}Party Movement Speed Bonus"),
+        [LocDisplayName("{=BLT_PartySpeed}Party Movement Speed Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
-         LocDescription("{=BLT_PartySizeDesc}Additional Flat Movement Speed for all clan parties"),
+         LocDescription("{=BLT_PartySpeedDesc}Additional flat movement speed for all clan parties"),
          PropertyOrder(3), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_MercOnly}Mercenary Only Upgrade"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription("{=BLT_MercOnlyDesc}Makes this upgrade only apply when the clan is a mercenary"),
+         PropertyOrder(4), UsedImplicitly, DefaultValue(false)]
+        public bool MercOnly { get; set; } = false;
+
+        [LocDisplayName("{=BLT_MercFlat}Merc Income (Flat)"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocDescription("{=BLT_MercFlatDesc}Flat daily gold bonus from clan's mercenary contract"),
+         PropertyOrder(5), UsedImplicitly, DefaultValue(0)]
+        public int MercIncomeFlat { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_MercPercent}Merc Income (Percent)"),
+         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocDescription("{=BLT_MercPercentDesc}Percent daily gold bonus from clan's mercenary contract"),
+         PropertyOrder(5), UsedImplicitly, DefaultValue(0)]
+        public int MercIncomePercent { get; set; } = 0;
 
         // Settlement effects (applied to all clan settlements)
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
@@ -405,7 +423,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(11), UsedImplicitly]
         public int TaxIncomeFlat { get; set; } = 0;
 
-        [LocDisplayName("{=BLT_TaxPercent}Tax Income (%)"),
+        [LocDisplayName("{=BLT_TaxPercent}Tax Income (%) (CURRENTLY DISABLED)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
          LocDescription("{=BLT_TaxPercentDesc}Percentage bonus to tax income for all clan settlements"),
          PropertyOrder(12), UsedImplicitly]
@@ -431,6 +449,9 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day";
             if (PartySizeBonus != 0) desc += $"\n  Party Size: {(PartySizeBonus > 0 ? "+" : "")}{PartySizeBonus}";
             if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
+            desc += $"\n  Mercenary Only: {MercOnly}";
+            if (MercIncomeFlat != 0) desc += $"\n  Mercenary Income Bonus: {(MercIncomeFlat > 0 ? "+" : "")}{MercIncomeFlat}/day";
+            if (MercIncomePercent != 0) desc += $"\n  Mercenary Income Bonus: {(MercIncomePercent > 0 ? "+" : "")}{MercIncomePercent}/day";
 
             desc += "\n\nSettlement Effects (All Clan Settlements):";
             if (LoyaltyDailyFlat != 0) desc += $"\n  Loyalty: {(LoyaltyDailyFlat > 0 ? "+" : "")}{LoyaltyDailyFlat}/day";
@@ -487,9 +508,9 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(2), UsedImplicitly]
         public int PartySizeBonus { get; set; } = 0;
 
-        [LocDisplayName("{=BLT_PartySize}Party Size Bonus"),
+        [LocDisplayName("{=BLT_PartySpeed}Party Speed Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
-         LocDescription("{=BLT_PartySizeDesc}Additional party size limit for all kingdom parties"),
+         LocDescription("{=BLT_PartySpeedDesc}Additional flat party speed for all kingdom parties"),
          PropertyOrder(2), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
 
