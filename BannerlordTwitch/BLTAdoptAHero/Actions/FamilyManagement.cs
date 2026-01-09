@@ -94,32 +94,6 @@ namespace BLTAdoptAHero.Actions
                     onFailure("{=NoSpouse}You have no spouse".Translate());
                     return;
                 }
-                else if (adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count > 0)
-                {
-                    var sB = new StringBuilder();
-                    sB.Append("{=ChildrenList}Ex-spouses: ".Translate());
-
-                    var spouses = adoptedHero.ExSpouses.OrderByDescending(c => c.Age).ToList();
-                    for (int i = 0; i < spouses.Count; i++)
-                    {
-                        var exSpouse = spouses[i];
-                        sB.Append(CleanName(exSpouse.Name.ToString()));
-                        sB.Append($" ({(int)exSpouse.Age}, ");
-                        sB.Append(exSpouse.IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
-                        if (exSpouse.Spouse != null)
-                            sB.Append(", 💍");
-                        if (exSpouse.IsDead)
-                            sB.Append(", 💀");
-                        if (exSpouse.Children.Count > 0)
-                            sB.Append($", 👪:{exSpouse.Children.Count}");
-                        sB.Append(")");
-
-                        if (i < spouses.Count - 1)
-                        {
-                            sB.Append(", ");
-                        }
-                    }
-                }
 
                 if (args.Length < 3)
                 {
@@ -166,7 +140,29 @@ namespace BLTAdoptAHero.Actions
             {
                 if (adoptedHero.ExSpouses.Count > 0)
                 {
-                    onFailure("{=SpouseDied}Your spouse has died or divorced you".Translate());
+                    var sB = new StringBuilder();
+                    sB.Append("{=ChildrenList}Ex-spouses: ".Translate());
+
+                    var spouses = adoptedHero.ExSpouses.OrderByDescending(c => c.Age).ToList();
+                    for (int i = 0; i < spouses.Count; i++)
+                    {
+                        var exSpouse = spouses[i];
+                        sB.Append(CleanName(exSpouse.Name.ToString()));
+                        sB.Append($" ({(int)exSpouse.Age}, ");
+                        sB.Append(exSpouse.IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
+                        if (exSpouse.Spouse != null)
+                            sB.Append(", 💍");
+                        if (exSpouse.IsDead)
+                            sB.Append(", 💀");
+                        if (exSpouse.Children.Count > 0)
+                            sB.Append($", 👪:{exSpouse.Children.Count}");
+                        sB.Append(")");
+
+                        if (i < spouses.Count - 1)
+                        {
+                            sB.Append(", ");
+                        }
+                    }
                 }
                 else
                 {
