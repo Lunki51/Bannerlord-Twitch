@@ -239,7 +239,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (!targetSettlement.IsUnderSiege || targetSettlement.SiegeEvent == null)
+            if (targetSettlement.IsUnderSiege || targetSettlement.SiegeEvent != null)
             {
                 onFailure($"{targetSettlement.Name} is under siege.");
                 return;
