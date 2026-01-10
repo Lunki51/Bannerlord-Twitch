@@ -114,16 +114,10 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool RequireClanLeader { get; set; } = true;
 
-            [LocDisplayName("{=OnlyUnderSiege}Only Under Siege"),
-             LocCategory("Restrictions", "{=RestrictionsCat}Restrictions"),
-             LocDescription("{=OnlyUnderSiegeDesc}Only allow adding reinforcements when settlement is under siege"),
-             PropertyOrder(2), UsedImplicitly]
-            public bool OnlyUnderSiege { get; set; } = false;
-
             [LocDisplayName("{=AllowKingdomLeaders}Allow Kingdom Leaders"),
              LocCategory("Restrictions", "{=RestrictionsCat}Restrictions"),
              LocDescription("{=AllowKingdomLeadersDesc}Allow kingdom rulers to reinforce any settlement owned by their kingdom"),
-             PropertyOrder(3), UsedImplicitly]
+             PropertyOrder(2), UsedImplicitly]
             public bool AllowKingdomLeaders { get; set; } = false;
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
@@ -245,9 +239,9 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (settings.OnlyUnderSiege && (!targetSettlement.IsUnderSiege || targetSettlement.SiegeEvent == null))
+            if (targetSettlement.IsUnderSiege || targetSettlement.SiegeEvent != null)
             {
-                onFailure($"{targetSettlement.Name} is not under siege.");
+                onFailure($"{targetSettlement.Name} is under siege.");
                 return;
             }
 

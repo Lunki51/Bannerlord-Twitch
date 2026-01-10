@@ -148,7 +148,11 @@ namespace BLTAdoptAHero.Behaviors
             // Calculate mercenary income for this BLT clan (not taxed)
             if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
             {
-                total += GoldIncomeAction.CalculateMercenaryIncome(clan);
+                int MercUpBonus = UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader);
+                float MercUpMult = UpgradeBehavior.Current.GetPercentClanMercBonus(clan);
+
+                total += (int)(GoldIncomeAction.CalculateMercenaryIncome(clan) * MercUpMult);
+                total += (int)(MercUpBonus * MercUpMult);
             }
 
             // Calculate bonus from vassal mercenary contracts (not taxed)

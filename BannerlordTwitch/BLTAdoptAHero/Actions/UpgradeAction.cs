@@ -477,6 +477,14 @@ namespace BLTAdoptAHero.Actions
 
             // Check permissions
             bool isOwner = settlement.OwnerClan == hero.Clan;
+            foreach (Clan vassal in VassalBehavior.Current.GetVassalClans(hero.Clan))
+            {
+                if (vassal == settlement.OwnerClan)
+                {
+                    isOwner = true;
+                }
+            }
+
             bool isKingdomLeader = settings.AllowKingdomLeadersForFiefs &&
                                    hero.Clan?.Kingdom != null &&
                                    hero.Clan.Kingdom.Leader == hero &&

@@ -232,11 +232,11 @@ namespace BLTAdoptAHero
 
                         foreach (var grandchild in child.Children)
                         {
-                            if (child == null || child.IsDead || child.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                            if (grandchild == null || grandchild.IsDead || grandchild.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
                                 continue;
 
                             // Apply growth rate
-                            child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
+                            grandchild.SetBirthDay(grandchild.BirthDay - CampaignTime.Days(growthRatePerDay));
 
                         }
                     }

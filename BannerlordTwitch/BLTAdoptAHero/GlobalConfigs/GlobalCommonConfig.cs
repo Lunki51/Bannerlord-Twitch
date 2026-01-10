@@ -82,10 +82,16 @@ namespace BLTAdoptAHero
         public bool ShowCampaignMapOverlay { get; set; } = false;
 
         [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
+         LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Enable or disable the vanilla maximum of 300 foodstocks in towns and castles for all settlements."),
-        LocCategory("General", "{=C5T6nnix}General"),
          PropertyOrder(7)]
         public bool UncapFoodStocks { get; set; } = false;
+
+        [LocDisplayName("{=}Hearth Per Village Tier"),
+         LocCategory("General", "{=C5T6nnix}General"),
+         LocDescription("{=}How much hearth is required per village prosperity level (affects food and goods production)."),
+         PropertyOrder(8)]
+        public float HearthPerVillageTier { get; set; } = 300f;
 
         #endregion
 
