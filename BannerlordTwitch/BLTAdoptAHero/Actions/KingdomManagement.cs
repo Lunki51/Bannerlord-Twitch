@@ -155,33 +155,33 @@ namespace BLTAdoptAHero.Actions
             [LocDisplayName("{=BLT_MaxVassals}Max vassal"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
              LocDescription("{=BLT_MaxVassalsDesc}Max vassal clans"),
-             PropertyOrder(4), UsedImplicitly]
+             PropertyOrder(2), UsedImplicitly]
             public int VassalAmount { get; set; } = 3;
 
             [LocDisplayName("{=6PUxQuLg}Gold Cost"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
              LocDescription("{=TESTING}Cost of creating a vassal clan"),
-             PropertyOrder(4), UsedImplicitly]
+             PropertyOrder(3), UsedImplicitly]
             public int VassalPrice { get; set; } = 250000;
 
             [LocDisplayName("{=TESTING}Vassal Merc Income Share %"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
              LocDescription("{=TESTING}Percentage of vassal mercenary income shared with master (0.0 - 2.0, 0.25 = 25%)"),
-             PropertyOrder(5), UsedImplicitly,
+             PropertyOrder(4), UsedImplicitly,
              Range(0f, 2f)]
             public float VassalMercIncomeShare { get; set; } = 0.25f; // 25% default
 
             [LocDisplayName("{=TESTING}Vassal Fief Income Share %"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
              LocDescription("{=TESTING}Percentage of vassal fief income shared with master (0.0 - 2.0, 0.25 = 25%)"),
-             PropertyOrder(6), UsedImplicitly,
+             PropertyOrder(5), UsedImplicitly,
              Range(0f, 2f)]
             public float VassalFiefIncomeShare { get; set; } = 0.25f; // 25% default
 
             [LocDisplayName("{=TESTING}King Vassals Only"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
              LocDescription("{=TESTING}Prevents anyone except kings to create vassal clans"),
-             PropertyOrder(7), UsedImplicitly]
+             PropertyOrder(6), UsedImplicitly]
             public bool KingVassalsOnly { get; set; } = false;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -867,9 +867,14 @@ namespace BLTAdoptAHero.Actions
             var splitargs = args.Split(' ');
             var childName = splitargs[0];
             var setname = string.Join(" ", splitargs.Skip(1)).Trim();
-            if (settings.KingVassalsOnly && adoptedHero.Clan.Kingdom == null || adoptedHero.Clan.Kingdom.Leader != adoptedHero)
+            if (settings.KingVassalsOnly && adoptedHero.Clan.Kingdom.Leader != adoptedHero)
             {
                 onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
                 return;
             }
             if (!adoptedHero.IsClanLeader)

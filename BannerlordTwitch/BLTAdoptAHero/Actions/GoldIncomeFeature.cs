@@ -167,8 +167,10 @@ namespace BLTAdoptAHero.Actions
 
         private void ShowMercIncome(Clan clan, Action<string> onSuccess)
         {
-            int income = CalculateMercenaryIncome(clan);
+            int income = (int)(CalculateMercenaryIncome(clan) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
+            int bonusmerc = (int)(UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
             int vassalincome;
+
             if (VassalBehavior.Current != null)
             {
                 vassalincome = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
@@ -178,7 +180,7 @@ namespace BLTAdoptAHero.Actions
                 vassalincome = 0;
             }
             onSuccess(
-                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}/day | " + 
+                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}{(bonusmerc > 0 ? $"(+{bonusmerc})" : "")}/day | " + 
                 $"Total income from Vassals' contracts: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day"
                 );
         }
@@ -221,22 +223,8 @@ namespace BLTAdoptAHero.Actions
 
             // Multiply may be large, keep in int (Bannerlord uses int gold)
             long value = (long)contract * (long)mult;
-            int MercUpBonus = UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader);
-            float MercUpMult = UpgradeBehavior.Current.GetPercentClanMercBonus(clan);
-            if (value > BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome)
-            {
-                if (BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome < int.MaxValue) 
-                {
-                    value = BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome += MercUpBonus;
-                    value = (int)(value * MercUpMult);
-                }
-                else
-                {
-                    return int.MaxValue;
-                }
-            }
 
-            return (int)value;
+            return Math.Min(Math.Min((int)value, BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome), int.MaxValue);
         }
     }
 }
