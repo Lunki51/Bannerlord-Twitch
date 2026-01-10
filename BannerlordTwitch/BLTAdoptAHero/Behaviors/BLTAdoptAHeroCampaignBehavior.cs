@@ -494,13 +494,8 @@ namespace BLTAdoptAHero
                     => h.Value.IsRetiredOrDead
                        && (string.Equals(h.Key.FirstName?.Raw(), name, StringComparison.CurrentCultureIgnoreCase)
                            || string.Equals(h.Value.Owner, name, StringComparison.CurrentCultureIgnoreCase) 
-                            && !h.Key.IsDead))
+                            ))
                 .Key;
-
-            if (foundHero?.IsDead == true)
-            {
-                return null;
-            }
 
             return foundHero;
         }
