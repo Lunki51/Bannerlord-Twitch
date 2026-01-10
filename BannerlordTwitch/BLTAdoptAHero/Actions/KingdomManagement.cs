@@ -887,7 +887,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=ETfJQatX}Usage: (vassal) (hero name) (clan name)".Translate());
                 return;
             }
-            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString().ToLower() == setname.ToLower() || c.Name.ToString().ToLower() == $"[Vassal] {setname.ToLower()}" || c.Name.ToString().ToLower() == $"[BLT Clan] {setname.ToLower()}");
+            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString().ToLower() == setname.ToLower() || c.Name.ToString().ToLower() == $"[vassal] {setname.ToLower()}" || c.Name.ToString().ToLower() == $"[blt clan] {setname.ToLower()}");
             if (existingClan != null)
             {
                 onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", setname)));
@@ -946,7 +946,10 @@ namespace BLTAdoptAHero.Actions
             {
                 HeroFeatures.SpawnSpouse(vassal, vassal.Culture);
             }
-
+            if (vassal.GovernorOf != null)
+            {
+                ChangeGovernorAction.RemoveGovernorOf(vassal);
+            }
             var fullClanName = $"[Vassal] {setname}";
             var newClan = Clan.CreateClan(fullClanName);
             newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
@@ -965,6 +968,7 @@ namespace BLTAdoptAHero.Actions
             vassal.Clan = newClan;
             if (vassal.Spouse != null)
             {
+                
                 vassal.Spouse.Clan = newClan;
             }
             if (vassal.Children.Count > 0)

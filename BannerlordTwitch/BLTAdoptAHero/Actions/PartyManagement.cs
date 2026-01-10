@@ -15,9 +15,11 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
+using TaleWorlds.CampaignSystem.GameState;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.CampaignBehaviors.AiBehaviors;
 using TaleWorlds.Core;
 using Helpers;
 using TaleWorlds.Library;
@@ -490,7 +492,7 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Your party is busy.");
                             return;
                         }
-                        Army.ArmyTypes armyType;
+                        Army.ArmyTypes armyType = Army.ArmyTypes.Patrolling;
                         if (splitArgs.Length < 2)
                         {
                             onFailure("Specify an army type: defend/siege/patrol");
@@ -499,27 +501,45 @@ namespace BLTAdoptAHero.Actions
                         switch (desiredName)
                         {
                             case "siege":
-                                armyType = Army.ArmyTypes.Besieger;
-                                break;
+                                {
+                                    armyType = Army.ArmyTypes.Besieger;
+                                    break;
+                                }                                
                             //case "raid":
                             //    armyType = Army.ArmyTypes.Raider;
                             //    break;
                             case "defend":
-                                armyType = Army.ArmyTypes.Defender;
-                                break;
-                            case "patrol":
-                                armyType = Army.ArmyTypes.Patrolling;
-                                break;
-                            //case "dismiss:":
-                            //    {
-                            //        
-                            //        if (army != null && army.LeaderParty == party)
-                            //        {
-                            //            army.
-                            //        }
-                            //        break;
-                            //    }
+                                {
+                                    armyType = Army.ArmyTypes.Defender;
+                                    break;
+                                }
                                 
+                            case "patrol":
+                                {
+                                    armyType = Army.ArmyTypes.Patrolling;
+                                    break;
+                                }
+
+                            case "disband:":
+                                {
+
+                                    if (army != null && army.LeaderParty == party && party.MapEvent != null)
+                                    {
+                                        DisbandArmyAction.ApplyByUnknownReason(army);
+                                        onSuccess("Disbanded army");
+                                        return;
+                                    }
+                                    //else if (army != null && army.LeaderParty != party && army.LeaderParty != MobileParty.MainParty && party.AttachedTo != null)
+                                    //{
+                                    //    army.                              
+                                    //}
+                                    else
+                                    {
+                                        onFailure("Cannot disband army at this moment");
+                                    }
+                                    break;
+                                }
+
                             default:
                                 onFailure($"Invalid army type: {desiredName}");
                                 return;
@@ -552,8 +572,6 @@ namespace BLTAdoptAHero.Actions
                         
                         adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType, mergedParties);
                         Army newArmy = party.Army;
-
-                        //int addedPartiesCount = 0;
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
 
