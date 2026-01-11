@@ -362,6 +362,7 @@
     <Compile Include="Actions\RetireMyHero.cs" />
     <Compile Include="Actions\AuctionItem.cs" />
     <Compile Include="Actions\SetHeroClass.cs" />
+    <Compile Include="Actions\SimpleDiplomacy.cs" />
     <Compile Include="Actions\SkillXP.cs" />
     <Compile Include="Actions\SmithItem.cs" />
     <Compile Include="Actions\SummonHero.cs" />
@@ -378,6 +379,8 @@
     <Compile Include="Behaviors\BLTAdoptAHeroCampaignBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCommonMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTAdoptAHeroCustomMissionBehavior.cs" />
+    <Compile Include="Behaviors\BLTAllianceBehavior.cs" />
+    <Compile Include="Behaviors\BLTDiplomacyExtensions.cs" />
     <Compile Include="Behaviors\BLTHeroWidgetBehavior.cs" />
     <Compile Include="Behaviors\BLTSettlementUpgradeBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentBetMissionBehavior.cs" />
@@ -391,6 +394,7 @@
     <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\BLTDiplomacyHelper.cs" />
+    <Compile Include="Behaviors\BLTTreatyManager.cs" />
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
@@ -403,6 +407,7 @@
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroPowerConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalTournamentConfig.cs" />
+    <Compile Include="Models\BLTTreatyData.cs" />
     <Compile Include="Models\BLTUpgradeModels.cs" />
     <Compile Include="Overlay\CampaignMap\MapHub.cs" />
     <Compile Include="Overlay\MissionInfo\MissionInfo.cs" />
