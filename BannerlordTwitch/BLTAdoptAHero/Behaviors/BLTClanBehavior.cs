@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
 using BannerlordTwitch.Util;
@@ -13,7 +14,6 @@ namespace BLTAdoptAHero
 {
     public class BLTClanBehavior : CampaignBehaviorBase
     {
-        public BLTMarriageBehavior MarriageBehavior { get; } = new BLTMarriageBehavior();
         private BLTFamily _bltFamily;
         private CampaignTime _lastFamilyInitTime;
         public BLTSocialSecurity SocialSecurity { get; } = new BLTSocialSecurity();
@@ -22,9 +22,7 @@ namespace BLTAdoptAHero
 
         public override void RegisterEvents()
         {
-            MarriageBehavior.RegisterEvents();
             SocialSecurity.RegisterEvents();
-            //PartyCheck.RegisterEvents();
             _Prisoner.RegisterEvents();
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, () =>
             {
@@ -51,43 +49,7 @@ namespace BLTAdoptAHero
         {
 
         }
-
-        public class BLTMarriageBehavior
-        {
-            private readonly Dictionary<Hero, Clan> _previousClan = new();
-            public void RegisterEvents()
-            {
-                CampaignEvents.OnHeroChangedClanEvent.AddNonSerializedListener(this, OnHeroChangedClanEvent);
-                CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, OnHeroesMarried);
-            }
-            private void OnHeroChangedClanEvent(Hero hero, Clan oldClan)
-            {
-                if (hero != null && !_previousClan.ContainsKey(hero))
-                    _previousClan[hero] = oldClan;
-            }
-            private void OnHeroesMarried(Hero hero1, Hero hero2, bool showNotification)
-            {
-                _previousClan.TryGetValue(hero1, out Clan old1);
-                _previousClan.TryGetValue(hero2, out Clan old2);
-
-                bool h1WasBlt = old1?.Leader.IsAdopted() ?? false;
-                bool h2WasBlt = old2?.Leader.IsAdopted() ?? false;
-
-                if (h1WasBlt && !h2WasBlt && !hero2.IsClanLeader)
-                {
-                    hero1.Clan = old1;
-                    hero2.Clan = old1;
-                }
-                else if (h2WasBlt && !h1WasBlt && !hero1.IsClanLeader)
-                {
-                    hero1.Clan = old2;
-                    hero2.Clan = old2;
-                }
-
-                _previousClan.Remove(hero1);
-                _previousClan.Remove(hero2);
-            }
-        }
+        
 
         public class BLTFamily
         {
@@ -280,63 +242,7 @@ namespace BLTAdoptAHero
                 }
             }
         }
-        //public class FIefs
-        //{
-        //    ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail
-        //}
-        //public class BLTPartyCheck
-        //{
-        //    public void RegisterEvents()
-        //    {
-        //        CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
-        //    }
 
-        //public override void SyncData(IDataStore dataStore) { }
-
-        //private void OnDailyTick()
-        //{
-
-        //    foreach (var party in MobileParty.All)
-        //    {
-        //        if (party?.LeaderHero == null)
-        //            continue;
-
-        //        Hero leader = party.LeaderHero;
-
-        //        // Only apply to adopted heroes
-        //        if (!HeroExtensions.IsAdopted(leader))
-        //            continue;
-
-        //        //CheckAndFixParty(party);
-        //    }
-
-        //}
-
-        //private void CheckAndFixParty(MobileParty party)
-        //{
-        //    var ai = party.Ai;
-        //    if (ai == null)
-        //        return;
-
-        //    double hoursStationary = 0;
-        //    if (party.StationaryStartTime != CampaignTime.Zero || party.StationaryStartTime != null)
-        //        hoursStationary = (CampaignTime.Now.ToHours - party.StationaryStartTime.ToHours);
-        //    bool isHolding = ai.DefaultBehavior == AiBehavior.Hold && hoursStationary > CampaignTime.HoursInDay;
-        //    bool isStuck = ai.ForceAiNoPathMode || ai.Path == null || ai.NeedTargetReset;
-
-
-        //    if (isHolding || isStuck)
-        //    {
-        //        Log.LogFeedEvent(
-        //            $"[BLT] Resetting AI for {party.Name} (Behavior: {ai.DefaultBehavior}, Stuck: {hoursStationary} hours)");
-
-        //        ai.DisableAi();
-        //        ai.EnableAi();
-        //        ai.RethinkAtNextHourlyTick = true;
-        //        ai.CheckPartyNeedsUpdate();
-        //    }
-        //}
-        //}
         public class BLTPrisoner
         {
             public void RegisterEvents()
