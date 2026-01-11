@@ -434,10 +434,10 @@ namespace BLTAdoptAHero
             {
                 var sb = new StringBuilder();
                 sb.AppendLine($"WARNING: Declaring war on {target.Name}");
-                sb.AppendLine($"Your strength: {(int)kingdom.TotalStrength}");
+                sb.AppendLine($"Your strength: {(int)kingdom.CurrentTotalStrength}");
 
-                int totalEnemyStrength = (int)target.TotalStrength;
-                sb.Append($"{target.Name}: {(int)target.TotalStrength}");
+                int totalEnemyStrength = (int)target.CurrentTotalStrength;
+                sb.Append($"{target.Name}: {(int)target.CurrentTotalStrength}");
 
                 if (targetAllies.Count > 0)
                 {
@@ -448,8 +448,8 @@ namespace BLTAdoptAHero
                         var ally = alliance.GetOtherKingdom(target);
                         if (ally != null)
                         {
-                            sb.AppendLine($"  - {ally.Name}: {(int)ally.TotalStrength}");
-                            totalEnemyStrength += (int)ally.TotalStrength;
+                            sb.AppendLine($"  - {ally.Name}: {(int)ally.CurrentTotalStrength}");
+                            totalEnemyStrength += (int)ally.CurrentTotalStrength;
                         }
                     }
                 }
@@ -1108,7 +1108,6 @@ namespace BLTAdoptAHero
                     }
                 }
 
-                // Tributes
                 var tributesPaying = BLTTreatyManager.Current.GetTributesPayedBy(kingdom);
                 var tributesReceiving = BLTTreatyManager.Current.GetTributesReceivedBy(kingdom);
 
@@ -1118,12 +1117,12 @@ namespace BLTAdoptAHero
                     foreach (var tribute in tributesPaying)
                     {
                         var receiver = tribute.GetReceiver();
-                        sb.AppendLine($"  • Paying {tribute.DailyAmount}{Naming.Gold}/day to {receiver.Name} - {tribute.RemainingDays} days remaining");
+                        sb.AppendLine($"  • Paying {tribute.DailyAmount}{Naming.Gold}/day to {receiver.Name} - {tribute.DaysRemaining()} days remaining");
                     }
                     foreach (var tribute in tributesReceiving)
                     {
                         var payer = tribute.GetPayer();
-                        sb.AppendLine($"  • Receiving {tribute.DailyAmount}{Naming.Gold}/day from {payer.Name} - {tribute.RemainingDays} days remaining");
+                        sb.AppendLine($"  • Receiving {tribute.DailyAmount}{Naming.Gold}/day from {payer.Name} - {tribute.DaysRemaining()} days remaining");
                     }
                 }
 
@@ -1190,7 +1189,7 @@ namespace BLTAdoptAHero
             foreach (var war in wars)
             {
                 var enemies = war.GetEnemies(kingdom);
-                string enemyList = string.Join(", ", enemies.Select(e => $"{e.Name} ({(int)e.TotalStrength})"));
+                string enemyList = string.Join(", ", enemies.Select(e => $"{e.Name} ({(int)e.CurrentTotalStrength})"));
                 sb.AppendLine($"• {enemyList}");
             }
             onSuccess(sb.ToString());
@@ -1256,7 +1255,7 @@ namespace BLTAdoptAHero
                 foreach (var tribute in paying)
                 {
                     var receiver = tribute.GetReceiver();
-                    sb.AppendLine($"• {tribute.DailyAmount}{Naming.Gold}/day to {receiver.Name} - {tribute.RemainingDays} days");
+                    sb.AppendLine($"• {tribute.DailyAmount}{Naming.Gold}/day to {receiver.Name} - {tribute.DaysRemaining()} days");
                 }
             }
 
@@ -1266,7 +1265,7 @@ namespace BLTAdoptAHero
                 foreach (var tribute in receiving)
                 {
                     var payer = tribute.GetPayer();
-                    sb.AppendLine($"• {tribute.DailyAmount}{Naming.Gold}/day from {payer.Name} - {tribute.RemainingDays} days");
+                    sb.AppendLine($"• {tribute.DailyAmount}{Naming.Gold}/day from {payer.Name} - {tribute.DaysRemaining()} days");
                 }
             }
 

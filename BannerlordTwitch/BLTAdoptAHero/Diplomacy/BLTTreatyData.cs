@@ -2,13 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using TaleWorlds.CampaignSystem;
-using TaleWorlds.Core;
 
 namespace BLTAdoptAHero
 {
-    /// <summary>
-    /// Treaty types for BLT diplomacy system
-    /// </summary>
     public enum TreatyType
     {
         Truce,
@@ -24,7 +20,10 @@ namespace BLTAdoptAHero
     {
         public string Kingdom1Id { get; set; }
         public string Kingdom2Id { get; set; }
+
+        // Absolute campaign time
         public CampaignTime StartDate { get; set; }
+
         public abstract TreatyType Type { get; }
 
         protected BLTTreaty() { }
@@ -36,8 +35,11 @@ namespace BLTAdoptAHero
             StartDate = CampaignTime.Now;
         }
 
-        public Kingdom GetKingdom1() => Kingdom.All.FirstOrDefault(k => k.StringId == Kingdom1Id);
-        public Kingdom GetKingdom2() => Kingdom.All.FirstOrDefault(k => k.StringId == Kingdom2Id);
+        public Kingdom GetKingdom1() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == Kingdom1Id);
+
+        public Kingdom GetKingdom2() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == Kingdom2Id);
 
         public bool InvolvesBoth(Kingdom k1, Kingdom k2)
         {
@@ -64,22 +66,23 @@ namespace BLTAdoptAHero
     public class BLTTruce : BLTTreaty
     {
         public override TreatyType Type => TreatyType.Truce;
+
         public CampaignTime ExpirationDate { get; set; }
 
         public BLTTruce() { }
 
-        public BLTTruce(Kingdom k1, Kingdom k2, int durationDays) : base(k1, k2)
+        public BLTTruce(Kingdom k1, Kingdom k2, int durationDays)
+            : base(k1, k2)
         {
             ExpirationDate = CampaignTime.DaysFromNow(durationDays);
         }
 
         public bool IsExpired() => CampaignTime.Now >= ExpirationDate;
-        public int DaysRemaining() => (int)(ExpirationDate - CampaignTime.Now).ToDays;
+
+        public int DaysRemaining() =>
+            Math.Max(0, (int)(ExpirationDate - CampaignTime.Now).ToDays);
     }
 
-    /// <summary>
-    /// Non-Aggression Pact - mutual agreement not to declare war
-    /// </summary>
     public class BLTNAP : BLTTreaty
     {
         public override TreatyType Type => TreatyType.NAP;
@@ -88,9 +91,6 @@ namespace BLTAdoptAHero
         public BLTNAP(Kingdom k1, Kingdom k2) : base(k1, k2) { }
     }
 
-    /// <summary>
-    /// Alliance - defensive pact with optional offensive calls to war
-    /// </summary>
     public class BLTAlliance : BLTTreaty
     {
         public override TreatyType Type => TreatyType.Alliance;
@@ -105,33 +105,43 @@ namespace BLTAdoptAHero
     public class BLTTribute : BLTTreaty
     {
         public override TreatyType Type => TreatyType.Tribute;
+
         public string PayerKingdomId { get; set; }
         public int DailyAmount { get; set; }
-        public int RemainingDays { get; set; }
+
+        public CampaignTime ExpirationDate { get; set; }
 
         public BLTTribute() { }
 
-        public BLTTribute(Kingdom payer, Kingdom receiver, int dailyAmount, int durationDays) : base(payer, receiver)
+        public BLTTribute(Kingdom payer, Kingdom receiver, int dailyAmount, int durationDays)
+            : base(payer, receiver)
         {
             PayerKingdomId = payer?.StringId;
             DailyAmount = dailyAmount;
-            RemainingDays = durationDays;
+            ExpirationDate = CampaignTime.DaysFromNow(durationDays);
         }
 
-        public Kingdom GetPayer() => Kingdom.All.FirstOrDefault(k => k.StringId == PayerKingdomId);
-        public Kingdom GetReceiver() => GetOtherKingdom(GetPayer());
+        public Kingdom GetPayer() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == PayerKingdomId);
 
-        public bool IsExpired() => RemainingDays <= 0;
+        public Kingdom GetReceiver() =>
+            GetOtherKingdom(GetPayer());
+
+        public bool IsExpired() => CampaignTime.Now >= ExpirationDate;
+
+        public int DaysRemaining() =>
+            Math.Max(0, (int)(ExpirationDate - CampaignTime.Now).ToDays);
     }
 
     /// <summary>
-    /// Call to War proposal - offensive war invitation with acceptance window
+    /// Call to War proposal
     /// </summary>
     public class BLTCTWProposal
     {
         public string ProposerKingdomId { get; set; }
         public string CalledKingdomId { get; set; }
         public string TargetKingdomId { get; set; }
+
         public CampaignTime ExpirationDate { get; set; }
 
         public BLTCTWProposal() { }
@@ -144,16 +154,23 @@ namespace BLTAdoptAHero
             ExpirationDate = CampaignTime.DaysFromNow(daysToAccept);
         }
 
-        public Kingdom GetProposer() => Kingdom.All.FirstOrDefault(k => k.StringId == ProposerKingdomId);
-        public Kingdom GetCalled() => Kingdom.All.FirstOrDefault(k => k.StringId == CalledKingdomId);
-        public Kingdom GetTarget() => Kingdom.All.FirstOrDefault(k => k.StringId == TargetKingdomId);
+        public Kingdom GetProposer() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == ProposerKingdomId);
+
+        public Kingdom GetCalled() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == CalledKingdomId);
+
+        public Kingdom GetTarget() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == TargetKingdomId);
 
         public bool IsExpired() => CampaignTime.Now >= ExpirationDate;
-        public int DaysRemaining() => Math.Max(0, (int)(ExpirationDate - CampaignTime.Now).ToDays);
+
+        public int DaysRemaining() =>
+            Math.Max(0, (int)(ExpirationDate - CampaignTime.Now).ToDays);
     }
 
     /// <summary>
-    /// BLT War tracking - separate from game wars, tracks main participants and assisting allies
+    /// BLT War tracking
     /// </summary>
     public class BLTWar
     {

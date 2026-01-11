@@ -20,6 +20,7 @@ namespace BLTAdoptAHero
     public static class AdoptedHeroFlags
     {
         public static bool _allowKingdomMove = false;
+        public static bool _allowDiplomacyAction = false;
     }
     #region FactionDiscontinuationCampaignBehavior
     [HarmonyPatch(typeof(FactionDiscontinuationCampaignBehavior))]

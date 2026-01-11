@@ -51,6 +51,7 @@ namespace BLTAdoptAHero
         private List<string> _tributePayer = new List<string>();
         private List<int> _tributeAmount = new List<int>();
         private List<int> _tributeRemaining = new List<int>();
+        private List<long> _tributeExpirationTicks = new List<long>();
         private List<long> _tributeStartTicks = new List<long>();
 
         // Wars
@@ -201,8 +202,8 @@ namespace BLTAdoptAHero
                 _truceKeys.Add(kvp.Key);
                 _truceK1.Add(kvp.Value.Kingdom1Id);
                 _truceK2.Add(kvp.Value.Kingdom2Id);
-                _truceStartTicks.Add(kvp.Value.StartDate.NumTicks);
-                _truceExpireTicks.Add(kvp.Value.ExpirationDate.NumTicks);
+                _truceStartTicks.Add((long)kvp.Value.StartDate.ToDays);
+                _truceExpireTicks.Add((long)kvp.Value.ExpirationDate.ToDays);
             }
 
             // NAPs
@@ -211,7 +212,7 @@ namespace BLTAdoptAHero
                 _napKeys.Add(kvp.Key);
                 _napK1.Add(kvp.Value.Kingdom1Id);
                 _napK2.Add(kvp.Value.Kingdom2Id);
-                _napStartTicks.Add(kvp.Value.StartDate.NumTicks);
+                _napStartTicks.Add((long)kvp.Value.StartDate.ToDays);
             }
 
             // Alliances
@@ -220,7 +221,7 @@ namespace BLTAdoptAHero
                 _allianceKeys.Add(kvp.Key);
                 _allianceK1.Add(kvp.Value.Kingdom1Id);
                 _allianceK2.Add(kvp.Value.Kingdom2Id);
-                _allianceStartTicks.Add(kvp.Value.StartDate.NumTicks);
+                _allianceStartTicks.Add((long)kvp.Value.StartDate.ToDays);
             }
 
             // Tributes
@@ -231,8 +232,12 @@ namespace BLTAdoptAHero
                 _tributeK2.Add(kvp.Value.Kingdom2Id);
                 _tributePayer.Add(kvp.Value.PayerKingdomId);
                 _tributeAmount.Add(kvp.Value.DailyAmount);
-                _tributeRemaining.Add(kvp.Value.RemainingDays);
-                _tributeStartTicks.Add(kvp.Value.StartDate.NumTicks);
+
+                // Save expiration as absolute ticks (ToDays gives double, cast to long)
+                _tributeExpirationTicks.Add((long)kvp.Value.ExpirationDate.ToDays);
+
+                // Save start date for reference if needed
+                _tributeStartTicks.Add((long)kvp.Value.StartDate.ToDays);
             }
 
             // Wars
@@ -243,7 +248,7 @@ namespace BLTAdoptAHero
                 _warDefender.Add(kvp.Value.Defender1Id);
                 _warAttackerAllies.Add(string.Join(",", kvp.Value.Attacker1AlliesIds));
                 _warDefenderAllies.Add(string.Join(",", kvp.Value.Defender1AlliesIds));
-                _warStartTicks.Add(kvp.Value.StartDate.NumTicks);
+                _warStartTicks.Add((long)kvp.Value.StartDate.ToDays);
             }
 
             // Peace Proposals
@@ -257,7 +262,7 @@ namespace BLTAdoptAHero
                 _peaceDuration.Add(kvp.Value.Duration);
                 _peaceGoldCost.Add(kvp.Value.GoldCost);
                 _peaceInfluenceCost.Add(kvp.Value.InfluenceCost);
-                _peaceExpireTicks.Add(kvp.Value.ExpirationDate.NumTicks);
+                _peaceExpireTicks.Add((long)kvp.Value.ExpirationDate.ToDays);
             }
 
             // Alliance Proposals
@@ -268,7 +273,7 @@ namespace BLTAdoptAHero
                 _allianceTargetIds.Add(kvp.Value.TargetKingdomId);
                 _allianceGoldCost.Add(kvp.Value.GoldCost);
                 _allianceInfluenceCost.Add(kvp.Value.InfluenceCost);
-                _allianceExpireTicks.Add(kvp.Value.ExpirationDate.NumTicks);
+                _allianceExpireTicks.Add((long)kvp.Value.ExpirationDate.ToDays);
             }
 
             // NAP Proposals
@@ -279,14 +284,14 @@ namespace BLTAdoptAHero
                 _napTargetIds.Add(kvp.Value.TargetKingdomId);
                 _napGoldCost.Add(kvp.Value.GoldCost);
                 _napInfluenceCost.Add(kvp.Value.InfluenceCost);
-                _napExpireTicks.Add(kvp.Value.ExpirationDate.NumTicks);
+                _napExpireTicks.Add((long)kvp.Value.ExpirationDate.ToDays);
             }
 
             // CTW Cooldowns
             foreach (var kvp in _ctwCooldowns)
             {
                 _ctwCooldownKeys.Add(kvp.Key);
-                _ctwCooldownTicks.Add(kvp.Value.NumTicks);
+                _ctwCooldownTicks.Add((long)kvp.Value.ToDays);
             }
         }
 
@@ -310,8 +315,8 @@ namespace BLTAdoptAHero
                 {
                     Kingdom1Id = _truceK1[i],
                     Kingdom2Id = _truceK2[i],
-                    StartDate = new CampaignTime(_truceStartTicks[i]),
-                    ExpirationDate = new CampaignTime(_truceExpireTicks[i])
+                    StartDate = CampaignTime.Days(_truceStartTicks[i]),
+                    ExpirationDate = CampaignTime.Days(_truceExpireTicks[i])
                 };
                 _truces[_truceKeys[i]] = truce;
             }
@@ -323,7 +328,7 @@ namespace BLTAdoptAHero
                 {
                     Kingdom1Id = _napK1[i],
                     Kingdom2Id = _napK2[i],
-                    StartDate = new CampaignTime(_napStartTicks[i])
+                    StartDate = CampaignTime.Days(_napStartTicks[i])
                 };
                 _naps[_napKeys[i]] = nap;
             }
@@ -335,7 +340,7 @@ namespace BLTAdoptAHero
                 {
                     Kingdom1Id = _allianceK1[i],
                     Kingdom2Id = _allianceK2[i],
-                    StartDate = new CampaignTime(_allianceStartTicks[i])
+                    StartDate = CampaignTime.Days(_allianceStartTicks[i])
                 };
                 _alliances[_allianceKeys[i]] = alliance;
             }
@@ -349,8 +354,8 @@ namespace BLTAdoptAHero
                     Kingdom2Id = _tributeK2[i],
                     PayerKingdomId = _tributePayer[i],
                     DailyAmount = _tributeAmount[i],
-                    RemainingDays = _tributeRemaining[i],
-                    StartDate = new CampaignTime(_tributeStartTicks[i])
+                    StartDate = CampaignTime.Days(_tributeStartTicks[i]),
+                    ExpirationDate = CampaignTime.Days(_tributeExpirationTicks[i])
                 };
                 _tributes[_tributeKeys[i]] = tribute;
             }
@@ -364,7 +369,7 @@ namespace BLTAdoptAHero
                     Defender1Id = _warDefender[i],
                     Attacker1AlliesIds = ParseCSV(_warAttackerAllies[i]),
                     Defender1AlliesIds = ParseCSV(_warDefenderAllies[i]),
-                    StartDate = new CampaignTime(_warStartTicks[i])
+                    StartDate = CampaignTime.Days(_warStartTicks[i])
                 };
                 _wars[_warKeys[i]] = war;
             }
@@ -381,7 +386,7 @@ namespace BLTAdoptAHero
                     Duration = _peaceDuration[i],
                     GoldCost = _peaceGoldCost[i],
                     InfluenceCost = _peaceInfluenceCost[i],
-                    ExpirationDate = new CampaignTime(_peaceExpireTicks[i])
+                    ExpirationDate = CampaignTime.Days(_peaceExpireTicks[i])
                 };
                 _peaceProposals[_peaceProposalKeys[i]] = proposal;
             }
@@ -395,7 +400,7 @@ namespace BLTAdoptAHero
                     TargetKingdomId = _allianceTargetIds[i],
                     GoldCost = _allianceGoldCost[i],
                     InfluenceCost = _allianceInfluenceCost[i],
-                    ExpirationDate = new CampaignTime(_allianceExpireTicks[i])
+                    ExpirationDate = CampaignTime.Days(_allianceExpireTicks[i])
                 };
                 _allianceProposals[_allianceProposalKeys[i]] = proposal;
             }
@@ -409,7 +414,7 @@ namespace BLTAdoptAHero
                     TargetKingdomId = _napTargetIds[i],
                     GoldCost = _napGoldCost[i],
                     InfluenceCost = _napInfluenceCost[i],
-                    ExpirationDate = new CampaignTime(_napExpireTicks[i])
+                    ExpirationDate = CampaignTime.Days(_napExpireTicks[i])
                 };
                 _napProposals[_napProposalKeys[i]] = proposal;
             }
@@ -417,7 +422,7 @@ namespace BLTAdoptAHero
             // CTW Cooldowns
             for (int i = 0; i < _ctwCooldownKeys.Count; i++)
             {
-                _ctwCooldowns[_ctwCooldownKeys[i]] = new CampaignTime(_ctwCooldownTicks[i]);
+                _ctwCooldowns[_ctwCooldownKeys[i]] = CampaignTime.Days(_ctwCooldownTicks[i]);
             }
         }
 
@@ -459,7 +464,7 @@ namespace BLTAdoptAHero
 
                 if (payer == null || receiver == null || payer.Leader == null || receiver.Leader == null)
                 {
-                    tribute.RemainingDays--;
+                    // Skip this iteration if payer or receiver is unavailable
                     continue;
                 }
 
@@ -490,13 +495,14 @@ namespace BLTAdoptAHero
                 BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(payer.Leader, -bltGoldToTransfer, false);
                 BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(receiver.Leader, bltGoldToTransfer, false);
 
-                tribute.RemainingDays--;
+                // Compute days remaining based on CampaignTime
+                int daysRemaining = tribute.DaysRemaining();
 
                 // Update game's StanceLink for compatibility
                 var stance = payer.GetStanceWith(receiver);
-                if (stance != null && tribute.RemainingDays > 0)
+                if (stance != null && daysRemaining > 0)
                 {
-                    stance.SetDailyTributePaid(payer, amount, tribute.RemainingDays);
+                    stance.SetDailyTributePaid(payer, amount, daysRemaining);
                 }
             }
         }
