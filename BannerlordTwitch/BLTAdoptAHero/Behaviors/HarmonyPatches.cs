@@ -252,7 +252,7 @@ namespace BLTAdoptAHero
                 if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
                 {
 #if DEBUG
-                Log.Trace($"[BLT] Blocked MakePeaceKingdomDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
+                    Log.Trace($"[BLT] Blocked MakePeaceKingdomDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
 #endif
                     return false; // Block decision creation
                 }
@@ -270,7 +270,7 @@ namespace BLTAdoptAHero
                 if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
                 {
 #if DEBUG
-                Log.Trace($"[BLT] Blocked DeclareWarDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
+                    Log.Trace($"[BLT] Blocked DeclareWarDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
 #endif
                     return false; // Block decision creation
                 }
@@ -278,23 +278,23 @@ namespace BLTAdoptAHero
             }
         }
 
-//        // Block KingdomPolicyDecision for BLT kingdoms (optional - you might want to keep this)
-//        [HarmonyPatch(typeof(KingdomPolicyDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(PolicyObject), typeof(bool) })]
-//        internal static class KingdomPolicyDecisionConstructorPatch
-//        {
-//            [HarmonyPrefix]
-//            private static bool Prefix(Clan proposerClan)
-//            {
-//                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
-//                {
-//#if DEBUG
-//                Log.Trace($"[BLT] Blocked KingdomPolicyDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
-//#endif
-//                    return false; // Block decision creation
-//                }
-//                return true;
-//            }
-//        }
+        //        // Block KingdomPolicyDecision for BLT kingdoms (optional - you might want to keep this)
+        //        [HarmonyPatch(typeof(KingdomPolicyDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(PolicyObject), typeof(bool) })]
+        //        internal static class KingdomPolicyDecisionConstructorPatch
+        //        {
+        //            [HarmonyPrefix]
+        //            private static bool Prefix(Clan proposerClan)
+        //            {
+        //                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
+        //                {
+        //#if DEBUG
+        //                Log.Trace($"[BLT] Blocked KingdomPolicyDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
+        //#endif
+        //                    return false; // Block decision creation
+        //                }
+        //                return true;
+        //            }
+        //        }
 
         // Block ExpelClanFromKingdomDecision for BLT kingdoms
         [HarmonyPatch(typeof(ExpelClanFromKingdomDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(Clan) })]
@@ -306,7 +306,7 @@ namespace BLTAdoptAHero
                 if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
                 {
 #if DEBUG
-                Log.Trace($"[BLT] Blocked ExpelClanFromKingdomDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
+                    Log.Trace($"[BLT] Blocked ExpelClanFromKingdomDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
 #endif
                     return false; // Block decision creation
                 }
@@ -314,191 +314,192 @@ namespace BLTAdoptAHero
             }
         }
 
-//        // Block SettlementClaimantDecision for BLT kingdoms (fief distribution)
-//        [HarmonyPatch(typeof(SettlementClaimantDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(Settlement) })]
-//        internal static class SettlementClaimantDecisionConstructorPatch
-//        {
-//            [HarmonyPrefix]
-//            private static bool Prefix(Clan proposerClan)
-//            {
-//                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
-//                {
-//#if DEBUG
-//                Log.Trace($"[BLT] Blocked SettlementClaimantDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
-//#endif
-//                    return false; // Block decision creation
-//                }
-//                return true;
-//            }
-//        }
+        //        // Block SettlementClaimantDecision for BLT kingdoms (fief distribution)
+        //        [HarmonyPatch(typeof(SettlementClaimantDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(Settlement) })]
+        //        internal static class SettlementClaimantDecisionConstructorPatch
+        //        {
+        //            [HarmonyPrefix]
+        //            private static bool Prefix(Clan proposerClan)
+        //            {
+        //                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
+        //                {
+        //#if DEBUG
+        //                Log.Trace($"[BLT] Blocked SettlementClaimantDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
+        //#endif
+        //                    return false; // Block decision creation
+        //                }
+        //                return true;
+        //            }
+        //        }
 
-//        // Block AnnexationDecision for BLT kingdoms
-//        [HarmonyPatch(typeof(KingdomDecision), "DetermineChooser")]
-//        internal static class DetermineChooserPatch
-//        {
-//            [HarmonyPrefix]
-//            private static bool Prefix(KingdomDecision __instance, ref Clan __result)
-//            {
-//                if (__instance?.Kingdom?.Leader != null && __instance.Kingdom.Leader.IsAdopted())
-//                {
-//                    // For BLT kingdoms, always return null to prevent AI from choosing
-//                    __result = null;
-//#if DEBUG
-//                Log.Trace($"[BLT] Blocked DetermineChooser for BLT kingdom: {__instance.Kingdom.Name}");
-//#endif
-//                    return false;
-//                }
-//                return true;
-//            }
-//        }
-//    }
+        //        // Block AnnexationDecision for BLT kingdoms
+        //        [HarmonyPatch(typeof(KingdomDecision), "DetermineChooser")]
+        //        internal static class DetermineChooserPatch
+        //        {
+        //            [HarmonyPrefix]
+        //            private static bool Prefix(KingdomDecision __instance, ref Clan __result)
+        //            {
+        //                if (__instance?.Kingdom?.Leader != null && __instance.Kingdom.Leader.IsAdopted())
+        //                {
+        //                    // For BLT kingdoms, always return null to prevent AI from choosing
+        //                    __result = null;
+        //#if DEBUG
+        //                Log.Trace($"[BLT] Blocked DetermineChooser for BLT kingdom: {__instance.Kingdom.Name}");
+        //#endif
+        //                    return false;
+        //                }
+        //                return true;
+        //            }
+        //        }
+        //    }
 
-    #endregion
+        #endregion
 
-    #region DiplomacyProposalPatches
+        #region DiplomacyProposalPatches
 
-//    // Additional safety - block at the proposal level
-//    [HarmonyPatch(typeof(KingdomDiplomacyVM))]
-//    internal static class KingdomDiplomacyVMPatches
-//    {
-//        // This blocks the UI from even showing diplomacy options for BLT kingdoms
-//        [HarmonyPatch("CanProposeAction")]
-//        [HarmonyPrefix]
-//        private static bool Prefix_CanProposeAction(ref bool __result, Kingdom ____playerKingdom)
-//        {
-//            if (____playerKingdom?.Leader != null && ____playerKingdom.Leader.IsAdopted())
-//            {
-//                __result = false;
-// #if DEBUG
-//            Log.Trace($"[BLT] Blocked CanProposeAction in KingdomDiplomacyVM for BLT kingdom");
-//#endif
-//                return false;
-//            }
-//            return true;
-//        }
-//    }
+        //    // Additional safety - block at the proposal level
+        //    [HarmonyPatch(typeof(KingdomDiplomacyVM))]
+        //    internal static class KingdomDiplomacyVMPatches
+        //    {
+        //        // This blocks the UI from even showing diplomacy options for BLT kingdoms
+        //        [HarmonyPatch("CanProposeAction")]
+        //        [HarmonyPrefix]
+        //        private static bool Prefix_CanProposeAction(ref bool __result, Kingdom ____playerKingdom)
+        //        {
+        //            if (____playerKingdom?.Leader != null && ____playerKingdom.Leader.IsAdopted())
+        //            {
+        //                __result = false;
+        // #if DEBUG
+        //            Log.Trace($"[BLT] Blocked CanProposeAction in KingdomDiplomacyVM for BLT kingdom");
+        //#endif
+        //                return false;
+        //            }
+        //            return true;
+        //        }
+        //    }
 
-    #endregion
+        #endregion
 
-    #region KingdomDecisionProposalBehaviorPatches
+        #region KingdomDecisionProposalBehaviorPatches
 
-    // Block the behavior that creates kingdom decisions
-    [HarmonyPatch(typeof(KingdomDecisionProposalBehavior))]
-    internal static class KingdomDecisionProposalBehaviorPatches
-    {
-        [HarmonyPrefix]
-        [HarmonyPatch("ConsiderWar")]
-        private static bool Prefix_ConsiderWar(Clan clan)
+        // Block the behavior that creates kingdom decisions
+        [HarmonyPatch(typeof(KingdomDecisionProposalBehavior))]
+        internal static class KingdomDecisionProposalBehaviorPatches
         {
-            if (clan?.Kingdom?.Leader != null && clan.Kingdom.Leader.IsAdopted())
+            [HarmonyPrefix]
+            [HarmonyPatch("ConsiderWar")]
+            private static bool Prefix_ConsiderWar(Clan clan)
             {
-#if DEBUG
-            Log.Trace($"[BLT] Blocked ConsiderWar for BLT kingdom: {clan.Kingdom.Name}");
-#endif
-                return false;
-            }
-            return true;
-        }
-
-        [HarmonyPrefix]
-        [HarmonyPatch("ConsiderPeace")]
-        private static bool Prefix_ConsiderPeace(Clan clan)
-        {
-            if (clan?.Kingdom?.Leader != null && clan.Kingdom.Leader.IsAdopted())
-            {
-#if DEBUG
-            Log.Trace($"[BLT] Blocked ConsiderPeace for BLT kingdom: {clan.Kingdom.Name}");
-#endif
-                return false;
-            }
-            return true;
-        }
-    }
-
-    #endregion
-
-    #region ClanPatches
-    [HarmonyPatch(typeof(Clan))]
-    internal static class ClanPatches
-    {
-        [HarmonyPrefix]
-        [HarmonyPatch("UpdateBannerColorsAccordingToKingdom")]
-        private static bool Prefix_UpdateBannerColorsAccordingToKingdom(Clan __instance)
-        {
-            if (__instance?.Leader != null && __instance.Leader.IsAdopted())
-            {
-                try
+                if (clan?.Kingdom?.Leader != null && clan.Kingdom.Leader.IsAdopted())
                 {
 #if DEBUG
-                    Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
+                    Log.Trace($"[BLT] Blocked ConsiderWar for BLT kingdom: {clan.Kingdom.Name}");
 #endif
-                    return false; // skip original
+                    return false;
                 }
-                catch (Exception ex)
-                {
-                    Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
-                }
+                return true;
             }
-            return true; // run original if not blocked
-        }
-    }
-    #endregion
 
-    #region OnShipOwnerChanged
-    
-    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
-    static class BLT_Suppress_OnShipOwnerChanged_Exception
-    {
-        static Exception Finalizer(Exception __exception)
-        {
-            // If the method threw, swallow it completely
-            if (__exception != null)
+            [HarmonyPrefix]
+            [HarmonyPatch("ConsiderPeace")]
+            private static bool Prefix_ConsiderPeace(Clan clan)
             {
-                // Optional logging (disabled for now)
-                // Log.Trace("[BLT] Suppressed exception in OnShipOwnerChanged:\n" + __exception);
+                if (clan?.Kingdom?.Leader != null && clan.Kingdom.Leader.IsAdopted())
+                {
+#if DEBUG
+                    Log.Trace($"[BLT] Blocked ConsiderPeace for BLT kingdom: {clan.Kingdom.Name}");
+#endif
+                    return false;
+                }
+                return true;
+            }
+        }
+
+        #endregion
+
+        #region ClanPatches
+        [HarmonyPatch(typeof(Clan))]
+        internal static class ClanPatches
+        {
+            [HarmonyPrefix]
+            [HarmonyPatch("UpdateBannerColorsAccordingToKingdom")]
+            private static bool Prefix_UpdateBannerColorsAccordingToKingdom(Clan __instance)
+            {
+                if (__instance?.Leader != null && __instance.Leader.IsAdopted())
+                {
+                    try
+                    {
+#if DEBUG
+                        Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
+#endif
+                        return false; // skip original
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
+                    }
+                }
+                return true; // run original if not blocked
+            }
+        }
+        #endregion
+
+        #region OnShipOwnerChanged
+
+        [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
+        static class BLT_Suppress_OnShipOwnerChanged_Exception
+        {
+            static Exception Finalizer(Exception __exception)
+            {
+                // If the method threw, swallow it completely
+                if (__exception != null)
+                {
+                    // Optional logging (disabled for now)
+                    // Log.Trace("[BLT] Suppressed exception in OnShipOwnerChanged:\n" + __exception);
+                    return null;
+                }
+
                 return null;
             }
-
-            return null;
         }
-    }
 
-    #endregion
+        #endregion
 
-    #region TownFoodStocks
-    
-    [HarmonyPatch(nameof(DefaultSettlementFoodModel), "FoodStocksUpperLimit")]
-    [HarmonyPatch(MethodType.Getter)]
-    internal static class FoodStocksUpperLimitUncap
-    {
-        [HarmonyPrefix]
-        public static bool FoodStocksUpperLimitPrefix(ref int __result)
+        #region TownFoodStocks
+
+        [HarmonyPatch(nameof(DefaultSettlementFoodModel), "FoodStocksUpperLimit")]
+        [HarmonyPatch(MethodType.Getter)]
+        internal static class FoodStocksUpperLimitUncap
         {
-            __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
-            return false; // Skip original method
+            [HarmonyPrefix]
+            public static bool FoodStocksUpperLimitPrefix(ref int __result)
+            {
+                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
+                return false; // Skip original method
+            }
         }
-    }
 
-    [HarmonyPatch(typeof(Village), "GetHearthLevel")]
-    public class HearthExpansionPatch
-    {
-        [HarmonyPrefix]
-        public static bool GetHearthLevelPrefix(Village __instance, ref int __result)
+        [HarmonyPatch(typeof(Village), "GetHearthLevel")]
+        public class HearthExpansionPatch
         {
-            if (__instance.Hearth >= BLTAdoptAHeroModule.CommonConfig.HearthPerVillageTier)
+            [HarmonyPrefix]
+            public static bool GetHearthLevelPrefix(Village __instance, ref int __result)
             {
-                __result = (int)(__instance.Hearth / BLTAdoptAHeroModule.CommonConfig.HearthPerVillageTier);
-            }
-            else
-            {
-                __result = 0;
-            }
+                if (__instance.Hearth >= BLTAdoptAHeroModule.CommonConfig.HearthPerVillageTier)
+                {
+                    __result = (int)(__instance.Hearth / BLTAdoptAHeroModule.CommonConfig.HearthPerVillageTier);
+                }
+                else
+                {
+                    __result = 0;
+                }
 
-            // Return false to prevent the original method from running
-            return false;
+                // Return false to prevent the original method from running
+                return false;
+            }
         }
+
+        #endregion
+
     }
-
-    #endregion
-
 }
