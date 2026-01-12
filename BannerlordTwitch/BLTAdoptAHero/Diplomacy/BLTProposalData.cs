@@ -58,14 +58,18 @@ namespace BLTAdoptAHero
     /// <summary>
     /// Alliance proposal with costs that target must accept
     /// </summary>
+    // In BLTProposalData.cs
     public class BLTAllianceProposal
     {
         public string ProposerKingdomId { get; set; }
         public string TargetKingdomId { get; set; }
         public int GoldCost { get; set; }
         public int InfluenceCost { get; set; }
-
         public CampaignTime ExpirationDate { get; set; }
+
+        // Add these fields
+        public int BreakAllianceCost { get; set; }
+        public int CTWCost { get; set; }
 
         public BLTAllianceProposal() { }
 
@@ -74,13 +78,17 @@ namespace BLTAdoptAHero
             Kingdom target,
             int goldCost,
             int influenceCost,
-            int daysToAccept)
+            int daysToAccept,
+            int breakAllianceCost,
+            int ctwCost)
         {
             ProposerKingdomId = proposer?.StringId;
             TargetKingdomId = target?.StringId;
             GoldCost = goldCost;
             InfluenceCost = influenceCost;
             ExpirationDate = CampaignTime.DaysFromNow(daysToAccept);
+            BreakAllianceCost = breakAllianceCost;
+            CTWCost = ctwCost;
         }
 
         public Kingdom GetProposer() =>

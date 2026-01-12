@@ -744,13 +744,13 @@ namespace BLTAdoptAHero
             return proposal;
         }
 
-        public BLTAllianceProposal CreateAllianceProposal(Kingdom proposer, Kingdom target, int goldCost, int influenceCost, int daysToAccept)
+        public BLTAllianceProposal CreateAllianceProposal(Kingdom proposer, Kingdom target, int goldCost, int influenceCost, int daysToAccept, int breakAllianceCost, int ctwCost)
         {
             var key = MakeKey(proposer, target);
             if (key == null) return null;
 
-            var proposal = new BLTAllianceProposal(proposer, target, goldCost, influenceCost, daysToAccept);
-            _allianceProposals[key] = proposal; // Overwrites existing
+            var proposal = new BLTAllianceProposal(proposer, target, goldCost, influenceCost, daysToAccept, breakAllianceCost, ctwCost);
+            _allianceProposals[key] = proposal;
             return proposal;
         }
 

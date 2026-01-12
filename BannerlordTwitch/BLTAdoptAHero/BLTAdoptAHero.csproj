@@ -399,6 +399,7 @@
     <Compile Include="Behaviors\VassalBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
     <Compile Include="Diplomacy\BLTAllianceBehavior.cs" />
+    <Compile Include="Diplomacy\BLTAllianceOfferBehavior.cs" />
     <Compile Include="Diplomacy\BLTDiplomacyBehavior.cs" />
     <Compile Include="Diplomacy\BLTDiplomacyExtensions.cs" />
     <Compile Include="Diplomacy\BLTDiplomacyHelper.cs" />
