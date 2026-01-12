@@ -69,7 +69,7 @@ namespace BLTAdoptAHero
                 if (clan?.Leader != null && clan.Leader.IsAdopted())
                 {
 #if DEBUG
-                    Log.Trace($"[BLT] Adopted clan {clan.Name} changed from {oldKingdom?.Name ?? "none"} to {newKingdom?.Name ?? "none"}");
+                    Log.Trace($"[BLT] Adopted clan {clan.Name} changed from {oldKingdom?.Name.ToString() ?? "none"} to {newKingdom?.Name.ToString() ?? "none"}");
 #endif
                 }
             }
