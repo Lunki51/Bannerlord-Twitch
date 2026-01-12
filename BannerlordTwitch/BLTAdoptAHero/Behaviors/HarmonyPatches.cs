@@ -332,51 +332,51 @@ namespace BLTAdoptAHero
 //            }
 //        }
 
-        // Block AnnexationDecision for BLT kingdoms
-        [HarmonyPatch(typeof(KingdomDecision), "DetermineChooser")]
-        internal static class DetermineChooserPatch
-        {
-            [HarmonyPrefix]
-            private static bool Prefix(KingdomDecision __instance, ref Clan __result)
-            {
-                if (__instance?.Kingdom?.Leader != null && __instance.Kingdom.Leader.IsAdopted())
-                {
-                    // For BLT kingdoms, always return null to prevent AI from choosing
-                    __result = null;
-#if DEBUG
-                Log.Trace($"[BLT] Blocked DetermineChooser for BLT kingdom: {__instance.Kingdom.Name}");
-#endif
-                    return false;
-                }
-                return true;
-            }
-        }
-    }
+//        // Block AnnexationDecision for BLT kingdoms
+//        [HarmonyPatch(typeof(KingdomDecision), "DetermineChooser")]
+//        internal static class DetermineChooserPatch
+//        {
+//            [HarmonyPrefix]
+//            private static bool Prefix(KingdomDecision __instance, ref Clan __result)
+//            {
+//                if (__instance?.Kingdom?.Leader != null && __instance.Kingdom.Leader.IsAdopted())
+//                {
+//                    // For BLT kingdoms, always return null to prevent AI from choosing
+//                    __result = null;
+//#if DEBUG
+//                Log.Trace($"[BLT] Blocked DetermineChooser for BLT kingdom: {__instance.Kingdom.Name}");
+//#endif
+//                    return false;
+//                }
+//                return true;
+//            }
+//        }
+//    }
 
     #endregion
 
     #region DiplomacyProposalPatches
 
-    // Additional safety - block at the proposal level
-    [HarmonyPatch(typeof(KingdomDiplomacyVM))]
-    internal static class KingdomDiplomacyVMPatches
-    {
-        // This blocks the UI from even showing diplomacy options for BLT kingdoms
-        [HarmonyPatch("CanProposeAction")]
-        [HarmonyPrefix]
-        private static bool Prefix_CanProposeAction(ref bool __result, Kingdom ____playerKingdom)
-        {
-            if (____playerKingdom?.Leader != null && ____playerKingdom.Leader.IsAdopted())
-            {
-                __result = false;
-#if DEBUG
-            Log.Trace($"[BLT] Blocked CanProposeAction in KingdomDiplomacyVM for BLT kingdom");
-#endif
-                return false;
-            }
-            return true;
-        }
-    }
+//    // Additional safety - block at the proposal level
+//    [HarmonyPatch(typeof(KingdomDiplomacyVM))]
+//    internal static class KingdomDiplomacyVMPatches
+//    {
+//        // This blocks the UI from even showing diplomacy options for BLT kingdoms
+//        [HarmonyPatch("CanProposeAction")]
+//        [HarmonyPrefix]
+//        private static bool Prefix_CanProposeAction(ref bool __result, Kingdom ____playerKingdom)
+//        {
+//            if (____playerKingdom?.Leader != null && ____playerKingdom.Leader.IsAdopted())
+//            {
+//                __result = false;
+// #if DEBUG
+//            Log.Trace($"[BLT] Blocked CanProposeAction in KingdomDiplomacyVM for BLT kingdom");
+//#endif
+//                return false;
+//            }
+//            return true;
+//        }
+//    }
 
     #endregion
 
