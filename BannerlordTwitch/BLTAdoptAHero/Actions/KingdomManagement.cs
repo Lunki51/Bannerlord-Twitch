@@ -489,7 +489,8 @@ namespace BLTAdoptAHero.Actions
             if (adoptedHero.Clan.Kingdom == null)
                 adoptedHero.Clan.Kingdom = desiredKingdom;
             if (adoptedHero.Clan.Fiefs.Count == 0)
-                adoptedHero.Clan.SetInitialHomeSettlement(desiredKingdom.InitialHomeSettlement);
+                adoptedHero.Clan.ConsiderAndUpdateHomeSettlement();
+            adoptedHero.Clan.CalculateMidSettlement();
 
             onSuccess("{=LSea9bms}Your clan {clanName} has joined the kingdom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
             Log.ShowInformation("{=Lid1aV3k}{clanName} has joined kingdom {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
@@ -796,6 +797,9 @@ namespace BLTAdoptAHero.Actions
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.PlayerMercPrice, true);
             }
             ChangeKingdomAction.ApplyByJoinFactionAsMercenary(adoptedHero.Clan, desiredKingdom);
+
+            adoptedHero.Clan.ConsiderAndUpdateHomeSettlement();
+            adoptedHero.Clan.CalculateMidSettlement();
             Log.ShowInformation("{=tpwW6Ix8}{clanName} is now under contract with {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
 

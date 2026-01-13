@@ -717,11 +717,11 @@ namespace BLTAdoptAHero.Actions
             partyStats.Append($"{adoptedHero.Clan.Name}:");
             foreach (var wparty in parties)
             {
-                var party = wparty?.MobileParty;
-                if (party == null || party.LeaderHero == null)
+                var party1 = wparty?.MobileParty;
+                if (party1 == null || party1.LeaderHero == null)
                     continue;
                 count += 1;
-                partyStats.Append($"Party({count})[Leader:{party.LeaderHero.FirstName} - Troops:{party.MemberRoster.TotalHealthyCount}] | ");
+                partyStats.Append($"Party({count})[Leader:{party1.LeaderHero.FirstName} - Troops:{party1.MemberRoster.TotalHealthyCount}] | ");
             }
             if (count == 0)
             {
@@ -732,15 +732,15 @@ namespace BLTAdoptAHero.Actions
                 foreach (Clan vassal in vassals)
                 {
                     int vcount = 0;
-                    var vparties = adoptedHero.Clan.WarPartyComponents;
+                    var vparties = vassal.WarPartyComponents;
                     partyStats.Append($"{vassal.Name}:");
                     foreach (var vparty in vparties)
                     {
-                        var party = vparty?.MobileParty;
-                        if (party == null || party.LeaderHero == null)
+                        var party2 = vparty?.MobileParty;
+                        if (party2 == null || party2.LeaderHero == null)
                             continue;
                         vcount += 1;
-                        partyStats.Append($"Party({vcount})[Leader:{party.LeaderHero.FirstName} - Troops:{party.MemberRoster.TotalHealthyCount}] | ");
+                        partyStats.Append($"Party({vcount})[Leader:{party2.LeaderHero.FirstName} - Troops:{party2.MemberRoster.TotalHealthyCount}] | ");
                     }
                     if (vcount == 0)
                     {
@@ -749,9 +749,9 @@ namespace BLTAdoptAHero.Actions
                 }
             }
 
-            partyStats.ToString().TrimEnd('|', ' ');
+            string partyString = partyStats.ToString().TrimEnd('|', ' ');
 
-            onSuccess(partyStats.ToString());
+            onSuccess(partyString);
         }
 
         private void HandleFiefsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
