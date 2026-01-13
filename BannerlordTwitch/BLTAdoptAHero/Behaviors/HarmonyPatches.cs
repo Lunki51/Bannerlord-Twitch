@@ -13,6 +13,7 @@ using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
 using NavalDLC.CharacterDevelopment;
 using BannerlordTwitch.Util;
+using BLTAdoptAHero;
 using TaleWorlds.CampaignSystem.GameComponents;
 
 namespace BLTAdoptAHero
@@ -20,6 +21,7 @@ namespace BLTAdoptAHero
     public static class AdoptedHeroFlags
     {
         public static bool _allowKingdomMove = false;
+        public static bool _allowMarriage = false;
     }
     #region FactionDiscontinuationCampaignBehavior
     [HarmonyPatch(typeof(FactionDiscontinuationCampaignBehavior))]
@@ -259,11 +261,38 @@ namespace BLTAdoptAHero
             return true; // run original if not blocked
         }
     }
-    #endregion
 
-    #region OnShipOwnerChanged
-    
-    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+    class BLTMarriage
+    {
+        static void Postfix(ref Clan __result, Hero firstHero, Hero secondHero)
+        {
+            if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
+                return;
+
+            if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
+                return;
+
+            if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
+                return;
+
+            if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
+                return;
+
+            if (firstHero.Clan.Leader.IsAdopted())
+            {
+                __result = firstHero.Clan;
+            }
+            else { __result = secondHero.Clan; }
+
+        }
+    }
+}
+#endregion
+
+#region OnShipOwnerChanged
+
+[HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
     static class BLT_Suppress_OnShipOwnerChanged_Exception
     {
         static Exception Finalizer(Exception __exception)
