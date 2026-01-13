@@ -838,6 +838,10 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Your hero is in battle! Try again later");
                 return;
             }
+            if (adoptedHero.GovernorOf != null)
+            {
+                ChangeGovernorAction.RemoveGovernorOf(adoptedHero);
+            }
             if (oldParty != null)
             {
                 bool wasLeader = oldParty.LeaderHero == adoptedHero;
