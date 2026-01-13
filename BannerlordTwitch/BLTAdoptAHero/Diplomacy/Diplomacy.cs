@@ -1685,15 +1685,25 @@ namespace BLTAdoptAHero
                 onFailure("Usage: !diplomacy warstance <kingdom> (balanced/defensive/aggressive)");
                 return;
             }
-         
+
             string stanceString = args.Last();
-            string kingdomString = args[1];
-            var desiredKingdom = Kingdom.All.FirstOrDefault(c => c.Name.ToString().IndexOf(kingdomString, StringComparison.OrdinalIgnoreCase) >= 0);
-            if (desiredKingdom == null)
+            string kingdomString = string.Join(" ", args.Take(args.Length - 1));
+
+            var matchingKingdoms = Kingdom.All
+                .Where(k => k.Name.ToString().IndexOf(kingdomString, StringComparison.OrdinalIgnoreCase) >= 0)
+                .ToList();
+            if (matchingKingdoms.Count == 0)
             {
-                onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", kingdomString)));
+                onFailure($"Could not find a kingdom matching \"{kingdomString}\"");
                 return;
             }
+            if (matchingKingdoms.Count > 1)
+            {
+                onFailure($"Multiple kingdoms match \"{kingdomString}\": {string.Join(", ", matchingKingdoms.Select(k => k.Name))}");
+                return;
+            }
+            var desiredKingdom = matchingKingdoms[0];
+
             if (hero.Clan.Kingdom == desiredKingdom)
             {
                 onFailure("Not at war with yourself!");
