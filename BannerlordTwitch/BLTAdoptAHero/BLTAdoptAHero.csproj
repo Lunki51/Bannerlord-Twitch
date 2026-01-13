@@ -337,7 +337,6 @@
     <Compile Include="Actions\PartyManagement.cs" />
     <Compile Include="Actions\HeirCommand.cs" />
     <Compile Include="Actions\Leaderboard.cs" />
-    <Compile Include="Actions\Diplomacy.cs" />
     <Compile Include="Actions\ItemStats.cs" />
     <Compile Include="Actions\HeroToHeroGold.cs" />
     <Compile Include="Actions\AdoptAHero.cs" />
@@ -362,6 +361,7 @@
     <Compile Include="Actions\RetireMyHero.cs" />
     <Compile Include="Actions\AuctionItem.cs" />
     <Compile Include="Actions\SetHeroClass.cs" />
+    <Compile Include="Actions\SimpleDiplomacy.cs" />
     <Compile Include="Actions\SkillXP.cs" />
     <Compile Include="Actions\SmithItem.cs" />
     <Compile Include="Actions\SummonHero.cs" />
@@ -390,7 +390,6 @@
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
-    <Compile Include="Behaviors\BLTDiplomacyHelper.cs" />
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
@@ -399,6 +398,15 @@
     <Compile Include="Behaviors\UpgradeBehavior.cs" />
     <Compile Include="Behaviors\VassalBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
+    <Compile Include="Diplomacy\BLTAllianceBehavior.cs" />
+    <Compile Include="Diplomacy\BLTAllianceOfferBehavior.cs" />
+    <Compile Include="Diplomacy\BLTDiplomacyBehavior.cs" />
+    <Compile Include="Diplomacy\BLTDiplomacyExtensions.cs" />
+    <Compile Include="Diplomacy\BLTDiplomacyHelper.cs" />
+    <Compile Include="Diplomacy\BLTProposalData.cs" />
+    <Compile Include="Diplomacy\BLTTreatyData.cs" />
+    <Compile Include="Diplomacy\BLTTreatyManager.cs" />
+    <Compile Include="Diplomacy\Diplomacy.cs" />
     <Compile Include="GlobalConfigs\GlobalCommonConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroPowerConfig.cs" />
