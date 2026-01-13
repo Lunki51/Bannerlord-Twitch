@@ -338,6 +338,9 @@ namespace BLTAdoptAHero
                 case "war":
                     HandleWarCommand(settings, adoptedHero, args, onSuccess, onFailure);
                     break;
+                case "warstance":
+                    HandleWarStanceCommand(settings, adoptedHero, args, onSuccess, onFailure);
+                    break;
                 case "peace":
                     HandlePeaceCommand(settings, adoptedHero, args, onSuccess, onFailure);
                     break;
@@ -345,6 +348,8 @@ namespace BLTAdoptAHero
                     HandleNAPCommand(settings, adoptedHero, args, onSuccess, onFailure);
                     break;
                 case "alliance":
+                    HandleAllianceCommand(settings, adoptedHero, args, onSuccess, onFailure);
+                    break;
                 case "ally":
                     HandleAllianceCommand(settings, adoptedHero, args, onSuccess, onFailure);
                     break;
@@ -1670,6 +1675,52 @@ namespace BLTAdoptAHero
             else
             {
                 onFailure("Invalid type. Currently only 'ctw' is supported");
+            }
+        }
+
+        private void HandleWarStanceCommand(Settings settings, Hero hero, string[] args, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (args.Length == 0)
+            {
+                onFailure("Usage: !diplomacy warstance <kingdom> (balanced/defensive/aggressive)");
+                return;
+            }
+         
+            string stanceString = args.Last();
+            string kingdomString = args[1];
+            var desiredKingdom = Kingdom.All.FirstOrDefault(c => c.Name.ToString().IndexOf(kingdomString, StringComparison.OrdinalIgnoreCase) >= 0);
+            if (desiredKingdom == null)
+            {
+                onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", kingdomString)));
+                return;
+            }
+            if (hero.Clan.Kingdom == desiredKingdom)
+            {
+                onFailure("Not at war with yourself!");
+                return;
+            }
+            var stance = hero.Clan.Kingdom.GetStanceWith(desiredKingdom);
+            if (!hero.Clan.Kingdom.IsAtWarWith(desiredKingdom))
+            {
+                onFailure($"Not at war with {desiredKingdom}");
+                return;
+            }
+            int priority = stanceString.ToLower() switch
+            {
+                "balanced" => 0,
+                "defensive" => 1,
+                "aggressive" => 2,
+                _ => -1
+            };
+            if (priority == -1)
+            {
+                onFailure("invalid stance(balanced/defensive/aggressive)");
+                return;
+            }
+            else
+            {
+                stance.BehaviorPriority = priority;
+                onSuccess($"Changed war strategy to {stanceString.ToLower()}");
             }
         }
 
