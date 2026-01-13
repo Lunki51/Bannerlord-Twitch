@@ -31,11 +31,12 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Rebel", 1),
          CategoryOrder("Leave", 2),
          CategoryOrder("Create", 3),
-         CategoryOrder("Vassal", 4),
-         CategoryOrder("Stats", 5),
-         CategoryOrder("Release", 6),
-         CategoryOrder("Expel", 7),
-         CategoryOrder("Tax", 8)]
+         CategoryOrder("Policy", 4),
+         CategoryOrder("Vassal", 5),
+         CategoryOrder("Stats", 6),
+         CategoryOrder("Release", 7),
+         CategoryOrder("Expel", 8),
+         CategoryOrder("Tax", 9)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -145,6 +146,18 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=TESTING}Cost of creating a kingdom"),
              PropertyOrder(4), UsedImplicitly]
             public int CreateKPrice { get; set; } = 20000000;
+
+            [LocDisplayName("{=TESTING}Policy"),
+             LocCategory("Policy", "{=TESTING}Policy"),
+             LocDescription("{=TESTING}Enable viewing,adding and removing policies"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool PolicyEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Price"),
+             LocCategory("Policy", "{=TESTING}Policy"),
+             LocDescription("{=TESTING}Policy command price"),
+             PropertyOrder(2), UsedImplicitly]
+            public int PolicyPrice { get; set; } = 50000;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Vassal", "{=TESTING}Vassal"),
@@ -391,6 +404,9 @@ namespace BLTAdoptAHero.Actions
                     break;
                 case "tax":
                     HandleTaxCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
+                case "policy":
+                    HandlePolicyCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 default:
                     onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats)".Translate());
@@ -1295,6 +1311,61 @@ namespace BLTAdoptAHero.Actions
 
             onSuccess($"Set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%");
             Log.ShowInformation($"{adoptedHero.Name} has set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%!", adoptedHero.CharacterObject);
+        }
+
+        private void HandlePolicyCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            var desiredPolicy = PolicyObject.All.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            int policyCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfPolicyProposalAndDisavowal(adoptedHero.Clan);
+            if (!settings.PolicyEnabled)
+            {
+                onFailure("Policy disabled".Translate());
+                return;
+            }
+            if (!adoptedHero.IsKingdomLeader)
+            {
+                onFailure("{=TESTING}Not a king.".Translate());
+                return;
+            }
+
+            if (desiredName == "list")
+            {
+                var listString = string.Join(", ", PolicyObject.All.Select(k => k.Name.ToString()));
+                onSuccess(listString);
+                return;
+            }
+            if (string.IsNullOrEmpty(desiredName))
+            {
+                var listString = string.Join(", ", adoptedHero.Clan.Kingdom.ActivePolicies.Select(p => p.ToString()));
+                onSuccess(listString);
+                return;
+            }
+            if (desiredPolicy != null)
+            {
+                if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.PolicyPrice)
+                {
+                    onFailure(Naming.NotEnoughGold(settings.PolicyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                    return;
+                }
+                if (adoptedHero.Clan.Influence < policyCost)
+                {
+                    onFailure($"Not enough influence:{policyCost}");
+                    return;
+                }
+                if (adoptedHero.Clan.Kingdom.ActivePolicies.Contains(desiredPolicy))
+                {
+                    adoptedHero.Clan.Kingdom.RemovePolicy(desiredPolicy);
+                    onSuccess($"Removed {desiredPolicy}");
+                    return;
+                }
+                else
+                {
+                    adoptedHero.Clan.Kingdom.AddPolicy(desiredPolicy);
+                    onSuccess($"Added {desiredPolicy}");
+                    return;
+                }
+            }
+            else { onFailure("Invalid action"); }
         }
     }
 }

@@ -433,14 +433,14 @@ namespace BLTAdoptAHero
 #if DEBUG
                         Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
 #endif
-                        return false; // skip original
+                        return false;
                     }
                     catch (Exception ex)
                     {
                         Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
                     }
                 }
-                return true; // run original if not blocked
+                return true;
             }
         }
         [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
@@ -465,7 +465,9 @@ namespace BLTAdoptAHero
                     __result = firstHero.Clan;
                 }
                 else { __result = secondHero.Clan; }
-
+#if DEBUG
+                Log.Trace($"[BLT] Changed marriage clan for {firstHero.FirstName}/{secondHero.FirstName} to {__result.Name}");
+#endif
             }
         }
         #endregion
