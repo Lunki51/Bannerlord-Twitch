@@ -13,6 +13,7 @@ using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
 using NavalDLC.CharacterDevelopment;
 using BannerlordTwitch.Util;
+using BLTAdoptAHero;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;

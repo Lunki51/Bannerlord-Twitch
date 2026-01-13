@@ -927,11 +927,6 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Cannot vassal a blt");
                 return;                  
             }
-            if (vassal.PartyBelongedTo != null)
-            {
-                onFailure($"{childName} is in a party");
-                return;
-            }
             if (vassal.IsPrisoner)
             {
                 onFailure($"{childName} is prisoner");
@@ -949,6 +944,15 @@ namespace BLTAdoptAHero.Actions
             if (vassal.GovernorOf != null)
             {
                 ChangeGovernorAction.RemoveGovernorOf(vassal);
+            }
+            if (vassal.PartyBelongedTo != null)
+            {
+                var oldParty = vassal.PartyBelongedTo;
+                bool wasLeader = oldParty.LeaderHero == vassal;
+                oldParty.MemberRoster.RemoveTroop(vassal.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+                MakeHeroFugitiveAction.Apply(vassal, false);
+                if (wasLeader && oldParty.IsLordParty)
+                    DisbandPartyAction.StartDisband(oldParty);
             }
             var fullClanName = $"[Vassal] {setname}";
             var newClan = Clan.CreateClan(fullClanName);
@@ -968,13 +972,38 @@ namespace BLTAdoptAHero.Actions
             vassal.Clan = newClan;
             if (vassal.Spouse != null)
             {
-                
+                if (vassal.Spouse.GovernorOf != null)
+                {
+                    ChangeGovernorAction.RemoveGovernorOf(vassal.Spouse);
+                }
+                if (vassal.Spouse.PartyBelongedTo != null)
+                {
+                    var oldParty = vassal.Spouse.PartyBelongedTo;
+                    bool wasLeader = oldParty.LeaderHero == vassal.Spouse;
+                    oldParty.MemberRoster.RemoveTroop(vassal.Spouse.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+                    MakeHeroFugitiveAction.Apply(vassal.Spouse, false);
+                    if (wasLeader && oldParty.IsLordParty)
+                        DisbandPartyAction.StartDisband(oldParty);
+                }
                 vassal.Spouse.Clan = newClan;
             }
             if (vassal.Children.Count > 0)
             {
                 foreach (Hero child in vassal.Children)
                 {
+                    if (child.GovernorOf != null)
+                    {
+                        ChangeGovernorAction.RemoveGovernorOf(child);
+                    }
+                    if (child.PartyBelongedTo != null)
+                    {
+                        var oldParty = child.PartyBelongedTo;
+                        bool wasLeader = oldParty.LeaderHero == child;
+                        oldParty.MemberRoster.RemoveTroop(child.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+                        MakeHeroFugitiveAction.Apply(child, false);
+                        if (wasLeader && oldParty.IsLordParty)
+                            DisbandPartyAction.StartDisband(oldParty);
+                    }
                     child.Clan = newClan;
                 }
             }
