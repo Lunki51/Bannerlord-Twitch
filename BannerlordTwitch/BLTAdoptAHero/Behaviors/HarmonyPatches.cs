@@ -23,6 +23,7 @@ namespace BLTAdoptAHero
     {
         public static bool _allowKingdomMove = false;
         public static bool _allowDiplomacyAction = false;
+        public static bool _allowMarriage = false;
     }
     #region FactionDiscontinuationCampaignBehavior
     [HarmonyPatch(typeof(FactionDiscontinuationCampaignBehavior))]
@@ -440,6 +441,31 @@ namespace BLTAdoptAHero
                     }
                 }
                 return true; // run original if not blocked
+            }
+        }
+        [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+        internal class BLTMarriage
+        {
+            static void Postfix(ref Clan __result, Hero firstHero, Hero secondHero)
+            {
+                if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
+                    return;
+
+                if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan.Leader.IsAdopted())
+                {
+                    __result = firstHero.Clan;
+                }
+                else { __result = secondHero.Clan; }
+
             }
         }
         #endregion
