@@ -13,7 +13,6 @@ using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
 using NavalDLC.CharacterDevelopment;
 using BannerlordTwitch.Util;
-using BLTAdoptAHero;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
@@ -245,13 +244,13 @@ namespace BLTAdoptAHero
     internal static class KingdomDecisionPatches
     {
         // Block MakePeaceKingdomDecision for BLT kingdoms
-        [HarmonyPatch(typeof(MakePeaceKingdomDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(IFaction), typeof(bool) })]
+        [HarmonyPatch(typeof(MakePeaceKingdomDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(IFaction), typeof(int), typeof(int), typeof(bool), typeof(bool) })]
         internal static class MakePeaceKingdomDecisionConstructorPatch
         {
             [HarmonyPrefix]
-            private static bool Prefix(Clan proposerClan)
+            private static bool Prefix(Clan proposerClan, IFaction kingdomToMakePeaceWith, int dailyTributeToBePaid, int dailyTributeDurationInDays, bool applyResults, bool isProposedByOpponent)
             {
-                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
+                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted() && Hero.MainHero?.Clan != proposerClan)
                 {
 #if DEBUG
                     Log.Trace($"[BLT] Blocked MakePeaceKingdomDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
@@ -263,13 +262,13 @@ namespace BLTAdoptAHero
         }
 
         // Block DeclareWarDecision for BLT kingdoms
-        [HarmonyPatch(typeof(DeclareWarDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(IFaction), typeof(bool) })]
+        [HarmonyPatch(typeof(DeclareWarDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(IFaction) })]
         internal static class DeclareWarDecisionConstructorPatch
         {
             [HarmonyPrefix]
             private static bool Prefix(Clan proposerClan)
             {
-                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
+                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted() && Hero.MainHero?.Clan != proposerClan)
                 {
 #if DEBUG
                     Log.Trace($"[BLT] Blocked DeclareWarDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
@@ -301,47 +300,11 @@ namespace BLTAdoptAHero
         // Block ExpelClanFromKingdomDecision for BLT kingdoms
         [HarmonyPatch(typeof(ExpelClanFromKingdomDecision), MethodType.Constructor, new Type[] { typeof(Clan), typeof(Clan) })]
         internal static class ExpelClanFromKingdomDecisionConstructorPatch
-    }
-
-    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
-    class BLTMarriage
-    {
-        static void Postfix(ref Clan __result, Hero firstHero, Hero secondHero)
-        {
-            if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
-                return;
-
-            if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
-                return;
-
-            if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
-                return;
-
-            if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
-                return;
-
-            if (firstHero.Clan.Leader.IsAdopted())
-            {
-                __result = firstHero.Clan;
-            }
-            else { __result = secondHero.Clan; }
-
-        }
-    }
-}
-#endregion
-
-#region OnShipOwnerChanged
-
-[HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
-    static class BLT_Suppress_OnShipOwnerChanged_Exception
-    {
-        static Exception Finalizer(Exception __exception)
         {
             [HarmonyPrefix]
             private static bool Prefix(Clan proposerClan)
             {
-                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted())
+                if (proposerClan?.Kingdom?.Leader != null && proposerClan.Kingdom.Leader.IsAdopted() && Hero.MainHero?.Clan != proposerClan)
                 {
 #if DEBUG
                     Log.Trace($"[BLT] Blocked ExpelClanFromKingdomDecision for BLT kingdom: {proposerClan.Kingdom.Name}");
@@ -478,6 +441,31 @@ namespace BLTAdoptAHero
                     }
                 }
                 return true; // run original if not blocked
+            }
+        }
+        [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+        internal class BLTMarriage
+        {
+            static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
+            {
+                if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
+                    return;
+
+                if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan.Leader.IsAdopted())
+                {
+                    __result = firstHero.Clan;
+                }
+                else { __result = secondHero.Clan; }
+
             }
         }
         #endregion
