@@ -25,6 +25,8 @@ namespace BLTAdoptAHero.UI
         private const float OVERLAY_HEIGHT = 95f;
         private const float OVERLAY_ASPECT_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT; // 3.33
 
+        public static MapHub.MapData CurrentMapData => currentMapData;
+
         public class MapData
         {
             public List<KingdomData> Kingdoms { get; set; } = new();
