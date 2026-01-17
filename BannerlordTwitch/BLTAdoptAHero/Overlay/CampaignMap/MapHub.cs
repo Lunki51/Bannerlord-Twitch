@@ -159,7 +159,7 @@ namespace BLTAdoptAHero.UI
                     {
                         Id = k.StringId,
                         Name = k.Name?.ToString() ?? "Unknown",
-                        Color = ColorToHex(k.Color)
+                        Color = (k.Color != 0 && k.Color != 0x00000000) ? ColorToHex(k.Color) : (k.PrimaryBannerColor != 0 ? ColorToHex(k.PrimaryBannerColor) : "#CCCCCC")
                     })
                     .ToList();
 
