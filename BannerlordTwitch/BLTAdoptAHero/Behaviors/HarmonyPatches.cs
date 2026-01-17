@@ -16,6 +16,7 @@ using BannerlordTwitch.Util;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
+using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
 
 namespace BLTAdoptAHero
 {
@@ -442,6 +443,14 @@ namespace BLTAdoptAHero
                 }
                 return true;
             }
+            [HarmonyPostfix]
+            [HarmonyPatch("CommanderLimit")]
+            static void Postfix_CommanderLimit(Clan __instance, ref int __result)
+            {
+                // Add the bonus to the original value
+                if (UpgradeBehavior.Current == null) { return; }
+                __result += UpgradeBehavior.Current.GetTotalPartyAmountBonus(__instance);
+            }
         }
         [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
         internal class BLTMarriage
@@ -468,31 +477,6 @@ namespace BLTAdoptAHero
 #if DEBUG
                 Log.Trace($"[BLT] Changed marriage clan for {firstHero.FirstName}/{secondHero.FirstName} to {__result.Name}");
 #endif
-            }
-        }
-        [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
-        internal class BLTMarriage
-        {
-            static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
-            {
-                if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
-                    return;
-
-                if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
-                    return;
-
-                if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
-                    return;
-
-                if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
-                    return;
-
-                if (firstHero.Clan.Leader.IsAdopted())
-                {
-                    __result = firstHero.Clan;
-                }
-                else { __result = secondHero.Clan; }
-
             }
         }
         #endregion
