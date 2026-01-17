@@ -110,8 +110,8 @@ namespace BLTAdoptAHero.Behaviors
                 BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(rulingClan.Leader, totalTaxCollected, false);
 
                 // Log tax collection
-                string taxMessage = $"Tax collected: +{totalTaxCollected}/day ({(taxRate * 100f):F1}% rate) [{taxBreakdown}]";
-                Log.LogFeedResponse(taxMessage);
+                //string taxMessage = $"Tax collected: +{totalTaxCollected}/day ({(taxRate * 100f):F1}% rate) [{taxBreakdown}]";
+                //Log.LogFeedResponse(taxMessage); //Commented this out since it floods the overlay everyday
             }
         }
 
