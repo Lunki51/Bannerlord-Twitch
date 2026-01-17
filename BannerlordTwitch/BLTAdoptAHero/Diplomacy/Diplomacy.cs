@@ -588,6 +588,16 @@ namespace BLTAdoptAHero
                 return;
             }
 
+            // Check if target is BLT controlled - need this early to validate tribute
+            bool targetIsBLT = target.Leader != null && target.Leader.IsAdopted();
+
+            // Only allow custom tribute for BLT-controlled kingdoms
+            if (hasCustomTribute && !targetIsBLT)
+            {
+                onFailure($"Custom tribute amounts are only allowed when negotiating with BLT-controlled kingdoms. The game will calculate tribute for {target.Name}.");
+                return;
+            }
+
             // Check if this would break an alliance
             var war = BLTTreatyManager.Current.GetWar(kingdom, target);
             bool wouldBreakAlliance = false;
@@ -618,6 +628,7 @@ namespace BLTAdoptAHero
             int dailyTribute = 0;
             if (hasCustomTribute)
             {
+                // This will only execute for BLT-controlled kingdoms due to earlier check
                 if (tributeAmount < settings.TributeMin || tributeAmount > settings.TributeMax)
                 {
                     onFailure($"Tribute must be between {settings.TributeMin} and {settings.TributeMax} gold/day");
@@ -654,7 +665,7 @@ namespace BLTAdoptAHero
             // After validation, before making peace:
 
             // Check if target is BLT controlled
-            if (target.Leader != null && target.Leader.IsAdopted())
+            if (targetIsBLT)
             {
                 // Create peace proposal instead of forcing it
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
@@ -685,7 +696,7 @@ namespace BLTAdoptAHero
             }
             else if (target.Leader == Hero.MainHero)
             {
-                // Deduct costs?
+                // Deduct costs
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
                 hero.Clan.Influence -= influenceCost;
                 // Player kingdom making peace with AI - use event dispatcher
@@ -882,9 +893,7 @@ namespace BLTAdoptAHero
             {
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -goldCost, true);
                 hero.Clan.Influence -= influenceCost;
-
                 BLTTreatyManager.Current.CreateNAPProposal(kingdom, target, goldCost, influenceCost, 15);
-
                 onSuccess($"NAP proposal sent to {target.Name}. They have 15 days to respond.");
 
                 string targetLeaderName = target.Leader.FirstName.ToString()
@@ -893,16 +902,29 @@ namespace BLTAdoptAHero
                     .Trim();
                 Log.LogFeedResponse($"@{targetLeaderName} {kingdom.Name} proposes a non-aggression pact! Use !diplomacy accept nap {kingdom.Name}");
             }
+            else if (target == Hero.MainHero.Clan.Kingdom)
+            {
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -goldCost, true);
+                hero.Clan.Influence -= influenceCost;
+                BLTTreatyManager.Current.CreateNAPProposal(kingdom, target, goldCost, influenceCost, 15);
+                BLTNAPOfferBehavior.Current?.OfferNAPToPlayer(kingdom, target, 15);
+                onSuccess($"NAP proposal sent to {target.Name}");
+            }
             else
             {
                 // AI kingdom - create NAP directly
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -goldCost, true);
-                hero.Clan.Influence -= influenceCost;
+                //BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -goldCost, true);
+                //hero.Clan.Influence -= influenceCost;
+                //
+                //BLTTreatyManager.Current.CreateNAP(kingdom, target);
+                //
+                //onSuccess($"Non-aggression pact established with {target.Name}");
+                //Log.ShowInformation($"{kingdom.Name} and {target.Name} have signed a non-aggression pact!", hero.CharacterObject);
 
-                BLTTreatyManager.Current.CreateNAP(kingdom, target);
 
-                onSuccess($"Non-aggression pact established with {target.Name}");
-                Log.ShowInformation($"{kingdom.Name} and {target.Name} have signed a non-aggression pact!", hero.CharacterObject);
+                // We're blocking NAPs with AI for balance reasons
+                onFailure($"You cannot form NAPs with AI controlled kingdoms!");
+                return;
             }
         }
 
@@ -1036,21 +1058,25 @@ namespace BLTAdoptAHero
                     settings.CTWPrice
                 );
 
-                BLTAllianceOfferBehavior.Current?.OfferAllianceToPlayer(kingdom, target, 15);
+                BLTPlayerOffersBehavior.Current?.OfferAllianceToPlayer(kingdom, target, 15);
 
                 onSuccess($"Alliance proposal sent to {target.Name}");
             }
             else
             {
                 // AI kingdom - create alliance directly
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -goldCost, true);
-                hero.Clan.Influence -= influenceCost;
+                //BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -goldCost, true);
+                //hero.Clan.Influence -= influenceCost;
+                //
+                //BLTTreatyManager.Current.CreateAlliance(kingdom, target);
+                //BLTTreatyManager.Current.RemoveNAP(kingdom, target);
+                //
+                //onSuccess($"Alliance formed with {target.Name}!");
+                //Log.ShowInformation($"{kingdom.Name} and {target.Name} have formed an alliance!", hero.CharacterObject, Log.Sound.Horns2);
 
-                BLTTreatyManager.Current.CreateAlliance(kingdom, target);
-                BLTTreatyManager.Current.RemoveNAP(kingdom, target);
-
-                onSuccess($"Alliance formed with {target.Name}!");
-                Log.ShowInformation($"{kingdom.Name} and {target.Name} have formed an alliance!", hero.CharacterObject, Log.Sound.Horns2);
+                // We're blocking alliances with AI for balance reasons
+                onFailure($"You cannot ally AI controlled kingdoms!");
+                return;
             }
         }
 
@@ -1129,19 +1155,28 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            // Create CTW proposal
-            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.CTWPrice, true);
-            hero.Clan.Influence -= settings.CTWInfluence;
-
-            BLTTreatyManager.Current.CreateCTWProposal(kingdom, ally, target, settings.CTWAcceptanceDays);
-
-            onSuccess($"Call to war sent to {ally.Name} against {target.Name}. They have {settings.CTWAcceptanceDays} days to respond.");
 
             // Notify ally kingdom leader if BLT
             if (ally.Leader != null && ally.Leader.IsAdopted())
             {
-                string allyLeaderName = ally.Leader.FirstName.ToString().Replace(BLTAdoptAHeroModule.Tag, "").Replace(BLTAdoptAHeroModule.DevTag, "").Trim();
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.CTWPrice, true);
+                hero.Clan.Influence -= settings.CTWInfluence;
+                BLTTreatyManager.Current.CreateCTWProposal(kingdom, ally, target, settings.CTWAcceptanceDays);
+                onSuccess($"Call to war sent to {ally.Name} against {target.Name}. They have {settings.CTWAcceptanceDays} days to respond.");
+
+                string allyLeaderName = ally.Leader.FirstName.ToString()
+                    .Replace(BLTAdoptAHeroModule.Tag, "")
+                    .Replace(BLTAdoptAHeroModule.DevTag, "")
+                    .Trim();
                 Log.LogFeedResponse($"@{allyLeaderName} {kingdom.Name} calls you to war against {target.Name}! Use !diplomacy accept ctw {kingdom.Name} to join.");
+            }
+            else if (ally?.Leader == Hero.MainHero)
+            {
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.CTWPrice, true);
+                hero.Clan.Influence -= settings.CTWInfluence;
+                BLTTreatyManager.Current.CreateCTWProposal(kingdom, ally, target, settings.CTWAcceptanceDays);
+                BLTCTWOfferBehavior.Current?.OfferCTWToPlayer(kingdom, ally, target, settings.CTWAcceptanceDays);
+                onSuccess($"Call to war sent to {ally.Name}");
             }
         }
 
