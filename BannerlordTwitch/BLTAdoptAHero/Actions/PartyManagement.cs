@@ -254,7 +254,7 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Cannot govern player towns");
                             return;
                         }
-                        if (adoptedHero.PartyBelongedTo.MapEvent != null)
+                        if (party != null && adoptedHero.PartyBelongedTo.MapEvent != null)
                         {
                             onFailure("Your hero is busy");
                             return;
@@ -279,20 +279,27 @@ namespace BLTAdoptAHero.Actions
                             onFailure($"Could not find a fief with the name {desiredName}");
                             return;
                         }
-                        if (party != null)
+                        if (army != null)
                         {
-                            onFailure("You are in a party");
+                            onFailure("You are in an army!");
                             return;
                         }
-                        if (party == null)
+                        if (party != null)
                         {
-                            if (govFief != null)
-                            {
-                                ChangeGovernorAction.RemoveGovernorOf(adoptedHero);
-                            }
-                            ChangeGovernorAction.Apply(desiredTown, adoptedHero);
-                            onSuccess($"Governor of {desiredTown.Name}");
+                            var oldParty = party;
+                            bool wasLeader = oldParty.LeaderHero == adoptedHero;
+                            oldParty.MemberRoster.RemoveTroop(adoptedHero.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+                            MakeHeroFugitiveAction.Apply(adoptedHero, false);
+                            if (wasLeader && oldParty.IsLordParty)
+                                DisbandPartyAction.StartDisband(oldParty);
                         }
+                        if (govFief != null)
+                        {
+                            ChangeGovernorAction.RemoveGovernorOf(adoptedHero);
+                        }
+                        TeleportHeroAction.ApplyImmediateTeleportToSettlement(adoptedHero, desiredTown.Settlement);
+                        ChangeGovernorAction.Apply(desiredTown, adoptedHero);
+                        onSuccess($"Governor of {desiredTown.Name}");                       
                         break;
                     }
                 case "create":
@@ -326,20 +333,7 @@ namespace BLTAdoptAHero.Actions
                         {
                             onFailure("You are prisoner");
                             return;
-                        }
-                        if (adoptedHero.Clan.WarPartyComponents.Any(w => w.Leader == null))
-                        {
-                            onFailure("Cannot create party at this moment");
-                            foreach (var p in adoptedHero.Clan.WarPartyComponents)
-                            {
-                                if (p.Leader == null)
-                                {
-                                    p.MobileParty.IsActive = true;
-                                    DestroyPartyAction.ApplyForDisbanding(p.MobileParty, adoptedHero.Clan.HomeSettlement);
-                                }
-                            }
-                            return;
-                        }                       
+                        }                    
                         int parties = adoptedHero.Clan.WarPartyComponents.Count;
                         if (!adoptedHero.IsClanLeader && parties >= adoptedHero.Clan.CommanderLimit)
                         {
@@ -492,13 +486,13 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Your party is busy.");
                             return;
                         }
-                        Army.ArmyTypes armyType = Army.ArmyTypes.Patrolling;
+                        Army.ArmyTypes armyType = Army.ArmyTypes.NumberOfArmyTypes;
                         if (splitArgs.Length < 2)
                         {
                             onFailure("Specify an army type: defend/siege/patrol");
                             return;
                         }
-                        switch (desiredName)
+                        switch (desiredName.ToLower())
                         {
                             case "siege":
                                 {
@@ -520,29 +514,50 @@ namespace BLTAdoptAHero.Actions
                                     break;
                                 }
 
-                            case "disband:":
+                            case "disband":
                                 {
 
-                                    if (army != null && army.LeaderParty == party && party.MapEvent != null)
+                                    if (army != null && army.LeaderParty == party && party.MapEvent == null)
                                     {
                                         DisbandArmyAction.ApplyByUnknownReason(army);
                                         onSuccess("Disbanded army");
                                         return;
                                     }
-                                    //else if (army != null && army.LeaderParty != party && army.LeaderParty != MobileParty.MainParty && party.AttachedTo != null)
-                                    //{
-                                    //    army.                              
-                                    //}
                                     else
                                     {
                                         onFailure("Cannot disband army at this moment");
                                     }
                                     break;
                                 }
+                            case "leave":
+                                {
+                                    if (army != null && army.LeaderParty == party)
+                                    {
+                                        onFailure("Cannot leave own army");
+                                        return;
+                                    }
+                                    if (party.MapEvent != null)
+                                    {
+                                        onFailure("Your army is fighting!");
+                                        return;
+                                    }
+                                    if (army != null && army.LeaderParty != party)
+                                    {
+                                        var oldArmy = army;
+                                        party.Army = null;
+                                        onSuccess($"Your party has left {oldArmy.Name}");
+                                        return;
+                                    }
+                                        break;
+                                }
 
                             default:
                                 onFailure($"Invalid army type: {desiredName}");
                                 return;
+                        }
+                        if (armyType == Army.ArmyTypes.NumberOfArmyTypes)
+                        {
+                            return;
                         }
                         if (army != null && army.LeaderParty == party)
                         {

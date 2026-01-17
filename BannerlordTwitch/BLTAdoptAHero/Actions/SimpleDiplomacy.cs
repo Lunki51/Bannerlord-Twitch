@@ -23,10 +23,10 @@ using BLTAdoptAHero.Actions;
 
 namespace BLTAdoptAHero
 {
-    [LocDisplayName("{=TESTING}Diplomacy"),
+    [LocDisplayName("{=TESTING}Simple Diplomacy"),
      LocDescription("{=TESTING}Manage your kingdom diplomacy and other actions."),
      UsedImplicitly]
-    class Diplomacy : HeroCommandHandlerBase
+    class SimpleDiplomacy : HeroCommandHandlerBase
     {
         [CategoryOrder("War", 0),
          CategoryOrder("Peace", 1),
@@ -63,7 +63,7 @@ namespace BLTAdoptAHero
              LocCategory("Peace", "{=TESTING}Peace"),
              LocDescription("{=TESTING}Peace command price"),
              PropertyOrder(2), UsedImplicitly]
-            public int PeacePrice { get; set; } = 100000;      
+            public int PeacePrice { get; set; } = 100000;
 
             [LocDisplayName("{=TESTING}Ally"),
              LocCategory("Alliance", "{=TESTING}Alliance"),
@@ -119,7 +119,7 @@ namespace BLTAdoptAHero
                                     "Cooldown={cd}".Translate(("cd", WarCooldown.ToString())));
                 if (PeaceEnabled)
                     generator.Value("<strong>Peace Config: </strong>" +
-                                    "Price={price}{icon}-".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)));                
+                                    "Price={price}{icon}-".Translate(("price", PeacePrice.ToString()), ("icon", Naming.Gold)));
                 if (AllyEnabled)
                     generator.Value("<strong>Alliance Config: </strong>" +
                                     "Price={price}{icon}".Translate(("price", AllyPrice.ToString()), ("icon", Naming.Gold)));
@@ -221,7 +221,7 @@ namespace BLTAdoptAHero
                             onFailure("Cant declare war on yourself!");
                             return;
                         }
-                        var stance = kingdom.GetStanceWith(desiredKingdom);                       
+                        var stance = kingdom.GetStanceWith(desiredKingdom);
                         if (stance.PeaceDeclarationDate.ElapsedDaysUntilNow < settings.WarCooldown)
                         {
                             onFailure($"Cant war yet. {(int)(settings.WarCooldown - stance.PeaceDeclarationDate.ElapsedDaysUntilNow)} days remaining.");
@@ -289,7 +289,7 @@ namespace BLTAdoptAHero
                             return;
                         }
                         int influenceCost = Campaign.Current.Models.DiplomacyModel.GetInfluenceCostOfProposingPeace(adoptedHero.Clan);
-                        
+
 
                         var stance = kingdom.GetStanceWith(desiredKingdom);
                         if (!kingdom.IsAtWarWith(desiredKingdom))
@@ -319,7 +319,7 @@ namespace BLTAdoptAHero
                         Clan recipient = desiredKingdom.RulingClan;
                         int dailyTribute = diplomacy.GetDailyTributeToPay(proposer, recipient, out int tributeDurationInDays);
 
-                        
+
                         if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader)
                         {
                             CampaignEventDispatcher.Instance.OnPeaceOfferedToPlayer(kingdom, dailyTribute, tributeDurationInDays);
@@ -420,7 +420,7 @@ namespace BLTAdoptAHero
                         }
                         else { onFailure("Invalid action"); }
                         break;
-                    }                           
+                    }
                 case "alliance":
                     {
 
@@ -480,7 +480,7 @@ namespace BLTAdoptAHero
                         }
                         else
                         {
-                            
+
                             allianceBehavior.StartAlliance(kingdom, desiredKingdom);
                             adoptedHero.Clan.Influence -= influenceCost;
                             onSuccess($"Allied with {desiredKingdom}");

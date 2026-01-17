@@ -348,6 +348,10 @@ namespace BLTAdoptAHero.Actions
                 onFailure($"{targetClan.Name} is a Mercenary, which cannot own land.");
                 return;
             }
+            if (targetSettlement.Town.Governor != null)
+            {
+                ChangeGovernorAction.RemoveGovernorOfIfExists(targetSettlement.Town);
+            }
 
             // All checks passed — perform transfer using native action
             try

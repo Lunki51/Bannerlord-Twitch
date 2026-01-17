@@ -25,6 +25,8 @@ namespace BLTAdoptAHero.UI
         private const float OVERLAY_HEIGHT = 95f;
         private const float OVERLAY_ASPECT_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT; // 3.33
 
+        public static MapHub.MapData CurrentMapData => currentMapData;
+
         public class MapData
         {
             public List<KingdomData> Kingdoms { get; set; } = new();
@@ -157,7 +159,7 @@ namespace BLTAdoptAHero.UI
                     {
                         Id = k.StringId,
                         Name = k.Name?.ToString() ?? "Unknown",
-                        Color = ColorToHex(k.Color)
+                        Color = (k.Color != 0 && k.Color != 0x00000000) ? ColorToHex(k.Color) : (k.PrimaryBannerColor != 0 ? ColorToHex(k.PrimaryBannerColor) : "#CCCCCC")
                     })
                     .ToList();
 
