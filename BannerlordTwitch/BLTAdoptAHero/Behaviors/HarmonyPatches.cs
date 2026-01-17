@@ -13,7 +13,6 @@ using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
 using NavalDLC.CharacterDevelopment;
 using BannerlordTwitch.Util;
-using BLTAdoptAHero;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
@@ -434,14 +433,41 @@ namespace BLTAdoptAHero
 #if DEBUG
                         Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
 #endif
-                        return false; // skip original
+                        return false;
                     }
                     catch (Exception ex)
                     {
                         Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
                     }
                 }
-                return true; // run original if not blocked
+                return true;
+            }
+        }
+        [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+        internal class BLTMarriage
+        {
+            static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
+            {
+                if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
+                    return;
+
+                if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan.Leader.IsAdopted())
+                {
+                    __result = firstHero.Clan;
+                }
+                else { __result = secondHero.Clan; }
+#if DEBUG
+                Log.Trace($"[BLT] Changed marriage clan for {firstHero.FirstName}/{secondHero.FirstName} to {__result.Name}");
+#endif
             }
         }
         [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
