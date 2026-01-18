@@ -432,7 +432,7 @@ namespace BLTAdoptAHero
                     try
                     {
 #if DEBUG
-                        Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
+                Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
 #endif
                         return false;
                     }
@@ -443,9 +443,10 @@ namespace BLTAdoptAHero
                 }
                 return true;
             }
+
             [HarmonyPostfix]
-            [HarmonyPatch("CommanderLimit")]
-            static void Postfix_CommanderLimit(Clan __instance, ref int __result)
+            [HarmonyPatch("CommanderLimit", MethodType.Getter)]
+            private static void Postfix_CommanderLimit(Clan __instance, ref int __result)
             {
                 // Add the bonus to the original value
                 if (UpgradeBehavior.Current == null) { return; }
