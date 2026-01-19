@@ -17,6 +17,7 @@ using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
 using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
+using System.Linq;
 
 namespace BLTAdoptAHero
 {
@@ -443,15 +444,6 @@ namespace BLTAdoptAHero
                 }
                 return true;
             }
-
-            [HarmonyPostfix]
-            [HarmonyPatch("CommanderLimit", MethodType.Getter)]
-            private static void Postfix_CommanderLimit(Clan __instance, ref int __result)
-            {
-                // Add the bonus to the original value
-                if (UpgradeBehavior.Current == null) { return; }
-                __result += UpgradeBehavior.Current.GetTotalPartyAmountBonus(__instance);
-            }
         }
         [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
         internal class BLTMarriage
@@ -536,8 +528,8 @@ namespace BLTAdoptAHero
                 return false;
             }
         }
-
-        #endregion
-
     }
+
+    #endregion
+
 }
