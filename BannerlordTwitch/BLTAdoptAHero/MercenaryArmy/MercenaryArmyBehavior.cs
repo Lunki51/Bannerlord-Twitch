@@ -474,12 +474,14 @@ namespace BLTAdoptAHero
                 if (party == null || targetSettlement == null)
                     return;
 
-                // Disable AI decision-making - we'll control this party manually
-                party.Ai.SetDoNotMakeNewDecisions(true);
+                // DON'T disable AI - we need it for siege encounter handling
+                // Instead, we'll enforce the behavior in hourly tick
 
                 // Set the party to besiege the target settlement
                 var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
-                party.SetMoveBesiegeSettlement(targetSettlement, nav);
+
+                // Use SetPartyAiAction for proper siege setup
+                SetPartyAiAction.GetActionForBesiegingSettlement(party, targetSettlement, nav, false);
 
                 Log.Info($"[BLT] Initialized mercenary party {party.Name} to besiege {targetSettlement.Name}");
             }
@@ -591,17 +593,21 @@ namespace BLTAdoptAHero
                     return;
                 }
 
-                // Ensure AI is disabled and behavior is set correctly
-                if (!party.Ai.DoNotMakeNewDecisions)
-                {
-                    party.Ai.SetDoNotMakeNewDecisions(true);
-                }
+                // If party is not actively sieging or fighting, ensure it's set to besiege target
+                // Let the AI handle the actual siege encounter creation
+                bool isEngaged = party.BesiegedSettlement != null ||
+                                party.SiegeEvent != null ||
+                                party.MapEvent != null;
 
-                // If not currently sieging, ensure we're moving to besiege
-                if (party.BesiegedSettlement != targetSettlement && party.DefaultBehavior != AiBehavior.BesiegeSettlement)
+                if (!isEngaged)
                 {
-                    var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
-                    party.SetMoveBesiegeSettlement(targetSettlement, nav);
+                    // Only redirect if the behavior or target has changed
+                    if (party.DefaultBehavior != AiBehavior.BesiegeSettlement ||
+                        party.TargetSettlement != targetSettlement)
+                    {
+                        var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
+                        SetPartyAiAction.GetActionForBesiegingSettlement(party, targetSettlement, nav, false);
+                    }
                 }
             }
             catch (Exception ex)

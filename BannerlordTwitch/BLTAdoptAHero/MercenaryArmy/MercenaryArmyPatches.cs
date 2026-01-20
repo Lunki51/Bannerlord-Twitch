@@ -6,6 +6,7 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
 using BannerlordTwitch.Util;
 using TaleWorlds.CampaignSystem.Settlements;
+using Helpers;
 
 namespace BLTAdoptAHero
 {
@@ -83,29 +84,55 @@ namespace BLTAdoptAHero
             return _mercenaryPartyIds.Contains(party.StringId);
         }
 
-        // ===== FLEE PREVENTION (WORLD MAP ONLY) =====
+        // ===== AI BEHAVIOR ENFORCEMENT =====
 
         /// <summary>
-        /// Prevent mercenary armies from fleeing on the world map
-        /// (Does NOT affect in-battle AI)
+        /// Prevent mercenary armies from changing their default behavior away from BesiegeSettlement
+        /// This allows normal AI to handle siege mechanics while preventing objective changes
         /// </summary>
-        [HarmonyPatch(typeof(MobileParty), "ShouldPartyTryToFleeFromEnemies")]
-        [HarmonyPrefix]
-        private static bool Prefix_ShouldFleeFromEnemies(MobileParty __instance, ref bool __result)
+        [HarmonyPatch(typeof(MobileParty))]
+        [HarmonyPatch("ShouldConsiderAvoiding")]
+        public static class MercenaryArmy_ShouldConsiderAvoiding_Patch
         {
-            try
+            [HarmonyPrefix]
+            private static bool Prefix(
+                MobileParty __instance,
+                MobileParty party,
+                MobileParty targetParty,
+                ref bool __result)
             {
-                if (__instance != null && IsMercenaryArmy(__instance))
+                try
                 {
-                    __result = false; // Never flee on world map
+                    // Only intervene for mercenary armies
+                    if (!IsMercenaryArmy(party))
+                        return true; // Run vanilla logic
+
+                    if (targetParty == null)
+                    {
+                        __result = false;
+                        return false;
+                    }
+
+                    // Re-implementation of vanilla logic with mercenary-safe rules
+                    __result =
+                        (targetParty.SiegeEvent == null
+                            || !targetParty.SiegeEvent.BesiegedSettlement.HasPort
+                            || targetParty.SiegeEvent.IsBlockadeActive
+                            || !party.IsTargetingPort)
+                        && (targetParty.IsMainParty
+                            || MobilePartyHelper.CanPartyAttackWithCurrentMorale(targetParty))
+                        && ((targetParty.Aggressiveness > 0.01f
+                            && !targetParty.IsInRaftState)
+                            || targetParty.IsGarrison);
+
                     return false; // Skip original method
                 }
+                catch (Exception ex)
+                {
+                    Log.Error($"[BLT] ShouldConsiderAvoiding patch error: {ex}");
+                    return true; // Fail open to avoid breaking AI
+                }
             }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] Prefix_ShouldFleeFromEnemies error: {ex}");
-            }
-            return true;
         }
 
         // ===== WAGE ELIMINATION =====
@@ -217,7 +244,7 @@ namespace BLTAdoptAHero
                         var target = Settlement.Find(army.TargetSettlementId);
 
                         Log.Info($"[BLT]   Army {army.PartyId}: " +
-                                $"Party={party?.Name.ToString() ?? "MISSING"}, " +
+                                $"Party={party?.Name?.ToString() ?? "MISSING"}, " +
                                 $"Target={target?.Name?.ToString() ?? "MISSING"}, " +
                                 $"Active={army.IsActive}");
                     }
