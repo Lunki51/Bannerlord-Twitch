@@ -470,6 +470,31 @@ namespace BLTAdoptAHero
 #endif
             }
         }
+        [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+        internal class BLTMarriage
+        {
+            static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
+            {
+                if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
+                    return;
+
+                if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
+                    return;
+
+                if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
+                    return;
+
+                if (firstHero.Clan.Leader.IsAdopted())
+                {
+                    __result = firstHero.Clan;
+                }
+                else { __result = secondHero.Clan; }
+
+            }
+        }
         #endregion
 
         #region OnShipOwnerChanged
