@@ -82,7 +82,10 @@ namespace BLTAdoptAHero
 
         private void OnMakePeace(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail peaceDetail)
         {
-            _blockedPeaceWars.Remove(MakeKey(faction1, faction2));
+            if (AdoptedHeroFlags._allowDiplomacyAction) 
+            {
+                _blockedPeaceWars.Remove(MakeKey(faction1, faction2)); 
+            }
         }
 
         public bool IsPeaceBlocked(IFaction faction1, IFaction faction2)

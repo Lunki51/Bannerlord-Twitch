@@ -17,6 +17,8 @@ using TaleWorlds.MountAndBlade;
 using TaleWorlds.Localization;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 using BLTAdoptAHero.Actions;
+using System.Windows.Media.Animation;
+using System.Windows;
 
 namespace BLTAdoptAHero
 {
@@ -72,6 +74,12 @@ namespace BLTAdoptAHero
              LocDescription("{=TESTING}Require 'yes' confirmation if enemy has allies"),
              PropertyOrder(5), UsedImplicitly]
             public bool WarRequireConfirm { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Min War Duration"),
+             LocCategory("War", "{=TESTING}War"),
+             LocDescription("{=TESTING}Minimum days a war must last before peace can be made"),
+             PropertyOrder(6), UsedImplicitly]
+            public int MinWarDuration { get; set; } = 30;
 
             // Peace
             [LocDisplayName("{=TESTING}Peace Enabled"),
@@ -265,7 +273,7 @@ namespace BLTAdoptAHero
                         generator.Value($"<strong>Enabled Features:</strong> {sb.ToString().TrimEnd(',', ' ')}");
 
                     if (WarEnabled)
-                        generator.Value($"<strong>War:</strong> {WarPrice}{Naming.Gold}, Influence x{WarInfluenceMult}, {WarCooldown} day cooldown");
+                        generator.Value($"<strong>War:</strong> {WarPrice}{Naming.Gold}, Influence x{WarInfluenceMult}, {WarCooldown} day cooldown, {MinWarDuration} day minimum duration");
 
                     if (PeaceEnabled)
                         generator.Value($"<strong>Peace:</strong> {PeacePrice}{Naming.Gold}, Influence x{PeaceInfluenceMult}");
@@ -344,6 +352,12 @@ namespace BLTAdoptAHero
             {
                 onFailure("Mercenaries cannot manage diplomacy");
                 return;
+            }
+
+            // Update the treaty manager's minimum war duration setting
+            if (BLTTreatyManager.Current != null)
+            {
+                BLTTreatyManager.Current.MinWarDurationDays = settings.MinWarDuration;
             }
 
             var splitArgs = context.Args.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -588,6 +602,26 @@ namespace BLTAdoptAHero
                 return;
             }
 
+            // Check if peace can be made(includes minimum war duration check)
+            if (!BLTTreatyManager.Current.CanMakePeace(kingdom, target, out string peaceDenialReason))
+            {
+                onFailure(peaceDenialReason);
+                return;
+            }
+
+            // Check minimum war duration
+            var war = BLTTreatyManager.Current.GetWar(kingdom, target);
+            if (war != null && settings.MinWarDuration > 0)
+            {
+                int daysSinceWarStart = (int)(CampaignTime.Now - war.StartDate).ToDays;
+                if (daysSinceWarStart < settings.MinWarDuration)
+                {
+                    int daysRemaining = settings.MinWarDuration - daysSinceWarStart;
+                    onFailure($"War must last at least {settings.MinWarDuration} days. {daysRemaining} days remaining.");
+                    return;
+                }
+            }
+
             // Check if target is BLT controlled - need this early to validate tribute
             bool targetIsBLT = target.Leader != null && target.Leader.IsAdopted();
 
@@ -599,7 +633,6 @@ namespace BLTAdoptAHero
             }
 
             // Check if this would break an alliance
-            var war = BLTTreatyManager.Current.GetWar(kingdom, target);
             bool wouldBreakAlliance = false;
             Kingdom alliancePartner = null;
 
@@ -1319,6 +1352,20 @@ namespace BLTAdoptAHero
                     }
                 }
 
+                var peaceProposals = BLTTreatyManager.Current.GetPeaceProposalsFor(kingdom);
+                if (peaceProposals.Count > 0)
+                {
+                    sb.AppendLine("\n[Peace Proposals]");
+                    foreach (var proposal in peaceProposals)
+                    {
+                        var proposer = proposal.GetProposer();
+                        string tributeInfo = proposal.DailyTribute > 0
+                            ? $" ({(proposal.IsOffer ? "offering" : "demanding")} {proposal.DailyTribute}{Naming.Gold}/day for {proposal.Duration} days)"
+                            : "";
+                        sb.AppendLine($"  • {proposer.Name}{tributeInfo} - {proposal.DaysRemaining()} days to respond");
+                    }
+                }
+
                 // CTW Proposals
                 var ctwProposals = BLTTreatyManager.Current.GetCTWProposalsFor(kingdom);
                 if (ctwProposals.Count > 0)
@@ -1344,6 +1391,7 @@ namespace BLTAdoptAHero
                     case "war":
                         ShowWars(kingdom, onSuccess);
                         break;
+                    case "ally":
                     case "allies":
                     case "alliances":
                     case "alliance":
@@ -1557,7 +1605,7 @@ namespace BLTAdoptAHero
                 Kingdom payer = proposal.IsOffer ? proposer : kingdom;
                 Kingdom receiver = proposal.IsOffer ? kingdom : proposer;
 
-                // Make peace
+                // Make peace using the tribute amount from the proposal
                 MakePeaceAction.ApplyByKingdomDecision(kingdom, proposer, proposal.DailyTribute, proposal.Duration);
                 FactionManager.SetNeutral(kingdom, proposer);
 
@@ -1576,6 +1624,7 @@ namespace BLTAdoptAHero
                 {
                     if (war.IsMainParticipant(kingdom))
                     {
+                        // Main participant making peace - peace out all assistants (no tribute for them)
                         var allies = war.IsAttackerSide(kingdom) ? war.GetAttackerAllies() : war.GetDefenderAllies();
                         foreach (var ally in allies)
                         {
@@ -1583,6 +1632,20 @@ namespace BLTAdoptAHero
                             {
                                 MakePeaceAction.Apply(ally, proposer);
                                 FactionManager.SetNeutral(ally, proposer);
+                            }
+                        }
+                        BLTTreatyManager.Current.RemoveWar(kingdom, proposer);
+                    }
+                    else if (war.IsMainParticipant(proposer))
+                    {
+                        // Proposer was main participant - still clean up
+                        var allies = war.IsAttackerSide(proposer) ? war.GetAttackerAllies() : war.GetDefenderAllies();
+                        foreach (var ally in allies)
+                        {
+                            if (ally != null && ally.IsAtWarWith(kingdom))
+                            {
+                                MakePeaceAction.Apply(ally, kingdom);
+                                FactionManager.SetNeutral(ally, kingdom);
                             }
                         }
                         BLTTreatyManager.Current.RemoveWar(kingdom, proposer);
