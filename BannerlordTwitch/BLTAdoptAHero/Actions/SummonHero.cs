@@ -287,8 +287,15 @@ namespace BLTAdoptAHero
                 || Mission.Current.Mode is MissionMode.Barter or MissionMode.Conversation or
                     MissionMode.Duel or MissionMode.Replay or MissionMode.CutScene or MissionMode.Stealth)
             {
-                onFailure("{=TdykIizS}You cannot be summoned now!".Translate());
-                return;
+                if (Mission.Current.Mode is MissionMode.Stealth && MissionHelpers.InHideOutMission())
+                {
+
+                }
+                else
+                {
+                    onFailure("{=TdykIizS}You cannot be summoned now!".Translate());
+                    return;
+                }                
             }
 
             if (MissionHelpers.InArenaPracticeMission()

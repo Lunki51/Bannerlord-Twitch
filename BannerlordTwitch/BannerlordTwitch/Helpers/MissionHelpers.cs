@@ -3,9 +3,12 @@ using SandBox.Conversation.MissionLogics;
 using SandBox.Missions.MissionLogics;
 using SandBox.Tournaments.MissionLogics;
 using SandBox.Missions.MissionLogics.Hideout;
+using SandBox;
+using SandBox.Missions;
 using StoryMode.Missions;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Encounters;
+using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.MountAndBlade.Source.Missions.Handlers;
@@ -19,7 +22,10 @@ namespace BannerlordTwitch.Helpers
                 Mission.Current?.Agents.Any(a => a.Character == hero.CharacterObject) == true;
 
         public static bool InHideOutMission()
-            => Mission.Current?.GetMissionBehavior<HideoutMissionController>() != null;
+        {
+            return Mission.Current.GetMissionBehavior<HideoutMissionController>() != null;
+        }
+            
 
         public static bool InFieldBattleMission()
             => Mission.Current?.IsFieldBattle == true;
