@@ -21,6 +21,7 @@ namespace BLTAdoptAHero
         private Dictionary<string, BLTCTWProposal> _ctwProposals = new Dictionary<string, BLTCTWProposal>();
         private Dictionary<string, BLTPeaceProposal> _peaceProposals = new Dictionary<string, BLTPeaceProposal>();
         private Dictionary<string, BLTAllianceProposal> _allianceProposals = new Dictionary<string, BLTAllianceProposal>();
+        private Dictionary<string, BLTTradeProposal> _tradeProposals = new Dictionary<string, BLTTradeProposal>();
         private Dictionary<string, BLTNAPProposal> _napProposals = new Dictionary<string, BLTNAPProposal>();
         private Dictionary<string, CampaignTime> _ctwCooldowns = new Dictionary<string, CampaignTime>();
 
@@ -80,6 +81,14 @@ namespace BLTAdoptAHero
         private List<int> _allianceGoldCost = new List<int>();
         private List<int> _allianceInfluenceCost = new List<int>();
         private List<long> _allianceExpireTicks = new List<long>();
+
+        // Trade Proposals
+        private List<string> _tradeProposalKeys = new List<string>();
+        private List<string> _tradeProposerIds = new List<string>();
+        private List<string> _tradeTargetIds = new List<string>();
+        private List<int> _tradeGoldCost = new List<int>();
+        private List<int> _tradeInfluenceCost = new List<int>();
+        private List<long> _tradeExpireTicks = new List<long>();
 
         // NAP Proposals
         private List<string> _napProposalKeys = new List<string>();
@@ -161,6 +170,14 @@ namespace BLTAdoptAHero
             dataStore.SyncData("_allianceInfluenceCost", ref _allianceInfluenceCost);
             dataStore.SyncData("_allianceExpireTicks", ref _allianceExpireTicks);
 
+            // Trade Proposals
+            dataStore.SyncData("_tradeProposalKeys", ref _tradeProposalKeys);
+            dataStore.SyncData("_tradeProposerIds", ref _tradeProposerIds);
+            dataStore.SyncData("_tradeTargetIds", ref _tradeTargetIds);
+            dataStore.SyncData("_tradeGoldCost", ref _tradeGoldCost);
+            dataStore.SyncData("_tradeInfluenceCost", ref _tradeInfluenceCost);
+            dataStore.SyncData("_tradeExpireTicks", ref _tradeExpireTicks);
+
             // NAP Proposals
             dataStore.SyncData("_napProposalKeys", ref _napProposalKeys);
             dataStore.SyncData("_napProposerIds", ref _napProposerIds);
@@ -193,6 +210,7 @@ namespace BLTAdoptAHero
             _warKeys.Clear(); _warAttacker.Clear(); _warDefender.Clear(); _warAttackerAllies.Clear(); _warDefenderAllies.Clear(); _warStartTicks.Clear();
             _peaceProposalKeys.Clear(); _peaceProposerIds.Clear(); _peaceTargetIds.Clear(); _peaceIsOffer.Clear(); _peaceTribute.Clear(); _peaceDuration.Clear(); _peaceGoldCost.Clear(); _peaceInfluenceCost.Clear(); _peaceExpireTicks.Clear();
             _allianceProposalKeys.Clear(); _allianceProposerIds.Clear(); _allianceTargetIds.Clear(); _allianceGoldCost.Clear(); _allianceInfluenceCost.Clear(); _allianceExpireTicks.Clear();
+            _tradeProposalKeys.Clear(); _tradeProposerIds.Clear(); _tradeTargetIds.Clear(); _tradeGoldCost.Clear(); _tradeInfluenceCost.Clear(); _tradeExpireTicks.Clear();
             _napProposalKeys.Clear(); _napProposerIds.Clear(); _napTargetIds.Clear(); _napGoldCost.Clear(); _napInfluenceCost.Clear(); _napExpireTicks.Clear();
             _ctwCooldownKeys.Clear(); _ctwCooldownTicks.Clear();
 
@@ -276,6 +294,17 @@ namespace BLTAdoptAHero
                 _allianceExpireTicks.Add((long)kvp.Value.ExpirationDate.ToDays);
             }
 
+            // Trade Proposals
+            foreach (var kvp in _tradeProposals)
+            {
+                _tradeProposalKeys.Add(kvp.Key);
+                _tradeProposerIds.Add(kvp.Value.ProposerKingdomId);
+                _tradeTargetIds.Add(kvp.Value.TargetKingdomId);
+                _tradeGoldCost.Add(kvp.Value.GoldCost);
+                _tradeInfluenceCost.Add(kvp.Value.InfluenceCost);
+                _tradeExpireTicks.Add((long)kvp.Value.ExpirationDate.ToDays);
+            }
+
             // NAP Proposals
             foreach (var kvp in _napProposals)
             {
@@ -305,6 +334,7 @@ namespace BLTAdoptAHero
             _ctwProposals.Clear();
             _peaceProposals.Clear();
             _allianceProposals.Clear();
+            _tradeProposals.Clear();
             _napProposals.Clear();
             _ctwCooldowns.Clear();
 
@@ -403,6 +433,20 @@ namespace BLTAdoptAHero
                     ExpirationDate = CampaignTime.Days(_allianceExpireTicks[i])
                 };
                 _allianceProposals[_allianceProposalKeys[i]] = proposal;
+            }
+
+            // Trade Proposals
+            for (int i = 0; i < _tradeProposalKeys.Count; i++)
+            {
+                var proposal = new BLTTradeProposal
+                {
+                    ProposerKingdomId = _tradeProposerIds[i],
+                    TargetKingdomId = _tradeTargetIds[i],
+                    GoldCost = _tradeGoldCost[i],
+                    InfluenceCost = _tradeInfluenceCost[i],
+                    ExpirationDate = CampaignTime.Days(_tradeExpireTicks[i])
+                };
+                _tradeProposals[_tradeProposalKeys[i]] = proposal;
             }
 
             // NAP Proposals
@@ -548,6 +592,13 @@ namespace BLTAdoptAHero
                 _allianceProposals.Remove(key);
             }
 
+            // Trade Proposals
+            var expiredTrade = _tradeProposals.Where(kvp => kvp.Value.IsExpired()).Select(kvp => kvp.Key).ToList();
+            foreach (var key in expiredTrade)
+            {
+                _tradeProposals.Remove(key);
+            }
+
             // NAP Proposals
             var expiredNAP = _napProposals.Where(kvp => kvp.Value.IsExpired()).Select(kvp => kvp.Key).ToList();
             foreach (var key in expiredNAP)
@@ -592,6 +643,11 @@ namespace BLTAdoptAHero
                 kvp.Value.ProposerKingdomId == kingdom.StringId ||
                 kvp.Value.TargetKingdomId == kingdom.StringId).Select(kvp => kvp.Key).ToList();
             foreach (var key in alliancePropKeys) _allianceProposals.Remove(key);
+
+            var tradePropKeys = _tradeProposals.Where(kvp =>
+                kvp.Value.ProposerKingdomId == kingdom.StringId ||
+                kvp.Value.TargetKingdomId == kingdom.StringId).Select(kvp => kvp.Key).ToList();
+            foreach (var key in tradePropKeys) _tradeProposals.Remove(key);
 
             var napPropKeys = _napProposals.Where(kvp =>
                 kvp.Value.ProposerKingdomId == kingdom.StringId ||
@@ -754,6 +810,16 @@ namespace BLTAdoptAHero
             return proposal;
         }
 
+        public BLTTradeProposal CreateTradeProposal(Kingdom proposer, Kingdom target, int goldCost, int influenceCost, int daysToAccept)
+        {
+            var key = MakeKey(proposer, target);
+            if (key == null) return null;
+
+            var proposal = new BLTTradeProposal(proposer, target, goldCost, influenceCost, daysToAccept);
+            _tradeProposals[key] = proposal;
+            return proposal;
+        }
+
         public BLTNAPProposal CreateNAPProposal(Kingdom proposer, Kingdom target, int goldCost, int influenceCost, int daysToAccept)
         {
             var key = MakeKey(proposer, target);
@@ -815,6 +881,12 @@ namespace BLTAdoptAHero
             if (key != null) _allianceProposals.Remove(key);
         }
 
+        public void RemoveTradeProposal(Kingdom proposer, Kingdom target)
+        {
+            var key = MakeKey(proposer, target);
+            if (key != null) _tradeProposals.Remove(key);
+        }
+
         public void RemoveNAPProposal(Kingdom proposer, Kingdom target)
         {
             var key = MakeKey(proposer, target);
@@ -869,6 +941,11 @@ namespace BLTAdoptAHero
             var key = MakeKey(proposer, target);
             return key != null && _allianceProposals.TryGetValue(key, out var proposal) ? proposal : null;
         }
+        public BLTTradeProposal GetTradeProposal(Kingdom proposer, Kingdom target)
+        {
+            var key = MakeKey(proposer, target);
+            return key != null && _tradeProposals.TryGetValue(key, out var proposal) ? proposal : null;
+        }
 
         public BLTNAPProposal GetNAPProposal(Kingdom proposer, Kingdom target)
         {
@@ -899,6 +976,13 @@ namespace BLTAdoptAHero
         public List<BLTAllianceProposal> GetAllianceProposalsFor(Kingdom k)
         {
             return _allianceProposals.Values
+                .Where(p => p.TargetKingdomId == k?.StringId && !p.IsExpired())
+                .ToList();
+        }
+
+        public List<BLTTradeProposal> GetTradeProposalsFor(Kingdom k)
+        {
+            return _tradeProposals.Values
                 .Where(p => p.TargetKingdomId == k?.StringId && !p.IsExpired())
                 .ToList();
         }
