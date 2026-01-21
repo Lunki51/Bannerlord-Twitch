@@ -210,14 +210,18 @@ namespace BLTAdoptAHero
 
         private void ShowWar(string desiredName, ReplyContext context)
         {
-            if (string.IsNullOrWhiteSpace(desiredName))
+            var adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(context.UserName);
+            Kingdom desiredKingdom = adoptedHero?.Clan?.Kingdom;
+            if (string.IsNullOrWhiteSpace(desiredName) && desiredKingdom == null)
             {
                 ActionManager.SendReply(context, "{=DSNx7CFT}Need kingdom name".Translate());
                 return;
             }
-
-            var desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+            else if (!string.IsNullOrWhiteSpace(desiredName))
+            {
+                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }              
 
             if (desiredKingdom == null)
             {
