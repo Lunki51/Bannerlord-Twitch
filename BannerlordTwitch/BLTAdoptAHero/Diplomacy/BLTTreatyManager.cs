@@ -388,8 +388,27 @@ namespace BLTAdoptAHero
                     StartDate = CampaignTime.Days(_tributeStartTicks[i]),
                     ExpirationDate = CampaignTime.Days(_tributeExpirationTicks[i])
                 };
+
+                var payer = tribute.GetPayer();
+                var receiver = tribute.GetReceiver();
+
+                if (payer == null || receiver == null)
+                    continue;
+
+                if (tribute.StartDate == CampaignTime.Zero)
+                {
+                    if (tribute.ExpirationDate <= CampaignTime.Now)
+                        continue;
+
+                    tribute.StartDate = CampaignTime.Now;
+                }
+
+                if (tribute.ExpirationDate <= tribute.StartDate)
+                    continue;
+
                 _tributes[_tributeKeys[i]] = tribute;
             }
+
 
             // Wars
             for (int i = 0; i < _warKeys.Count; i++)
