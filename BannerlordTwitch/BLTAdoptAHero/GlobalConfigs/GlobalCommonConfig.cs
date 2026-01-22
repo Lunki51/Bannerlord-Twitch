@@ -10,12 +10,14 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.UI;
 using BannerlordTwitch.Util;
+using BannerlordTwitch.Helpers;
 using BLTAdoptAHero.Achievements;
 using BLTAdoptAHero.Actions.Util;
 using BLTAdoptAHero.Actions.Upgrades;
 using BLTAdoptAHero.UI;
 using TaleWorlds.Library;
 using TaleWorlds.TwoDimension;
+using TaleWorlds.CampaignSystem;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 using YamlDotNet.Serialization;
 
@@ -757,7 +759,6 @@ namespace BLTAdoptAHero
                 {
                     generator.TR(() =>
                     {
-                        // Swap the order so the color box is under "Color"
                         generator.TH("Color");
                         generator.TH("Name");
                     });
@@ -768,12 +769,11 @@ namespace BLTAdoptAHero
 
                         generator.TR(() =>
                         {
-                            // COLUMN 1: The Color Box
-                            // We inject a div with inline styles directly into the content parameter
-                            generator.TD("", $"<div style=\"background-color:{hex}; width:20px; height:20px; border:1px solid #fff; border-radius:3px;\"></div>");
 
-                            // COLUMN 2: The Kingdom Name
-                            generator.TD("vertical-align:middle;", kingdom.Name);
+                            generator.TD("", $"<div style=\"background-color:{hex}; width:20px; height:20px; border:1px solid #fff; border-radius:3px;\"></div>");
+                            var rkingdom = Kingdom.All.FirstOrDefault(f => f.StringId == kingdom.Id);
+                            string names = $"{kingdom.Name} - Leader: {rkingdom?.Leader?.Name.ToString() ?? ""}";
+                            generator.TD("vertical-align:middle;", names);
                         });
                     }
                 });

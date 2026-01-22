@@ -19,22 +19,24 @@ namespace BLTAdoptAHero
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
             Action<string> onSuccess, Action<string> onFailure)
         {
-            if (string.IsNullOrWhiteSpace(context.Args))
+            string[] args = context.Args.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (args.Length == 0)
             {
                 onFailure("Invalid usage. Use: leaderboard hero | leaderboard clan");
                 return;
             }
 
-            var mode = context.Args.Trim().ToLower();
+            var mode = args[0].ToLower();
+            string[] filter = args.Skip(1).ToArray();
 
             switch (mode)
             {
                 case "hero":
-                    onSuccess(BuildHeroLeaderboard(adoptedHero));
+                    onSuccess(BuildHeroLeaderboard(adoptedHero, filter));
                     break;
 
                 case "clan":
-                    onSuccess(BuildClanLeaderboard(adoptedHero));
+                    onSuccess(BuildClanLeaderboard(adoptedHero, filter));
                     break;
 
                 default:
@@ -44,8 +46,12 @@ namespace BLTAdoptAHero
         }
 
         // --- Hero leaderboard ---
-        private string BuildHeroLeaderboard(Hero userHero)
+        private string BuildHeroLeaderboard(Hero userHero, string[] filter)
         {
+            if (filter.Length == 0)
+            {
+                return "kills|deaths|battles|tournaments|family";
+            }
             var adoptedHeroes = BLTAdoptAHeroCampaignBehavior.GetAllAdoptedHeroes();
 
             string BuildStatLine(string label, Func<Hero, int> statFunc)
@@ -83,26 +89,39 @@ namespace BLTAdoptAHero
                     top3.Add($"{userRank}-@{userHero.Name}({userFamily})");
                 }
 
-                return $"Family: {string.Join(" ", top3)}";
+                return $"FAMILY: {string.Join(" ", top3)}";
             }
 
             var sb = new StringBuilder();
-            sb.Append(BuildStatLine("KILLS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalKills)));
-            sb.Append(" | ");
-            sb.Append(BuildStatLine("DEATHS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalDeaths)));
-            sb.Append(" | ");
-            sb.Append(BuildStatLine("BATTLES", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Battles)));
-            sb.Append(" | ");
-            sb.Append(BuildStatLine("TOURNAMENTS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalTournamentFinalWins)));
-            sb.Append(" | ");
-            sb.Append(BuildFamilyLine());
+
+            // Map filter strings to functions
+            var statLines = new Dictionary<string, Func<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "KILLS", () => BuildStatLine("KILLS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalKills)) },
+                { "DEATHS", () => BuildStatLine("DEATHS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalDeaths)) },
+                { "BATTLES", () => BuildStatLine("BATTLES", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Battles)) },
+                { "TOURNAMENTS", () => BuildStatLine("TOURNAMENTS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalTournamentFinalWins)) },
+                { "FAMILY", () => BuildFamilyLine() }
+            };
+
+            // Append only the lines requested in filter, preserving order
+            var linesToAppend = filter
+                .Where(f => statLines.ContainsKey(f))
+                .Select(f => statLines[f]())
+                .ToList();
+
+            sb.Append(string.Join(" | ", linesToAppend));
 
             return sb.ToString();
         }
 
         // --- Clan leaderboard ---
-        private string BuildClanLeaderboard(Hero userHero)
+        private string BuildClanLeaderboard(Hero userHero, string[] filter)
         {
+            if (filter.Length == 0)
+            {
+                return "power|renown|members|fiefs|gold";
+            }
             if (userHero.Clan == null || !userHero.Clan.Leader.IsAdopted())
                 return "You have no clan.";
 
@@ -110,7 +129,6 @@ namespace BLTAdoptAHero
                 .Where(c => c != null && c.Leader != null && c.Leader.IsAdopted())
                 .ToList();
 
-            // Shortens numbers for display (Gold)
             string FormatGold(int value)
             {
                 return value >= 1_000_000 ? $"{value / 1_000_000D:0.#}M"
@@ -126,29 +144,37 @@ namespace BLTAdoptAHero
                     .ToList();
 
                 var top3 = sorted.Take(3)
-                    .Select((x, i) => $"{i + 1}-{x.Clan.Name}({(label == "GOLD" ? FormatGold(x.Value) : x.Value.ToString())})")
+                    .Select((x, i) => $"{i + 1}-{x.Clan}({(label == "GOLD" ? FormatGold(x.Value) : x.Value.ToString())})")
                     .ToList();
 
                 int userRank = sorted.FindIndex(x => x.Clan == userHero.Clan) + 1;
                 if (userRank > 3)
                 {
                     var userValue = sorted[userRank - 1].Value;
-                    top3.Add($"{userRank}-{userHero.Clan.Name}({(label == "GOLD" ? FormatGold(userValue) : userValue.ToString())})");
+                    top3.Add($"{userRank}-{userHero.Clan}({(label == "GOLD" ? FormatGold(userValue) : userValue.ToString())})");
                 }
 
                 return $"{label}: {string.Join(" ", top3)}";
             }
 
             var sb = new StringBuilder();
-            sb.Append(BuildClanStatLine("POWER", c => (int)c.CurrentTotalStrength));
-            sb.Append(" | ");
-            sb.Append(BuildClanStatLine("RENOWN", c => (int)c.Renown));
-            sb.Append(" | ");
-            sb.Append(BuildClanStatLine("MEMBERS", c => c.Heroes.Count));
-            sb.Append(" | ");
-            sb.Append(BuildClanStatLine("FIEFS", c => c.Fiefs.Count));
-            sb.Append(" | ");
-            sb.Append(BuildClanStatLine("GOLD", c => c.Gold));
+
+            // Map filter strings to functions
+            var statLines = new Dictionary<string, Func<string>>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "POWER", () => BuildClanStatLine("POWER", c => (int)c.CurrentTotalStrength) },
+                { "RENOWN", () => BuildClanStatLine("RENOWN", c => (int)c.Renown) },
+                { "MEMBERS", () => BuildClanStatLine("MEMBERS", c => c.Heroes.Count) },
+                { "FIEFS", () => BuildClanStatLine("FIEFS", c => c.Fiefs.Count) },
+                { "GOLD", () => BuildClanStatLine("GOLD", c => c.Gold) }
+            };
+
+            var linesToAppend = filter
+                .Where(f => statLines.ContainsKey(f))
+                .Select(f => statLines[f]())
+                .ToList();
+
+            sb.Append(string.Join(" | ", linesToAppend));
 
             return sb.ToString();
         }

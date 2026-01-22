@@ -320,7 +320,7 @@ namespace BLTAdoptAHero
 
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                onFailure("Usage: !diplomacy <war|peace|nap|alliance|ctw|break|info|accept|reject> [args]");
+                onFailure("Usage: !diplomacy <war|peace|nap|alliance|trade|ctw|break|info|accept|reject> [args]");
                 return;
             }
 
@@ -384,9 +384,9 @@ namespace BLTAdoptAHero
                 case "ally":
                     HandleAllianceCommand(settings, adoptedHero, args, onSuccess, onFailure);
                     break;
-                //case "trade":
-                //    HandleTradeCommand(settings, adoptedHero, args, onSuccess, onFailure); WIP
-                //    break;
+                case "trade":
+                    HandleTradeCommand(settings, adoptedHero, args, onSuccess, onFailure);
+                    break;
                 case "ctw":
                     HandleCTWCommand(settings, adoptedHero, args, onSuccess, onFailure);
                     break;
@@ -403,7 +403,7 @@ namespace BLTAdoptAHero
                     HandleRejectCommand(settings, adoptedHero, args, onSuccess, onFailure);
                     break;
                 default:
-                    onFailure("Invalid command. Use: war, peace, nap, alliance, ctw, break, info, accept, reject");
+                    onFailure("Invalid command. Use: war, peace, nap, alliance, trade, ctw, break, info, accept, reject");
                     break;
             }
         }
@@ -1546,7 +1546,7 @@ namespace BLTAdoptAHero
         {
             if (args.Length < 2)
             {
-                onFailure("Usage: !diplomacy accept <peace|alliance|nap|ctw> <proposer_kingdom>");
+                onFailure("Usage: !diplomacy accept <peace|alliance|trade|nap|ctw> <proposer_kingdom>");
                 return;
             }
 
@@ -1569,6 +1569,9 @@ namespace BLTAdoptAHero
                 case "alliance":
                 case "ally":
                     AcceptAllianceProposal(settings, hero, kingdom, proposer, onSuccess, onFailure);
+                    break;
+                case "trade":
+                    AcceptTradeProposal(settings, hero, kingdom, proposer, onSuccess, onFailure);
                     break;
                 case "nap":
                     AcceptNAPProposal(settings, hero, kingdom, proposer, onSuccess, onFailure);
@@ -1869,62 +1872,136 @@ namespace BLTAdoptAHero
 
         private void HandleTradeCommand(Settings settings, Hero hero, string[] args, Action<string> onSuccess, Action<string> onFailure)
         {
-            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
-            string targetName = string.Join(" ", args);
-
-            var kingdom = hero.Clan.Kingdom;
-            var target = FindKingdom(targetName);
             if (!settings.TradeEnabled)
             {
-                onFailure("Trade alliances disabled".Translate());
+                onFailure("Trade alliances disabled");
                 return;
             }
+
+            if (args.Length == 0)
+            {
+                onFailure("Usage: !diplomacy trade <kingdom>");
+                return;
+            }
+
+            string targetName = string.Join(" ", args);
+            var kingdom = hero.Clan.Kingdom;
+            var target = FindKingdom(targetName);
+
             if (target == null)
             {
-                onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", targetName)));
+                onFailure($"Kingdom '{targetName}' not found");
+                return;
+            }
+
+            if (kingdom == target)
+            {
+                onFailure("Cannot trade with yourself");
                 return;
             }
 
             if (kingdom.IsAtWarWith(target))
             {
-                onFailure($"At war with {target.Name}");
+                onFailure($"At war with {target.Name}. Make peace first.");
                 return;
             }
+
+            // Check for existing trade agreement
+            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
             if (tradeBehavior.HasTradeAgreement(kingdom, target))
             {
-                onFailure($"Already trading with {target}");
+                onFailure($"Already have trade agreement with {target.Name}");
                 return;
             }
-            if (kingdom == target)
+            bool hasProposed = BLTTreatyManager.Current.GetTradeProposal(kingdom, target) != null;
+            bool hasProposal = BLTTreatyManager.Current.GetTradeProposalsFor(kingdom).Any(t => t.ProposerKingdomId == target.StringId);
+            if (hasProposed)
             {
-                onFailure("Cant trade with yourself!");
+                onFailure($"Already proposed trade agreement with {target.Name}");
                 return;
             }
+            if (hasProposal)
+            {
+                onFailure($"Already has trade agreement proposal with {target.Name}. Accept or ignore");
+                return;
+            }
+
+            // Check costs
             int influenceCost = Campaign.Current.Models.TradeAgreementModel.GetInfluenceCostOfProposingTradeAgreement(hero.Clan);
+
             if (hero.Clan.Influence < influenceCost)
             {
                 onFailure($"Not enough influence (need {influenceCost}, have {(int)hero.Clan.Influence})");
                 return;
             }
+
             if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero) < settings.TradePrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.TradePrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero)));
                 return;
             }
-            else if (target == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader)
+
+            // Deduct costs upfront
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.TradePrice, true);
+            hero.Clan.Influence -= influenceCost;
+
+            // Check if target is BLT controlled
+            if (target.Leader != null && target.Leader.IsAdopted())
             {
+                // Create trade proposal for BLT kingdoms
+                BLTTreatyManager.Current.CreateTradeProposal(kingdom, target, settings.TradePrice, influenceCost, 15);
+
+                onSuccess($"Trade agreement proposal sent to {target.Name}. They have 15 days to respond.");
+
+                // Notify target leader
+                string targetLeaderName = target.Leader.FirstName.ToString()
+                    .Replace(BLTAdoptAHeroModule.Tag, "")
+                    .Replace(BLTAdoptAHeroModule.DevTag, "")
+                    .Trim();
+                Log.LogFeedResponse($"@{targetLeaderName} {kingdom.Name} proposes a trade agreement! Use !diplomacy accept trade {kingdom.Name}");
+            }
+            else if (target == Hero.MainHero.Clan.Kingdom)
+            {
+                // Propose to player kingdom
                 tradeBehavior.OnTradeAgreementOfferedToPlayer(kingdom);
-                hero.Clan.Influence -= influenceCost;
-                onSuccess("Proposed trade agreement to player kingdom");
+                onSuccess($"Trade agreement proposal sent to {target.Name}");
             }
             else
             {
+                // AI kingdom - create trade agreement directly
                 var duration = Campaign.Current.Models.TradeAgreementModel.GetTradeAgreementDurationInYears(kingdom, target);
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.TradePrice, true);
                 tradeBehavior.MakeTradeAgreement(kingdom, target, duration);
-                hero.Clan.Influence -= influenceCost;
-                onSuccess($"Allied with {target.Name}");
+
+                onSuccess($"Trade agreement established with {target.Name}");
+                Log.ShowInformation($"{kingdom.Name} and {target.Name} have formed a trade agreement!", hero.CharacterObject);
             }
+        }
+
+        private void AcceptTradeProposal(Settings settings, Hero hero, Kingdom kingdom, Kingdom proposer, Action<string> onSuccess, Action<string> onFailure)
+        {
+            var proposal = BLTTreatyManager.Current.GetTradeProposal(proposer, kingdom);
+            if (proposal == null)
+            {
+                onFailure($"No trade proposal from {proposer.Name}");
+                return;
+            }
+
+            if (kingdom.IsAtWarWith(proposer))
+            {
+                onFailure($"At war with {proposer.Name}. Make peace first.");
+                BLTTreatyManager.Current.RemoveTradeProposal(proposer, kingdom);
+                return;
+            }
+
+            // Create trade agreement
+            TradeAgreementsCampaignBehavior tradeBehavior = Campaign.Current.GetCampaignBehavior<TradeAgreementsCampaignBehavior>();
+            var duration = Campaign.Current.Models.TradeAgreementModel.GetTradeAgreementDurationInYears(kingdom, proposer);
+            tradeBehavior.MakeTradeAgreement(kingdom, proposer, duration);
+
+            BLTTreatyManager.Current.RemoveTradeProposal(proposer, kingdom);
+
+            onSuccess($"Trade agreement established with {proposer.Name}");
+            Log.ShowInformation($"{kingdom.Name} and {proposer.Name} have formed a trade agreement!", hero.CharacterObject);
         }
 
         private Kingdom FindKingdom(string name)

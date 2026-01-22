@@ -105,6 +105,47 @@ namespace BLTAdoptAHero
     }
 
     /// <summary>
+    /// Alliance proposal with costs that target must accept
+    /// </summary>
+    // In BLTProposalData.cs
+    public class BLTTradeProposal
+    {
+        public string ProposerKingdomId { get; set; }
+        public string TargetKingdomId { get; set; }
+        public int GoldCost { get; set; }
+        public int InfluenceCost { get; set; }
+        public CampaignTime ExpirationDate { get; set; }
+
+        public BLTTradeProposal() { }
+
+        public BLTTradeProposal(
+            Kingdom proposer,
+            Kingdom target,
+            int goldCost,
+            int influenceCost,
+            int daysToAccept)
+        {
+            ProposerKingdomId = proposer?.StringId;
+            TargetKingdomId = target?.StringId;
+            GoldCost = goldCost;
+            InfluenceCost = influenceCost;
+            ExpirationDate = CampaignTime.DaysFromNow(daysToAccept);
+        }
+
+        public Kingdom GetProposer() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == ProposerKingdomId);
+
+        public Kingdom GetTarget() =>
+            Kingdom.All.FirstOrDefault(k => k.StringId == TargetKingdomId);
+
+        public bool IsExpired() =>
+            CampaignTime.Now >= ExpirationDate;
+
+        public int DaysRemaining() =>
+            Math.Max(0, (int)(ExpirationDate - CampaignTime.Now).ToDays);
+    }
+
+    /// <summary>
     /// NAP proposal with costs that target must accept
     /// </summary>
     public class BLTNAPProposal
