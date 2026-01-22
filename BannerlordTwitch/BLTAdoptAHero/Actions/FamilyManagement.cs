@@ -90,7 +90,7 @@ namespace BLTAdoptAHero.Actions
         {
             if (args.Length > 1 && args[1].ToLower() == "looks")
             {
-                if (adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count == 0)
+                if (adoptedHero.Spouse == null)
                 {
                     onFailure("{=NoSpouse}You have no spouse".Translate());
                     return;
@@ -127,13 +127,13 @@ namespace BLTAdoptAHero.Actions
 
             if (args.Length > 1 && args[1].ToLower() == "baby")
             {
-                if (adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count == 0)
+                if (adoptedHero.Spouse == null)
                 {
                     onFailure("{=NoSpouse}You have no spouse".Translate());
                     return;
                 }
 
-                MakeBaby(adoptedHero.Spouse, onSuccess, onFailure);
+                MakeBaby(adoptedHero, onSuccess, onFailure);
                 return;
             }
 
