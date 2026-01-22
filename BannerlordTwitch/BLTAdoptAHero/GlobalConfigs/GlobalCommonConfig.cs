@@ -96,6 +96,12 @@ namespace BLTAdoptAHero
          PropertyOrder(8)]
         public float HearthPerVillageTier { get; set; } = 300f;
 
+        [LocDisplayName("{=}Minimum BLT-Led Army Lifetime"),
+         LocCategory("General", "{=C5T6nnix}General"),
+         LocDescription("{=}Minimum days a BLT-Led army will persist before being allowed to disband."),
+         PropertyOrder(9)]
+        public float BLTArmyMinLifetimeDays { get; set; } = 30f;
+
         #endregion
 
         #region Battle

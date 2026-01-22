@@ -420,6 +420,30 @@ namespace BLTAdoptAHero
             return bonus;
         }
 
+        // Party size
+        public int GetClanPartyAmountBonus(Clan clan)
+            => SumClanInt(clan, c => c.PartyAmountBonus);
+
+        public int GetTotalPartyAmountBonus(Clan clan)
+        {
+            if (clan == null) return 0;
+            int bonus = 0;
+            bonus += GetClanPartyAmountBonus(clan);
+            return bonus;
+        }
+
+        // Party size
+        public int GetClanMaxVassalsBonus(Clan clan)
+            => SumClanInt(clan, c => c.MaxVassalsBonus);
+
+        public int GetTotalMaxVassalsBonus(Clan clan)
+        {
+            if (clan == null) return 0;
+            int bonus = 0;
+            bonus += GetClanMaxVassalsBonus(clan);
+            return bonus;
+        }
+
         // Renown
         public float GetClanRenownDaily(Clan clan)
             => SumClanFloat(clan, c => c.RenownDaily);
@@ -439,6 +463,18 @@ namespace BLTAdoptAHero
         {
             float bonus = GetTotalRenownDaily(clan.Leader);
             clan.AddRenown(bonus, false);
+        }
+
+        // Max Clans
+        public int GetKingdomMaxClansBonus(Kingdom kingdom)
+            => SumKingdomInt(kingdom, k => k.MaxClansBonus);
+
+        public int GetTotalGetKingdomMaxClansBonus(Kingdom kingdom)
+        {
+            if (kingdom == null) return 0;
+            int bonus = 0;
+            bonus += GetKingdomMaxClansBonus(kingdom);
+            return bonus;
         }
 
         // Mercenary Income

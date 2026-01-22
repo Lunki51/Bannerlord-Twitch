@@ -62,6 +62,7 @@ namespace BLTAdoptAHero
         private List<string> _warAttackerAllies = new List<string>(); // CSV
         private List<string> _warDefenderAllies = new List<string>(); // CSV
         private List<long> _warStartTicks = new List<long>();
+        public int MinWarDurationDays { get; set; } = 30;
 
         // Peace Proposals
         private List<string> _peaceProposalKeys = new List<string>();
@@ -787,6 +788,38 @@ namespace BLTAdoptAHero
             var war = new BLTWar(attacker, defender);
             _wars[key] = war;
             return war;
+        }
+
+        public bool CanMakePeace(Kingdom k1, Kingdom k2, out string reason)
+        {
+            reason = null;
+
+            if (k1 == null || k2 == null)
+            {
+                reason = "Invalid kingdoms";
+                return false;
+            }
+
+            if (!k1.IsAtWarWith(k2))
+            {
+                reason = "Not at war";
+                return false;
+            }
+
+            // Check minimum war duration
+            var war = GetWar(k1, k2);
+            if (war != null && MinWarDurationDays > 0)
+            {
+                int daysSinceWarStart = (int)(CampaignTime.Now - war.StartDate).ToDays;
+                if (daysSinceWarStart < MinWarDurationDays)
+                {
+                    int daysRemaining = MinWarDurationDays - daysSinceWarStart;
+                    reason = $"War must last at least {MinWarDurationDays} days. {daysRemaining} days remaining.";
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         // Proposals (with duplicate prevention - updates existing)

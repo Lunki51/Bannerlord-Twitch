@@ -425,25 +425,14 @@ namespace BLTAdoptAHero.Actions
             if (string.IsNullOrWhiteSpace(name)) return null;
             try
             {
-                // Use Hero.All if available (works on most versions). Fallback to AllAliveHeroes if not.
-                var list = typeof(Hero).GetProperty("All") != null
-                    ? (Hero[])typeof(Hero).GetProperty("All").GetValue(null)
-                    : Hero.AllAliveHeroes?.ToArray();
+                var list = Hero.AllAliveHeroes?.Where(h => h.IsClanLeader).ToArray();
 
                 if (list != null)
                 {
-                    return list.FirstOrDefault(h => h != null && h.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
+                    return list.FirstOrDefault(h => h != null && h.Name?.ToString().Split(' ').First().Equals(name.Split(' ').First(), StringComparison.OrdinalIgnoreCase) == true);
                 }
             }
-            catch
-            {
-                // Last resort: try AllAliveHeroes
-                try
-                {
-                    return Hero.AllAliveHeroes.FirstOrDefault(h => h != null && h.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
-                }
-                catch { }
-            }
+            catch { }
 
             return null;
         }

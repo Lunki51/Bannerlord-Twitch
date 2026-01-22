@@ -33,19 +33,20 @@ namespace BLTAdoptAHero
 
         public void GenerateDocumentation(IDocumentationGenerator generator)
         {
-            generator.Value("<strong>Modes:</strong>\n"+
-                "kingdomlist, culturelist, warlist, "+
-                "kingdom (kingdom), "+
-                "war (kingdom), "+
-                "fief (town/castle/village), "+
-                "clan (kingdom/clan)"
+            generator.Value("<strong>Modes:</strong>\n" +
+                "kingdomlist, culturelist, warlist, " +
+                "kingdom (kingdom), " +
+                "war (kingdom), " +
+                "fief (town/castle/village), " +
+                "clan (kingdom/clan), " +
+                "vassals (clan)"
                 );
         }
         private void ExecuteInternal(ReplyContext context, object config)
         {
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate());
+                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate()); 
                 return;
             }
 
@@ -84,9 +85,13 @@ namespace BLTAdoptAHero
                 case "clan":
                     ShowClan(desiredName, context);
                     break;
+
+                case "vassals":
+                    ShowVassals(desiredName, context);
+                    break;
                 default:
                     ActionManager.SendReply(context,
-                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate());
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate()); 
                     break;
             }
         }
@@ -433,6 +438,62 @@ namespace BLTAdoptAHero
             {
                 ActionManager.SendReply(context, $"Could not find a kingdom/clan with the name {desiredName}");
             }
+        }
+        private void ShowVassals(string desiredName, ReplyContext context)
+        {
+            if (string.IsNullOrWhiteSpace(desiredName))
+            {
+                ActionManager.SendReply(context, "{=TESTING}Need a clan name".Translate());
+                return;
+            }
+
+            var desiredClan = Clan.All.FirstOrDefault(c =>
+                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (desiredClan == null)
+            {
+                ActionManager.SendReply(context, $"Could not find a clan with the name {desiredName}");
+                return;
+            }
+
+            var vassalBehavior = VassalBehavior.Current;
+            if (vassalBehavior == null)
+            {
+                ActionManager.SendReply(context, "Vassal system is not available");
+                return;
+            }
+
+            var vassals = vassalBehavior.GetVassalClans(desiredClan);
+
+            if (vassals == null || vassals.Count == 0)
+            {
+                ActionManager.SendReply(context, $"{desiredClan.Name} has no vassals");
+                return;
+            }
+
+            var sb = new StringBuilder();
+            sb.Append($"{desiredClan.Name} Vassals ({vassals.Count}): ");
+
+            foreach (var vassal in vassals)
+            {
+                sb.Append($"{vassal.Name}");
+
+                if (vassal.Fiefs.Count > 0)
+                {
+                    var fiefNames = string.Join(", ", vassal.Fiefs.Select(f => f.Name.ToString()));
+                    sb.Append($" (Fiefs: {fiefNames})");
+                }
+                else
+                {
+                    sb.Append(" (No fiefs)");
+                }
+
+                sb.Append(" | ");
+            }
+
+            // Remove trailing " | "
+            string result = sb.ToString().TrimEnd(' ', '|');
+            ActionManager.SendReply(context, result);
         }
     }
 }
