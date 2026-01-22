@@ -100,6 +100,8 @@ namespace BLTAdoptAHero.Actions
             // Check if this is the ruling clan
             bool isRulingClan = masterclan.Kingdom != null && masterclan.Kingdom.RulingClan == masterclan;
 
+            int totaltotal = 0;
+
             if (isRulingClan && KingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
             {
                 // Calculate total tax revenue from all kingdom clans
@@ -135,14 +137,16 @@ namespace BLTAdoptAHero.Actions
                         }
                     }
 
+                    totaltotal = totalBeforeTax + totalTaxRevenue;
                     result += $" | Tax revenue ({(taxRate * 100f):F1}%): +{totalTaxRevenue}/day";
                 }
                 else
                 {
                     result += " | Tax revenue: +0/day (0% tax)";
+                    totaltotal = totalBeforeTax;
                 }
 
-                result += $" | Total: {(totalBeforeTax >= 0 ? "+" : "")}{totalBeforeTax}/day";
+                result += $" | Total: {(totaltotal >= 0 ? "+" : "")}{totaltotal}/day";
             }
             else
             {

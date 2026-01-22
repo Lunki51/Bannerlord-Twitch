@@ -69,7 +69,7 @@ namespace BLTAdoptAHero.Actions
             }
             if (Mission.Current != null)
             {
-                onFailure("{=MPTOZqMS}You cannot manage your clan, as a mission is active!".Translate());
+                onFailure("{=MPTOZqMS}You cannot manage your party, as a mission is active!".Translate());
                 return;
             }
             if (adoptedHero.Clan == null)

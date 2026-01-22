@@ -156,7 +156,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
         private bool _canBeRemoved = false;
         [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
          LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
-         PropertyOrder(8), UsedImplicitly]
+         PropertyOrder(7), UsedImplicitly]
         public bool CanBeRemoved
         {
             get => _canBeRemoved;
@@ -345,16 +345,34 @@ namespace BLTAdoptAHero.Actions.Upgrades
         public bool MercOnly { get; set; } = false;
 
         [LocDisplayName("{=BLT_MercFlat}Merc Income (Flat)"),
-         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_MercFlatDesc}Flat daily gold bonus from clan's mercenary contract"),
          PropertyOrder(5), UsedImplicitly, DefaultValue(0)]
         public int MercIncomeFlat { get; set; } = 0;
 
         [LocDisplayName("{=BLT_MercPercent}Merc Income (Percent)"),
-         LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_MercPercentDesc}Percent daily gold bonus from clan's mercenary contract"),
-         PropertyOrder(5), UsedImplicitly, DefaultValue(0)]
+         PropertyOrder(6), UsedImplicitly, DefaultValue(0)]
         public int MercIncomePercent { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_PartyAmountBonus}Max Parties Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription("{=BLT_PartyAmountBonusDesc}Increases the maximum amount of parties the upgraded clan can have at once"),
+         PropertyOrder(7), UsedImplicitly, DefaultValue(0)]
+        public int PartyAmountBonus { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_MaxVassalsBonus}Max Vassals Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription("{=BLT_MaxVassalsBonusDesc}Increases the maximum amount of vassal clans the upgraded clan can have"), 
+         PropertyOrder(8), UsedImplicitly, DefaultValue(0)]
+        public int MaxVassalsBonus { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_ApplyToVassals}Apply to Vassals (Under Development)"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription("{=BLT_ApplyToVassalsDesc}(CURRENTLY DISABLED) Makes this upgrade apply to ALL vassal clans of the upgraded clan (Does not affect upgraded clan itself)"),
+         PropertyOrder(9), UsedImplicitly, DefaultValue(false)]
+        public bool ApplyToVassals { get; set; } = false;
 
         // Settlement effects (applied to all clan settlements)
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
@@ -485,7 +503,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_InfluenceCost}Influence Cost"),
          LocCategory("General", "{=BLT_General}General"),
          LocDescription("{=BLT_InfluenceCostDesc}Cost in influence to purchase this upgrade (in addition to gold)"),
-         PropertyOrder(7), UsedImplicitly]
+         PropertyOrder(100), UsedImplicitly]
         public int InfluenceCost { get; set; } = 0;
 
         // Kingdom-specific effects
@@ -494,6 +512,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          LocDescription("{=BLT_InfluenceDailyDesc}Influence gained per day for the kingdom ruler"),
          PropertyOrder(1), UsedImplicitly]
         public float InfluenceDaily { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_MaxClansBonus}Max Clans Bonus"),
+         LocCategory("Kingdom Effects", "{=BLT_KingdomEffects}Kingdom Effects"),
+         LocDescription("{=BLT_MaxClansBonusDesc}Additional maximum clans your kingdom can have"),
+         PropertyOrder(2), UsedImplicitly, DefaultValue(0)]
+        public int MaxClansBonus { get; set; } = 0;
 
         // Clan effects (applied to all kingdom clans)
         [LocDisplayName("{=BLT_RenownDaily}Renown Daily"),
@@ -511,7 +535,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
         [LocDisplayName("{=BLT_PartySpeed}Party Speed Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
          LocDescription("{=BLT_PartySpeedDesc}Additional flat party speed for all kingdom parties"),
-         PropertyOrder(2), UsedImplicitly]
+         PropertyOrder(3), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
 
         // Settlement effects (applied to all kingdom settlements)

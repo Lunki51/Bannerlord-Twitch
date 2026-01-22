@@ -45,11 +45,38 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool JoinEnabled { get; set; } = true;
 
-            [LocDisplayName("{=5KY2Vdfx}Max Clans"),
+            [LocDisplayName("{=AI_MaxClans}Max Clans (AI Kingdoms)"),
              LocCategory("Join", "{=q5JhpNMF}Join"),
-             LocDescription("{=5WqAw2LI}Maximum clans (includes NPC's) before join is disallowed"),
+             LocDescription("{=AI_MaxClans_Desc}Maximum clans for AI-led kingdoms before join is disallowed"),
              PropertyOrder(2), UsedImplicitly]
-            public int JoinMaxClans { get; set; } = 30;
+            public int JoinMaxClansAI { get; set; } = 30;
+
+            [LocDisplayName("{=Player_MaxClans}Max Clans (Player Kingdom)"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=Player_MaxClans_Desc}Maximum clans for player-led kingdom before join is disallowed"),
+             PropertyOrder(3), UsedImplicitly]
+            public int JoinMaxClansPlayer { get; set; } = 30;
+
+            [LocDisplayName("{=BLT_MaxClans}Max Clans (BLT Kingdoms)"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=BLT_MaxClans_Desc}Maximum clans for BLT/Viewer-led kingdoms before join is disallowed"),
+             PropertyOrder(4), UsedImplicitly]
+            public int JoinMaxClansBLT { get; set; } = 30;
+
+            // Helper method to get the appropriate max clans setting
+            public int GetMaxClansForKingdom(Kingdom kingdom)
+            {
+                if (kingdom?.Leader == null)
+                    return JoinMaxClansAI;
+
+                if (kingdom.Leader == Hero.MainHero)
+                    return JoinMaxClansPlayer;
+
+                if (kingdom.Leader.IsAdopted())
+                    return JoinMaxClansBLT;
+
+                return JoinMaxClansAI;
+            }
 
             [LocDisplayName("{=6PUxQuLg}Gold Cost"),
              LocCategory("Join", "{=q5JhpNMF}Join"),
@@ -279,7 +306,9 @@ namespace BLTAdoptAHero.Actions
                     generator.Value("<strong>" +
                                     "Join Config: " +
                                     "</strong>" +
-                                    "Max Clans={maxHeroes}, ".Translate(("maxClans", JoinMaxClans.ToString())) +
+                                    "Max AI Kingdom Clans={maxClans}, ".Translate(("maxClans", JoinMaxClansAI.ToString())) +
+                                    "Max Player Kingdom Clans={maxClans}, ".Translate(("maxClans", JoinMaxClansPlayer.ToString())) +
+                                    "Max BLT Kingdom Clans={maxClans}, ".Translate(("maxClans", JoinMaxClansBLT.ToString())) +
                                     "Price={price}{icon}, ".Translate(("price", JoinPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Allow Join Players Kingdom?={allowPlayer}, ".Translate(("allowPlayer", JoinAllowPlayer.ToString())) +
                                     "Player Kingdom Price={price}{icon}".Translate(("price", PlayerJoinPrice.ToString()), ("icon", Naming.Gold)));
@@ -468,11 +497,15 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Rebellion block");
                 return;
             }
-            if (desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
+            int maxClans = settings.GetMaxClansForKingdom(desiredKingdom) + UpgradeBehavior.Current.GetTotalGetKingdomMaxClansBonus(desiredKingdom);
+            int currentClans = desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count();
+
+            if (currentClans >= maxClans)
             {
-                onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
+                onFailure("{=KFzBPUry}The kingdom {name} is full ({currentclans}/{maxclans} clans)".Translate(("name", desiredName), ("currentclans", currentClans), ("maxclans", maxClans)));
                 return;
             }
+
             if (desiredKingdom == Hero.MainHero.Clan.Kingdom && !settings.JoinAllowPlayer)
             {
                 onFailure("{=L4dccNIC}Joining the players kingdom is disabled".Translate());
@@ -913,9 +946,9 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", setname)));
                 return;
             }
-            if (VassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= settings.VassalAmount)
+            if (VassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= (settings.VassalAmount + UpgradeBehavior.Current.GetTotalMaxVassalsBonus(adoptedHero.Clan)))
             {
-                onFailure($"Max vassals{settings.VassalAmount}");
+                onFailure($"Max vassals: {settings.VassalAmount + UpgradeBehavior.Current.GetTotalMaxVassalsBonus(adoptedHero.Clan)}");
                 return;
             }
             if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.VassalPrice)

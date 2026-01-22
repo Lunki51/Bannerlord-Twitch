@@ -91,6 +91,16 @@ namespace BLTAdoptAHero.UI
                 Clients.Caller.updateMap(currentMapData);
             }
         }
+        private static string GetKingdomColor(Kingdom k)
+        {
+            // Check if kingdom color is valid (has RGB data)
+            uint color = (k.Color != 0 && (k.Color & 0x00FFFFFF) != 0)
+                ? k.Color
+                : k.RulingClan.Color;
+
+            // Force alpha to full opacity
+            return ColorToHex(color | 0xFF000000);
+        }
 
         public static void UpdateMapData()
         {
@@ -159,7 +169,7 @@ namespace BLTAdoptAHero.UI
                     {
                         Id = k.StringId,
                         Name = k.Name?.ToString() ?? "Unknown",
-                        Color = (k.Color != 0 && k.Color != 0x00000000) ? ColorToHex(k.Color) : (k.PrimaryBannerColor != 0 ? ColorToHex(k.PrimaryBannerColor) : "#CCCCCC")
+                        Color = GetKingdomColor(k)
                     })
                     .ToList();
 
