@@ -552,7 +552,17 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Too young");
                 return;
             }
-            
+            if (hero.IsAdopted()|| target.IsAdopted())
+            {
+                onFailure("Cannot marry blts");
+                return;
+            }
+            if (hero.IsClanLeader || target.IsClanLeader)
+            {
+                onFailure("Cannot  marry clan leaders");
+                return;
+            }
+
             if (_marriageProposals.TryGetValue((adoptedHero1, adoptedHero), out var pair))
             {
                 var h1 = pair.hero1;
@@ -565,15 +575,31 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                var oldClan = h2.Clan;
+                var oldClan = h1.Clan;
 
                 h1.Spouse = h2;
                 h2.Spouse = h1;
+                if (h1.GovernorOf != null)
+                {
+                    ChangeGovernorAction.RemoveGovernorOf(h1);
+                }
+                if (h1.PartyBelongedTo != null)
+                {
+                    var oldParty = h1.PartyBelongedTo;
+                    bool wasLeader = oldParty.LeaderHero == h1;
+                    oldParty.MemberRoster.RemoveTroop(h1.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+                    MakeHeroFugitiveAction.Apply(h1, false);
+                    if (wasLeader && oldParty.IsLordParty)
+                        DisbandPartyAction.StartDisband(oldParty);
+                }
                 h2.Clan = h1.Clan;
-
                 _marriageProposals.Remove((adoptedHero1, adoptedHero));
 
-                onSuccess($"{h2.Name} of {oldClan.Name} married {h1.Name} of {h1.Clan.Name}");
+                var marriageModel = Campaign.Current.Models.MarriageModel;
+                h2.UpdateHomeSettlement();
+                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(h1, h2, Campaign.Current.Models.MarriageModel.GetEffectiveRelationIncrease(h1, h2), false);
+
+                onSuccess($"{h1.Name} of {oldClan.Name} married {h2.Name} of {h2.Clan.Name}");
                 return;
             }
             if (hero.Spouse != null || target.Spouse != null)
