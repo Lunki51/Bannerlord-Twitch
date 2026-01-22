@@ -208,8 +208,8 @@ namespace BLTAdoptAHero
         }
 
         private static (ItemObject item, ItemModifier modifier, EquipmentIndex slot) GenerateCulturedRewardTypeMount(
-            int tier, Hero hero, HeroClassDef heroClass, bool allowDuplicates, RandomItemModifierDef modifierDef,
-            string customItemName, float customItemPower, CultureObject culture)
+    int tier, Hero hero, HeroClassDef heroClass, bool allowDuplicates, RandomItemModifierDef modifierDef,
+    string customItemName, float customItemPower, CultureObject culture)
         {
             var currentMount = hero.BattleEquipment.Horse;
             // If we are generating is non custom reward, and the hero has a non custom mount already,
@@ -244,14 +244,21 @@ namespace BLTAdoptAHero
             }
 
             // Find mounts of the correct family type and tier
-            var mount = CampaignHelpers.AllItems
+            var mountQuery = CampaignHelpers.AllItems
                 .Where(item =>
                     item.IsMountable
                     // If we are making a custom mount then use any mount over Tier 2, otherwise match the tier exactly 
                     && (tier > 5 && (int)item.Tier >= 2 || (int)item.Tier == tier)
                     && IsCorrectMountFamily(item)
-                )
-                .SelectRandom();
+                );
+
+            // Filter by culture if specified
+            if (culture != null)
+            {
+                mountQuery = mountQuery.Where(item => item.Culture == culture);
+            }
+
+            var mount = mountQuery.SelectRandom();
 
             if (mount == null)
             {
@@ -654,7 +661,7 @@ namespace BLTAdoptAHero
             }
             else
             {
-                return CustomItems.CreateCraftedWeapon(hero, weaponType, 5);
+                return CustomItems.CreateCulturedCraftedWeapon(hero, weaponType, 5, culture);
             }
         }
 
