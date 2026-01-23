@@ -339,7 +339,7 @@ namespace BLTAdoptAHero
                     accumulated += upgrade.DailyTroopSpawnAmount;
 
                     // Spawn troops if we have at least 1.0 accumulated
-                    while (accumulated >= 1.0f)
+                    while (accumulated >= 1.0f && clan.WarPartyComponents.Any(p => p.MobileParty.MemberRoster.Count < p.Party.PartySizeLimit))
                     {
                         SpawnTroopForClan(clan, upgrade);
                         accumulated -= 1.0f;
@@ -369,7 +369,7 @@ namespace BLTAdoptAHero
         {
             try
             {
-                var party = clan.Leader.PartyBelongedTo ?? clan.WarPartyComponents.FirstOrDefault().MobileParty ?? null;
+                var party = clan.Leader.PartyBelongedTo != null && clan.Leader.PartyBelongedTo.Party.MemberRoster.Count < clan.Leader.PartyBelongedTo.Party.PartySizeLimit ? clan.Leader.PartyBelongedTo : clan.WarPartyComponents.Where(p => p.MobileParty.MemberRoster.Count < p.Party.PartySizeLimit).SelectRandom().MobileParty ?? null;
                 if (party == null) return;
 
                 var culture = clan.Culture;
