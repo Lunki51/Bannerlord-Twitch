@@ -106,6 +106,7 @@ namespace BLTAdoptAHero
 
         private Dictionary<Hero, HeroData> heroData = new();
         public Dictionary<Hero, Hero> heirList = new();
+        private Dictionary<Hero, HashSet<Guid>> heroAchievementPassivePowers = new();
         #endregion
 
         #region CampaignBehaviorBase        
@@ -158,6 +159,7 @@ namespace BLTAdoptAHero
                     RetireHero(hero);
                 }
                 MapHub.UpdateMapData();
+                heroAchievementPassivePowers ??= new Dictionary<Hero, HashSet<Guid>>();
             });
 
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, detail, _) =>
@@ -415,9 +417,28 @@ namespace BLTAdoptAHero
                 //     heroData.Remove(hero);
                 //     retiredOrDeadHeroData.Add(hero, data);
                 // }
+
+                //Achievements
+                Dictionary<int, List<Guid>> achievementPowersIndexed = null;
+                scopedJsonSync.SyncDataAsJson("HeroAchievementPassivePowers", ref achievementPowersIndexed);
+
+                if (achievementPowersIndexed != null && usedHeroList != null)
+                {
+                    heroAchievementPassivePowers = achievementPowersIndexed
+                        .Where(kvp => kvp.Key < usedHeroList.Count)
+                        .ToDictionary(
+                            kvp => usedHeroList[kvp.Key],
+                            kvp => new HashSet<Guid>(kvp.Value)
+                        );
+                }
+                else
+                {
+                    heroAchievementPassivePowers = new Dictionary<Hero, HashSet<Guid>>();
+                }
             }
             else
-            {
+            {               
+
                 // Need to explicitly write out the Heroes and CharacterObjects so we can look them up by index in the HeroData
                 var usedCharList = heroData.Values
                     .SelectMany(h => h.Retinue.Select(r => r.TroopType)).Distinct().ToList();
@@ -450,6 +471,15 @@ namespace BLTAdoptAHero
                 var heroDataSavable = heroData.ToDictionary(kv
                     => usedHeroList.IndexOf(kv.Key), kv => kv.Value);
                 scopedJsonSync.SyncDataAsJson("HeroData2", ref heroDataSavable);
+
+                // Achievement Powers
+                var achievementPowersIndexed = heroAchievementPassivePowers
+                    .Where(kvp => usedHeroList.Contains(kvp.Key))
+                    .ToDictionary(
+                        kvp => usedHeroList.IndexOf(kvp.Key),
+                        kvp => kvp.Value.ToList()
+                    );
+                scopedJsonSync.SyncDataAsJson("HeroAchievementPassivePowers", ref achievementPowersIndexed);
             }
         }
         #endregion
@@ -1123,6 +1153,46 @@ namespace BLTAdoptAHero
 
         public void SetClass(Hero hero, HeroClassDef classDef)
             => GetHeroData(hero).ClassID = classDef?.ID ?? Guid.Empty;
+        #endregion
+
+        #region Achievement Passive Powers        
+
+        public void AddAchievementPassivePower(Hero hero, Guid achievementId)
+        {
+            if (!heroAchievementPassivePowers.ContainsKey(hero))
+            {
+                heroAchievementPassivePowers[hero] = new HashSet<Guid>();
+            }
+            heroAchievementPassivePowers[hero].Add(achievementId);
+        }
+
+        public IEnumerable<Guid> GetHeroAchievementPassivePowers(Hero hero)
+        {
+            return heroAchievementPassivePowers.TryGetValue(hero, out var powers)
+                ? powers
+                : Enumerable.Empty<Guid>();
+        }
+
+        public void ApplyAchievementPassivePowers(Hero hero)
+        {
+            if (BLTAdoptAHeroModule.CommonConfig?.Achievements == null) return;
+
+            var achievementPowerIds = GetHeroAchievementPassivePowers(hero);
+
+            foreach (var achievementId in achievementPowerIds)
+            {
+                var achievement = BLTAdoptAHeroModule.CommonConfig.Achievements
+                    .FirstOrDefault(a => a.ID == achievementId);
+
+                if (achievement?.GivePassivePower == true && achievement.PassivePowerReward != null)
+                {
+                    // The PassivePowerGroup.OnHeroJoinedBattle will handle creating/getting handlers
+                    achievement.PassivePowerReward.OnHeroJoinedBattle(hero);
+                }
+            }
+        }
+
+
         #endregion
 
         #region Retinue

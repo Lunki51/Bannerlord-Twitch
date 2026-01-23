@@ -9,6 +9,7 @@ using BannerlordTwitch.Util;
 using BannerlordTwitch.Helpers;
 using BLTAdoptAHero.Annotations;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
@@ -89,7 +90,7 @@ namespace BLTAdoptAHero.Actions
         {
             if (args.Length > 1 && args[1].ToLower() == "looks")
             {
-                if (adoptedHero.Spouse == null && adoptedHero.ExSpouses.Count == 0)
+                if (adoptedHero.Spouse == null)
                 {
                     onFailure("{=NoSpouse}You have no spouse".Translate());
                     return;
@@ -121,6 +122,18 @@ namespace BLTAdoptAHero.Actions
                 }
                 string newName = string.Join(" ", args.Skip(2));
                 RenameHero(adoptedHero.Spouse, newName, onSuccess, onFailure);
+                return;
+            }
+
+            if (args.Length > 1 && args[1].ToLower() == "baby")
+            {
+                if (adoptedHero.Spouse == null)
+                {
+                    onFailure("{=NoSpouse}You have no spouse".Translate());
+                    return;
+                }
+
+                MakeBaby(adoptedHero, onSuccess, onFailure);
                 return;
             }
 
@@ -299,7 +312,12 @@ namespace BLTAdoptAHero.Actions
                         string newName = string.Join(" ", args.Skip(2));
                         RenameHero(child, newName, onSuccess, onFailure);
                         break;
-
+                    case "marry":
+                        {
+                            string[] targets = args.Skip(2).ToArray();
+                            MarryHero(adoptedHero, child, targets, onSuccess, onFailure);
+                        }
+                        break;                      
                     case "skills":
                         { 
                             string skills = ShowSkills(adoptedHero.Spouse);
@@ -495,10 +513,145 @@ namespace BLTAdoptAHero.Actions
             return stats.ToString();
         }
 
-        private void MarryHero(Hero hero, string newName, Action<string> onSuccess, Action<string> onFailure)
-        {
+        private Dictionary<(Hero proposer, Hero receiver), (Hero hero1, Hero hero2)> _marriageProposals = new();
 
+        private void MarryHero(Hero adoptedHero, Hero hero, string[] targets, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (targets.Length < 2)
+            {
+                onFailure("marry (username) (kid first name) | Whoever makes proposal marries off");
+                return;
+            }
+
+            Hero adoptedHero1 = Hero.AllAliveHeroes.FirstOrDefault(h => h.Name.ToString().IndexOf(targets[0], StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (adoptedHero1 == null)
+            {
+                onFailure($"Couldnt find hero named {targets[0]}");
+                return;
+            }
+
+            if (targets[1].Equals("reject", StringComparison.OrdinalIgnoreCase))
+            {
+                if (_marriageProposals.Remove((adoptedHero1, adoptedHero)))
+                    onSuccess($"Rejected {adoptedHero1.Name}'s proposal");
+                else
+                    onFailure("No proposal to reject");
+                return;
+            }
+
+            Hero target = Hero.AllAliveHeroes.FirstOrDefault(h => h.Name.ToString().IndexOf(targets[1], StringComparison.OrdinalIgnoreCase) >= 0 && (h.Father == adoptedHero1 || h.Mother == adoptedHero1));
+            
+            if (target == null)
+            {
+                onFailure($"Couldnt find hero named {targets[1]}");
+                return;
+            }
+            if (hero.Age < 18 || target.Age < 18)
+            {
+                onFailure("Too young");
+                return;
+            }
+            if (hero.IsAdopted()|| target.IsAdopted())
+            {
+                onFailure("Cannot marry blts");
+                return;
+            }
+            if (hero.IsClanLeader || target.IsClanLeader)
+            {
+                onFailure("Cannot  marry clan leaders");
+                return;
+            }
+
+            if (_marriageProposals.TryGetValue((adoptedHero1, adoptedHero), out var pair))
+            {
+                var h1 = pair.hero1;
+                var h2 = pair.hero2;
+
+                if (h1.Spouse != null || h2.Spouse != null)
+                {
+                    onFailure("One hero is already married");
+                    _marriageProposals.Remove((adoptedHero1, adoptedHero));
+                    return;
+                }
+
+                var oldClan = h1.Clan;
+
+                h1.Spouse = h2;
+                h2.Spouse = h1;
+                if (h1.GovernorOf != null)
+                {
+                    ChangeGovernorAction.RemoveGovernorOf(h1);
+                }
+                if (h1.PartyBelongedTo != null)
+                {
+                    var oldParty = h1.PartyBelongedTo;
+                    bool wasLeader = oldParty.LeaderHero == h1;
+                    oldParty.MemberRoster.RemoveTroop(h1.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+                    MakeHeroFugitiveAction.Apply(h1, false);
+                    if (wasLeader && oldParty.IsLordParty)
+                        DisbandPartyAction.StartDisband(oldParty);
+                }
+                h1.Clan = h2.Clan;
+                _marriageProposals.Remove((adoptedHero1, adoptedHero));
+
+                var marriageModel = Campaign.Current.Models.MarriageModel;
+                h2.UpdateHomeSettlement();
+                ChangeRelationAction.ApplyRelationChangeBetweenHeroes(h1, h2, Campaign.Current.Models.MarriageModel.GetEffectiveRelationIncrease(h1, h2), false);
+
+                onSuccess($"{h1.Name} of {oldClan.Name} married {h2.Name} of {h2.Clan.Name}");
+                return;
+            }
+            if (hero.Spouse != null || target.Spouse != null)
+            {
+                onFailure($"invalid hero");
+                return;
+            }
+            else
+            {
+                _marriageProposals[(adoptedHero, adoptedHero1)] = (hero, target);
+                onSuccess($"Sent proposal to {adoptedHero1.Name}");
+                return;
+            }
         }
+
+        private void MakeBaby(Hero hero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            int childCount = hero.Children.Where(c => !c.IsDead && c.Clan == hero.Clan).Count();
+            if (childCount >= 3)
+            {
+                onFailure("You have 3 alive children in your clan");
+                return;
+            }
+            bool isTarget = hero.IsFemale;
+            if (isTarget)
+            {
+                if (hero.IsPregnant)
+                {
+                    onFailure($"{hero.Name} is already pregnant.");
+                    return;
+                }
+                else
+                {
+                    MakePregnantAction.Apply(hero);
+                    onSuccess($"{hero.Name} is now pregnant.");
+                }
+            }
+            else
+            {
+                if (hero.Spouse.IsPregnant)
+                {
+                    onFailure($"{hero.Spouse.Name} is already pregnant.");
+                    return;
+                }
+                else
+                {
+                    MakePregnantAction.Apply(hero.Spouse);
+                    onSuccess($"{hero.Spouse.Name} is now pregnant.");
+                }
+            }
+        }
+
         private string CleanName(string name)
         {
             return name.StartsWith("{=") ? name.Substring(name.IndexOf("}") + 1) : name;

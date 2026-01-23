@@ -332,17 +332,14 @@ namespace BLTAdoptAHero.Actions
                 onFailure($"Settlement '{name}' not found");
                 return;
             }
-
             if (settlement.Town == null || settlement.IsVillage)
             {
                 onFailure("Only towns and castles can have upgrades");
                 return;
             }
-
             var upgrades = UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>();
             var sb = new StringBuilder();
             sb.AppendLine($"=== {settlement.Name} Upgrades ===");
-
             if (upgrades.Count == 0)
             {
                 sb.AppendLine("No upgrades purchased yet");
@@ -350,19 +347,25 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 sb.AppendLine("Active Upgrades:");
-                // Get upgrade objects and sort alphabetically by name
-                var sortedUpgrades = upgrades
+
+                // Get all upgrade objects
+                var allUpgrades = upgrades
                     .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
                     .Where(upgrade => upgrade != null)
+                    .ToList();
+
+                // Group by base ID (everything before the last digit) and keep only the highest tier
+                var filteredUpgrades = allUpgrades
+                    .GroupBy(upgrade => System.Text.RegularExpressions.Regex.Replace(upgrade.ID, @"\d+$", ""))
+                    .Select(group => group.OrderByDescending(u => u.TierLevel).ThenByDescending(u => u.ID).First())
                     .OrderBy(upgrade => upgrade.Name)
                     .ToList();
 
-                foreach (var upgrade in sortedUpgrades)
+                foreach (var upgrade in filteredUpgrades)
                 {
                     sb.AppendLine($"  • {upgrade.Name}");
                 }
             }
-
             onSuccess(sb.ToString());
         }
 
@@ -386,14 +389,21 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 sb.AppendLine("Active Upgrades:");
-                // Get upgrade objects and sort alphabetically by name
-                var sortedUpgrades = upgrades
-                    .Select(upgradeId => globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+
+                // Get all upgrade objects
+                var allUpgrades = upgrades
+                    .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
                     .Where(upgrade => upgrade != null)
+                    .ToList();
+
+                // Group by base ID (everything before the last digit) and keep only the highest tier
+                var filteredUpgrades = allUpgrades
+                    .GroupBy(upgrade => System.Text.RegularExpressions.Regex.Replace(upgrade.ID, @"\d+$", ""))
+                    .Select(group => group.OrderByDescending(u => u.TierLevel).ThenByDescending(u => u.ID).First())
                     .OrderBy(upgrade => upgrade.Name)
                     .ToList();
 
-                foreach (var upgrade in sortedUpgrades)
+                foreach (var upgrade in filteredUpgrades)
                 {
                     sb.AppendLine($"  • {upgrade.Name}");
                 }
@@ -428,14 +438,21 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 sb.AppendLine("Active Upgrades:");
-                // Get upgrade objects and sort alphabetically by name
-                var sortedUpgrades = upgrades
-                    .Select(upgradeId => globalConfig.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+
+                // Get all upgrade objects
+                var allUpgrades = upgrades
+                    .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
                     .Where(upgrade => upgrade != null)
+                    .ToList();
+
+                // Group by base ID (everything before the last digit) and keep only the highest tier
+                var filteredUpgrades = allUpgrades
+                    .GroupBy(upgrade => System.Text.RegularExpressions.Regex.Replace(upgrade.ID, @"\d+$", ""))
+                    .Select(group => group.OrderByDescending(u => u.TierLevel).ThenByDescending(u => u.ID).First())
                     .OrderBy(upgrade => upgrade.Name)
                     .ToList();
 
-                foreach (var upgrade in sortedUpgrades)
+                foreach (var upgrade in filteredUpgrades)
                 {
                     sb.AppendLine($"  • {upgrade.Name}");
                 }
