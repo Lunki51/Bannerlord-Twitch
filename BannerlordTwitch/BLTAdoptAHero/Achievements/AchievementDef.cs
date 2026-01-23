@@ -7,6 +7,7 @@ using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.UI;
 using BannerlordTwitch.Util;
+using BLTAdoptAHero.Powers;
 using JetBrains.Annotations;
 using TaleWorlds.CampaignSystem;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
@@ -66,13 +67,28 @@ namespace BLTAdoptAHero.Achievements
          UsedImplicitly]
         public GeneratedRewardDef ItemReward { get; set; } = new();
 
+        [LocDisplayName("{=AchPassPower}Give Passive Power"), LocCategory("Reward", "{=sHWjkhId}Reward"),
+         PropertyOrder(5),
+         LocDescription("{=AchPassPowerDesc}Whether to grant a permanent passive power as a reward (applies to all classes)"),
+         UsedImplicitly]
+        public bool GivePassivePower { get; set; }
+
+        [LocDisplayName("{=AchPassPowerReward}Passive Power Reward"), LocCategory("Reward", "{=sHWjkhId}Reward"),
+         PropertyOrder(6),
+         LocDescription("{=AchPassPowerRewardDesc}Passive power that will be permanently granted when this achievement is earned. This power will apply in all future battles regardless of class."),
+         ExpandableObject,
+         UsedImplicitly]
+        public PassivePowerGroup PassivePowerReward { get; set; } = new();
+
         public bool IsAchieved(Hero hero) => Requirements.All(r => r.IsMet(hero));
 
         // For UI use
         [YamlIgnore, Browsable(false)]
         public string RewardsDescription => (GoldGain > 0 ? $"{GoldGain}{Naming.Gold}\n" : "") +
                                             (XPGain > 0 ? $"{XPGain}{Naming.XP}\n" : "") +
-                                            (GiveItemReward ? Naming.Item : "");
+                                            (GiveItemReward ? Naming.Item + "\n" : "") +
+                                            (GivePassivePower ? "{=AchPassPowerShort}Passive Power\n".Translate() : "");
+
         public override string ToString()
             => $"{Name} " +
                string.Join("+", Requirements.Select(r => r.ToString())) +
@@ -83,18 +99,19 @@ namespace BLTAdoptAHero.Achievements
             var clone = CloneHelpers.CloneProperties(this);
             clone.ID = Guid.NewGuid();
             clone.Requirements = new(CloneHelpers.CloneCollection(Requirements).ToList());
+            if (GivePassivePower && PassivePowerReward != null)
+            {
+                clone.PassivePowerReward = (PassivePowerGroup)PassivePowerReward.Clone();
+            }
             return clone;
         }
-
-        // DOING: 
-        // Refactor hero powers to a list instead of fixed set
-        // Add unlock criteria to hero powers (stats)
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public void Apply(Hero hero)
         {
             var results = new List<string> { "{=Qtv96c9S}Unlocked {NAME}".Translate(("NAME", Name)) };
+
             if (GoldGain > 0)
             {
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, GoldGain);
@@ -119,6 +136,13 @@ namespace BLTAdoptAHero.Achievements
                 {
                     results.Add(RewardHelpers.AssignCustomReward(hero, item, modifier, slot));
                 }
+            }
+
+            if (GivePassivePower && PassivePowerReward != null)
+            {
+                // Register this achievement as granting a passive power to this hero
+                BLTAdoptAHeroCampaignBehavior.Current.AddAchievementPassivePower(hero, ID);
+                results.Add("{=AchPassPowerGranted}Granted passive power: {PowerName}".Translate(("PowerName", PassivePowerReward.Name)));
             }
 
             if (results.Any())
