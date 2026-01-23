@@ -592,7 +592,7 @@ namespace BLTAdoptAHero.Actions
                     if (wasLeader && oldParty.IsLordParty)
                         DisbandPartyAction.StartDisband(oldParty);
                 }
-                h2.Clan = h1.Clan;
+                h1.Clan = h2.Clan;
                 _marriageProposals.Remove((adoptedHero1, adoptedHero));
 
                 var marriageModel = Campaign.Current.Models.MarriageModel;
