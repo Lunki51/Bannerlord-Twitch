@@ -98,7 +98,7 @@ namespace BLTAdoptAHero.Powers
         #endregion
 
         #region IDocumentable
-        public void GenerateDocumentation(IDocumentationGenerator generator)
+        public void     GenerateDocumentation(IDocumentationGenerator generator)
         {
             generator.P("power-title", Name.ToString());
             foreach (var power in Powers)

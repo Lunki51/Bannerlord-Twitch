@@ -451,6 +451,20 @@ namespace BLTAdoptAHero
                                             ? string.Join(Naming.Sep, passivePowers.Select(p => p.Name))
                                             : "{=ktM8kF1Q}(none)".Translate()
                                         ));
+
+                        var achievements = BLTAdoptAHeroCampaignBehavior.Current
+                        .GetAchievements(adoptedHero)
+                        .ToList();
+                        var achPowers = achievements
+                            .Select(id => id.PassivePowerReward)
+                            .ToList();
+                        infoStrings.Add(
+                            "{=z82jxnmF}[ACH]".Translate() + " " +
+                            (achPowers.Any()
+                                ? string.Join(Naming.Sep, achPowers.Select(p => p.Name))
+                                : "{=ktM8kF1Q}(none)".Translate()
+                            )
+                        );
                     }
                 }
                 if (settings.ShowFamily)

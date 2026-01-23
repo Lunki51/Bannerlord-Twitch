@@ -45,6 +45,7 @@ namespace BLTAdoptAHero
                 if (hero != null && heroClass != null && activeHeroes.Add(hero))
                 {
                     heroClass.PassivePower?.OnHeroJoinedBattle(hero);
+                    BLTAdoptAHeroCampaignBehavior.Current?.ApplyAchievementPassivePowers(hero);
                 }
             });
         }

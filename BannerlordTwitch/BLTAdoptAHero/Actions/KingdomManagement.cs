@@ -538,8 +538,16 @@ namespace BLTAdoptAHero.Actions
             if (adoptedHero.Clan.Kingdom == null)
                 adoptedHero.Clan.Kingdom = desiredKingdom;
             if (adoptedHero.Clan.Fiefs.Count == 0)
+            {
                 adoptedHero.Clan.ConsiderAndUpdateHomeSettlement();
+                foreach (Hero hero in adoptedHero.Clan.Heroes)
+                {
+                    hero.UpdateHomeSettlement();
+                }
+            }
+                
             adoptedHero.Clan.CalculateMidSettlement();
+            
 
             onSuccess("{=LSea9bms}Your clan {clanName} has joined the kingdom {kingdomName}".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())));
             Log.ShowInformation("{=Lid1aV3k}{clanName} has joined kingdom {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
@@ -848,6 +856,10 @@ namespace BLTAdoptAHero.Actions
             ChangeKingdomAction.ApplyByJoinFactionAsMercenary(adoptedHero.Clan, desiredKingdom);
 
             adoptedHero.Clan.ConsiderAndUpdateHomeSettlement();
+            foreach (Hero hero in adoptedHero.Clan.Heroes)
+            {
+                hero.UpdateHomeSettlement();
+            }
             adoptedHero.Clan.CalculateMidSettlement();
             Log.ShowInformation("{=tpwW6Ix8}{clanName} is now under contract with {kingdomName}!".Translate(("clanName", adoptedHero.Clan.Name.ToString()), ("kingdomName", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
@@ -1389,12 +1401,14 @@ namespace BLTAdoptAHero.Actions
                 {
                     adoptedHero.Clan.Kingdom.RemovePolicy(desiredPolicy);
                     onSuccess($"Removed {desiredPolicy}");
+                    adoptedHero.Clan.Influence -= policyCost;
                     return;
                 }
                 else
                 {
                     adoptedHero.Clan.Kingdom.AddPolicy(desiredPolicy);
                     onSuccess($"Added {desiredPolicy}");
+                    adoptedHero.Clan.Influence -= policyCost;
                     return;
                 }
             }

@@ -692,15 +692,19 @@ namespace BLTAdoptAHero
                             .TH("{=mG7HzT0z}Kills Required".Translate())
                             .TH("{=sHWjkhId}Reward".Translate())
                         );
-                        foreach (var k in killStreaks
-                            .OrderBy(k => k.KillsRequired))
+
+                        foreach (var k in killStreaks.OrderBy(k => k.KillsRequired))
                         {
                             generator.TR(() =>
-                                generator.TD(k.Name.ToString()).TD($"{k.KillsRequired}").TD(() =>
-                                {
-                                    if (k.GoldReward > 0) generator.P($"{k.GoldReward}{Naming.Gold}");
-                                    if (k.XPReward > 0) generator.P($"{k.XPReward}{Naming.XP}");
-                                }));
+                                generator
+                                    .TD(k.Name.ToString())
+                                    .TD($"{k.KillsRequired}")
+                                    .TD(() =>
+                                    {
+                                        if (k.GoldReward > 0) generator.P($"{k.GoldReward}{Naming.Gold}");
+                                        if (k.XPReward > 0) generator.P($"{k.XPReward}{Naming.XP}");
+                                    })
+                            );
                         }
                     });
                 }
@@ -716,38 +720,52 @@ namespace BLTAdoptAHero
                             .TH("{=TFbiD0CZ}Requirements".Translate())
                             .TH("{=sHWjkhId}Reward".Translate())
                         );
-                        foreach (var a in achievements
-                            .OrderBy(a => a.Name.ToString()))
+
+                        foreach (var a in achievements.OrderBy(a => a.Name.ToString()))
                         {
                             generator.TR(() =>
-                                generator.TD(a.Name.ToString())
+                                generator
+                                    .TD(a.Name.ToString())
                                     .TD(() =>
                                     {
                                         foreach (var r in a.Requirements)
                                         {
-                                            // ReSharper disable once SuspiciousTypeConversion.Global
                                             if (r is IDocumentable d)
-                                            {
                                                 d.GenerateDocumentation(generator);
-                                            }
                                             else
-                                            {
                                                 generator.P(r.ToString());
-                                            }
                                         }
                                     })
                                     .TD(() =>
                                     {
                                         if (a.GoldGain > 0) generator.P($"{a.GoldGain}{Naming.Gold}");
                                         if (a.XPGain > 0) generator.P($"{a.XPGain}{Naming.XP}");
-                                        if (a.GiveItemReward) generator.P($"{Naming.Item}: {a.ItemReward}");
+                                        if (a.GiveItemReward)
+                                            generator.P($"{Naming.Item}: {a.ItemReward}");
+
+                                        if (a.GivePassivePower)
+                                        {
+                                            generator.P(
+                                                "power-title",
+                                                a.PassivePowerReward.Name.ToString()+ ":"
+                                            );
+
+                                            foreach (var power in a.PassivePowerReward.Powers)
+                                            {
+                                                if (power is IDocumentable docPower)
+                                                    docPower.GenerateDocumentation(generator);
+                                                else
+                                                    generator.P(power.ToString());
+                                            }
+                                        }
                                     })
-                                );
+                            );
                         }
                     });
                 }
             });
-            if (ShowCampaignMapOverlay == true)
+
+            if (ShowCampaignMapOverlay)
             {
                 var kingdoms = MapHub.CurrentMapData?.Kingdoms;
                 if (kingdoms == null || kingdoms.Count == 0)
@@ -765,14 +783,19 @@ namespace BLTAdoptAHero
 
                     foreach (var kingdom in kingdoms)
                     {
-                        string hex = kingdom.Color.StartsWith("#") ? kingdom.Color : "#" + kingdom.Color;
+                        string hex = kingdom.Color.StartsWith("#")
+                            ? kingdom.Color
+                            : "#" + kingdom.Color;
 
                         generator.TR(() =>
                         {
+                            generator.TD(
+                                "",
+                                $"<div style=\"background-color:{hex}; width:20px; height:20px; border:1px solid #fff; border-radius:3px;\"></div>"
+                            );
 
-                            generator.TD("", $"<div style=\"background-color:{hex}; width:20px; height:20px; border:1px solid #fff; border-radius:3px;\"></div>");
                             var rkingdom = Kingdom.All.FirstOrDefault(f => f.StringId == kingdom.Id);
-                            string names = $"{kingdom.Name} - Leader: {rkingdom?.Leader?.Name.ToString() ?? ""}";
+                            string names = $"{kingdom.Name} - Leader: {rkingdom?.Leader?.Name}";
                             generator.TD("vertical-align:middle;", names);
                         });
                     }
