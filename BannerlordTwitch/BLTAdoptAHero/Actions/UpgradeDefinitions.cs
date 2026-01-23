@@ -193,6 +193,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
         }
     }
 
+    public enum TroopTreeType
+    {
+        Basic = 0,
+        Noble = 1
+    }
+
     /// <summary>
     /// Fief (Settlement) upgrade - affects a single town or castle
     /// </summary>
@@ -316,7 +322,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
     /// </summary>
     [CategoryOrder("General", 0),
      CategoryOrder("Clan Effects", 1),
-     CategoryOrder("Settlement Effects", 2)]
+     CategoryOrder("Settlement Effects", 2),
+     CategoryOrder("Troop Spawning", 3)]
     public class ClanUpgrade : UpgradeBase
     {
         // Clan-specific effects
@@ -354,7 +361,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_MercPercentDesc}Percent daily gold bonus from clan's mercenary contract"),
          PropertyOrder(6), UsedImplicitly, DefaultValue(0)]
-        public int MercIncomePercent { get; set; } = 0;
+        public float MercIncomePercent { get; set; } = 0;
 
         [LocDisplayName("{=BLT_PartyAmountBonus}Max Parties Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
@@ -364,7 +371,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
 
         [LocDisplayName("{=BLT_MaxVassalsBonus}Max Vassals Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
-         LocDescription("{=BLT_MaxVassalsBonusDesc}Increases the maximum amount of vassal clans the upgraded clan can have"), 
+         LocDescription("{=BLT_MaxVassalsBonusDesc}Increases the maximum amount of vassal clans the upgraded clan can have"),
          PropertyOrder(8), UsedImplicitly, DefaultValue(0)]
         public int MaxVassalsBonus { get; set; } = 0;
 
@@ -459,6 +466,65 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(14), UsedImplicitly]
         public float HearthDaily { get; set; } = 0f;
 
+        // Troop Spawning
+        [LocDisplayName("{=BLT_TroopSpawnDaily}Daily Troop Spawn Amount"),
+         LocCategory("Troop Spawning", "{=BLT_TroopSpawning}Troop Spawning"),
+         LocDescription("{=BLT_TroopSpawnDailyDesc}Number of troops to spawn per day. If < 1.0, accumulates until >= 1.0 then spawns 1 troop. Example: 0.5 = 1 troop every 2 days, 2.0 = 2 troops per day."),
+         PropertyOrder(1), UsedImplicitly, DefaultValue(0f)]
+        public float DailyTroopSpawnAmount { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_TroopTree}Troop Tree Type"),
+         LocCategory("Troop Spawning", "{=BLT_TroopSpawning}Troop Spawning"),
+         LocDescription("{=BLT_TroopTreeDesc}Whether to spawn from Basic (1-5) or Noble (2-6) troop tree."),
+         PropertyOrder(2), UsedImplicitly, DefaultValue(TroopTreeType.Basic)]
+        public TroopTreeType TroopTree { get; set; } = TroopTreeType.Basic;
+
+        [LocDisplayName("{=BLT_TroopTier}Troop Tier"),
+         LocCategory("Troop Spawning", "{=BLT_TroopSpawning}Troop Spawning"),
+         LocDescription("{=BLT_TroopTierDesc}Base tier of troops to spawn. Basic tree: 1-5, Noble tree: 2-6. Can be increased by other upgrades."),
+         PropertyOrder(3), UsedImplicitly, DefaultValue(1)]
+        public int TroopTier { get; set; } = 1;
+
+        private string _buffsTroopTierOf = "";
+        [LocDisplayName("{=BLT_BuffsTroopTierOf}Buffs Troop Tier Of (Upgrade IDs)"),
+         LocCategory("Troop Spawning", "{=BLT_TroopSpawning}Troop Spawning"),
+         LocDescription("{=BLT_BuffsTroopTierOfDesc}Comma-separated list of upgrade IDs whose troop tier this upgrade increases. Example: 'RecruitmentCenters, SigningBonuses' - leave empty if this upgrade spawns troops itself."),
+         PropertyOrder(4), UsedImplicitly]
+        public string BuffsTroopTierOf
+        {
+            get => _buffsTroopTierOf;
+            set
+            {
+                if (_buffsTroopTierOf != value)
+                {
+                    _buffsTroopTierOf = value;
+                    OnPropertyChanged(nameof(BuffsTroopTierOf));
+                }
+            }
+        }
+
+        [LocDisplayName("{=BLT_TroopTierBonus}Troop Tier Bonus"),
+         LocCategory("Troop Spawning", "{=BLT_TroopSpawning}Troop Spawning"),
+         LocDescription("{=BLT_TroopTierBonusDesc}How many tiers to add to the upgrades specified in 'Buffs Troop Tier Of'. Example: +1 turns tier 1 into tier 2."),
+         PropertyOrder(5), UsedImplicitly, DefaultValue(0)]
+        public int TroopTierBonus { get; set; } = 0;
+
+        // Helper property to get the IDs as a list
+        public List<string> BuffsTroopTierOfIDs
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(_buffsTroopTierOf))
+                    return new List<string>();
+
+                return _buffsTroopTierOf
+                    .Split(',')
+                    .Select(id => id.Trim())
+                    .Where(id => !string.IsNullOrWhiteSpace(id))
+                    .ToList();
+            }
+        }
+
         public override string GetFullDescription()
         {
             string desc = base.GetFullDescription();
@@ -467,9 +533,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day";
             if (PartySizeBonus != 0) desc += $"\n  Party Size: {(PartySizeBonus > 0 ? "+" : "")}{PartySizeBonus}";
             if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
+            if (PartyAmountBonus != 0) desc += $"\n  Party Limit: {(PartyAmountBonus > 0 ? "+" : "")}{PartyAmountBonus}";
+            if (MaxVassalsBonus != 0) desc += $"\n  Vassal Limit: {(MaxVassalsBonus > 0 ? "+" : "")}{MaxVassalsBonus}";
             desc += $"\n  Mercenary Only: {MercOnly}";
-            if (MercIncomeFlat != 0) desc += $"\n  Mercenary Income Bonus: {(MercIncomeFlat > 0 ? "+" : "")}{MercIncomeFlat}/day";
-            if (MercIncomePercent != 0) desc += $"\n  Mercenary Income Bonus: {(MercIncomePercent > 0 ? "+" : "")}{MercIncomePercent}/day";
+            if (MercIncomeFlat != 0) desc += $"\n  Flat Income Bonus: {(MercIncomeFlat > 0 ? "+" : "")}{MercIncomeFlat}/day";
+            if (MercIncomePercent != 0) desc += $"\n  Percent Income Bonus: {(MercIncomePercent > 0 ? "+" : "")}{MercIncomePercent}%/day";
+            desc += $"\n  Apply to (only) Vassals: {ApplyToVassals}";
 
             desc += "\n\nSettlement Effects (All Clan Settlements):";
             if (LoyaltyDailyFlat != 0) desc += $"\n  Loyalty: {(LoyaltyDailyFlat > 0 ? "+" : "")}{LoyaltyDailyFlat}/day";
@@ -486,6 +555,23 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (TaxIncomePercent != 0) desc += $"\n  Tax Income: {(TaxIncomePercent > 0 ? "+" : "")}{TaxIncomePercent}%";
             if (GarrisonCapacityBonus != 0) desc += $"\n  Garrison Capacity: {(GarrisonCapacityBonus > 0 ? "+" : "")}{GarrisonCapacityBonus}";
             if (HearthDaily != 0) desc += $"\n  Hearth: {(HearthDaily > 0 ? "+" : "")}{HearthDaily}";
+
+            if (DailyTroopSpawnAmount != 0 || TroopTierBonus != 0)
+            {
+                desc += "\n\nTroop Spawning:";
+
+                if (DailyTroopSpawnAmount > 0)
+                {
+                    desc += $"\n  Daily Spawn: {DailyTroopSpawnAmount} troops/day";
+                    desc += $"\n  Troop Tree: {TroopTree}";
+                    desc += $"\n  Base Tier: {TroopTier}";
+                }
+
+                if (TroopTierBonus > 0 && !string.IsNullOrEmpty(BuffsTroopTierOf))
+                {
+                    desc += $"\n  Tier Bonus: +{TroopTierBonus} to upgrades: {BuffsTroopTierOf}";
+                }
+            }
 
             return desc;
         }
