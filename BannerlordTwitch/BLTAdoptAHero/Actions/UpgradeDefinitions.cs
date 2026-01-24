@@ -486,9 +486,9 @@ namespace BLTAdoptAHero.Actions.Upgrades
         public int TroopTier { get; set; } = 1;
 
         private string _buffsTroopTierOf = "";
-        [LocDisplayName("{=BLT_BuffsTroopTierOf}Buffs Troop Tier Of (Upgrade IDs)"),
+        [LocDisplayName("{=BLT_BuffsTroopTierOf}Buffs Troop Tier Of (Upgrade ID(s))"),
          LocCategory("Troop Spawning", "{=BLT_TroopSpawning}Troop Spawning"),
-         LocDescription("{=BLT_BuffsTroopTierOfDesc}Comma-separated list of upgrade IDs whose troop tier this upgrade increases. Example: 'RecruitmentCenters, SigningBonuses' - leave empty if this upgrade spawns troops itself."),
+         LocDescription("{=BLT_BuffsTroopTierOfDesc}Comma-separated list of upgrade ID(s) whose troop tier this upgrade increases. Example: 'RecruitmentCenters, SigningBonuses' - leave empty if this upgrade spawns troops itself."),
          PropertyOrder(4), UsedImplicitly]
         public string BuffsTroopTierOf
         {
