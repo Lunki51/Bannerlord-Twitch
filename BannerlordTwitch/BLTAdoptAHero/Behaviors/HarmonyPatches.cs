@@ -18,6 +18,9 @@ using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
 using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
 using System.Linq;
+using TaleWorlds.CampaignSystem.MapEvents;
+using System.Collections;
+using TaleWorlds.Library;
 
 namespace BLTAdoptAHero
 {
@@ -618,6 +621,195 @@ namespace BLTAdoptAHero
                 Log.Error($"[BLT] Army.CheckArmyDispersion patch error: {ex}");
                 return true; // Fail-safe: allow vanilla logic
             }
+        }
+    }
+    #endregion
+
+    #region MilitiaSallyOut
+    [HarmonyPatch(typeof(Town), "GetDefenderParties")]
+    class Town_GetDefenderParties_Patch
+    {
+        static bool Prefix(Town __instance, MapEvent.BattleTypes battleType, ref IEnumerable<PartyBase> __result)
+        {
+            __result = GetDefenderPartiesWithMilitia(__instance, battleType);
+            return false; // Skip original method
+        }
+
+        static IEnumerable<PartyBase> GetDefenderPartiesWithMilitia(Town town, MapEvent.BattleTypes battleType)
+        {
+            yield return town.Settlement.Party;
+
+            foreach (MobileParty mobileParty in town.Settlement.Parties)
+            {
+                if (mobileParty.MapFaction.IsAtWarWith(town.Settlement.SiegeEvent.BesiegerCamp.MapFaction)
+                    && mobileParty.IsActive
+                    && !mobileParty.IsVillager
+                    && !mobileParty.IsCaravan
+                    && (!mobileParty.IsMilitia || !town.InRebelliousState)) // FIXED: Militia now included in SallyOut
+                {
+                    yield return mobileParty.Party;
+                }
+            }
+        }
+    }
+    #endregion
+
+    #region PlayerSettlementsFixes
+    // Conditional patch loader - only applies patches if Player Settlements is installed
+    public class PlayerSettlementFixLoader
+    {
+        private static bool _patchesApplied = false;
+
+        public static void TryApplyPatches(Harmony harmony)
+        {
+            if (_patchesApplied) return;
+
+            // Check if Player Settlements mod is loaded
+            var playerSettlementsAssembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name.Contains("PlayerSettlement"));
+
+            if (playerSettlementsAssembly != null)
+            {
+                try
+                {
+                    harmony.Patch(
+                        typeof(Settlement).GetMethod("OnGameCreated", BindingFlags.Public | BindingFlags.Instance),
+                        postfix: new HarmonyMethod(typeof(FixPlayerSettlementOnCreationPatch).GetMethod("Postfix"))
+                    );
+
+                    harmony.Patch(
+                        typeof(Campaign).GetMethod("OnGameLoaded", BindingFlags.NonPublic | BindingFlags.Instance),
+                        postfix: new HarmonyMethod(typeof(FixExistingPlayerSettlementsPatch).GetMethod("Postfix"))
+                    );
+
+                    _patchesApplied = true;
+                    InformationManager.DisplayMessage(
+                        new InformationMessage("[Your Mod] Player Settlements fix patches loaded successfully"));
+                }
+                catch (Exception ex)
+                {
+                    InformationManager.DisplayMessage(
+                        new InformationMessage($"[Your Mod] Failed to load PS fix patches: {ex.Message}"));
+                }
+            }
+        }
+    }
+
+    // Fix for newly created player settlements
+    public class FixPlayerSettlementOnCreationPatch
+    {
+        public static void Postfix(Settlement __instance)
+        {
+            // Only fix player settlements that are missing MapFaction
+            if (__instance.MapFaction == null &&
+                __instance.OwnerClan != null &&
+                IsPlayerSettlement(__instance))
+            {
+                // Set MapFaction to match the owner clan's faction
+                var mapFactionProp = typeof(Settlement).GetProperty("MapFaction");
+                if (mapFactionProp != null)
+                {
+                    mapFactionProp.SetValue(__instance, __instance.OwnerClan.MapFaction);
+
+                    InformationManager.DisplayMessage(
+                        new InformationMessage(
+                            $"[PS Fix] Set MapFaction for new settlement {__instance.Name}"));
+                }
+            }
+        }
+
+        private static bool IsPlayerSettlement(Settlement settlement)
+        {
+            return settlement.StringId.Contains("_random_");
+        }
+    }
+
+    // Fix for existing player settlements when loading a save
+    public class FixExistingPlayerSettlementsPatch
+    {
+        public static void Postfix()
+        {
+            int fixedMapFaction = 0;
+            int fixedTownList = 0;
+            int fixedCastleList = 0;
+
+            foreach (var settlement in Settlement.All.ToList())
+            {
+                if (!IsPlayerSettlement(settlement)) continue;
+
+                // Fix 1: MapFaction
+                if (settlement.MapFaction == null && settlement.OwnerClan != null)
+                {
+                    var mapFactionProp = typeof(Settlement).GetProperty("MapFaction");
+                    if (mapFactionProp != null)
+                    {
+                        mapFactionProp.SetValue(settlement, settlement.OwnerClan.MapFaction);
+                        fixedMapFaction++;
+                    }
+                }
+
+                // Fix 2: Ensure towns are in Town.AllTowns
+                if (settlement.IsTown && settlement.Town != null && !Town.AllTowns.Contains(settlement.Town))
+                {
+                    try
+                    {
+                        var allTownsField = typeof(Town).GetField("_allTowns",
+                            BindingFlags.NonPublic | BindingFlags.Static);
+                        if (allTownsField != null)
+                        {
+                            var allTownsList = allTownsField.GetValue(null) as IList;
+                            if (allTownsList != null && !allTownsList.Contains(settlement.Town))
+                            {
+                                allTownsList.Add(settlement.Town);
+                                fixedTownList++;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        InformationManager.DisplayMessage(
+                            new InformationMessage($"[PS Fix] Error adding town to list: {ex.Message}"));
+                    }
+                }
+
+                // Fix 3: Ensure castles are in Town.AllCastles
+                if (settlement.IsCastle && settlement.Town != null && !Town.AllCastles.Contains(settlement.Town))
+                {
+                    try
+                    {
+                        var allCastlesField = typeof(Town).GetField("_allCastles",
+                            BindingFlags.NonPublic | BindingFlags.Static);
+                        if (allCastlesField != null)
+                        {
+                            var allCastlesList = allCastlesField.GetValue(null) as IList;
+                            if (allCastlesList != null && !allCastlesList.Contains(settlement.Town))
+                            {
+                                allCastlesList.Add(settlement.Town);
+                                fixedCastleList++;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        InformationManager.DisplayMessage(
+                            new InformationMessage($"[PS Fix] Error adding castle to list: {ex.Message}"));
+                    }
+                }
+            }
+
+            // Display summary if any fixes were applied
+            if (fixedMapFaction > 0 || fixedTownList > 0 || fixedCastleList > 0)
+            {
+                InformationManager.DisplayMessage(
+                    new InformationMessage(
+                        $"[Player Settlements Fix] Applied fixes - MapFaction: {fixedMapFaction}, " +
+                        $"Town List: {fixedTownList}, Castle List: {fixedCastleList}"));
+            }
+        }
+
+        private static bool IsPlayerSettlement(Settlement settlement)
+        {
+            return settlement.StringId.Contains("_random_");
         }
     }
     #endregion

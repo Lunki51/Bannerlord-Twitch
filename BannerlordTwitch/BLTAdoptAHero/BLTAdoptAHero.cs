@@ -181,6 +181,9 @@ namespace BLTAdoptAHero
             {
                 harmony = new Harmony("mod.bannerlord.bltadoptahero");
                 harmony.PatchAll();
+
+                // Conditionally apply Player Settlements fixes if the mod is detected
+                PlayerSettlementFixLoader.TryApplyPatches(harmony);
             }
         }
 
