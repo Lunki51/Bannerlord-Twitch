@@ -27,6 +27,7 @@ namespace BLTAdoptAHero
         public static bool _allowDiplomacyAction = false;
         public static bool _allowMarriage = false;
     }
+
     #region FactionDiscontinuationCampaignBehavior
     [HarmonyPatch(typeof(FactionDiscontinuationCampaignBehavior))]
     internal static class FactionDiscontinuationPatches
@@ -381,8 +382,6 @@ namespace BLTAdoptAHero
             }
         }
 
-        #endregion
-
         #region ClanPatches
         [HarmonyPatch(typeof(Clan))]
         internal static class ClanPatches
@@ -491,9 +490,11 @@ namespace BLTAdoptAHero
                 return false;
             }
         }
+    #endregion
 
     #endregion
 
+    #region DiplomacyPatches
     /// <summary>
     /// Harmony patches to prevent peace in certain conditions
     /// </summary>
@@ -619,4 +620,5 @@ namespace BLTAdoptAHero
             }
         }
     }
+    #endregion
 }
