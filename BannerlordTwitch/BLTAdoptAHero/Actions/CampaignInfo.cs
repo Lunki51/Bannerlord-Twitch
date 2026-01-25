@@ -78,6 +78,10 @@ namespace BLTAdoptAHero
                     ShowWar(desiredName, context);
                     break;
 
+                case "armies":
+                    ShowArmies(desiredName, context);
+                    break;
+
                 case "fief":
                     ShowFief(desiredName, context);
                     break;
@@ -272,6 +276,52 @@ namespace BLTAdoptAHero
 
             ActionManager.SendReply(context, sb.ToString().TrimEnd('|', ' '));
         }
+
+        private void ShowArmies(string desiredName, ReplyContext context)
+        {
+            var adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(context.UserName);
+            Kingdom desiredKingdom = adoptedHero?.Clan?.Kingdom;
+            if (string.IsNullOrWhiteSpace(desiredName) && desiredKingdom == null)
+            {
+                ActionManager.SendReply(context, "{=DSNx7CFT}Need kingdom name".Translate());
+                return;
+            }
+            else if (!string.IsNullOrWhiteSpace(desiredName))
+            {
+                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+            if (desiredKingdom == null)
+            {
+                ActionManager.SendReply(context,
+                    "{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
+                return;
+            }
+
+            var armies = new StringBuilder();
+            armies.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
+            armies.Append($"{adoptedHero.Clan.Kingdom.Armies.Count} Armies | ");
+            if (adoptedHero.Clan.Kingdom.Armies.Count >= 1)
+            {
+                var armiesraw = adoptedHero.Clan.Kingdom.Armies.ToList();
+                foreach (Army army in armiesraw)
+                {
+                    armies.Append($"\nArmy: {army.Name.ToString()} | ");
+                    armies.Append($"{(int)army.CalculateCurrentStrength()} Strength | ");
+                    armies.Append($"{army.TotalHealthyMembers} Troops | ");
+                    armies.Append($"{army.LeaderPartyAndAttachedPartiesCount.ToString()} Parties | ");
+                    if (army?.LeaderParty?.GetBehaviorText() != null || army?.LeaderParty?.GetBehaviorText().ToString() != "")
+                        armies.Append($"This army is: {army?.LeaderParty?.GetBehaviorText()?.ToString() ?? ""} | ");
+                    if (army.LeaderParty.TargetParty != null || army.LeaderParty.ShortTermTargetParty != null)
+                        armies.Append($"Target : {army.LeaderParty.ShortTermTargetParty ?? army.LeaderParty.TargetParty} | ");
+
+                }
+            }
+
+            ActionManager.SendReply(context, armies.ToString().TrimEnd('|', ' '));
+        }
+
         private void ShowFief(string desiredName, ReplyContext context)
         {
             if (string.IsNullOrWhiteSpace(desiredName))

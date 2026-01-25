@@ -20,6 +20,7 @@ using TaleWorlds.TwoDimension;
 using TaleWorlds.CampaignSystem;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 using YamlDotNet.Serialization;
+using static BLTAdoptAHero.Actions.UpgradeAction;
 
 namespace BLTAdoptAHero
 {
@@ -764,7 +765,7 @@ namespace BLTAdoptAHero
                     });
                 }
             });
-
+            new UpgradeSystemDocumentation().GenerateDocumentation(generator);
             if (ShowCampaignMapOverlay)
             {
                 var kingdoms = MapHub.CurrentMapData?.Kingdoms;

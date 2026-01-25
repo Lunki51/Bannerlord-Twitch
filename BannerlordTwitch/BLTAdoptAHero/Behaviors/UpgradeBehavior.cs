@@ -405,7 +405,7 @@ namespace BLTAdoptAHero
             foreach (var id in GetFiefUpgrades(s))
             {
                 var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += selector(up);
+                if (up != null && (!up.CoastalOnly || (up.CoastalOnly && s.HasPort))) sum += selector(up);
             }
             return sum;
         }
