@@ -14,6 +14,7 @@ using TaleWorlds.CampaignSystem.Extensions;
 using TaleWorlds.Core;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
+using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero.Actions
 {
@@ -22,9 +23,29 @@ namespace BLTAdoptAHero.Actions
      UsedImplicitly]
     public class FamilyManagement : HeroCommandHandlerBase
     {
-        protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
-            Action<string> onSuccess, Action<string> onFailure)
+        [CategoryOrder("General", 0)]
+        private class Settings : IDocumentable
         {
+            // General
+            [LocDisplayName("{=TESTING}Baby Command Limit"),
+             LocCategory("General", "{=TESTING}General"),
+             LocDescription("{=TESTING}Maximum number of kids before the baby command is blocked."),
+             PropertyOrder(1), UsedImplicitly]
+            public int MakeKidsLimit { get; set; } = 3;
+
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.Value($"Max Kids From Baby Command: {MakeKidsLimit}");
+            }
+
+        }
+        public override Type HandlerConfigType => typeof(Settings);
+
+        protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
+        Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (config is not Settings settings) return;
+
             if (adoptedHero == null)
             {
                 onFailure(AdoptAHero.NoHeroMessage);
@@ -49,7 +70,7 @@ namespace BLTAdoptAHero.Actions
             switch (command)
             {
                 case "spouse":
-                    HandleSpouseCommand(adoptedHero, splitArgs, onSuccess, onFailure);
+                    HandleSpouseCommand(adoptedHero, splitArgs, onSuccess, onFailure, settings);
                     break;
                 case "children":
                     HandleChildListCommand(adoptedHero, onSuccess, onFailure);
@@ -86,7 +107,7 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void HandleSpouseCommand(Hero adoptedHero, string[] args, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleSpouseCommand(Hero adoptedHero, string[] args, Action<string> onSuccess, Action<string> onFailure, Settings settings)
         {
             if (args.Length > 1 && args[1].ToLower() == "looks")
             {
@@ -133,7 +154,7 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                MakeBaby(adoptedHero, onSuccess, onFailure);
+                MakeBaby(adoptedHero, onSuccess, onFailure, settings);
                 return;
             }
 
@@ -615,12 +636,12 @@ namespace BLTAdoptAHero.Actions
             }
         }
 
-        private void MakeBaby(Hero hero, Action<string> onSuccess, Action<string> onFailure)
+        private void MakeBaby(Hero hero, Action<string> onSuccess, Action<string> onFailure, Settings settings)
         {
             int childCount = hero.Children.Where(c => !c.IsDead && c.Clan == hero.Clan).Count();
-            if (childCount >= 3)
+            if (childCount >= settings.MakeKidsLimit)
             {
-                onFailure("You have 3 alive children in your clan");
+                onFailure($"You already have {childCount} alive children in your clan, baby command limit is {settings.MakeKidsLimit}");
                 return;
             }
             bool isTarget = hero.IsFemale;

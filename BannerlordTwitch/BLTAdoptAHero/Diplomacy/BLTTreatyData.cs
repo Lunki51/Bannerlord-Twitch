@@ -118,8 +118,11 @@ namespace BLTAdoptAHero
         {
             PayerKingdomId = payer?.StringId;
             DailyAmount = dailyAmount;
-            ExpirationDate = CampaignTime.DaysFromNow(durationDays);
+
+            StartDate = CampaignTime.Now;
+            ExpirationDate = StartDate + CampaignTime.Days(durationDays);
         }
+
 
         public Kingdom GetPayer() =>
             Kingdom.All.FirstOrDefault(k => k.StringId == PayerKingdomId);
