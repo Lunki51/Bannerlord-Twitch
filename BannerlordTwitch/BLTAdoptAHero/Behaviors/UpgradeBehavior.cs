@@ -4,9 +4,7 @@ using System.Linq;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
-using BLTAdoptAHero.Actions;           // contains Settings
 using BLTAdoptAHero.Actions.Upgrades;
-using static BLTAdoptAHero.Actions.UpgradeAction;  // contains FiefUpgrade, ClanUpgrade, KingdomUpgrade
 
 namespace BLTAdoptAHero
 {
@@ -15,6 +13,7 @@ namespace BLTAdoptAHero
     /// - Persists upgrades as comma-separated strings per fief/clan/kingdom
     /// - Exposes Get/Has/Add/Remove helpers used by UI/actions
     /// - Exposes typed aggregated getters that consult the injected Settings instance
+    /// - Handles daily troop spawning from clan upgrades
     /// </summary>
     public class UpgradeBehavior : CampaignBehaviorBase
     {
@@ -25,10 +24,9 @@ namespace BLTAdoptAHero
         private Dictionary<string, string> _clanUpgrades = new();
         private Dictionary<string, string> _kingdomUpgrades = new();
 
-        // REMOVE: private Settings _settings;
-        // REMOVE: private Settings ConfigSafe => _settings;
+        // Troop spawn accumulation: "clanId:upgradeId" -> accumulated value
+        private Dictionary<string, float> _troopSpawnAccumulation = new();
 
-        // REPLACE WITH:
         private GlobalCommonConfig ConfigSafe => GlobalCommonConfig.Get();
 
         public UpgradeBehavior()
@@ -38,9 +36,7 @@ namespace BLTAdoptAHero
 
         public override void RegisterEvents()
         {
-            // No DailyTick mutations - models will query this provider on demand
-            // Renown has been added to this file to avoid behavior bloating, will be moved to own behavior when more clan upgrades are added
-            CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, ApplyRenownDaily);
+            CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, OnDailyTickClan);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -48,10 +44,12 @@ namespace BLTAdoptAHero
             dataStore.SyncData("BLT_FiefUpgrades", ref _fiefUpgrades);
             dataStore.SyncData("BLT_ClanUpgrades", ref _clanUpgrades);
             dataStore.SyncData("BLT_KingdomUpgrades", ref _kingdomUpgrades);
+            dataStore.SyncData("BLT_TroopSpawnAccumulation", ref _troopSpawnAccumulation);
 
             _fiefUpgrades ??= new Dictionary<string, string>();
             _clanUpgrades ??= new Dictionary<string, string>();
             _kingdomUpgrades ??= new Dictionary<string, string>();
+            _troopSpawnAccumulation ??= new Dictionary<string, float>();
         }
 
         #region Serialization helpers
@@ -235,6 +233,169 @@ namespace BLTAdoptAHero
         }
         #endregion
 
+        #region Troop Spawning Logic
+
+        /// <summary>
+        /// Calculate the effective tier for a troop spawning upgrade, including buffs from other upgrades
+        /// </summary>
+        private int GetEffectiveTroopTier(Clan clan, ClanUpgrade spawningUpgrade)
+        {
+            if (clan == null || spawningUpgrade == null) return 1;
+
+            int baseTier = spawningUpgrade.TroopTier;
+            int tierBonus = 0;
+
+            // Check all clan upgrades for tier buffs
+            foreach (var upgradeId in GetClanUpgrades(clan))
+            {
+                var upgrade = ConfigSafe?.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
+                if (upgrade == null) continue;
+
+                // Check if this upgrade buffs the spawning upgrade
+                if (upgrade.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
+                {
+                    tierBonus += upgrade.TroopTierBonus;
+                }
+            }
+
+            return Math.Max(1, baseTier + tierBonus);
+        }
+
+        /// <summary>
+        /// Get the appropriate troop character based on culture, tree type, and tier
+        /// </summary>
+        private CharacterObject GetTroopForCulture(CultureObject culture, TroopTreeType treeType, int tier)
+        {
+            if (culture == null) return null;
+            if (culture.BasicTroop == null && culture.EliteBasicTroop == null) return null;
+            else if (culture.BasicTroop == null && culture.EliteBasicTroop != null) treeType = TroopTreeType.Noble;
+
+            try
+            {
+                if (treeType == TroopTreeType.Noble)
+                {
+                    // Noble tree: tiers 2-6
+                    tier = Math.Min(Math.Max(tier, 2), 6);
+                    switch (tier)
+                    {
+                        case 2: return culture.EliteBasicTroop;
+                        case 3: return culture.EliteBasicTroop?.UpgradeTargets?.GetRandomElement();
+                        case 4: return culture.EliteBasicTroop?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement();
+                        case 5: return culture.EliteBasicTroop?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement();
+                        case 6: return culture.EliteBasicTroop?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement();
+                    }
+                }
+                else // Basic tree
+                {
+                    // Basic tree: tiers 1-5
+                    tier = Math.Min(Math.Max(tier, 1), 5);
+                    switch (tier)
+                    {
+                        case 1: return culture.BasicTroop;
+                        case 2: return culture.BasicTroop?.UpgradeTargets?.GetRandomElement();
+                        case 3: return culture.BasicTroop?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement();
+                        case 4: return culture.BasicTroop?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement();
+                        case 5: return culture.BasicTroop?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement()?.UpgradeTargets?.GetRandomElement();
+                    }
+                }
+            }
+            catch
+            {
+                // Fallback to basic troop
+                if (culture.BasicTroop == null) return culture.BasicTroop;
+                else return null;
+            }
+            if (culture.BasicTroop == null) return culture.BasicTroop;
+            else return null;
+        }
+
+        private void OnDailyTickClan(Clan clan)
+        {
+            try
+            {
+                if (clan == null || ConfigSafe == null) return;
+
+                // Apply renown
+                ApplyRenownDaily(clan);
+
+                // Process troop spawning upgrades
+                foreach (var upgradeId in GetClanUpgrades(clan))
+                {
+                    var upgrade = ConfigSafe.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
+                    if (upgrade == null || upgrade.DailyTroopSpawnAmount <= 0) continue;
+
+                    // Check mercenary restriction
+                    if (upgrade.MercOnly && !clan.IsUnderMercenaryService) continue;
+
+                    string accumulationKey = $"{clan.StringId}:{upgradeId}";
+
+                    // Get current accumulation
+                    if (!_troopSpawnAccumulation.TryGetValue(accumulationKey, out float accumulated))
+                    {
+                        accumulated = 0f;
+                    }
+
+                    // Add daily amount
+                    accumulated += upgrade.DailyTroopSpawnAmount;
+
+                    // Spawn troops if we have at least 1.0 accumulated
+                    while (accumulated >= 1.0f && clan.WarPartyComponents.Any(p => p.MobileParty.MemberRoster.Count < p.Party.PartySizeLimit))
+                    {
+                        SpawnTroopForClan(clan, upgrade);
+                        accumulated -= 1.0f;
+                    }
+
+                    // Store accumulation
+                    if (accumulated > 0f)
+                    {
+                        _troopSpawnAccumulation[accumulationKey] = accumulated;
+                    }
+                    else
+                    {
+                        _troopSpawnAccumulation.Remove(accumulationKey);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't crash the game
+                TaleWorlds.Library.InformationManager.DisplayMessage(
+                    new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] Daily tick error: {ex.Message}")
+                );
+            }
+        }
+
+        private void SpawnTroopForClan(Clan clan, ClanUpgrade upgrade)
+        {
+            try
+            {
+                var party = clan.Leader.PartyBelongedTo != null && clan.Leader.PartyBelongedTo.Party.MemberRoster.Count < clan.Leader.PartyBelongedTo.Party.PartySizeLimit ? clan.Leader.PartyBelongedTo : clan.WarPartyComponents.Where(p => p.MobileParty.MemberRoster.Count < p.Party.PartySizeLimit).SelectRandom().MobileParty ?? null;
+                if (party == null) return;
+
+                var culture = clan.Culture;
+                if (culture == null) return;
+
+                // Get effective tier (including buffs)
+                int effectiveTier = GetEffectiveTroopTier(clan, upgrade);
+
+                // Get the troop
+                var troop = GetTroopForCulture(culture, upgrade.TroopTree, effectiveTier);
+
+                if (troop != null)
+                {
+                    party.MemberRoster.AddToCounts(troop, 1);
+                }
+            }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.InformationManager.DisplayMessage(
+                    new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] Spawn troop error: {ex.Message}")
+                );
+            }
+        }
+
+        #endregion
+
         #region Typed aggregation helpers (no duplicates)
         // Sum fief float values
         private float SumFiefFloat(Settlement s, Func<FiefUpgrade, float> selector)
@@ -250,16 +411,22 @@ namespace BLTAdoptAHero
         }
 
         // Sum clan float values (applies to clan's settlements + renown)
-        private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> selector)
+        private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> selector, bool applyToVassalsOnly = false)
         {
             if (clan == null || ConfigSafe == null) return 0f;
             float sum = 0f;
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) 
+                if (up != null)
                 {
-                    if (!up.MercOnly || (up.MercOnly && clan.IsUnderMercenaryService)) sum += selector(up); 
+                    bool mercAllow = !up.MercOnly || (up.MercOnly && clan.IsUnderMercenaryService);
+                    bool vassalAllow = !up.ApplyToVassals || (up.ApplyToVassals && applyToVassalsOnly);
+
+                    if (mercAllow && vassalAllow)
+                    {
+                        sum += selector(up);
+                    }
                 }
             }
             return sum;
@@ -319,14 +486,23 @@ namespace BLTAdoptAHero
             return sum;
         }
 
-        private int SumClanInt(Clan clan, Func<ClanUpgrade, int> selector)
+        private int SumClanInt(Clan clan, Func<ClanUpgrade, int> selector, bool applyToVassalsOnly = false)
         {
             if (clan == null || ConfigSafe == null) return 0;
             int sum = 0;
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += selector(up);
+                if (up != null)
+                {
+                    bool mercAllow = !up.MercOnly || (up.MercOnly && clan.IsUnderMercenaryService);
+                    bool vassalAllow = !up.ApplyToVassals || (up.ApplyToVassals && applyToVassalsOnly);
+
+                    if (mercAllow && vassalAllow)
+                    {
+                        sum += selector(up);
+                    }
+                }
             }
             return sum;
         }
@@ -420,7 +596,7 @@ namespace BLTAdoptAHero
             return bonus;
         }
 
-        // Party size
+        // Party amount
         public int GetClanPartyAmountBonus(Clan clan)
             => SumClanInt(clan, c => c.PartyAmountBonus);
 
@@ -432,7 +608,7 @@ namespace BLTAdoptAHero
             return bonus;
         }
 
-        // Party size
+        // Max vassals
         public int GetClanMaxVassalsBonus(Clan clan)
             => SumClanInt(clan, c => c.MaxVassalsBonus);
 
@@ -459,6 +635,7 @@ namespace BLTAdoptAHero
             if (hero.Clan.Kingdom != null) bonus += GetKingdomRenownDaily(hero.Clan.Kingdom);
             return bonus;
         }
+
         public void ApplyRenownDaily(Clan clan)
         {
             float bonus = GetTotalRenownDaily(clan.Leader);
@@ -480,6 +657,7 @@ namespace BLTAdoptAHero
         // Mercenary Income
         public int GetFlatClanMercBonus(Clan clan)
             => SumClanInt(clan, c => c.MercIncomeFlat);
+
         public float GetPercentClanMercBonus(Clan clan)
             => 1f + SumClanFloat(clan, c => c.MercIncomePercent);
 

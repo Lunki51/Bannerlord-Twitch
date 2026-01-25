@@ -182,6 +182,55 @@ namespace BLTAdoptAHero.Actions.Util
             return MBObjectManager.Instance.RegisterObject(bestItem);
         }
 
+        public static ItemObject CreateCulturedCraftedWeapon(Hero hero, EquipmentType weaponType, int desiredTier, CultureObject culture)
+        {
+            var equipmentWeaponClass = EquipmentTypeHelpers.GetWeaponClass(weaponType);
+            var validTemplates = CraftingTemplate.All
+                .Where(t => t.WeaponDescriptions?.Any(w => w.WeaponClass == equipmentWeaponClass) == true)
+                .ToList();
+
+            if (!validTemplates.Any())
+            {
+                return null;
+            }
+
+            int itr = 0;
+            var itemsOfCorrectType = new List<ItemObject>();
+            do
+            {
+                var crafting = CampaignHelpers.NewCrafting(validTemplates.SelectRandom(), culture ?? hero.Culture);
+                crafting.Init();
+                crafting.Randomize();
+
+                var generatedItem = (ItemObject)AccessTools.Field(typeof(Crafting), "_craftedItemObject").GetValue(crafting);
+                if (generatedItem.IsEquipmentType(weaponType))
+                {
+                    itemsOfCorrectType.Add(generatedItem);
+
+                    // We can stop immediately if we found one of the best tier
+                    if (generatedItem.Tier == ItemObject.ItemTiers.Tier6)
+                    {
+                        break;
+                    }
+                }
+            } while (++itr < 500);
+
+            if (!itemsOfCorrectType.Any() && itr >= 500)
+            {
+                Log.Error($"Failed to create crafted {weaponType} for {hero.Name} with culture {culture?.Name} in {itr} iterations");
+                return null;
+            }
+
+            var bestItem = itemsOfCorrectType.OrderByDescending(item => item.Tier).First();
+
+            Log.Info($"Created {bestItem.Tier} ({bestItem.Tierf:0.00}) {bestItem.WeaponComponent?.PrimaryWeapon.WeaponClass} {bestItem.Name} for {hero.Name} with culture {culture?.Name} in {itr} iterations");
+
+            bestItem.StringId = Guid.NewGuid().ToString();
+            CompleteCraftedItem(bestItem);
+
+            return MBObjectManager.Instance.RegisterObject(bestItem);
+        }
+
         private static void SetItemName(ItemObject item, TextObject name) => AccessTools.Property(typeof(ItemObject), nameof(ItemObject.Name)).SetValue(item, name);
 
         private static void CompleteCraftedItem(ItemObject item)

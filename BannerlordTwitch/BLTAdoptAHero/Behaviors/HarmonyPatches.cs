@@ -18,6 +18,7 @@ using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
 using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
 using System.Linq;
+using TaleWorlds.CampaignSystem.MapEvents;
 
 namespace BLTAdoptAHero
 {
@@ -27,6 +28,7 @@ namespace BLTAdoptAHero
         public static bool _allowDiplomacyAction = false;
         public static bool _allowMarriage = false;
     }
+
     #region FactionDiscontinuationCampaignBehavior
     [HarmonyPatch(typeof(FactionDiscontinuationCampaignBehavior))]
     internal static class FactionDiscontinuationPatches
@@ -381,8 +383,6 @@ namespace BLTAdoptAHero
             }
         }
 
-        #endregion
-
         #region ClanPatches
         [HarmonyPatch(typeof(Clan))]
         internal static class ClanPatches
@@ -491,9 +491,11 @@ namespace BLTAdoptAHero
                 return false;
             }
         }
+    #endregion
 
     #endregion
 
+    #region DiplomacyPatches
     /// <summary>
     /// Harmony patches to prevent peace in certain conditions
     /// </summary>
@@ -619,4 +621,34 @@ namespace BLTAdoptAHero
             }
         }
     }
+    #endregion
+
+    #region MilitiaSallyOut
+    [HarmonyPatch(typeof(Town), "GetDefenderParties")]
+    class Town_GetDefenderParties_Patch
+    {
+        static bool Prefix(Town __instance, MapEvent.BattleTypes battleType, ref IEnumerable<PartyBase> __result)
+        {
+            __result = GetDefenderPartiesWithMilitia(__instance, battleType);
+            return false; // Skip original method
+        }
+
+        static IEnumerable<PartyBase> GetDefenderPartiesWithMilitia(Town town, MapEvent.BattleTypes battleType)
+        {
+            yield return town.Settlement.Party;
+
+            foreach (MobileParty mobileParty in town.Settlement.Parties)
+            {
+                if (mobileParty.MapFaction.IsAtWarWith(town.Settlement.SiegeEvent.BesiegerCamp.MapFaction)
+                    && mobileParty.IsActive
+                    && !mobileParty.IsVillager
+                    && !mobileParty.IsCaravan
+                    && (!mobileParty.IsMilitia || !town.InRebelliousState)) // FIXED: Militia now included in SallyOut
+                {
+                    yield return mobileParty.Party;
+                }
+            }
+        }
+    }
+    #endregion
 }

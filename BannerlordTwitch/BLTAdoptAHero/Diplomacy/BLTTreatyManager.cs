@@ -143,6 +143,7 @@ namespace BLTAdoptAHero
             dataStore.SyncData("_tributeAmount", ref _tributeAmount);
             dataStore.SyncData("_tributeRemaining", ref _tributeRemaining);
             dataStore.SyncData("_tributeStartTicks", ref _tributeStartTicks);
+            dataStore.SyncData("_tributeExpirationTicks", ref _tributeExpirationTicks);
 
             // Wars
             dataStore.SyncData("_warKeys", ref _warKeys);
@@ -207,7 +208,7 @@ namespace BLTAdoptAHero
             _truceKeys.Clear(); _truceK1.Clear(); _truceK2.Clear(); _truceStartTicks.Clear(); _truceExpireTicks.Clear();
             _napKeys.Clear(); _napK1.Clear(); _napK2.Clear(); _napStartTicks.Clear();
             _allianceKeys.Clear(); _allianceK1.Clear(); _allianceK2.Clear(); _allianceStartTicks.Clear();
-            _tributeKeys.Clear(); _tributeK1.Clear(); _tributeK2.Clear(); _tributePayer.Clear(); _tributeAmount.Clear(); _tributeRemaining.Clear(); _tributeStartTicks.Clear();
+            _tributeKeys.Clear(); _tributeK1.Clear(); _tributeK2.Clear(); _tributePayer.Clear(); _tributeAmount.Clear(); _tributeRemaining.Clear(); _tributeStartTicks.Clear(); _tributeExpirationTicks.Clear();
             _warKeys.Clear(); _warAttacker.Clear(); _warDefender.Clear(); _warAttackerAllies.Clear(); _warDefenderAllies.Clear(); _warStartTicks.Clear();
             _peaceProposalKeys.Clear(); _peaceProposerIds.Clear(); _peaceTargetIds.Clear(); _peaceIsOffer.Clear(); _peaceTribute.Clear(); _peaceDuration.Clear(); _peaceGoldCost.Clear(); _peaceInfluenceCost.Clear(); _peaceExpireTicks.Clear();
             _allianceProposalKeys.Clear(); _allianceProposerIds.Clear(); _allianceTargetIds.Clear(); _allianceGoldCost.Clear(); _allianceInfluenceCost.Clear(); _allianceExpireTicks.Clear();
@@ -377,19 +378,35 @@ namespace BLTAdoptAHero
             }
 
             // Tributes
-            for (int i = 0; i < _tributeKeys.Count; i++)
+            int tributeCount = new[]
             {
+                _tributeKeys.Count,
+                _tributeK1.Count,
+                _tributeK2.Count,
+                _tributePayer.Count,
+                _tributeAmount.Count,
+                _tributeStartTicks.Count,
+                _tributeExpirationTicks.Count
+            }.Min();
+
+            for (int i = 0; i < tributeCount; i++)
+            {
+                long startTicks = _tributeStartTicks.Count > i ? _tributeStartTicks[i] : 0;
+                long expireTicks = _tributeExpirationTicks.Count > i ? _tributeExpirationTicks[i] : 0;
+
                 var tribute = new BLTTribute
                 {
                     Kingdom1Id = _tributeK1[i],
                     Kingdom2Id = _tributeK2[i],
                     PayerKingdomId = _tributePayer[i],
                     DailyAmount = _tributeAmount[i],
-                    StartDate = CampaignTime.Days(_tributeStartTicks[i]),
-                    ExpirationDate = CampaignTime.Days(_tributeExpirationTicks[i])
+                    StartDate = startTicks > 0 ? CampaignTime.Days(startTicks) : CampaignTime.Now,
+                    ExpirationDate = expireTicks > 0 ? CampaignTime.Days(expireTicks) : CampaignTime.Now
                 };
+
                 _tributes[_tributeKeys[i]] = tribute;
             }
+
 
             // Wars
             for (int i = 0; i < _warKeys.Count; i++)
