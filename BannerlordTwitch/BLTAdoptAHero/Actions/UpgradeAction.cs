@@ -350,14 +350,22 @@ namespace BLTAdoptAHero.Actions
 
                 // Get all upgrade objects
                 var allUpgrades = upgrades
-                    .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
-                    .Where(upgrade => upgrade != null)
-                    .ToList();
+                .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+                .Where(upgrade => upgrade != null)
+                .ToList();
 
-                // Group by base ID (everything before the last digit) and keep only the highest tier
+                // Group by base ID (remove trailing digits) and keep only the highest tier
                 var filteredUpgrades = allUpgrades
-                    .GroupBy(upgrade => System.Text.RegularExpressions.Regex.Replace(upgrade.ID, @"\d+$", ""))
-                    .Select(group => group.OrderByDescending(u => u.TierLevel).ThenByDescending(u => u.ID).First())
+                    .GroupBy(upgrade =>
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(upgrade.ID, @"^(.+?)(\d+)$");
+                        return match.Success ? match.Groups[1].Value : upgrade.ID;
+                    })
+                    .Select(group => group.OrderByDescending(u =>
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(u.ID, @"(\d+)$");
+                        return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+                    }).First())
                     .OrderBy(upgrade => upgrade.Name)
                     .ToList();
 
@@ -392,14 +400,22 @@ namespace BLTAdoptAHero.Actions
 
                 // Get all upgrade objects
                 var allUpgrades = upgrades
-                    .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
-                    .Where(upgrade => upgrade != null)
-                    .ToList();
+                .Select(upgradeId => globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+                .Where(upgrade => upgrade != null)
+                .ToList();
 
-                // Group by base ID (everything before the last digit) and keep only the highest tier
+                // Group by base ID (remove trailing digits) and keep only the highest tier
                 var filteredUpgrades = allUpgrades
-                    .GroupBy(upgrade => System.Text.RegularExpressions.Regex.Replace(upgrade.ID, @"\d+$", ""))
-                    .Select(group => group.OrderByDescending(u => u.TierLevel).ThenByDescending(u => u.ID).First())
+                    .GroupBy(upgrade =>
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(upgrade.ID, @"^(.+?)(\d+)$");
+                        return match.Success ? match.Groups[1].Value : upgrade.ID;
+                    })
+                    .Select(group => group.OrderByDescending(u =>
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(u.ID, @"(\d+)$");
+                        return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+                    }).First())
                     .OrderBy(upgrade => upgrade.Name)
                     .ToList();
 
@@ -441,14 +457,22 @@ namespace BLTAdoptAHero.Actions
 
                 // Get all upgrade objects
                 var allUpgrades = upgrades
-                    .Select(upgradeId => globalConfig.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId))
-                    .Where(upgrade => upgrade != null)
-                    .ToList();
+                .Select(upgradeId => globalConfig.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId))
+                .Where(upgrade => upgrade != null)
+                .ToList();
 
-                // Group by base ID (everything before the last digit) and keep only the highest tier
+                // Group by base ID (remove trailing digits) and keep only the highest tier
                 var filteredUpgrades = allUpgrades
-                    .GroupBy(upgrade => System.Text.RegularExpressions.Regex.Replace(upgrade.ID, @"\d+$", ""))
-                    .Select(group => group.OrderByDescending(u => u.TierLevel).ThenByDescending(u => u.ID).First())
+                    .GroupBy(upgrade =>
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(upgrade.ID, @"^(.+?)(\d+)$");
+                        return match.Success ? match.Groups[1].Value : upgrade.ID;
+                    })
+                    .Select(group => group.OrderByDescending(u =>
+                    {
+                        var match = System.Text.RegularExpressions.Regex.Match(u.ID, @"(\d+)$");
+                        return match.Success ? int.Parse(match.Groups[1].Value) : 0;
+                    }).First())
                     .OrderBy(upgrade => upgrade.Name)
                     .ToList();
 
