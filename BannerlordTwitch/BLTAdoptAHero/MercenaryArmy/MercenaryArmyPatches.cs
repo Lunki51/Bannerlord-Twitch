@@ -47,19 +47,37 @@ namespace BLTAdoptAHero
         /// </summary>
         public static void UnregisterMercenaryParty(MobileParty party)
         {
-            if (party == null || string.IsNullOrEmpty(party.StringId))
+            if (party == null)
                 return;
 
             try
             {
-                _mercenaryPartyIds.Remove(party.StringId);
-                _mercenaryArmyData.Remove(party.StringId);
+                string partyId = party.StringId;
+                if (string.IsNullOrEmpty(partyId))
+                    return;
 
-                Log.Info($"[BLT] Unregistered mercenary party: {party.StringId}");
+                bool removedFromSet = _mercenaryPartyIds.Remove(partyId);
+                bool removedFromDict = _mercenaryArmyData.Remove(partyId);
+
+                if (removedFromSet || removedFromDict)
+                {
+                    Log.Info($"[BLT] Unregistered mercenary party: {partyId}");
+                }
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] UnregisterMercenaryParty error: {ex}");
+
+                // Emergency fallback - try to remove by StringId even if exception occurred
+                try
+                {
+                    if (!string.IsNullOrEmpty(party?.StringId))
+                    {
+                        _mercenaryPartyIds.Remove(party.StringId);
+                        _mercenaryArmyData.Remove(party.StringId);
+                    }
+                }
+                catch { }
             }
         }
 
@@ -103,15 +121,13 @@ namespace BLTAdoptAHero
             {
                 try
                 {
+                    // Add null checks for both parameters
+                    if (party == null || targetParty == null)
+                        return true; // Run vanilla logic
+
                     // Only intervene for mercenary armies
                     if (!IsMercenaryArmy(party))
                         return true; // Run vanilla logic
-
-                    if (targetParty == null)
-                    {
-                        __result = false;
-                        return false;
-                    }
 
                     // Re-implementation of vanilla logic with mercenary-safe rules
                     __result =
@@ -132,6 +148,83 @@ namespace BLTAdoptAHero
                     Log.Error($"[BLT] ShouldConsiderAvoiding patch error: {ex}");
                     return true; // Fail open to avoid breaking AI
                 }
+            }
+        }
+
+        /// <summary>
+        /// Prevent mercenary armies from engaging hostile parties - they only siege
+        /// </summary>
+        [HarmonyPatch(typeof(MobileParty), "IsEngagingParty")]
+        [HarmonyPrefix]
+        private static bool Prefix_IsEngagingParty(MobileParty __instance, ref bool __result)
+        {
+            try
+            {
+                if (__instance != null && IsMercenaryArmy(__instance))
+                {
+                    __result = false; // Never engage in field battles
+                    return false; // Skip original method
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] Prefix_IsEngagingParty error: {ex}");
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Prevent other parties from considering mercenary armies as valid targets
+        /// This prevents the AI from trying to intercept them
+        /// </summary>
+        [HarmonyPatch(typeof(MobileParty), "IsValidTarget")]
+        [HarmonyPostfix]
+        private static void Postfix_IsValidTarget(MobileParty __instance, MobileParty party, ref bool __result)
+        {
+            try
+            {
+                // If the party being checked is a mercenary army, it's not a valid target for interception
+                if (party != null && IsMercenaryArmy(party))
+                {
+                    __result = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] Postfix_IsValidTarget error: {ex}");
+            }
+        }
+
+        /// <summary>
+        /// Ensure mercenary armies can properly initiate sieges
+        /// </summary>
+        [HarmonyPatch(typeof(MobileParty), "CanStartSiegeEvent")]
+        [HarmonyPostfix]
+        private static void Postfix_CanStartSiegeEvent(MobileParty __instance, ref bool __result)
+        {
+            try
+            {
+                // If this is a mercenary army and it's at its target, ensure it CAN siege
+                if (__instance != null && IsMercenaryArmy(__instance))
+                {
+                    // Get the army data to check target
+                    if (_mercenaryArmyData.TryGetValue(__instance.StringId, out var armyData))
+                    {
+                        var targetSettlement = Settlement.Find(armyData.TargetSettlementId);
+
+                        if (targetSettlement != null &&
+                            __instance.CurrentSettlement == targetSettlement &&
+                            targetSettlement.SiegeEvent == null)
+                        {
+                            // Make sure we can start a siege if we're at our target
+                            __result = true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] Postfix_CanStartSiegeEvent error: {ex}");
             }
         }
 
