@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Naval;
@@ -140,6 +141,70 @@ namespace BLTAdoptAHero.Models
         public override List<Ship> FindAppropriateInitialShipsForMobileParty(MobileParty party, PartyTemplateObject partyTemplate)
         {
             return _previous.FindAppropriateInitialShipsForMobileParty(party, partyTemplate);
+        }
+    }
+
+    public class BLTClanTierModel : ClanTierModel
+    {
+        private readonly ClanTierModel _previous;
+        private static readonly TextObject Text =
+            new TextObject("{=BLT_UpgradeClanTier}Upgrade bonuses");
+
+        public BLTClanTierModel(ClanTierModel previous)
+        {
+            _previous = previous;
+        }
+
+        public override int MinClanTier => _previous.MinClanTier;
+        public override int MaxClanTier => _previous.MaxClanTier;
+        public override int MercenaryEligibleTier => _previous.MercenaryEligibleTier;
+        public override int VassalEligibleTier => _previous.VassalEligibleTier;
+        public override int BannerEligibleTier => _previous.BannerEligibleTier;
+        public override int RebelClanStartingTier => _previous.RebelClanStartingTier;
+        public override int CompanionToLordClanStartingTier => _previous.CompanionToLordClanStartingTier;
+
+        public override int CalculateInitialRenown(Clan clan)
+        {
+            return _previous.CalculateInitialRenown(clan);
+        }
+
+        public override int CalculateInitialInfluence(Clan clan)
+        {
+            return _previous.CalculateInitialInfluence(clan);
+        }
+
+        public override int CalculateTier(Clan clan)
+        {
+            return _previous.CalculateTier(clan);
+        }
+
+        public override ValueTuple<ExplainedNumber, bool> HasUpcomingTier(Clan clan, out TextObject extraExplanation, bool includeDescriptions = false)
+        {
+            return _previous.HasUpcomingTier(clan, out extraExplanation, includeDescriptions);
+        }
+
+        public override int GetRequiredRenownForTier(int tier)
+        {
+            return _previous.GetRequiredRenownForTier(tier);
+        }
+
+        public override int GetPartyLimitForTier(Clan clan, int clanTierToCheck)
+        {
+            int baseLimit = _previous.GetPartyLimitForTier(clan, clanTierToCheck);
+
+            if (clan?.Leader != null && UpgradeBehavior.Current != null)
+            {
+                int bonus = UpgradeBehavior.Current.GetTotalPartyAmountBonus(clan);
+                if (bonus != 0)
+                    baseLimit += bonus;
+            }
+
+            return baseLimit;
+        }
+
+        public override int GetCompanionLimit(Clan clan)
+        {
+            return _previous.GetCompanionLimit(clan);
         }
     }
 }
