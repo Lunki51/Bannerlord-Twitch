@@ -34,9 +34,10 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Policy", 4),
          CategoryOrder("Vassal", 5),
          CategoryOrder("Stats", 6),
-         CategoryOrder("Release", 7),
-         CategoryOrder("Expel", 8),
-         CategoryOrder("Tax", 9)]
+         CategoryOrder("Armies", 7),
+         CategoryOrder("Release", 8),
+         CategoryOrder("Expel", 9),
+         CategoryOrder("Tax", 10)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -231,6 +232,12 @@ namespace BLTAdoptAHero.Actions
             public bool StatsEnabled { get; set; } = true;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Armies", "{=}Armies"),
+             LocDescription("{=CFBJIpux}Enable Armies command"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool ArmiesEnabled { get; set; } = true;
+
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Release", "{=TESTING}Release"),
              LocDescription("{=TESTING}Enable king to release clans from kingdom (with their land)"),
              PropertyOrder(1), UsedImplicitly]
@@ -292,6 +299,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Vassal, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
+                if (ArmiesEnabled)
+                    EnabledCommands.Append("Armies, ");
                 if (ReleaseEnabled)
                     EnabledCommands.Append("Release, ");
                 if (ExpelEnabled)
@@ -430,6 +439,9 @@ namespace BLTAdoptAHero.Actions
                     break;
                 case "stats":
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
+                    break;
+                case "Armies":
+                    HandleArmiesCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "tax":
                     HandleTaxCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
@@ -728,6 +740,41 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleCount)));
             }
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
+        }
+
+        private void HandleArmiesCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.StatsEnabled)
+            {
+                onFailure("{=RtwwHrgB}Kingdom stats is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
+                return;
+            }
+
+            var armies = new StringBuilder();
+            armies.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
+            armies.Append($"{adoptedHero.Clan.Kingdom.Armies.Count} Armies | ");
+            if (adoptedHero.Clan.Kingdom.Armies.Count >= 1)
+            {
+                var armiesraw = adoptedHero.Clan.Kingdom.Armies.ToList();
+                foreach (Army army in armiesraw)
+                {
+                    armies.Append($"\nArmy: {army.Name.ToString()} | ");
+                    armies.Append($"{(int)army.CalculateCurrentStrength()} Strength | ");
+                    armies.Append($"{army.TotalHealthyMembers} Troops | ");
+                    armies.Append($"{army.LeaderPartyAndAttachedPartiesCount.ToString()} Parties | ");
+                    if (army?.LeaderParty?.GetBehaviorText() != null || army?.LeaderParty?.GetBehaviorText().ToString() != "")  
+                        armies.Append($"This army is: {army?.LeaderParty?.GetBehaviorText()?.ToString() ?? ""} | ");
+                    if (army.LeaderParty.TargetParty != null || army.LeaderParty.ShortTermTargetParty != null) 
+                        armies.Append($"Target : {army.LeaderParty.ShortTermTargetParty ?? army.LeaderParty.TargetParty} | ");
+                }
+            }
+
+            onSuccess("{armies}".Translate(("armies", armies.ToString().TrimEnd(' ', '|', ' '))));
         }
 
         private void HandleLeaveCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)

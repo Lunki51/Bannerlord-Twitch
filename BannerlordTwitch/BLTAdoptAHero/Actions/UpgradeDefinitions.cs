@@ -153,10 +153,27 @@ namespace BLTAdoptAHero.Actions.Upgrades
             }
         }
 
+        private bool _coastalOnly = false;
+        [LocDisplayName("{=BLT_coastalOnly}Coastal Settlements Only"),
+         LocDescription("{=BLT_coastalOnlyDesc}Whether this upgrade applies to non-coastal settlements (and their bound villages)"),
+         PropertyOrder(7), UsedImplicitly, DefaultValue(false)]
+        public bool CoastalOnly
+        {
+            get => _coastalOnly;
+            set
+            {
+                if (_coastalOnly != value)
+                {
+                    _coastalOnly = value;
+                    OnPropertyChanged(nameof(CoastalOnly));
+                }
+            }
+        }
+
         private bool _canBeRemoved = false;
         [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
          LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
-         PropertyOrder(7), UsedImplicitly]
+         PropertyOrder(8), UsedImplicitly]
         public bool CanBeRemoved
         {
             get => _canBeRemoved;
@@ -530,17 +547,17 @@ namespace BLTAdoptAHero.Actions.Upgrades
             string desc = base.GetFullDescription();
             desc += "\n\nClan Effects:";
 
+            if (MercOnly) desc += $"\n  Mercenary Only: {MercOnly}";
+            if (ApplyToVassals) desc += $"\n  Apply to (only) Vassals: {ApplyToVassals}";
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day";
             if (PartySizeBonus != 0) desc += $"\n  Party Size: {(PartySizeBonus > 0 ? "+" : "")}{PartySizeBonus}";
             if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
             if (PartyAmountBonus != 0) desc += $"\n  Party Limit: {(PartyAmountBonus > 0 ? "+" : "")}{PartyAmountBonus}";
             if (MaxVassalsBonus != 0) desc += $"\n  Vassal Limit: {(MaxVassalsBonus > 0 ? "+" : "")}{MaxVassalsBonus}";
-            desc += $"\n  Mercenary Only: {MercOnly}";
             if (MercIncomeFlat != 0) desc += $"\n  Flat Income Bonus: {(MercIncomeFlat > 0 ? "+" : "")}{MercIncomeFlat}/day";
             if (MercIncomePercent != 0) desc += $"\n  Percent Income Bonus: {(MercIncomePercent > 0 ? "+" : "")}{MercIncomePercent}%/day";
-            desc += $"\n  Apply to (only) Vassals: {ApplyToVassals}";
 
-            desc += "\n\nSettlement Effects (All Clan Settlements):";
+            if (LoyaltyDailyFlat != 0 || LoyaltyDailyFlat != 0 || LoyaltyDailyPercent != 0 || ProsperityDailyFlat != 0 || ProsperityDailyPercent != 0 || SecurityDailyFlat != 0 || SecurityDailyPercent != 0 || MilitiaDailyFlat != 0 || MilitiaDailyPercent != 0 || FoodDailyFlat != 0 || FoodDailyPercent != 0 || TaxIncomeFlat != 0 || TaxIncomePercent != 0 || GarrisonCapacityBonus != 0 || HearthDaily != 0) desc += "\n\nSettlement Effects (All Clan Settlements):";
             if (LoyaltyDailyFlat != 0) desc += $"\n  Loyalty: {(LoyaltyDailyFlat > 0 ? "+" : "")}{LoyaltyDailyFlat}/day";
             if (LoyaltyDailyPercent != 0) desc += $"\n  Loyalty: {(LoyaltyDailyPercent > 0 ? "+" : "")}{LoyaltyDailyPercent}%/day";
             if (ProsperityDailyFlat != 0) desc += $"\n  Prosperity: {(ProsperityDailyFlat > 0 ? "+" : "")}{ProsperityDailyFlat}/day";

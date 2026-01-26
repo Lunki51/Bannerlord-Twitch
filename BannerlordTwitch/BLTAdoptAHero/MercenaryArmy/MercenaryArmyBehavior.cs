@@ -11,6 +11,7 @@ using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using BannerlordTwitch.Util;
 using Helpers;
+using TaleWorlds.CampaignSystem.Roster;
 
 namespace BLTAdoptAHero
 {
@@ -220,12 +221,12 @@ namespace BLTAdoptAHero
                     IsActive = true
                 };
 
-                // === PHASE 5: REGISTER ARMY (ATOMIC OPERATION) ===
+                // === PHASE 5: INITIALIZE AI FIRST (before registration) ===
+                InitializeMercenaryBehavior(party, targetSettlement);
+
+                // === PHASE 6: REGISTER ARMY (after AI is ready) ===
                 _mercenaryArmies.Add(armyData);
                 MercenaryArmyPatches.RegisterMercenaryParty(party, armyData);
-
-                // === PHASE 6: INITIALIZE AI ===
-                InitializeMercenaryBehavior(party, targetSettlement);
 
                 Log.Info($"[BLT] Successfully created mercenary army: {party.Name} targeting {targetSettlement.Name}");
 
@@ -301,6 +302,20 @@ namespace BLTAdoptAHero
                 );
 
                 mercCommander.Clan = clan;
+
+                // Verify clan assignment worked
+                if (mercCommander.Clan != clan)
+                {
+                    Log.Error($"[BLT] Failed to assign commander to clan {clan.Name}");
+                    // Try to clean up the hero
+                    try
+                    {
+                        KillCharacterAction.ApplyByRemove(mercCommander);
+                    }
+                    catch { }
+                    return null;
+                }
+
                 mercCommander.SetNewOccupation(Occupation.Lord);
 
                 // Set skills for effective combat and command
@@ -323,7 +338,8 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Spawn the party at the settlement
+                // Use SpawnLordParty - this creates a proper lord party with correct component
+                // Spawn at settlement location
                 var party = MobilePartyHelper.SpawnLordParty(
                     commander,
                     spawnLocation.GatePosition,
@@ -336,8 +352,19 @@ namespace BLTAdoptAHero
                     return null;
                 }
 
-                // Clear any default troops
+                // Verify spawn was successful
+                if (!party.IsActive)
+                {
+                    Log.Error($"[BLT] Party failed to activate after spawn");
+                    return null;
+                }
+
+                // Party name is automatically set based on commander's name by the game
+                // We can't use SetCustomName on lord parties
+
+                // Clear any default troops that might have been added
                 party.MemberRoster?.Clear();
+                party.PrisonRoster?.Clear();
 
                 // Calculate troop distribution
                 int eliteCount = (int)(troopCount * (elitePercentage / 100f));
@@ -364,16 +391,18 @@ namespace BLTAdoptAHero
                     party.ItemRoster?.AddToCounts(DefaultItems.Grain, startingFood);
                 }
 
-                // Initialize party at position
-                party.InitializeMobilePartyAtPosition(spawnLocation.GatePosition);
+                // Set party properties for proper behavior
+                party.Aggressiveness = 0.1f; // Low but not zero - allows siege but discourages combat
 
-                // Convert to custom party component for better control
-                CustomPartyComponent.ConvertPartyToCustomParty(
-                    party,
-                    spawnLocation,
-                    new TextObject("{=MercParty}Mercenary Army"),
-                    commander
-                );
+                // Make party visible on map
+                party.IsVisible = true;
+                party.Party.SetVisualAsDirty();
+
+                // Ensure AI is enabled and can make decisions
+                party.Ai?.SetDoNotMakeNewDecisions(false);
+
+                // Initialize party at position (this ensures proper map positioning)
+                party.InitializeMobilePartyAtPosition(spawnLocation.GatePosition);
 
                 return party;
             }
@@ -474,14 +503,21 @@ namespace BLTAdoptAHero
                 if (party == null || targetSettlement == null)
                     return;
 
-                // DON'T disable AI - we need it for siege encounter handling
-                // Instead, we'll enforce the behavior in hourly tick
+                // Important: Don't disable AI - we need it for siege mechanics
+                // The patches will prevent unwanted combat behavior
 
-                // Set the party to besiege the target settlement
+                // Make sure party is properly initialized before setting behavior
+                if (!party.IsActive)
+                {
+                    Log.Error($"[BLT] Cannot initialize behavior on inactive party");
+                    return;
+                }
+
+                // Use BesiegeSettlement action - this is safer than directly setting DefaultBehavior
                 var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
 
-                // Use SetPartyAiAction for proper siege setup
-                SetPartyAiAction.GetActionForBesiegingSettlement(party, targetSettlement, nav, false);
+                // Use the proper AI action setter (removed the last false parameter)
+                SetPartyAiAction.GetActionForBesiegingSettlement(party, targetSettlement, nav, nav == MobileParty.NavigationType.Naval);
 
                 Log.Info($"[BLT] Initialized mercenary party {party.Name} to besiege {targetSettlement.Name}");
             }
@@ -576,6 +612,10 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Add null check
+                if (armyData == null)
+                    return;
+
                 var party = MobileParty.All.FirstOrDefault(p => p.StringId == armyData.PartyId);
                 var targetSettlement = Settlement.Find(armyData.TargetSettlementId);
 
@@ -612,7 +652,7 @@ namespace BLTAdoptAHero
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT] UpdateMercenaryArmy error for {armyData.PartyId}: {ex}");
+                Log.Error($"[BLT] UpdateMercenaryArmy error for {armyData?.PartyId ?? "null"}: {ex}");
             }
         }
 
@@ -620,6 +660,10 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Add null check
+                if (armyData == null)
+                    return;
+
                 var party = MobileParty.All.FirstOrDefault(p => p.StringId == armyData.PartyId);
 
                 if (party == null)
@@ -650,7 +694,7 @@ namespace BLTAdoptAHero
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT] MaintainMercenaryArmy error for {armyData.PartyId}: {ex}");
+                Log.Error($"[BLT] MaintainMercenaryArmy error for {armyData?.PartyId ?? "null"}: {ex}");
             }
         }
 
@@ -658,6 +702,9 @@ namespace BLTAdoptAHero
         {
             try
             {
+                if (armyData == null)
+                    return;
+
                 if (armyData.MaxLifetimeDays <= 0)
                     return; // Unlimited lifetime
 
@@ -688,6 +735,10 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Add null check for settlement parameter
+                if (targetSettlement == null)
+                    return false;
+
                 // Check if we stored the original target faction
                 if (string.IsNullOrEmpty(armyData.TargetFactionId))
                     return true; // Can't validate, assume valid
@@ -714,6 +765,10 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Add null check for settlement
+                if (settlement == null)
+                    return;
+
                 foreach (var armyData in _mercenaryArmies.Where(a => a.TargetSettlementId == settlement.StringId).ToList())
                 {
                     var originalHero = Hero.FindFirst(h => h.StringId == armyData.OriginalHeroId);
@@ -759,7 +814,10 @@ namespace BLTAdoptAHero
         {
             try
             {
-                var armyData = _mercenaryArmies.FirstOrDefault(a => a.PartyId == party?.StringId);
+                if (party == null)
+                    return;
+
+                var armyData = _mercenaryArmies.FirstOrDefault(a => a.PartyId == party.StringId);
                 if (armyData != null)
                 {
                     DisbandMercenaryArmy(armyData, DisbandReason.PartyDestroyed, false);
@@ -787,6 +845,9 @@ namespace BLTAdoptAHero
         {
             try
             {
+                if (clan == null)
+                    return;
+
                 foreach (var armyData in _mercenaryArmies.Where(a =>
                 {
                     var hero = Hero.FindFirst(h => h.StringId == a.OriginalHeroId);
@@ -806,7 +867,10 @@ namespace BLTAdoptAHero
         {
             try
             {
-                foreach (var armyData in _mercenaryArmies.Where(a => a.OriginalHeroId == victim?.StringId).ToList())
+                if (victim == null)
+                    return;
+
+                foreach (var armyData in _mercenaryArmies.Where(a => a.OriginalHeroId == victim.StringId).ToList())
                 {
                     DisbandMercenaryArmy(armyData, DisbandReason.HeroKilled, true);
                 }
@@ -821,6 +885,9 @@ namespace BLTAdoptAHero
         {
             try
             {
+                if (faction1 == null || faction2 == null)
+                    return;
+
                 // Peace made - disband armies targeting now-peaceful factions
                 foreach (var armyData in _mercenaryArmies.ToList())
                 {
@@ -881,6 +948,10 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Add null check
+                if (armyData == null)
+                    return;
+
                 if (!armyData.IsActive)
                     return; // Already disbanded
 
@@ -888,7 +959,7 @@ namespace BLTAdoptAHero
 
                 Log.Info($"[BLT] Disbanding mercenary army {armyData.PartyId}: {reason} (Refund: {shouldRefund})");
 
-                // Unregister from patch system
+                // Unregister from patch system FIRST to prevent patch execution during cleanup
                 var party = MobileParty.All.FirstOrDefault(p => p.StringId == armyData.PartyId);
                 if (party != null)
                 {
@@ -939,12 +1010,22 @@ namespace BLTAdoptAHero
                     }
                 }
 
-                // Remove from tracking
+                // Remove from tracking - use Remove instead of checking Contains first
                 _mercenaryArmies.Remove(armyData);
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] DisbandMercenaryArmy error: {ex}");
+
+                // Emergency cleanup - ensure we at least remove from tracking
+                try
+                {
+                    if (armyData != null)
+                    {
+                        _mercenaryArmies.Remove(armyData);
+                    }
+                }
+                catch { }
             }
         }
 
