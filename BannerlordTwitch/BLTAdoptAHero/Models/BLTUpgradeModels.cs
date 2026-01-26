@@ -199,6 +199,14 @@ namespace BLTAdoptAHero.Models
                     baseLimit += bonus;
             }
 
+            // Add bonus from active mercenary armies
+            var behavior = MercenaryArmyBehavior.Current;
+            if (behavior != null)
+            {
+                int mercenaryArmies = behavior.GetActiveArmiesForClan(clan);
+                baseLimit += mercenaryArmies; // +1 per active army
+            }
+
             return baseLimit;
         }
 
