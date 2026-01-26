@@ -467,7 +467,7 @@ namespace BLTAdoptAHero
             [HarmonyPrefix]
             public static bool FoodStocksUpperLimitPrefix(ref int __result)
             {
-                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
+                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks;
                 return false; // Skip original method
             }
         }
