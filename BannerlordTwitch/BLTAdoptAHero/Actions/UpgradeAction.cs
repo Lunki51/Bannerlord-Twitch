@@ -497,7 +497,7 @@ namespace BLTAdoptAHero.Actions
             // Handle info command
             if (command == "info")
             {
-                if (args.Length < 3)
+                if (args.Length < 2)
                 {
                     onFailure("Usage: info <fief|clan|kingdom> <name>");
                     return;
@@ -663,6 +663,11 @@ namespace BLTAdoptAHero.Actions
 
         private void ShowFiefInfo(string name, Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                onFailure("Usage: info <fief> <name>");
+                return;
+            }
             var settlement = FindSettlement(name);
             if (settlement == null)
             {

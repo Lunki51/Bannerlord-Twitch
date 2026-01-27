@@ -144,14 +144,14 @@ namespace BLTAdoptAHero
                     .ToList();
 
                 var top3 = sorted.Take(3)
-                    .Select((x, i) => $"{i + 1}-{x.Clan}({(label == "GOLD" ? FormatGold(x.Value) : x.Value.ToString())})")
+                    .Select((x, i) => $"{i + 1}-{x.Clan.Name}({(label == "GOLD" ? FormatGold(x.Value) : x.Value.ToString())})")
                     .ToList();
 
                 int userRank = sorted.FindIndex(x => x.Clan == userHero.Clan) + 1;
                 if (userRank > 3)
                 {
                     var userValue = sorted[userRank - 1].Value;
-                    top3.Add($"{userRank}-{userHero.Clan}({(label == "GOLD" ? FormatGold(userValue) : userValue.ToString())})");
+                    top3.Add($"{userRank}-{userHero.Clan.Name}({(label == "GOLD" ? FormatGold(userValue) : userValue.ToString())})");
                 }
 
                 return $"{label}: {string.Join(" ", top3)}";
