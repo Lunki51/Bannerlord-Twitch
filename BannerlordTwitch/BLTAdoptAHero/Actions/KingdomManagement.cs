@@ -443,7 +443,7 @@ namespace BLTAdoptAHero.Actions
                 case "stats":
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
-                case "Armies":
+                case "armies":
                     HandleArmiesCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "tax":

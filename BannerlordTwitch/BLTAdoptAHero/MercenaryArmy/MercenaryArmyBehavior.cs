@@ -280,11 +280,11 @@ namespace BLTAdoptAHero
                     return null;
                 }
 
-                // Create the hero
+                // Create the hero - IMPORTANT: pass the clan here
                 var mercCommander = HeroCreator.CreateSpecialHero(
                     template,
                     homeSettlement,
-                    clan,
+                    clan,  // This should add the hero to the clan automatically
                     null,
                     MBRandom.RandomInt(25, 40)
                 );
@@ -301,22 +301,39 @@ namespace BLTAdoptAHero
                     new TextObject($"Mercenary Captain")
                 );
 
-                mercCommander.Clan = clan;
-
-                // Verify clan assignment worked
+                // CRITICAL: Ensure clan assignment worked
                 if (mercCommander.Clan != clan)
                 {
-                    Log.Error($"[BLT] Failed to assign commander to clan {clan.Name}");
-                    // Try to clean up the hero
-                    try
+                    Log.Error($"[BLT] Commander not properly assigned to clan, attempting manual assignment");
+                    mercCommander.Clan = clan;
+
+                    // Verify again
+                    if (mercCommander.Clan != clan)
                     {
-                        KillCharacterAction.ApplyByRemove(mercCommander);
+                        Log.Error($"[BLT] Failed to assign commander to clan {clan.Name}");
+                        try
+                        {
+                            KillCharacterAction.ApplyByRemove(mercCommander);
+                        }
+                        catch { }
+                        return null;
                     }
-                    catch { }
-                    return null;
                 }
 
+                // Set occupation to Lord (required for lord parties)
                 mercCommander.SetNewOccupation(Occupation.Lord);
+
+                // CRITICAL: Verify the commander is in the clan's companion/lord lists
+                // This is what the siege system checks
+                bool isInClan = clan.Heroes.Contains(mercCommander) ||
+                                clan.AliveLords.Contains(mercCommander) ||
+                                clan.Companions.Contains(mercCommander);
+
+                if (!isInClan)
+                {
+                    Log.Error($"[BLT] Commander created but not in clan hero lists!");
+                    // This might indicate a deeper issue, but try to continue
+                }
 
                 // Set skills for effective combat and command
                 mercCommander.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.Leadership, 150);
@@ -324,6 +341,8 @@ namespace BLTAdoptAHero
                 mercCommander.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.OneHanded, 100);
                 mercCommander.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.TwoHanded, 100);
                 mercCommander.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.Polearm, 100);
+
+                Log.Info($"[BLT] Created mercenary commander: {mercCommander.Name}, Clan: {mercCommander.Clan?.Name}, IsLord: {mercCommander.IsLord}");
 
                 return mercCommander;
             }
@@ -339,7 +358,7 @@ namespace BLTAdoptAHero
             try
             {
                 // Use SpawnLordParty - this creates a proper lord party with correct component
-                // Spawn at settlement location
+                // It also initializes the party at the position automatically
                 var party = MobilePartyHelper.SpawnLordParty(
                     commander,
                     spawnLocation.GatePosition,
@@ -356,6 +375,20 @@ namespace BLTAdoptAHero
                 if (!party.IsActive)
                 {
                     Log.Error($"[BLT] Party failed to activate after spawn");
+                    return null;
+                }
+
+                // Verify the party component is correct
+                if (party.PartyComponent == null || !(party.PartyComponent is LordPartyComponent))
+                {
+                    Log.Error($"[BLT] Party has invalid component type");
+                    return null;
+                }
+
+                // Verify commander is the party leader
+                if (party.LeaderHero != commander)
+                {
+                    Log.Error($"[BLT] Party leader mismatch - expected {commander.Name}, got {party.LeaderHero?.Name}");
                     return null;
                 }
 
@@ -384,6 +417,13 @@ namespace BLTAdoptAHero
                     AddTroopsWithFallback(party, culture, eliteCount, true);
                 }
 
+                // Verify troops were added
+                if (party.MemberRoster.TotalManCount == 0)
+                {
+                    Log.Error($"[BLT] Failed to add any troops to party");
+                    return null;
+                }
+
                 // Add starting food - quarter of troop count (like reinforcements)
                 int startingFood = party.MemberRoster.TotalManCount / 4;
                 if (startingFood > 0)
@@ -392,7 +432,7 @@ namespace BLTAdoptAHero
                 }
 
                 // Set party properties for proper behavior
-                party.Aggressiveness = 0.1f; // Low but not zero - allows siege but discourages combat
+                party.Aggressiveness = 0.01f; // Very low - below engagement thresholds
 
                 // Make party visible on map
                 party.IsVisible = true;
@@ -401,8 +441,13 @@ namespace BLTAdoptAHero
                 // Ensure AI is enabled and can make decisions
                 party.Ai?.SetDoNotMakeNewDecisions(false);
 
-                // Initialize party at position (this ensures proper map positioning)
-                party.InitializeMobilePartyAtPosition(spawnLocation.GatePosition);
+                // Set aggressiveness very low - below the 0.1f threshold used by AiEngagePartyBehavior
+                party.Aggressiveness = 0.01f; 
+
+                // DO NOT call InitializeMobilePartyAtPosition again - SpawnLordParty already did it
+                // Calling it twice might corrupt the party state
+
+                Log.Info($"[BLT] Created mercenary party: {party.Name} at {spawnLocation.Name}");
 
                 return party;
             }

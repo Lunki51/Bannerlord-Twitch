@@ -4,8 +4,9 @@ using System.Linq;
 using HarmonyLib;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Party;
-using BannerlordTwitch.Util;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.CampaignBehaviors.AiBehaviors;
+using BannerlordTwitch.Util;
 using Helpers;
 
 namespace BLTAdoptAHero
@@ -151,82 +152,82 @@ namespace BLTAdoptAHero
             }
         }
 
-        /// <summary>
-        /// Prevent mercenary armies from engaging hostile parties - they only siege
-        /// </summary>
-        [HarmonyPatch(typeof(MobileParty), "IsEngagingParty")]
-        [HarmonyPrefix]
-        private static bool Prefix_IsEngagingParty(MobileParty __instance, ref bool __result)
-        {
-            try
-            {
-                if (__instance != null && IsMercenaryArmy(__instance))
-                {
-                    __result = false; // Never engage in field battles
-                    return false; // Skip original method
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] Prefix_IsEngagingParty error: {ex}");
-            }
-            return true;
-        }
-
-        /// <summary>
-        /// Prevent other parties from considering mercenary armies as valid targets
-        /// This prevents the AI from trying to intercept them
-        /// </summary>
-        [HarmonyPatch(typeof(MobileParty), "IsValidTarget")]
-        [HarmonyPostfix]
-        private static void Postfix_IsValidTarget(MobileParty __instance, MobileParty party, ref bool __result)
-        {
-            try
-            {
-                // If the party being checked is a mercenary army, it's not a valid target for interception
-                if (party != null && IsMercenaryArmy(party))
-                {
-                    __result = false;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] Postfix_IsValidTarget error: {ex}");
-            }
-        }
-
-        /// <summary>
-        /// Ensure mercenary armies can properly initiate sieges
-        /// </summary>
-        [HarmonyPatch(typeof(MobileParty), "CanStartSiegeEvent")]
-        [HarmonyPostfix]
-        private static void Postfix_CanStartSiegeEvent(MobileParty __instance, ref bool __result)
-        {
-            try
-            {
-                // If this is a mercenary army and it's at its target, ensure it CAN siege
-                if (__instance != null && IsMercenaryArmy(__instance))
-                {
-                    // Get the army data to check target
-                    if (_mercenaryArmyData.TryGetValue(__instance.StringId, out var armyData))
-                    {
-                        var targetSettlement = Settlement.Find(armyData.TargetSettlementId);
-
-                        if (targetSettlement != null &&
-                            __instance.CurrentSettlement == targetSettlement &&
-                            targetSettlement.SiegeEvent == null)
-                        {
-                            // Make sure we can start a siege if we're at our target
-                            __result = true;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] Postfix_CanStartSiegeEvent error: {ex}");
-            }
-        }
+        ///// <summary>
+        ///// Prevent mercenary armies from engaging hostile parties - they only siege
+        ///// </summary>
+        //[HarmonyPatch(typeof(MobileParty), "IsEngagingParty")]
+        //[HarmonyPrefix]
+        //private static bool Prefix_IsEngagingParty(MobileParty __instance, ref bool __result)
+        //{
+        //    try
+        //    {
+        //        if (__instance != null && IsMercenaryArmy(__instance))
+        //        {
+        //            __result = false; // Never engage in field battles
+        //            return false; // Skip original method
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log.Error($"[BLT] Prefix_IsEngagingParty error: {ex}");
+        //    }
+        //    return true;
+        //}
+        //
+        ///// <summary>
+        ///// Prevent other parties from considering mercenary armies as valid targets
+        ///// This prevents the AI from trying to intercept them
+        ///// </summary>
+        //[HarmonyPatch(typeof(MobileParty), "IsValidTarget")]
+        //[HarmonyPostfix]
+        //private static void Postfix_IsValidTarget(MobileParty __instance, MobileParty party, ref bool __result)
+        //{
+        //    try
+        //    {
+        //        // If the party being checked is a mercenary army, it's not a valid target for interception
+        //        if (party != null && IsMercenaryArmy(party))
+        //        {
+        //            __result = false;
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log.Error($"[BLT] Postfix_IsValidTarget error: {ex}");
+        //    }
+        //}
+        //
+        ///// <summary>
+        ///// Ensure mercenary armies can properly initiate sieges
+        ///// </summary>
+        //[HarmonyPatch(typeof(MobileParty), "CanStartSiegeEvent")]
+        //[HarmonyPostfix]
+        //private static void Postfix_CanStartSiegeEvent(MobileParty __instance, ref bool __result)
+        //{
+        //    try
+        //    {
+        //        // If this is a mercenary army and it's at its target, ensure it CAN siege
+        //        if (__instance != null && IsMercenaryArmy(__instance))
+        //        {
+        //            // Get the army data to check target
+        //            if (_mercenaryArmyData.TryGetValue(__instance.StringId, out var armyData))
+        //            {
+        //                var targetSettlement = Settlement.Find(armyData.TargetSettlementId);
+        //
+        //                if (targetSettlement != null &&
+        //                    __instance.CurrentSettlement == targetSettlement &&
+        //                    targetSettlement.SiegeEvent == null)
+        //                {
+        //                    // Make sure we can start a siege if we're at our target
+        //                    __result = true;
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log.Error($"[BLT] Postfix_CanStartSiegeEvent error: {ex}");
+        //    }
+        //}
 
         // ===== WAGE ELIMINATION =====
 
@@ -250,60 +251,83 @@ namespace BLTAdoptAHero
             }
         }
 
-        /// <summary>
-        /// Prevent wage payment for mercenary armies
-        /// </summary>
-        [HarmonyPatch(typeof(MobileParty), "PayWages")]
-        [HarmonyPrefix]
-        private static bool Prefix_PayWages(MobileParty __instance)
-        {
-            try
-            {
-                if (__instance != null && IsMercenaryArmy(__instance))
-                {
-                    return false; // Skip wage payment entirely
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] Prefix_PayWages error: {ex}");
-            }
-            return true;
-        }
+        ///// <summary>
+        ///// Prevent wage payment for mercenary armies
+        ///// </summary>
+        //[HarmonyPatch(typeof(MobileParty), "PayWages")]
+        //[HarmonyPrefix]
+        //private static bool Prefix_PayWages(MobileParty __instance)
+        //{
+        //    try
+        //    {
+        //        if (__instance != null && IsMercenaryArmy(__instance))
+        //        {
+        //            return false; // Skip wage payment entirely
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log.Error($"[BLT] Prefix_PayWages error: {ex}");
+        //    }
+        //    return true;
+        //}
 
         // ===== PARTY LIMIT BONUS =====
 
+        ///// <summary>
+        ///// Add party limit bonus for active mercenary armies
+        ///// Prevents mercenary armies from reducing available party slots
+        ///// </summary>
+        //[HarmonyPatch(typeof(Clan), "CommanderLimit", MethodType.Getter)]
+        //[HarmonyPostfix]
+        //private static void Postfix_CommanderLimit(Clan __instance, ref int __result)
+        //{
+        //    try
+        //    {
+        //        if (__instance == null)
+        //            return;
+        //
+        //        // Add bonus from UpgradeBehavior (from other mod features)
+        //        if (UpgradeBehavior.Current != null)
+        //        {
+        //            __result += UpgradeBehavior.Current.GetTotalPartyAmountBonus(__instance);
+        //        }
+        //
+        //        // Add bonus from active mercenary armies
+        //        var behavior = MercenaryArmyBehavior.Current;
+        //        if (behavior != null)
+        //        {
+        //            int mercenaryArmies = behavior.GetActiveArmiesForClan(__instance);
+        //            __result += mercenaryArmies; // +1 per active army
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log.Error($"[BLT] Postfix_CommanderLimit error: {ex}");
+        //    }
+        //}
+
         /// <summary>
-        /// Add party limit bonus for active mercenary armies
-        /// Prevents mercenary armies from reducing available party slots
+        /// Prevent the AI engage party behavior from considering mercenary armies as valid combatants
+        /// This is the main system that decides if parties should engage in field battles
         /// </summary>
-        [HarmonyPatch(typeof(Clan), "CommanderLimit", MethodType.Getter)]
-        [HarmonyPostfix]
-        private static void Postfix_CommanderLimit(Clan __instance, ref int __result)
+        [HarmonyPatch(typeof(TaleWorlds.CampaignSystem.CampaignBehaviors.AiBehaviors.AiEngagePartyBehavior), "AiHourlyTick")]
+        [HarmonyPrefix]
+        private static bool Prefix_AiEngagePartyBehavior_AiHourlyTick(MobileParty mobileParty, PartyThinkParams p)
         {
             try
             {
-                if (__instance == null)
-                    return;
-
-                // Add bonus from UpgradeBehavior (from other mod features)
-                if (UpgradeBehavior.Current != null)
+                // If this is a mercenary army, skip the engage party logic entirely
+                if (mobileParty != null && IsMercenaryArmy(mobileParty))
                 {
-                    __result += UpgradeBehavior.Current.GetTotalPartyAmountBonus(__instance);
-                }
-
-                // Add bonus from active mercenary armies
-                var behavior = MercenaryArmyBehavior.Current;
-                if (behavior != null)
-                {
-                    int mercenaryArmies = behavior.GetActiveArmiesForClan(__instance);
-                    __result += mercenaryArmies; // +1 per active army
+                    return false; // Skip original method - mercenary armies don't engage in field battles
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT] Postfix_CommanderLimit error: {ex}");
+                Log.Error($"[BLT] Prefix_AiEngagePartyBehavior_AiHourlyTick error: {ex}");
             }
+            return true; // Run normal logic for non-mercenary parties
         }
 
         // ===== DEBUG AND DIAGNOSTICS =====

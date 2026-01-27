@@ -200,7 +200,6 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTAdoptAHeroCampaignBehavior());
                     campaignStarter.AddBehavior(new BLTTournamentQueueBehavior());
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
-                    //campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
                     campaignStarter.AddBehavior(new BLTClanBehavior());
                     campaignStarter.AddBehavior(new GoldIncomeBehavior()); 
                     campaignStarter.AddBehavior(new BLTSettlementUpgradeBehavior());

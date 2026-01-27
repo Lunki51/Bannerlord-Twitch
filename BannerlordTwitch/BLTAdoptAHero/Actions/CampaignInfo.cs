@@ -294,17 +294,15 @@ namespace BLTAdoptAHero
 
             if (desiredKingdom == null)
             {
-                ActionManager.SendReply(context,
-                    "{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
-                return;
+                desiredKingdom = adoptedHero.Clan.Kingdom;
             }
 
             var armies = new StringBuilder();
-            armies.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
-            armies.Append($"{adoptedHero.Clan.Kingdom.Armies.Count} Armies | ");
-            if (adoptedHero.Clan.Kingdom.Armies.Count >= 1)
+            armies.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", desiredKingdom.Name.ToString())));
+            armies.Append($"{desiredKingdom.Armies.Count} Armies | ");
+            if (desiredKingdom.Armies.Count >= 1)
             {
-                var armiesraw = adoptedHero.Clan.Kingdom.Armies.ToList();
+                var armiesraw = desiredKingdom.Armies.ToList();
                 foreach (Army army in armiesraw)
                 {
                     armies.Append($"\nArmy: {army.Name.ToString()} | ");
