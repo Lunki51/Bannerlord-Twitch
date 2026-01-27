@@ -56,45 +56,382 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public bool AllowAnyClanMemberForClanUpgrades { get; set; } = false;
 
-            // REMOVE all the ObservableCollection<FiefUpgrade>, etc.
-            // These are now in GlobalCommonConfig
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value($"<strong>Enabled:</strong> {(Enabled ? "Yes" : "No")}");
-                generator.Value($"<strong>Allow List Command:</strong> {(AllowListCommand ? "Yes" : "No")}");
-                generator.Value($"<strong>Kingdom Leaders Can Upgrade Fiefs:</strong> {(AllowKingdomLeadersForFiefs ? "Yes" : "No")}");
-                generator.Value($"<strong>Any Clan Member Can Upgrade Clan:</strong> {(AllowAnyClanMemberForClanUpgrades ? "Yes" : "No")}");
+                generator.P($"<strong>Enabled:</strong> {(Enabled ? "Yes" : "No")}");
+                generator.P($"<strong>Allow List Command:</strong> {(AllowListCommand ? "Yes" : "No")}");
+                generator.P($"<strong>Kingdom Leaders Can Upgrade Fiefs:</strong> {(AllowKingdomLeadersForFiefs ? "Yes" : "No")}");
+                generator.P($"<strong>Any Clan Member Can Upgrade Clan:</strong> {(AllowAnyClanMemberForClanUpgrades ? "Yes" : "No")}");
+            }
+        }
 
-                // Access upgrade definitions from GlobalCommonConfig
+        public class UpgradeSystemDocumentation : IDocumentable
+        {
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.H1("Upgrade System");
+                generator.P("This section contains all available upgrades organized by type and restrictions.");
+
                 var config = GlobalCommonConfig.Get();
+                if (config == null)
+                {
+                    generator.P("Configuration not available");
+                    return;
+                }
 
-                generator.PropertyValuePair("Fief Upgrades Available", (config.FiefUpgrades?.Count ?? 0).ToString());
+                // Generate upgrade counts summary
+                GenerateUpgradeCounts(generator, config);
+
+                // Generate all upgrade tables
+                GenerateUpgradesTables(generator, config);
+            }
+
+            private void GenerateUpgradeCounts(IDocumentationGenerator generator, GlobalCommonConfig config)
+            {
+                generator.H2("Upgrade Counts");
+                generator.P($"<strong>Fief Upgrades:</strong> {config.FiefUpgrades?.Count ?? 0}");
+                generator.P($"<strong>Clan Upgrades:</strong> {config.ClanUpgrades?.Count ?? 0}");
+                generator.P($"<strong>Kingdom Upgrades:</strong> {config.KingdomUpgrades?.Count ?? 0}");
+            }
+
+            private void GenerateUpgradesTables(IDocumentationGenerator generator, GlobalCommonConfig config)
+            {
+                // Fief Upgrades - Split by Coastal Only
                 if (config.FiefUpgrades != null && config.FiefUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in config.FiefUpgrades)
+                    var standardFiefUpgrades = config.FiefUpgrades.Where(u => !u.CoastalOnly).ToList();
+                    var coastalOnlyUpgrades = config.FiefUpgrades.Where(u => u.CoastalOnly).ToList();
+
+                    generator.H2("Fief Upgrades");
+
+                    if (standardFiefUpgrades.Count > 0)
                     {
-                        generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GoldCost}{Naming.Gold}");
+                        generator.H3("Standard Fief Upgrades");
+                        GenerateFiefUpgradeTable(generator, standardFiefUpgrades);
+                    }
+
+                    if (coastalOnlyUpgrades.Count > 0)
+                    {
+                        generator.H3("Coastal Only Fief Upgrades");
+                        GenerateFiefUpgradeTable(generator, coastalOnlyUpgrades);
                     }
                 }
 
-                generator.PropertyValuePair("Clan Upgrades Available", (config.ClanUpgrades?.Count ?? 0).ToString());
+                // Clan Upgrades - Split by MercOnly and ApplyToVassals
                 if (config.ClanUpgrades != null && config.ClanUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in config.ClanUpgrades)
+                    var standardClanUpgrades = config.ClanUpgrades.Where(u => !u.MercOnly && !u.ApplyToVassals).ToList();
+                    var mercOnlyUpgrades = config.ClanUpgrades.Where(u => u.MercOnly && !u.ApplyToVassals).ToList();
+                    var vassalOnlyUpgrades = config.ClanUpgrades.Where(u => u.ApplyToVassals).ToList();
+
+                    generator.H2("Clan Upgrades");
+
+                    if (standardClanUpgrades.Count > 0)
                     {
-                        generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GoldCost}{Naming.Gold}");
+                        generator.H3("Standard Clan Upgrades");
+                        GenerateClanUpgradeTable(generator, standardClanUpgrades);
+                    }
+
+                    if (mercOnlyUpgrades.Count > 0)
+                    {
+                        generator.H3("Mercenary Only Clan Upgrades");
+                        GenerateClanUpgradeTable(generator, mercOnlyUpgrades);
+                    }
+
+                    if (vassalOnlyUpgrades.Count > 0)
+                    {
+                        generator.H3("Vassal Only Clan Upgrades");
+                        GenerateClanUpgradeTable(generator, vassalOnlyUpgrades);
                     }
                 }
 
-                generator.PropertyValuePair("Kingdom Upgrades Available", (config.KingdomUpgrades?.Count ?? 0).ToString());
+                // Kingdom Upgrades - Single table
                 if (config.KingdomUpgrades != null && config.KingdomUpgrades.Count > 0)
                 {
-                    foreach (var upgrade in config.KingdomUpgrades)
+                    generator.H2("Kingdom Upgrades");
+                    GenerateKingdomUpgradeTable(generator, config.KingdomUpgrades.ToList());
+                }
+            }
+
+            private void GenerateFiefUpgradeTable(IDocumentationGenerator generator, System.Collections.Generic.List<FiefUpgrade> upgrades)
+            {
+                generator.Table("upgrade-table", () =>
+                {
+                    // Table header
+                    generator.TR(() =>
                     {
-                        generator.Value($"  • {upgrade.Name} ({upgrade.ID}) - {upgrade.GetCostString()}");
+                        generator.TH("ID");
+                        generator.TH("Name");
+                        generator.TH("Cost");
+                        generator.TH("Tier");
+                        generator.TH("Required");
+                        generator.TH("Description");
+                    });
+
+                    // Table rows
+                    foreach (var upgrade in upgrades)
+                    {
+                        generator.TR(() =>
+                        {
+                            generator.TD(upgrade.ID);
+                            generator.TD(upgrade.Name);
+                            generator.TD($"{upgrade.GoldCost}{Naming.Gold}");
+                            generator.TD(upgrade.TierLevel > 0 ? upgrade.TierLevel.ToString() : "-");
+                            generator.TD(!string.IsNullOrEmpty(upgrade.RequiredUpgradeID) ? upgrade.RequiredUpgradeID : "-");
+                            generator.TD(() =>
+                            {
+                                generator.P(upgrade.Description);
+                                if (ShouldShowFullDescription(upgrade.ID))
+                                {
+                                    generator.Details(() =>
+                                    {
+                                        generator.Summary("View Details");
+                                        var effects = GetUpgradeEffects(upgrade);
+                                        if (!string.IsNullOrEmpty(effects))
+                                        {
+                                            generator.P(effects);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+
+            private void GenerateClanUpgradeTable(IDocumentationGenerator generator, System.Collections.Generic.List<ClanUpgrade> upgrades)
+            {
+                generator.Table("upgrade-table", () =>
+                {
+                    // Table header
+                    generator.TR(() =>
+                    {
+                        generator.TH("ID");
+                        generator.TH("Name");
+                        generator.TH("Cost");
+                        generator.TH("Tier");
+                        generator.TH("Required");
+                        generator.TH("Description");
+                    });
+
+                    // Table rows
+                    foreach (var upgrade in upgrades)
+                    {
+                        generator.TR(() =>
+                        {
+                            generator.TD(upgrade.ID);
+                            generator.TD(upgrade.Name);
+                            generator.TD($"{upgrade.GoldCost}{Naming.Gold}");
+                            generator.TD(upgrade.TierLevel > 0 ? upgrade.TierLevel.ToString() : "-");
+                            generator.TD(!string.IsNullOrEmpty(upgrade.RequiredUpgradeID) ? upgrade.RequiredUpgradeID : "-");
+                            generator.TD(() =>
+                            {
+                                generator.P(upgrade.Description);
+                                if (ShouldShowFullDescription(upgrade.ID))
+                                {
+                                    generator.Details(() =>
+                                    {
+                                        generator.Summary("View Details");
+                                        var effects = GetUpgradeEffects(upgrade);
+                                        if (!string.IsNullOrEmpty(effects))
+                                        {
+                                            generator.P(effects);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+
+            private void GenerateKingdomUpgradeTable(IDocumentationGenerator generator, System.Collections.Generic.List<KingdomUpgrade> upgrades)
+            {
+                generator.Table("upgrade-table", () =>
+                {
+                    // Table header
+                    generator.TR(() =>
+                    {
+                        generator.TH("ID");
+                        generator.TH("Name");
+                        generator.TH("Cost");
+                        generator.TH("Tier");
+                        generator.TH("Required");
+                        generator.TH("Description");
+                    });
+
+                    // Table rows
+                    foreach (var upgrade in upgrades)
+                    {
+                        generator.TR(() =>
+                        {
+                            generator.TD(upgrade.ID);
+                            generator.TD(upgrade.Name);
+                            generator.TD(upgrade.GetCostString());
+                            generator.TD(upgrade.TierLevel > 0 ? upgrade.TierLevel.ToString() : "-");
+                            generator.TD(!string.IsNullOrEmpty(upgrade.RequiredUpgradeID) ? upgrade.RequiredUpgradeID : "-");
+                            generator.TD(() =>
+                            {
+                                generator.P(upgrade.Description);
+                                if (ShouldShowFullDescription(upgrade.ID))
+                                {
+                                    generator.Details(() =>
+                                    {
+                                        generator.Summary("View Details");
+                                        var effects = GetUpgradeEffects(upgrade);
+                                        if (!string.IsNullOrEmpty(effects))
+                                        {
+                                            generator.P(effects);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+
+            private string GetUpgradeEffects(FiefUpgrade upgrade)
+            {
+                var effects = new System.Text.StringBuilder();
+                effects.AppendLine("<strong>Effects:</strong><br>");
+
+                if (upgrade.LoyaltyDailyFlat != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyFlat > 0 ? "+" : "")}{upgrade.LoyaltyDailyFlat}/day<br>");
+                if (upgrade.LoyaltyDailyPercent != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyPercent > 0 ? "+" : "")}{upgrade.LoyaltyDailyPercent}%/day<br>");
+                if (upgrade.ProsperityDailyFlat != 0) effects.AppendLine($"Prosperity: {(upgrade.ProsperityDailyFlat > 0 ? "+" : "")}{upgrade.ProsperityDailyFlat}/day<br>");
+                if (upgrade.ProsperityDailyPercent != 0) effects.AppendLine($"Prosperity: {(upgrade.ProsperityDailyPercent > 0 ? "+" : "")}{upgrade.ProsperityDailyPercent}%/day<br>");
+                if (upgrade.SecurityDailyFlat != 0) effects.AppendLine($"Security: {(upgrade.SecurityDailyFlat > 0 ? "+" : "")}{upgrade.SecurityDailyFlat}/day<br>");
+                if (upgrade.SecurityDailyPercent != 0) effects.AppendLine($"Security: {(upgrade.SecurityDailyPercent > 0 ? "+" : "")}{upgrade.SecurityDailyPercent}%/day<br>");
+                if (upgrade.MilitiaDailyFlat != 0) effects.AppendLine($"Militia: {(upgrade.MilitiaDailyFlat > 0 ? "+" : "")}{upgrade.MilitiaDailyFlat}/day<br>");
+                if (upgrade.MilitiaDailyPercent != 0) effects.AppendLine($"Militia: {(upgrade.MilitiaDailyPercent > 0 ? "+" : "")}{upgrade.MilitiaDailyPercent}%/day<br>");
+                if (upgrade.FoodDailyFlat != 0) effects.AppendLine($"Food: {(upgrade.FoodDailyFlat > 0 ? "+" : "")}{upgrade.FoodDailyFlat}/day<br>");
+                if (upgrade.FoodDailyPercent != 0) effects.AppendLine($"Food: {(upgrade.FoodDailyPercent > 0 ? "+" : "")}{upgrade.FoodDailyPercent}%/day<br>");
+                if (upgrade.TaxIncomeFlat != 0) effects.AppendLine($"Tax Income: {(upgrade.TaxIncomeFlat > 0 ? "+" : "")}{upgrade.TaxIncomeFlat}{Naming.Gold}/day<br>");
+                if (upgrade.TaxIncomePercent != 0) effects.AppendLine($"Tax Income: {(upgrade.TaxIncomePercent > 0 ? "+" : "")}{upgrade.TaxIncomePercent}%<br>");
+                if (upgrade.GarrisonCapacityBonus != 0) effects.AppendLine($"Garrison Capacity: {(upgrade.GarrisonCapacityBonus > 0 ? "+" : "")}{upgrade.GarrisonCapacityBonus}<br>");
+                if (upgrade.HearthDaily != 0) effects.AppendLine($"Hearth: {(upgrade.HearthDaily > 0 ? "+" : "")}{upgrade.HearthDaily}<br>");
+
+                return effects.Length > 0 ? effects.ToString() : "No effects configured";
+            }
+
+            private string GetUpgradeEffects(ClanUpgrade upgrade)
+            {
+                var effects = new System.Text.StringBuilder();
+
+                // Clan Effects
+                if (upgrade.RenownDaily != 0 || upgrade.PartySizeBonus != 0 || upgrade.PartySpeedBonus != 0 ||
+                    upgrade.PartyAmountBonus != 0 || upgrade.MaxVassalsBonus != 0 || upgrade.MercIncomeFlat != 0 ||
+                    upgrade.MercIncomePercent != 0)
+                {
+                    effects.AppendLine("<strong>Clan Effects:</strong><br>");
+                    if (upgrade.RenownDaily != 0) effects.AppendLine($"Renown: {(upgrade.RenownDaily > 0 ? "+" : "")}{upgrade.RenownDaily}/day<br>");
+                    if (upgrade.PartySizeBonus != 0) effects.AppendLine($"Party Size: {(upgrade.PartySizeBonus > 0 ? "+" : "")}{upgrade.PartySizeBonus}<br>");
+                    if (upgrade.PartySpeedBonus != 0) effects.AppendLine($"Party Speed: {(upgrade.PartySpeedBonus > 0 ? "+" : "")}{upgrade.PartySpeedBonus}<br>");
+                    if (upgrade.PartyAmountBonus != 0) effects.AppendLine($"Party Limit: {(upgrade.PartyAmountBonus > 0 ? "+" : "")}{upgrade.PartyAmountBonus}<br>");
+                    if (upgrade.MaxVassalsBonus != 0) effects.AppendLine($"Vassal Limit: {(upgrade.MaxVassalsBonus > 0 ? "+" : "")}{upgrade.MaxVassalsBonus}<br>");
+                    if (upgrade.MercIncomeFlat != 0) effects.AppendLine($"Merc Income (Flat): {(upgrade.MercIncomeFlat > 0 ? "+" : "")}{upgrade.MercIncomeFlat}/day<br>");
+                    if (upgrade.MercIncomePercent != 0) effects.AppendLine($"Merc Income (%): {(upgrade.MercIncomePercent > 0 ? "+" : "")}{upgrade.MercIncomePercent}%/day<br>");
+                }
+
+                // Settlement Effects
+                if (upgrade.LoyaltyDailyFlat != 0 || upgrade.LoyaltyDailyPercent != 0 || upgrade.ProsperityDailyFlat != 0 || upgrade.ProsperityDailyPercent != 0 ||
+                    upgrade.SecurityDailyFlat != 0 || upgrade.SecurityDailyPercent != 0 || upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0 ||
+                    upgrade.FoodDailyFlat != 0 || upgrade.FoodDailyPercent != 0 || upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0 ||
+                    upgrade.GarrisonCapacityBonus != 0 || upgrade.HearthDaily != 0)
+                {
+                    effects.AppendLine("<br><strong>Settlement Effects:</strong><br>");
+                    if (upgrade.LoyaltyDailyFlat != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyFlat > 0 ? "+" : "")}{upgrade.LoyaltyDailyFlat}/day<br>");
+                    if (upgrade.LoyaltyDailyPercent != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyPercent > 0 ? "+" : "")}{upgrade.LoyaltyDailyPercent}%/day<br>");
+                    if (upgrade.ProsperityDailyFlat != 0) effects.AppendLine($"Prosperity: {(upgrade.ProsperityDailyFlat > 0 ? "+" : "")}{upgrade.ProsperityDailyFlat}/day<br>");
+                    if (upgrade.ProsperityDailyPercent != 0) effects.AppendLine($"Prosperity: {(upgrade.ProsperityDailyPercent > 0 ? "+" : "")}{upgrade.ProsperityDailyPercent}%/day<br>");
+                    if (upgrade.SecurityDailyFlat != 0) effects.AppendLine($"Security: {(upgrade.SecurityDailyFlat > 0 ? "+" : "")}{upgrade.SecurityDailyFlat}/day<br>");
+                    if (upgrade.SecurityDailyPercent != 0) effects.AppendLine($"Security: {(upgrade.SecurityDailyPercent > 0 ? "+" : "")}{upgrade.SecurityDailyPercent}%/day<br>");
+                    if (upgrade.MilitiaDailyFlat != 0) effects.AppendLine($"Militia: {(upgrade.MilitiaDailyFlat > 0 ? "+" : "")}{upgrade.MilitiaDailyFlat}/day<br>");
+                    if (upgrade.MilitiaDailyPercent != 0) effects.AppendLine($"Militia: {(upgrade.MilitiaDailyPercent > 0 ? "+" : "")}{upgrade.MilitiaDailyPercent}%/day<br>");
+                    if (upgrade.FoodDailyFlat != 0) effects.AppendLine($"Food: {(upgrade.FoodDailyFlat > 0 ? "+" : "")}{upgrade.FoodDailyFlat}/day<br>");
+                    if (upgrade.FoodDailyPercent != 0) effects.AppendLine($"Food: {(upgrade.FoodDailyPercent > 0 ? "+" : "")}{upgrade.FoodDailyPercent}%/day<br>");
+                    if (upgrade.TaxIncomeFlat != 0) effects.AppendLine($"Tax Income: {(upgrade.TaxIncomeFlat > 0 ? "+" : "")}{upgrade.TaxIncomeFlat}{Naming.Gold}/day<br>");
+                    if (upgrade.TaxIncomePercent != 0) effects.AppendLine($"Tax Income: {(upgrade.TaxIncomePercent > 0 ? "+" : "")}{upgrade.TaxIncomePercent}%<br>");
+                    if (upgrade.GarrisonCapacityBonus != 0) effects.AppendLine($"Garrison Capacity: {(upgrade.GarrisonCapacityBonus > 0 ? "+" : "")}{upgrade.GarrisonCapacityBonus}<br>");
+                    if (upgrade.HearthDaily != 0) effects.AppendLine($"Hearth: {(upgrade.HearthDaily > 0 ? "+" : "")}{upgrade.HearthDaily}<br>");
+                }
+
+                // Troop Spawning
+                if (upgrade.DailyTroopSpawnAmount > 0 || upgrade.TroopTierBonus > 0)
+                {
+                    effects.AppendLine("<br><strong>Troop Spawning:</strong><br>");
+                    if (upgrade.DailyTroopSpawnAmount > 0)
+                    {
+                        effects.AppendLine($"Daily Spawn: {upgrade.DailyTroopSpawnAmount} troops/day<br>");
+                        effects.AppendLine($"Troop Tree: {upgrade.TroopTree}<br>");
+                        effects.AppendLine($"Base Tier: {upgrade.TroopTier}<br>");
+                    }
+                    if (upgrade.TroopTierBonus > 0 && !string.IsNullOrEmpty(upgrade.BuffsTroopTierOf))
+                    {
+                        effects.AppendLine($"Tier Bonus: +{upgrade.TroopTierBonus} to {upgrade.BuffsTroopTierOf}<br>");
                     }
                 }
+
+                return effects.Length > 0 ? effects.ToString() : "No effects configured";
+            }
+
+            private string GetUpgradeEffects(KingdomUpgrade upgrade)
+            {
+                var effects = new System.Text.StringBuilder();
+
+                // Kingdom Effects
+                if (upgrade.InfluenceDaily != 0 || upgrade.MaxClansBonus != 0)
+                {
+                    effects.AppendLine("<strong>Kingdom Effects:</strong><br>");
+                    if (upgrade.InfluenceDaily != 0) effects.AppendLine($"Influence: {(upgrade.InfluenceDaily > 0 ? "+" : "")}{upgrade.InfluenceDaily}/day (ruler only)<br>");
+                    if (upgrade.MaxClansBonus != 0) effects.AppendLine($"Max Clans: {(upgrade.MaxClansBonus > 0 ? "+" : "")}{upgrade.MaxClansBonus}<br>");
+                }
+
+                // Clan Effects
+                if (upgrade.RenownDaily != 0 || upgrade.PartySizeBonus != 0 || upgrade.PartySpeedBonus != 0)
+                {
+                    effects.AppendLine("<br><strong>Clan Effects (All Kingdom Clans):</strong><br>");
+                    if (upgrade.RenownDaily != 0) effects.AppendLine($"Renown: {(upgrade.RenownDaily > 0 ? "+" : "")}{upgrade.RenownDaily}/day<br>");
+                    if (upgrade.PartySizeBonus != 0) effects.AppendLine($"Party Size: {(upgrade.PartySizeBonus > 0 ? "+" : "")}{upgrade.PartySizeBonus}<br>");
+                    if (upgrade.PartySpeedBonus != 0) effects.AppendLine($"Party Speed: {(upgrade.PartySpeedBonus > 0 ? "+" : "")}{upgrade.PartySpeedBonus}<br>");
+                }
+
+                // Settlement Effects
+                if (upgrade.LoyaltyDailyFlat != 0 || upgrade.LoyaltyDailyPercent != 0 || upgrade.ProsperityDailyFlat != 0 || upgrade.ProsperityDailyPercent != 0 ||
+                    upgrade.SecurityDailyFlat != 0 || upgrade.SecurityDailyPercent != 0 || upgrade.MilitiaDailyFlat != 0 || upgrade.MilitiaDailyPercent != 0 ||
+                    upgrade.FoodDailyFlat != 0 || upgrade.FoodDailyPercent != 0 || upgrade.TaxIncomeFlat != 0 || upgrade.TaxIncomePercent != 0 ||
+                    upgrade.GarrisonCapacityBonus != 0 || upgrade.HearthDaily != 0)
+                {
+                    effects.AppendLine("<br><strong>Settlement Effects (All Kingdom Settlements):</strong><br>");
+                    if (upgrade.LoyaltyDailyFlat != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyFlat > 0 ? "+" : "")}{upgrade.LoyaltyDailyFlat}/day<br>");
+                    if (upgrade.LoyaltyDailyPercent != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyPercent > 0 ? "+" : "")}{upgrade.LoyaltyDailyPercent}%/day<br>");
+                    if (upgrade.ProsperityDailyFlat != 0) effects.AppendLine($"Prosperity: {(upgrade.ProsperityDailyFlat > 0 ? "+" : "")}{upgrade.ProsperityDailyFlat}/day<br>");
+                    if (upgrade.ProsperityDailyPercent != 0) effects.AppendLine($"Prosperity: {(upgrade.ProsperityDailyPercent > 0 ? "+" : "")}{upgrade.ProsperityDailyPercent}%/day<br>");
+                    if (upgrade.SecurityDailyFlat != 0) effects.AppendLine($"Security: {(upgrade.SecurityDailyFlat > 0 ? "+" : "")}{upgrade.SecurityDailyFlat}/day<br>");
+                    if (upgrade.SecurityDailyPercent != 0) effects.AppendLine($"Security: {(upgrade.SecurityDailyPercent > 0 ? "+" : "")}{upgrade.SecurityDailyPercent}%/day<br>");
+                    if (upgrade.MilitiaDailyFlat != 0) effects.AppendLine($"Militia: {(upgrade.MilitiaDailyFlat > 0 ? "+" : "")}{upgrade.MilitiaDailyFlat}/day<br>");
+                    if (upgrade.MilitiaDailyPercent != 0) effects.AppendLine($"Militia: {(upgrade.MilitiaDailyPercent > 0 ? "+" : "")}{upgrade.MilitiaDailyPercent}%/day<br>");
+                    if (upgrade.FoodDailyFlat != 0) effects.AppendLine($"Food: {(upgrade.FoodDailyFlat > 0 ? "+" : "")}{upgrade.FoodDailyFlat}/day<br>");
+                    if (upgrade.FoodDailyPercent != 0) effects.AppendLine($"Food: {(upgrade.FoodDailyPercent > 0 ? "+" : "")}{upgrade.FoodDailyPercent}%/day<br>");
+                    if (upgrade.TaxIncomeFlat != 0) effects.AppendLine($"Tax Income: {(upgrade.TaxIncomeFlat > 0 ? "+" : "")}{upgrade.TaxIncomeFlat}{Naming.Gold}/day<br>");
+                    if (upgrade.TaxIncomePercent != 0) effects.AppendLine($"Tax Income: {(upgrade.TaxIncomePercent > 0 ? "+" : "")}{upgrade.TaxIncomePercent}%<br>");
+                    if (upgrade.GarrisonCapacityBonus != 0) effects.AppendLine($"Garrison Capacity: {(upgrade.GarrisonCapacityBonus > 0 ? "+" : "")}{upgrade.GarrisonCapacityBonus}<br>");
+                    if (upgrade.HearthDaily != 0) effects.AppendLine($"Hearth: {(upgrade.HearthDaily > 0 ? "+" : "")}{upgrade.HearthDaily}<br>");
+                }
+
+                return effects.Length > 0 ? effects.ToString() : "No effects configured";
+            }
+
+            private bool ShouldShowFullDescription(string upgradeId)
+            {
+                var match = System.Text.RegularExpressions.Regex.Match(upgradeId, @"^(.+?)(\d+)$");
+                if (match.Success)
+                {
+                    int tier = int.Parse(match.Groups[2].Value);
+                    return tier == 1;
+                }
+                return true;
             }
         }
 
@@ -160,7 +497,7 @@ namespace BLTAdoptAHero.Actions
             // Handle info command
             if (command == "info")
             {
-                if (args.Length < 3)
+                if (args.Length < 2)
                 {
                     onFailure("Usage: info <fief|clan|kingdom> <name>");
                     return;
@@ -326,6 +663,11 @@ namespace BLTAdoptAHero.Actions
 
         private void ShowFiefInfo(string name, Hero hero, GlobalCommonConfig globalConfig, Action<string> onSuccess, Action<string> onFailure)
         {
+            if (string.IsNullOrEmpty(name))
+            {
+                onFailure("Usage: info <fief> <name>");
+                return;
+            }
             var settlement = FindSettlement(name);
             if (settlement == null)
             {
@@ -548,6 +890,12 @@ namespace BLTAdoptAHero.Actions
             if (upgrade == null)
             {
                 onFailure($"Upgrade '{upgradeId}' not found");
+                return;
+            }
+
+            if (upgrade.CoastalOnly && !settlement.HasPort)
+            {
+                onFailure($"This is a Coastal Only upgrade, try again on a coastal settlement");
                 return;
             }
 

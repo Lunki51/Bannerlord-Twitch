@@ -22,6 +22,7 @@ namespace BLTAdoptAHero
         public override void RegisterEvents()
         {
             CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);
+            CampaignEvents.WarDeclared.AddNonSerializedListener(this, OnWarDeclared);
             CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, OnClanChangedKingdom);
             CampaignEvents.KingdomDestroyedEvent.AddNonSerializedListener(this, OnKingdomDestroyed);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
@@ -139,6 +140,10 @@ namespace BLTAdoptAHero
                     {
                         BLTTreatyManager.Current.RemoveWar(k1, k2);
                     }
+                    var proposal1 = BLTTreatyManager.Current.GetPeaceProposal(k1, k2);
+                    var proposal2 = BLTTreatyManager.Current.GetPeaceProposal(k2, k1);
+                    if (proposal1 != null) BLTTreatyManager.Current.RemovePeaceProposal(k1, k2);
+                    if (proposal2 != null) BLTTreatyManager.Current.RemovePeaceProposal(k2, k1);
 #if DEBUG
                     Log.Trace($"[BLT] BLT-controlled peace completed: {k1.Name} and {k2.Name}");
 #endif
@@ -317,6 +322,49 @@ namespace BLTAdoptAHero
                 Log.Error($"[BLT] OnMakePeace error: {ex}");
             }
         }
+
+        private void OnWarDeclared(IFaction faction1, IFaction faction2, DeclareWarAction.DeclareWarDetail detail)
+        {
+            try
+            {
+                if (BLTTreatyManager.Current == null)
+                    return;
+
+                var k1 = faction1 as Kingdom;
+                var k2 = faction2 as Kingdom;
+
+                if (k1 == null || k2 == null)
+                    return;
+
+                // Check if this war is already being tracked
+                var existingWar = BLTTreatyManager.Current.GetWar(k1, k2);
+                if (existingWar != null)
+                {
+#if DEBUG
+            Log.Trace($"[BLT] War already tracked: {k1.Name} vs {k2.Name}");
+#endif
+                    return;
+                }
+
+                // Track this war
+                BLTTreatyManager.Current.CreateWar(k1, k2);
+
+#if DEBUG
+        Log.Trace($"[BLT] War declaration tracked: {k1.Name} vs {k2.Name} (Detail: {detail})");
+#endif
+
+                // Clean up any existing peace proposals between these kingdoms
+                var proposal1 = BLTTreatyManager.Current.GetPeaceProposal(k1, k2);
+                var proposal2 = BLTTreatyManager.Current.GetPeaceProposal(k2, k1);
+                if (proposal1 != null) BLTTreatyManager.Current.RemovePeaceProposal(k1, k2);
+                if (proposal2 != null) BLTTreatyManager.Current.RemovePeaceProposal(k2, k1);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] OnWarDeclared error: {ex}");
+            }
+        }
+
 
         private void OnClanChangedKingdom(Clan clan, Kingdom oldKingdom, Kingdom newKingdom, ChangeKingdomAction.ChangeKingdomActionDetail detail, bool showNotification)
         {

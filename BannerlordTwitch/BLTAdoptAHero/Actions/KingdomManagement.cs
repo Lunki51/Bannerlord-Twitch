@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
@@ -12,6 +13,8 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.Encyclopedia;
+using TaleWorlds.CampaignSystem.LogEntries;
 using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
@@ -34,9 +37,10 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Policy", 4),
          CategoryOrder("Vassal", 5),
          CategoryOrder("Stats", 6),
-         CategoryOrder("Release", 7),
-         CategoryOrder("Expel", 8),
-         CategoryOrder("Tax", 9)]
+         CategoryOrder("Armies", 7),
+         CategoryOrder("Release", 8),
+         CategoryOrder("Expel", 9),
+         CategoryOrder("Tax", 10)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -231,6 +235,12 @@ namespace BLTAdoptAHero.Actions
             public bool StatsEnabled { get; set; } = true;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Armies", "{=}Armies"),
+             LocDescription("{=CFBJIpux}Enable Armies command"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool ArmiesEnabled { get; set; } = true;
+
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Release", "{=TESTING}Release"),
              LocDescription("{=TESTING}Enable king to release clans from kingdom (with their land)"),
              PropertyOrder(1), UsedImplicitly]
@@ -292,6 +302,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Vassal, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
+                if (ArmiesEnabled)
+                    EnabledCommands.Append("Armies, ");
                 if (ReleaseEnabled)
                     EnabledCommands.Append("Release, ");
                 if (ExpelEnabled)
@@ -431,11 +443,17 @@ namespace BLTAdoptAHero.Actions
                 case "stats":
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
+                case "Armies":
+                    HandleArmiesCommand(settings, adoptedHero, onSuccess, onFailure);
+                    break;
                 case "tax":
                     HandleTaxCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "policy":
                     HandlePolicyCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
+                case "logs":
+                    HandleLogsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 default:
                     onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats)".Translate());
@@ -728,6 +746,41 @@ namespace BLTAdoptAHero.Actions
                 clanStats.Append("{=0rMNNQ7R}Castles: {castles}".Translate(("castles", (object)castleCount)));
             }
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
+        }
+
+        private void HandleArmiesCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.StatsEnabled)
+            {
+                onFailure("{=RtwwHrgB}Kingdom stats is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
+                return;
+            }
+
+            var armies = new StringBuilder();
+            armies.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
+            armies.Append($"{adoptedHero.Clan.Kingdom.Armies.Count} Armies | ");
+            if (adoptedHero.Clan.Kingdom.Armies.Count >= 1)
+            {
+                var armiesraw = adoptedHero.Clan.Kingdom.Armies.ToList();
+                foreach (Army army in armiesraw)
+                {
+                    armies.Append($"\nArmy: {army.Name.ToString()} | ");
+                    armies.Append($"{(int)army.CalculateCurrentStrength()} Strength | ");
+                    armies.Append($"{army.TotalHealthyMembers} Troops | ");
+                    armies.Append($"{army.LeaderPartyAndAttachedPartiesCount.ToString()} Parties | ");
+                    if (army?.LeaderParty?.GetBehaviorText() != null || army?.LeaderParty?.GetBehaviorText().ToString() != "")  
+                        armies.Append($"This army is: {army?.LeaderParty?.GetBehaviorText()?.ToString() ?? ""} | ");
+                    if (army.LeaderParty.TargetParty != null || army.LeaderParty.ShortTermTargetParty != null) 
+                        armies.Append($"Target : {army.LeaderParty.ShortTermTargetParty ?? army.LeaderParty.TargetParty} | ");
+                }
+            }
+
+            onSuccess("{armies}".Translate(("armies", armies.ToString().TrimEnd(' ', '|', ' '))));
         }
 
         private void HandleLeaveCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
@@ -1084,7 +1137,7 @@ namespace BLTAdoptAHero.Actions
             VassalBehavior.Current?.RegisterVassal(newClan, adoptedHero.Clan);
 
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
-            string response = $"Vassal created by {adoptedHero.FirstName.ToString()}: {newClan.Name.ToString()}";
+            string response = $"Vassal created by {adoptedHero.FirstName}: {newClan.Name}";
             Log.LogFeedResponse(response);
         }
         private void HandleReleaseCommand(Settings settings, Hero adoptedHero, string targetName, Action<string> onSuccess, Action<string> onFailure)
@@ -1413,6 +1466,95 @@ namespace BLTAdoptAHero.Actions
                 }
             }
             else { onFailure("Invalid action"); }
+            
+        }
+        private void HandleLogsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.StatsEnabled)
+            {
+                onFailure("{=RtwwHrgB}Kingdom stats is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
+                return;
+            }
+
+            var kingdom = adoptedHero.Clan.Kingdom;
+            StringBuilder sb = new StringBuilder();
+            var actionLogs = Campaign.Current.LogEntryHistory.GameActionLogs;
+            int foundCount = 0;
+
+            // Start from the end of the collection to get the latest (bottom) logs first
+            for (int i = actionLogs.Count - 1; i >= 0; i--)
+            {
+                LogEntry log = actionLogs[i];
+
+                // Ensure the log implements the encyclopedia interface
+                if (log is IEncyclopediaLog encLog)
+                {
+                    // Verify visibility for this specific kingdom
+                    if (encLog.IsVisibleInEncyclopediaPageOf(kingdom))
+                    {
+                        // Get the raw text containing the tags
+                        string rawText = encLog.GetEncyclopediaText().ToString();
+
+                        // Strip the tags to save horizontal space for your 400px overlay
+                        string cleanText = StripTags(rawText);
+                        string timeStamp = encLog.GameTime.ToString();
+
+                        sb.AppendLine($"[{timeStamp}] {cleanText}");
+                        foundCount++;
+
+                        if (foundCount >= 5)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            onSuccess(sb.ToString());
+        }
+
+        private void HandleFiefsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.StatsEnabled)
+            {
+                onFailure("{=RtwwHrgB}Kingdom stats is disabled".Translate());
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
+                return;
+            }
+
+            foreach(Town sett in Town.AllFiefs)
+            {
+                if (sett.OwnerClan.MapFaction == adoptedHero.MapFaction)
+                {
+
+                }
+
+
+
+            }
+
+
+
+
+
+        }
+
+
+        private string StripTags(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+
+            // This regex removes anything between < and > (e.g., <a...>, </a>, <b>, </b>)
+            return Regex.Replace(input, "<.*?>", string.Empty);
         }
     }
 }
