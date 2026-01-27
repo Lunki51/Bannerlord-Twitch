@@ -17,6 +17,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.GameState;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Siege;
 using TaleWorlds.CampaignSystem.Party.PartyComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.CampaignSystem.CampaignBehaviors.AiBehaviors;
@@ -486,37 +487,33 @@ namespace BLTAdoptAHero.Actions
                             onFailure("Your party is busy.");
                             return;
                         }
+
                         Army.ArmyTypes armyType = Army.ArmyTypes.NumberOfArmyTypes;
                         if (splitArgs.Length < 2)
                         {
                             onFailure("Specify an army type: defend/siege/patrol");
                             return;
                         }
+
                         switch (desiredName.ToLower())
                         {
                             case "siege":
                                 {
                                     armyType = Army.ArmyTypes.Besieger;
                                     break;
-                                }                                
-                            //case "raid":
-                            //    armyType = Army.ArmyTypes.Raider;
-                            //    break;
+                                }
                             case "defend":
                                 {
                                     armyType = Army.ArmyTypes.Defender;
                                     break;
                                 }
-                                
                             case "patrol":
                                 {
                                     armyType = Army.ArmyTypes.Patrolling;
                                     break;
                                 }
-
                             case "disband":
                                 {
-
                                     if (army != null && army.LeaderParty == party && party.MapEvent == null)
                                     {
                                         DisbandArmyAction.ApplyByUnknownReason(army);
@@ -548,52 +545,168 @@ namespace BLTAdoptAHero.Actions
                                         onSuccess($"Your party has left {oldArmy.Name}");
                                         return;
                                     }
-                                        break;
+                                    break;
                                 }
-
                             default:
                                 onFailure($"Invalid army type: {desiredName}");
                                 return;
                         }
+
                         if (armyType == Army.ArmyTypes.NumberOfArmyTypes)
                         {
                             return;
                         }
+
                         if (army != null && army.LeaderParty == party)
                         {
                             adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
+
+                            // Set appropriate objective based on army type
+                            Settlement targetSettlement = null;
+
+                            if (armyType == Army.ArmyTypes.Besieger)
+                            {
+                                // Find enemy settlement to besiege
+                                targetSettlement = FindBestSettlementToTarget(party, adoptedHero.Clan.Kingdom, true);
+                                if (targetSettlement != null)
+                                {
+                                    army.AiBehaviorObject = targetSettlement;
+                                }
+                            }
+                            else if (armyType == Army.ArmyTypes.Defender)
+                            {
+                                // Find friendly settlement to defend or patrol around
+                                targetSettlement = FindBestSettlementToDefend(party, adoptedHero.Clan.Kingdom);
+                                if (targetSettlement != null)
+                                {
+                                    army.AiBehaviorObject = targetSettlement;
+                                }
+                            }
+                            // Patrolling armies keep their current AiBehaviorObject
+
                             onSuccess($"Changed army type to {armyType}");
                             return;
                         }
+
                         if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ArmyPrice)
                         {
                             onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
                             return;
                         }
+
                         adoptedHero.Clan.Influence += 200f;
                         var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
                         Settlement pos = SettlementHelper.FindNearestSettlementToMobileParty(party, nav) ?? adoptedHero.HomeSettlement;
+
+                        // Determine initial objective for new army
+                        Settlement initialObjective = null;
+                        if (armyType == Army.ArmyTypes.Besieger)
+                        {
+                            initialObjective = FindBestSettlementToTarget(party, adoptedHero.Clan.Kingdom, true);
+                        }
+                        else if (armyType == Army.ArmyTypes.Defender)
+                        {
+                            initialObjective = FindBestSettlementToDefend(party, adoptedHero.Clan.Kingdom);
+                        }
+
+                        Settlement gatherPoint = initialObjective ?? pos;
+
                         var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
                         var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
                             .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != party && p.Army == null && p.AttachedTo == null && p.LeaderHero != null && p.MapEvent == null && !p.IsDisbanding)
                             .ToMBList();
                         var armyModel = Campaign.Current.Models.ArmyManagementCalculationModel;
-                        var partyList = armyModel.GetMobilePartiesToCallToArmy(party);                      
+                        var partyList = armyModel.GetMobilePartiesToCallToArmy(party);
                         var mergedParties = sameClanParties
                             .Concat(partyList)
                             .Where(p => p != null)
                             .Distinct()
                             .ToMBList();
-                        
-                        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, pos, armyType, mergedParties);
+
+                        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, gatherPoint, armyType, mergedParties);
                         Army newArmy = party.Army;
+
+                        // Set the objective after army creation
+                        if (initialObjective != null && newArmy != null)
+                        {
+                            newArmy.AiBehaviorObject = initialObjective;
+                        }
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
 
-                        onSuccess($"Gathering {armyType} army({mergedParties.Count}) at {pos}");
+                        onSuccess($"Gathering {armyType} army({mergedParties.Count}) at {gatherPoint}");
                         break;
                     }
             }
         }
+
+        private Settlement FindBestSettlementToTarget(MobileParty party, Kingdom kingdom, bool forSiege)
+        {
+            Settlement bestSettlement = null;
+            float bestScore = 0f;
+
+            foreach (var enemy in kingdom.FactionsAtWarWith)
+            {
+                int stance = kingdom.GetStanceWith(enemy).BehaviorPriority;
+                if (stance == 1) continue;
+                if (enemy.Settlements == null) continue;
+
+                foreach (var settlement in enemy.Settlements)
+                {
+                    if (!settlement.IsFortification) continue;
+                    if (settlement.IsUnderSiege && settlement.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction != kingdom) continue;
+
+                    float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(party, settlement, false, party.NavigationCapability, out float ratio);
+                    float strength = settlement.Town?.GarrisonParty?.Party.EstimatedStrength ?? 0f;
+
+                    // Score based on proximity and defensive strength
+                    float score = (1000f / (distance + 1f) - strength * 0.1f) * (Math.Max(1, stance));
+
+                    if (score > bestScore)
+                    {
+                        bestScore = score;
+                        bestSettlement = settlement;
+                    }
+                }
+            }
+
+            return bestSettlement;
+        }
+
+        private Settlement FindBestSettlementToDefend(MobileParty party, Kingdom kingdom)
+        {
+            Settlement bestSettlement = null;
+            float bestScore = 0f;
+
+            foreach (var settlement in kingdom.Settlements)
+            {
+                if (!settlement.IsFortification) continue;
+
+                // Prioritize settlements under threat
+                bool underThreat = settlement.IsUnderSiege ||
+                                  settlement.LastAttackerParty != null &&
+                                  settlement.LastAttackerParty.IsActive;
+
+                float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(party, settlement, false, party.NavigationCapability, out float ratio);
+                float threatMultiplier = underThreat ? 10f : 1f;
+
+                float score = (1000f / (distance + 1f)) * threatMultiplier;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestSettlement = settlement;
+                }
+            }
+
+            return bestSettlement ?? kingdom.Settlements.FirstOrDefault(s => s.IsFortification);
+        }
+
+
+
+
+
+
+
     }
 }
