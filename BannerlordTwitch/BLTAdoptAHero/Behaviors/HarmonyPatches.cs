@@ -585,6 +585,13 @@ namespace BLTAdoptAHero
                 if (__instance.LeaderParty == MobileParty.MainParty)
                     return true;
 
+                // Quick Cleanup
+                if (__instance.LeaderParty?.Army != __instance)
+                {
+                    ArmyCreationTimes.Remove(__instance);
+                    return true;
+                }
+
                 // Record creation time if first seen
                 if (!ArmyCreationTimes.ContainsKey(__instance))
                 {

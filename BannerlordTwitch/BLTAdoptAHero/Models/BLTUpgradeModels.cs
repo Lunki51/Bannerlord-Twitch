@@ -66,8 +66,10 @@ namespace BLTAdoptAHero.Models
     public class BLTPartySizeLimitModel : PartySizeLimitModel
     {
         private readonly PartySizeLimitModel _previous;
-        private static readonly TextObject Text =
+        private static readonly TextObject UpgradeText =
             new TextObject("{=BLT_UpgradePartySize}Upgrade bonuses");
+        private static readonly TextObject MercArmyText =
+            new TextObject("{=BLT_MercArmyPartySize}Custom Mercenary Army");
 
         public override int MinimumNumberOfVillagersAtVillagerParty => _previous.MinimumNumberOfVillagersAtVillagerParty;
 
@@ -82,11 +84,17 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.GetPartyMemberSizeLimit(party, includeDescriptions);
 
+            if (MercenaryArmyPatches.IsMercenaryParty(party.MobileParty))
+            {
+                result = new ExplainedNumber(10000, true, MercArmyText);
+                return result;
+            }
+
             if (party?.LeaderHero != null && UpgradeBehavior.Current != null)
             {
                 int bonus = UpgradeBehavior.Current.GetTotalPartySizeBonus(party.LeaderHero);
                 if (bonus != 0)
-                    result.Add(bonus, Text);
+                    result.Add(bonus, UpgradeText);
             }
 
             return result;
@@ -102,7 +110,7 @@ namespace BLTAdoptAHero.Models
             {
                 int bonus = UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
                 if (bonus != 0)
-                    result.Add(bonus, Text);
+                    result.Add(bonus, UpgradeText);
             }
 
             return result;

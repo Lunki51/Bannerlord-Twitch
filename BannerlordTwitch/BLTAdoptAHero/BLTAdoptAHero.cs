@@ -200,6 +200,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTAdoptAHeroCampaignBehavior());
                     campaignStarter.AddBehavior(new BLTTournamentQueueBehavior());
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
+                    //campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
                     campaignStarter.AddBehavior(new BLTClanBehavior());
                     campaignStarter.AddBehavior(new GoldIncomeBehavior()); 
                     campaignStarter.AddBehavior(new BLTSettlementUpgradeBehavior());
@@ -207,7 +208,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new UpgradeBehavior());
                     campaignStarter.AddBehavior(new VassalBehavior());
                     campaignStarter.AddBehavior(new KingdomTaxBehavior());
-                    //campaignStarter.AddBehavior(new MercenaryArmyBehavior());
+                    campaignStarter.AddBehavior(new MercenaryArmyBehavior());
                     // Diplomacy
                     campaignStarter.AddBehavior(new BLTTreatyManager());       // 1. Core data
                     campaignStarter.AddBehavior(new BLTDiplomacyHelper());     // 2. Rebellion tracking
@@ -217,6 +218,7 @@ namespace BLTAdoptAHero
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
                     gameStarterObject.AddModel(new BLTPartySizeLimitModel(gameStarterObject.Models.OfType<PartySizeLimitModel>().FirstOrDefault()));
                     gameStarterObject.AddModel(new BLTPartySpeedModel(gameStarterObject.Models.OfType<PartySpeedModel>().FirstOrDefault()));
+                    gameStarterObject.AddModel(new BLTClanTierModel(gameStarterObject.Models.OfType<ClanTierModel>().FirstOrDefault()));
                 }
             }
             catch (Exception e)
