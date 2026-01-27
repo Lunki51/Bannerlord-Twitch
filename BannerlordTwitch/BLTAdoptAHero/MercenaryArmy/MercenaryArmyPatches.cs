@@ -109,49 +109,49 @@ namespace BLTAdoptAHero
         /// Prevent mercenary armies from changing their default behavior away from BesiegeSettlement
         /// This allows normal AI to handle siege mechanics while preventing objective changes
         /// </summary>
-        [HarmonyPatch(typeof(MobileParty))]
-        [HarmonyPatch("ShouldConsiderAvoiding")]
-        public static class MercenaryArmy_ShouldConsiderAvoiding_Patch
-        {
-            [HarmonyPrefix]
-            private static bool Prefix(
-                MobileParty __instance,
-                MobileParty party,
-                MobileParty targetParty,
-                ref bool __result)
-            {
-                try
-                {
-                    // Add null checks for both parameters
-                    if (party == null || targetParty == null)
-                        return true; // Run vanilla logic
-
-                    // Only intervene for mercenary armies
-                    if (!IsMercenaryArmy(party))
-                        return true; // Run vanilla logic
-
-                    // Re-implementation of vanilla logic with mercenary-safe rules
-                    __result =
-                        (targetParty.SiegeEvent == null
-                            || !targetParty.SiegeEvent.BesiegedSettlement.HasPort
-                            || targetParty.SiegeEvent.IsBlockadeActive
-                            || !party.IsTargetingPort)
-                        && (targetParty.IsMainParty
-                            || MobilePartyHelper.CanPartyAttackWithCurrentMorale(targetParty))
-                        && ((targetParty.Aggressiveness > 0.01f
-                            && !targetParty.IsInRaftState)
-                            || targetParty.IsGarrison);
-
-                    return false; // Skip original method
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"[BLT] ShouldConsiderAvoiding patch error: {ex}");
-                    return true; // Fail open to avoid breaking AI
-                }
-            }
-        }
-
+        //[HarmonyPatch(typeof(MobileParty))]
+        //[HarmonyPatch("ShouldConsiderAvoiding")]
+        //public static class MercenaryArmy_ShouldConsiderAvoiding_Patch
+        //{
+        //    [HarmonyPrefix]
+        //    private static bool Prefix(
+        //        MobileParty __instance,
+        //        MobileParty party,
+        //        MobileParty targetParty,
+        //        ref bool __result)
+        //    {
+        //        try
+        //        {
+        //            // Add null checks for both parameters
+        //            if (party == null || targetParty == null)
+        //                return true; // Run vanilla logic
+        //
+        //            // Only intervene for mercenary armies
+        //            if (!IsMercenaryArmy(party))
+        //                return true; // Run vanilla logic
+        //
+        //            // Re-implementation of vanilla logic with mercenary-safe rules
+        //            __result =
+        //                (targetParty.SiegeEvent == null
+        //                    || !targetParty.SiegeEvent.BesiegedSettlement.HasPort
+        //                    || targetParty.SiegeEvent.IsBlockadeActive
+        //                    || !party.IsTargetingPort)
+        //                && (targetParty.IsMainParty
+        //                    || MobilePartyHelper.CanPartyAttackWithCurrentMorale(targetParty))
+        //                && ((targetParty.Aggressiveness > 0.01f
+        //                    && !targetParty.IsInRaftState)
+        //                    || targetParty.IsGarrison);
+        //
+        //            return false; // Skip original method
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Log.Error($"[BLT] ShouldConsiderAvoiding patch error: {ex}");
+        //            return true; // Fail open to avoid breaking AI
+        //        }
+        //    }
+        //}
+        //
         ///// <summary>
         ///// Prevent mercenary armies from engaging hostile parties - they only siege
         ///// </summary>
