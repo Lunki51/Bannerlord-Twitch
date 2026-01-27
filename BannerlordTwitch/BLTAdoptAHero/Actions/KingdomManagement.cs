@@ -1518,36 +1518,27 @@ namespace BLTAdoptAHero.Actions
             onSuccess(sb.ToString());
         }
 
-        private void HandleFiefsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
-        {
-            if (!settings.StatsEnabled)
-            {
-                onFailure("{=RtwwHrgB}Kingdom stats is disabled".Translate());
-                return;
-            }
-            if (adoptedHero.Clan.Kingdom == null)
-            {
-                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
-                return;
-            }
-
-            foreach(Town sett in Town.AllFiefs)
-            {
-                if (sett.OwnerClan.MapFaction == adoptedHero.MapFaction)
-                {
-
-                }
-
-
-
-            }
-
-
-
-
-
-        }
-
+        //private void HandleFiefsCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        //{
+        //    if (!settings.StatsEnabled)
+        //    {
+        //        onFailure("{=RtwwHrgB}Kingdom stats is disabled".Translate());
+        //        return;
+        //    }
+        //    if (adoptedHero.Clan.Kingdom == null)
+        //    {
+        //        onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
+        //        return;
+        //    }
+        //
+        //    foreach(Town sett in Town.AllFiefs)
+        //    {
+        //        if (sett.OwnerClan.MapFaction == adoptedHero.MapFaction)
+        //        {
+        //
+        //        }
+        //    }
+        //}
 
         private string StripTags(string input)
         {
