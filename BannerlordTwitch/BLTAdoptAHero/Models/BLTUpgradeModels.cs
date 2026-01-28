@@ -84,11 +84,11 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.GetPartyMemberSizeLimit(party, includeDescriptions);
 
-            if (MercenaryArmyPatches.IsMercenaryParty(party.MobileParty))
-            {
-                result = new ExplainedNumber(10000, true, MercArmyText);
-                return result;
-            }
+            //if (MercenaryArmyPatches.IsMercenaryParty(party.MobileParty))
+            //{
+            //    result = new ExplainedNumber(10000, true, MercArmyText);
+            //    return result;
+            //}
 
             if (party?.LeaderHero != null && UpgradeBehavior.Current != null)
             {
@@ -208,12 +208,12 @@ namespace BLTAdoptAHero.Models
             }
 
             // Add bonus from active mercenary armies
-            var behavior = MercenaryArmyBehavior.Current;
-            if (behavior != null)
-            {
-                int mercenaryArmies = behavior.GetActiveArmiesForClan(clan);
-                baseLimit += mercenaryArmies; // +1 per active army
-            }
+            //var behavior = MercenaryArmyBehavior.Current;
+            //if (behavior != null)
+            //{
+            //    int mercenaryArmies = behavior.GetActiveArmiesForClan(clan);
+            //    baseLimit += mercenaryArmies; // +1 per active army
+            //}
 
             return baseLimit;
         }

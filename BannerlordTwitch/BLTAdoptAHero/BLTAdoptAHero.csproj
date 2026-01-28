@@ -411,9 +411,6 @@
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroPowerConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalTournamentConfig.cs" />
-    <Compile Include="MercenaryArmy\MercenaryArmyAction.cs" />
-    <Compile Include="MercenaryArmy\MercenaryArmyBehavior.cs" />
-    <Compile Include="MercenaryArmy\MercenaryArmyPatches.cs" />
     <Compile Include="Models\BLTUpgradeModels.cs" />
     <Compile Include="Overlay\CampaignMap\MapHub.cs" />
     <Compile Include="Overlay\MissionInfo\MissionInfo.cs" />
