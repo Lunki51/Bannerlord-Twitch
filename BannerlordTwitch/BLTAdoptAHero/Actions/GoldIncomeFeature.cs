@@ -54,142 +54,168 @@ namespace BLTAdoptAHero.Actions
 
             // Check for fiefs first (towns/castles only)
             var fiefs = clan.Settlements?.Where(s => !s.IsVillage).ToList();
-            if (fiefs != null && fiefs.Count > 0)
+            bool hasFiefs = fiefs != null && fiefs.Count > 0;
+
+            // Check for mercenary contract
+            bool isMercenary = clan.IsUnderMercenaryService;
+
+            // Check for tributes
+            var tributesReceiving = CalculateTributeIncome(clan);
+            var tributesPaying = CalculateTributePayments(clan);
+            bool hasTributes = tributesReceiving > 0 || tributesPaying > 0;
+
+            // If no income sources at all
+            if (!hasFiefs && !isMercenary && !hasTributes)
             {
-                ShowFiefIncome(clan, fiefs, onSuccess);
+                onSuccess("You have no income sources (no settlements, mercenary contract, or tributes).");
                 return;
             }
 
-            // If no fiefs, check for mercenary contract
-            if (clan.IsUnderMercenaryService)
-            {
-                ShowMercIncome(clan, onSuccess);
-                return;
-            }
-
-            // No income sources
-            onSuccess("You have no income sources (no settlements or mercenary contract).");
+            // Build comprehensive income report
+            ShowCompleteIncome(clan, fiefs, tributesReceiving, tributesPaying, onSuccess);
         }
 
-        private void ShowFiefIncome(Clan masterclan, List<Settlement> settlements, Action<string> onSuccess)
+        private void ShowCompleteIncome(Clan clan, List<Settlement> settlements, int tributeIncome, int tributePayments, Action<string> onSuccess)
         {
             var sb = new StringBuilder();
             int totalIncome = 0;
-            int vassalincome;
-            if (VassalBehavior.Current != null)
+
+            // === FIEF INCOME ===
+            if (BLTAdoptAHeroModule.CommonConfig.FiefIncomeEnabled && settlements != null && settlements.Count > 0)
             {
-                vassalincome = VassalBehavior.Current.CalculateVassalFiefIncome(masterclan);
-            }
-            else
-            {
-                vassalincome = 0;
-            }
-
-            foreach (var s in settlements)
-            {
-                int income = CalculateSettlementIncome(s);
-                totalIncome += income;
-                sb.Append($"{s.Name}: {(income >= 0 ? "+" : "")}{income} | ");
-            }
-
-            int totalBeforeTax = totalIncome + vassalincome;
-
-            var result = sb.ToString().TrimEnd(' ', '|');
-            result += $" | Total income from Vassals' fiefs: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day";
-
-            // Check if this is the ruling clan
-            bool isRulingClan = masterclan.Kingdom != null && masterclan.Kingdom.RulingClan == masterclan;
-
-            int totaltotal = 0;
-
-            if (isRulingClan && KingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
-            {
-                // Calculate total tax revenue from all kingdom clans
-                float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
-                if (taxRate > 0f)
+                int fiefIncome = 0;
+                foreach (var s in settlements)
                 {
-                    int totalTaxRevenue = 0;
+                    int income = CalculateSettlementIncome(s);
+                    fiefIncome += income;
+                    sb.Append($"{s.Name}: {(income >= 0 ? "+" : "")}{income} | ");
+                }
 
-                    foreach (var clan in masterclan.Kingdom.Clans)
+                // Add vassal fief income
+                int vassalFiefIncome = 0;
+                if (VassalBehavior.Current != null)
+                {
+                    vassalFiefIncome = VassalBehavior.Current.CalculateVassalFiefIncome(clan);
+                }
+
+                int totalFiefIncome = fiefIncome + vassalFiefIncome;
+
+                if (vassalFiefIncome > 0)
+                {
+                    sb.Append($"Vassal fiefs: +{vassalFiefIncome} | ");
+                }
+
+                // Check if ruling clan (for tax collection)
+                bool isRulingClan = clan.Kingdom != null && clan.Kingdom.RulingClan == clan;
+
+                if (isRulingClan && KingdomTaxBehavior.Current != null && clan.Kingdom != null)
+                {
+                    // Calculate tax revenue
+                    float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(clan.Kingdom);
+                    if (taxRate > 0f)
                     {
-                        if (clan == masterclan || clan == null)
-                            continue;
+                        int totalTaxRevenue = 0;
 
-                        // Calculate this clan's fief income
-                        int fiefIncome = 0;
-                        if (clan.Settlements != null)
+                        foreach (var otherClan in clan.Kingdom.Clans)
                         {
-                            foreach (var settlement in clan.Settlements)
+                            if (otherClan == clan || otherClan == null)
+                                continue;
+
+                            // Calculate this clan's fief income
+                            int otherFiefIncome = 0;
+                            if (otherClan.Settlements != null)
                             {
-                                fiefIncome += CalculateSettlementIncome(settlement);
+                                foreach (var settlement in otherClan.Settlements)
+                                {
+                                    otherFiefIncome += CalculateSettlementIncome(settlement);
+                                }
+                            }
+
+                            // Add vassal fief income if applicable
+                            if (VassalBehavior.Current != null)
+                            {
+                                otherFiefIncome += VassalBehavior.Current.CalculateVassalFiefIncome(otherClan);
+                            }
+
+                            if (otherFiefIncome > 0)
+                            {
+                                totalTaxRevenue += (int)(otherFiefIncome * taxRate);
                             }
                         }
 
-                        // Add vassal fief income if applicable
-                        if (VassalBehavior.Current != null)
-                        {
-                            fiefIncome += VassalBehavior.Current.CalculateVassalFiefIncome(clan);
-                        }
-
-                        if (fiefIncome > 0)
-                        {
-                            totalTaxRevenue += (int)(fiefIncome * taxRate);
-                        }
+                        totalIncome += totalFiefIncome + totalTaxRevenue;
+                        sb.Append($"Tax revenue ({(taxRate * 100f):F1}%): +{totalTaxRevenue} | ");
                     }
-
-                    totaltotal = totalBeforeTax + totalTaxRevenue;
-                    result += $" | Tax revenue ({(taxRate * 100f):F1}%): +{totalTaxRevenue}/day";
+                    else
+                    {
+                        totalIncome += totalFiefIncome;
+                    }
                 }
                 else
                 {
-                    result += " | Tax revenue: +0/day (0% tax)";
-                    totaltotal = totalBeforeTax;
-                }
-
-                result += $" | Total: {(totaltotal >= 0 ? "+" : "")}{totaltotal}/day";
-            }
-            else
-            {
-                // Apply tax if in a kingdom and not ruling clan
-                if (KingdomTaxBehavior.Current != null && masterclan.Kingdom != null)
-                {
-                    float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(masterclan.Kingdom);
-                    if (taxRate > 0f)
+                    // Apply tax if in a kingdom and not ruling clan
+                    if (KingdomTaxBehavior.Current != null && clan.Kingdom != null)
                     {
-                        var taxResult = KingdomTaxBehavior.Current.CalculateTax(masterclan, totalBeforeTax);
-                        int taxAmount = taxResult.taxAmount;
-                        totalBeforeTax = taxResult.incomeAfterTax;
-                        result += $" | Tax ({(taxRate * 100f):F1}%): -{taxAmount}";
+                        float taxRate = KingdomTaxBehavior.Current.GetKingdomTaxRate(clan.Kingdom);
+                        if (taxRate > 0f)
+                        {
+                            var taxResult = KingdomTaxBehavior.Current.CalculateTax(clan, totalFiefIncome);
+                            int taxAmount = taxResult.taxAmount;
+                            totalFiefIncome = taxResult.incomeAfterTax;
+                            sb.Append($"Tax ({(taxRate * 100f):F1}%): -{taxAmount} | ");
+                        }
                     }
+
+                    totalIncome += totalFiefIncome;
+                }
+            }
+
+            // === MERCENARY INCOME ===
+            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
+            {
+                int mercIncome = (int)(CalculateMercenaryIncome(clan) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
+                int bonusMerc = (int)(UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
+
+                int vassalMercIncome = 0;
+                if (VassalBehavior.Current != null)
+                {
+                    vassalMercIncome = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
                 }
 
-                result += $" | Total after tax: {(totalBeforeTax >= 0 ? "+" : "")}{totalBeforeTax}/day";
+                int totalMercIncome = mercIncome + bonusMerc + vassalMercIncome;
+                totalIncome += totalMercIncome;
+
+                sb.Append($"Mercenary: +{mercIncome}{(bonusMerc > 0 ? $"(+{bonusMerc})" : "")}");
+                if (vassalMercIncome > 0)
+                {
+                    sb.Append($" | Vassal contracts: +{vassalMercIncome}");
+                }
+                sb.Append(" | ");
             }
+
+            // === TRIBUTE INCOME ===
+            if (tributeIncome > 0)
+            {
+                totalIncome += tributeIncome;
+                sb.Append($"Tributes received: +{tributeIncome} | ");
+            }
+
+            // === TRIBUTE PAYMENTS ===
+            if (tributePayments > 0)
+            {
+                totalIncome -= tributePayments;
+                sb.Append($"Tributes paid: -{tributePayments} | ");
+            }
+
+            // === TOTAL ===
+            var result = sb.ToString().TrimEnd(' ', '|');
+            result += $" | Total: {(totalIncome >= 0 ? "+" : "")}{totalIncome}/day";
 
             onSuccess(result);
         }
 
-        private void ShowMercIncome(Clan clan, Action<string> onSuccess)
-        {
-            int income = (int)(CalculateMercenaryIncome(clan) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
-            int bonusmerc = (int)(UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
-            int vassalincome;
+        // === HELPER METHODS ===
 
-            if (VassalBehavior.Current != null)
-            {
-                vassalincome = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
-            }
-            else
-            {
-                vassalincome = 0;
-            }
-            onSuccess(
-                $"Mercenary contract income: {(income >= 0 ? "+" : "")}{income}{(bonusmerc > 0 ? $"(+{bonusmerc})" : "")}/day | " + 
-                $"Total income from Vassals' contracts: {(vassalincome >= 0 ? "+" : "")}{vassalincome}/day"
-                );
-        }
-
-        // Helper methods for income calculation (can be used by behavior)
         internal static int CalculateSettlementIncome(Settlement settlement)
         {
             if (settlement == null)
@@ -229,6 +255,60 @@ namespace BLTAdoptAHero.Actions
             long value = (long)contract * (long)mult;
 
             return Math.Min(Math.Min((int)value, BLTAdoptAHeroModule.CommonConfig.MercenaryMaxIncome), int.MaxValue);
+        }
+
+        /// <summary>
+        /// Calculate total daily tribute income received by this clan (includes all tributes)
+        /// </summary>
+        internal static int CalculateTributeIncome(Clan clan)
+        {
+            if (clan?.Kingdom == null || BLTTreatyManager.Current == null)
+                return 0;
+
+            // Only calculate for BLT leaders
+            if (clan.Leader == null || !clan.Leader.IsAdopted())
+                return 0;
+
+            int totalIncome = 0;
+            var tributesReceiving = BLTTreatyManager.Current.GetTributesReceivedBy(clan.Kingdom);
+
+            foreach (var tribute in tributesReceiving)
+            {
+                if (!tribute.IsExpired())
+                {
+                    totalIncome += tribute.DailyAmount;
+                    // Note: AI kingdoms pay game gold only, BLT kingdoms pay BLT gold
+                    // Both are shown here for transparency
+                }
+            }
+
+            return totalIncome;
+        }
+
+        /// <summary>
+        /// Calculate total daily tribute payments made by this clan
+        /// </summary>
+        internal static int CalculateTributePayments(Clan clan)
+        {
+            if (clan?.Kingdom == null || BLTTreatyManager.Current == null)
+                return 0;
+
+            // Only calculate for BLT leaders
+            if (clan.Leader == null || !clan.Leader.IsAdopted())
+                return 0;
+
+            int totalPayments = 0;
+            var tributesPaying = BLTTreatyManager.Current.GetTributesPayedBy(clan.Kingdom);
+
+            foreach (var tribute in tributesPaying)
+            {
+                if (!tribute.IsExpired())
+                {
+                    totalPayments += tribute.DailyAmount;
+                }
+            }
+
+            return totalPayments;
         }
     }
 }

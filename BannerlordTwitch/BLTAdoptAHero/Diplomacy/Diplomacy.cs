@@ -602,7 +602,7 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            // Check if peace can be made(includes minimum war duration check)
+            // Check if peace can be made (includes minimum war duration check)
             if (!BLTTreatyManager.Current.CanMakePeace(kingdom, target, out string peaceDenialReason))
             {
                 onFailure(peaceDenialReason);
@@ -659,6 +659,8 @@ namespace BLTAdoptAHero
 
             // Calculate tribute
             int dailyTribute = 0;
+            int duration = settings.TributeDuration;
+
             if (hasCustomTribute)
             {
                 // This will only execute for BLT-controlled kingdoms due to earlier check
@@ -672,11 +674,23 @@ namespace BLTAdoptAHero
             else
             {
                 // Use base game calculation
-                int duration;
+                // FIXED: Calculate tribute correctly based on offer/demand
+                int gameDuration;
                 if (isOffer)
-                    dailyTribute = Campaign.Current.Models.DiplomacyModel.GetDailyTributeToPay(hero.Clan, target.RulingClan, out duration);
+                {
+                    // Offering peace: we pay if we're weaker
+                    dailyTribute = Campaign.Current.Models.DiplomacyModel.GetDailyTributeToPay(hero.Clan, target.RulingClan, out gameDuration);
+                    // If game says we should pay (positive), use that. Otherwise, 0.
+                    dailyTribute = Math.Max(0, dailyTribute);
+                }
                 else
-                    dailyTribute = Campaign.Current.Models.DiplomacyModel.GetDailyTributeToPay(target.RulingClan, hero.Clan, out duration);
+                {
+                    // Demanding peace: they pay if they're weaker
+                    dailyTribute = Campaign.Current.Models.DiplomacyModel.GetDailyTributeToPay(target.RulingClan, hero.Clan, out gameDuration);
+                    // If game says they should pay (positive), use that. Otherwise, 0.
+                    dailyTribute = Math.Max(0, dailyTribute);
+                }
+                duration = gameDuration > 0 ? gameDuration : settings.TributeDuration;
             }
 
             // Check costs
@@ -694,8 +708,9 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            // Make peace
-            // After validation, before making peace:
+            // FIXED: Determine payer and receiver BEFORE deducting costs
+            Kingdom payer = isOffer ? kingdom : target;
+            Kingdom receiver = isOffer ? target : kingdom;
 
             // Check if target is BLT controlled
             if (targetIsBLT)
@@ -704,28 +719,30 @@ namespace BLTAdoptAHero
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
                 hero.Clan.Influence -= influenceCost;
 
-                Kingdom payer = isOffer ? kingdom : target;
-                Kingdom receiver = isOffer ? target : kingdom;
-
                 BLTTreatyManager.Current.CreatePeaceProposal(
                     kingdom,
                     target,
                     isOffer,
                     dailyTribute,
-                    settings.TributeDuration,
+                    duration,
                     settings.PeacePrice,
                     influenceCost,
                     15 // days to accept
                 );
 
-                onSuccess($"Peace proposal sent to {target.Name}. They have 15 days to respond.");
+                // FIXED: Add tribute info to display
+                string tributeMsg = dailyTribute > 0
+                    ? $" ({(isOffer ? "offering" : "demanding")} {dailyTribute}{Naming.Gold}/day for {duration} days)"
+                    : " (no tribute)";
 
-                // Notify target
+                onSuccess($"Peace proposal sent to {target.Name}{tributeMsg}. They have 15 days to respond.");
+
+                // FIXED: Notify target with tribute info
                 string targetLeaderName = target.Leader.FirstName.ToString()
                     .Replace(BLTAdoptAHeroModule.Tag, "")
                     .Replace(BLTAdoptAHeroModule.DevTag, "")
                     .Trim();
-                Log.LogFeedResponse($"@{targetLeaderName} {kingdom.Name} offers peace! Use !diplomacy accept peace {kingdom.Name}");
+                Log.LogFeedResponse($"@{targetLeaderName} {kingdom.Name} offers peace{tributeMsg}! Use !diplomacy accept peace {kingdom.Name}");
             }
             else if (target.Leader == Hero.MainHero)
             {
@@ -733,7 +750,7 @@ namespace BLTAdoptAHero
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
                 hero.Clan.Influence -= influenceCost;
                 // Player kingdom making peace with AI - use event dispatcher
-                CampaignEventDispatcher.Instance.OnPeaceOfferedToPlayer(kingdom, dailyTribute, settings.TributeDuration);
+                CampaignEventDispatcher.Instance.OnPeaceOfferedToPlayer(kingdom, dailyTribute, duration);
             }
             else
             {
@@ -751,79 +768,87 @@ namespace BLTAdoptAHero
                     onFailure(reason.ToString());
                     return;
                 }
+
                 // Deduct costs
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
                 hero.Clan.Influence -= influenceCost;
 
-                // Determine payer and receiver based on offer/demand
-                Kingdom payer = isOffer ? kingdom : target;
-                Kingdom receiver = isOffer ? target : kingdom;
-
-                // Make peace in game
-                MakePeaceAction.ApplyByKingdomDecision(kingdom, target, dailyTribute, settings.TributeDuration);
-                FactionManager.SetNeutral(kingdom, target);
-
-                // Create tribute if amount > 0
-                if (dailyTribute > 0)
+                AdoptedHeroFlags._allowDiplomacyAction = true;
+                try
                 {
-                    BLTTreatyManager.Current.CreateTribute(payer, receiver, dailyTribute, settings.TributeDuration);
-                }
+                    // Make peace in game
+                    MakePeaceAction.ApplyByKingdomDecision(kingdom, target, dailyTribute, duration);
+                    FactionManager.SetNeutral(kingdom, target);
 
-                // Create truce
-                BLTTreatyManager.Current.CreateTruce(kingdom, target, settings.TruceDuration);
-            }
-            AdoptedHeroFlags._allowDiplomacyAction = true;
-            try
-            {
-
-
-                // Handle war cleanup
-                if (war != null)
-                {
-                    if (war.IsMainParticipant(kingdom))
+                    // Create tribute if amount > 0
+                    if (dailyTribute > 0)
                     {
-                        // Main participant making peace - peace out all assistants (no tribute for them)
-                        var allies = war.IsAttackerSide(kingdom) ? war.GetAttackerAllies() : war.GetDefenderAllies();
-                        foreach (var ally in allies)
+                        BLTTreatyManager.Current.CreateTribute(payer, receiver, dailyTribute, duration);
+                    }
+
+                    // Create truce
+                    BLTTreatyManager.Current.CreateTruce(kingdom, target, settings.TruceDuration);
+
+                    // Handle war cleanup
+                    if (war != null)
+                    {
+                        if (war.IsMainParticipant(kingdom))
                         {
-                            if (ally != null && ally.IsAtWarWith(target))
+                            // Main participant making peace - peace out all assistants (no tribute for them)
+                            var allies = war.IsAttackerSide(kingdom) ? war.GetAttackerAllies() : war.GetDefenderAllies();
+                            foreach (var ally in allies)
                             {
-                                MakePeaceAction.Apply(ally, target);
-                                FactionManager.SetNeutral(ally, target);
+                                if (ally != null && ally.IsAtWarWith(target))
+                                {
+                                    MakePeaceAction.Apply(ally, target);
+                                    FactionManager.SetNeutral(ally, target);
+                                }
+                            }
+                            BLTTreatyManager.Current.RemoveWar(kingdom, target);
+                        }
+                        else
+                        {
+                            // Assisting ally peacing out separately - remove from war and break alliance
+                            war.RemoveAlly(kingdom);
+
+                            // Recalculate alliance partner
+                            Kingdom alliancePartnerToBreak = null;
+                            if (war.IsAttackerSide(kingdom))
+                                alliancePartnerToBreak = war.GetAttacker();
+                            else
+                                alliancePartnerToBreak = war.GetDefender();
+
+                            if (alliancePartnerToBreak != null)
+                            {
+                                BLTTreatyManager.Current.RemoveAlliance(kingdom, alliancePartnerToBreak);
+                                BLTTreatyManager.Current.CreateTruce(kingdom, alliancePartnerToBreak, settings.TruceDuration);
+
+                                // FIXED: Notify both parties of broken alliance
+                                Log.ShowInformation($"Alliance broken between {kingdom.Name} and {alliancePartnerToBreak.Name}!", hero.CharacterObject);
+
+                                if (alliancePartnerToBreak.Leader != null && alliancePartnerToBreak.Leader.IsAdopted())
+                                {
+                                    string partnerLeaderName = alliancePartnerToBreak.Leader.FirstName.ToString()
+                                        .Replace(BLTAdoptAHeroModule.Tag, "")
+                                        .Replace(BLTAdoptAHeroModule.DevTag, "")
+                                        .Trim();
+                                    Log.LogFeedResponse($"@{partnerLeaderName} Your alliance with {kingdom.Name} has been broken because they made peace with {target.Name}!");
+                                }
                             }
                         }
-                        BLTTreatyManager.Current.RemoveWar(kingdom, target);
                     }
-                    else
-                    {
-                        // Assisting ally peacing out separately - remove from war and break alliance
-                        war.RemoveAlly(kingdom);
 
-                        // Recalculate alliance partner
-                        Kingdom alliancePartnerToBreak = null;
-                        if (war.IsAttackerSide(kingdom))
-                            alliancePartnerToBreak = war.GetAttacker();
-                        else
-                            alliancePartnerToBreak = war.GetDefender();
+                    string tributeMsg = dailyTribute > 0
+                        ? $" ({(isOffer ? "paying" : "receiving")} {dailyTribute}{Naming.Gold}/day for {duration} days)"
+                        : "";
 
-                        if (alliancePartnerToBreak != null)
-                        {
-                            BLTTreatyManager.Current.RemoveAlliance(kingdom, alliancePartnerToBreak);
-                            BLTTreatyManager.Current.CreateTruce(kingdom, alliancePartnerToBreak, settings.TruceDuration);
-                        }
-                    }
+                    onSuccess($"Made peace with {target.Name}{tributeMsg}. Truce: {settings.TruceDuration} days");
+                    Log.ShowInformation($"{hero.Name} has made peace with {target.Name}!", hero.CharacterObject);
                 }
-
-                string tributeMsg = dailyTribute > 0
-                    ? $" ({(isOffer ? "paying" : "receiving")} {dailyTribute}{Naming.Gold}/day for {settings.TributeDuration} days)"
-                    : "";
-
-                onSuccess($"Made peace with {target.Name}{tributeMsg}. Truce: {settings.TruceDuration} days");
-                Log.ShowInformation($"{hero.Name} has made peace with {target.Name}!", hero.CharacterObject);
-            }
-            finally
-            {
-                AdoptedHeroFlags._allowDiplomacyAction = false;
+                finally
+                {
+                    AdoptedHeroFlags._allowDiplomacyAction = false;
+                }
             }
         }
 
@@ -1601,21 +1626,49 @@ namespace BLTAdoptAHero
                 return;
             }
 
+            // FIXED: Determine payer and receiver based on proposal type
+            Kingdom payer = proposal.IsOffer ? proposer : kingdom;
+            Kingdom receiver = proposal.IsOffer ? kingdom : proposer;
+
+#if DEBUG
+    Log.Trace($"[BLT Peace] Accepting peace proposal from {proposer.Name} to {kingdom.Name}");
+    Log.Trace($"[BLT Peace] IsOffer: {proposal.IsOffer}, DailyTribute: {proposal.DailyTribute}, Duration: {proposal.Duration}");
+    Log.Trace($"[BLT Peace] Payer: {payer.Name}, Receiver: {receiver.Name}");
+#endif
+
             AdoptedHeroFlags._allowDiplomacyAction = true;
             try
             {
-                // Determine payer based on offer/demand
-                Kingdom payer = proposal.IsOffer ? proposer : kingdom;
-                Kingdom receiver = proposal.IsOffer ? kingdom : proposer;
-
                 // Make peace using the tribute amount from the proposal
                 MakePeaceAction.ApplyByKingdomDecision(kingdom, proposer, proposal.DailyTribute, proposal.Duration);
                 FactionManager.SetNeutral(kingdom, proposer);
 
-                // Create tribute if needed
+                // FIXED: Create tribute if needed, using correct payer/receiver
                 if (proposal.DailyTribute > 0)
                 {
+#if DEBUG
+            Log.Trace($"[BLT Peace] Creating tribute: {payer.Name} pays {proposal.DailyTribute} to {receiver.Name} for {proposal.Duration} days");
+#endif
                     BLTTreatyManager.Current.CreateTribute(payer, receiver, proposal.DailyTribute, proposal.Duration);
+
+                    // Verify tribute was created
+                    var createdTribute = BLTTreatyManager.Current.GetTribute(payer, receiver);
+                    if (createdTribute == null)
+                    {
+                        Log.Error($"[BLT Peace] Failed to create tribute between {payer.Name} and {receiver.Name}!");
+                    }
+                    else
+                    {
+#if DEBUG
+                Log.Trace($"[BLT Peace] Tribute created successfully - verifying: Payer={createdTribute.GetPayer()?.Name}, Receiver={createdTribute.GetReceiver()?.Name}, Amount={createdTribute.DailyAmount}");
+#endif
+                    }
+                }
+                else
+                {
+#if DEBUG
+            Log.Trace($"[BLT Peace] No tribute (amount is 0)");
+#endif
                 }
 
                 // Create truce
@@ -1635,6 +1688,9 @@ namespace BLTAdoptAHero
                             {
                                 MakePeaceAction.Apply(ally, proposer);
                                 FactionManager.SetNeutral(ally, proposer);
+#if DEBUG
+                        Log.Trace($"[BLT Peace] Peaced out ally {ally.Name}");
+#endif
                             }
                         }
                         BLTTreatyManager.Current.RemoveWar(kingdom, proposer);
@@ -1649,9 +1705,40 @@ namespace BLTAdoptAHero
                             {
                                 MakePeaceAction.Apply(ally, kingdom);
                                 FactionManager.SetNeutral(ally, kingdom);
+#if DEBUG
+                        Log.Trace($"[BLT Peace] Peaced out ally {ally.Name}");
+#endif
                             }
                         }
                         BLTTreatyManager.Current.RemoveWar(kingdom, proposer);
+                    }
+                    else
+                    {
+                        // Accepting kingdom is an assisting ally - remove from war and break alliance with main participant
+                        war.RemoveAlly(kingdom);
+
+                        Kingdom alliancePartnerToBreak = null;
+                        if (war.IsAttackerSide(kingdom))
+                            alliancePartnerToBreak = war.GetAttacker();
+                        else
+                            alliancePartnerToBreak = war.GetDefender();
+
+                        if (alliancePartnerToBreak != null)
+                        {
+                            BLTTreatyManager.Current.RemoveAlliance(kingdom, alliancePartnerToBreak);
+                            BLTTreatyManager.Current.CreateTruce(kingdom, alliancePartnerToBreak, settings.TruceDuration);
+
+                            Log.ShowInformation($"Alliance broken between {kingdom.Name} and {alliancePartnerToBreak.Name}!", hero.CharacterObject);
+
+                            if (alliancePartnerToBreak.Leader != null && alliancePartnerToBreak.Leader.IsAdopted())
+                            {
+                                string partnerLeaderName = alliancePartnerToBreak.Leader.FirstName.ToString()
+                                    .Replace(BLTAdoptAHeroModule.Tag, "")
+                                    .Replace(BLTAdoptAHeroModule.DevTag, "")
+                                    .Trim();
+                                Log.LogFeedResponse($"@{partnerLeaderName} Your alliance with {kingdom.Name} has been broken because they made peace with {proposer.Name}!");
+                            }
+                        }
                     }
                 }
 
