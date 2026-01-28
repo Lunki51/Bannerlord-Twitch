@@ -46,7 +46,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(context.Args))
             {
-                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate()); 
+                ActionManager.SendReply(context, "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate());
                 return;
             }
 
@@ -85,9 +85,14 @@ namespace BLTAdoptAHero
                 case "fief":
                     ShowFief(desiredName, context);
                     break;
-
+                case "fiefs":
+                    ShowFiefs(desiredName, context);
+                    break;
                 case "clan":
                     ShowClan(desiredName, context);
+                    break;
+                case "clans":
+                    ShowClans(desiredName, context);
                     break;
 
                 case "vassals":
@@ -95,7 +100,7 @@ namespace BLTAdoptAHero
                     break;
                 default:
                     ActionManager.SendReply(context,
-                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), clan (kingdom/clan))".Translate()); 
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), fiefs (kingdom), clan (clan), clans (kingdom), vassals (clan))".Translate());
                     break;
             }
         }
@@ -186,9 +191,9 @@ namespace BLTAdoptAHero
                 sb.Append("{=0GhTvF3K}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
             if (desiredKingdom.RulingClan.HomeSettlement != null)
                 sb.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", desiredKingdom.RulingClan.HomeSettlement.Name.ToString())));
-            if (desiredKingdom.Armies.Count >= 1)           
+            if (desiredKingdom.Armies.Count >= 1)
                 sb.Append($"| Armies: {desiredKingdom.Armies.Count} ");
-            
+
             int towns = desiredKingdom.Fiefs.Count(f => !f.IsCastle);
             int castles = desiredKingdom.Fiefs.Count(f => f.IsCastle);
             sb.Append("{=BwuFSJU1}| Towns: {towns} | ".Translate(("towns", towns)));
@@ -230,7 +235,7 @@ namespace BLTAdoptAHero
             {
                 desiredKingdom = Kingdom.All.FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
-            }              
+            }
 
             if (desiredKingdom == null)
             {
@@ -329,14 +334,14 @@ namespace BLTAdoptAHero
                 ActionManager.SendReply(context, "{=TESTING}Need fief name".Translate());
                 return;
             }
-            
+
             var desiredFief = Settlement.All.FirstOrDefault(c =>
                 c.Name.ToString().ToLower() == desiredName.ToLower());
             if (desiredFief == null)
             {
                 desiredFief = Settlement.All.FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
-            }               
+            }
             if (desiredFief == null)
             {
                 ActionManager.SendReply(context,
@@ -409,6 +414,63 @@ namespace BLTAdoptAHero
             }
         }
 
+        private void ShowFiefs(string desiredName, ReplyContext context)
+        {
+            var adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(context.UserName);
+            Kingdom desiredKingdom = adoptedHero?.Clan?.Kingdom;
+            if (string.IsNullOrWhiteSpace(desiredName) && desiredKingdom == null)
+            {
+                ActionManager.SendReply(context, "{=DSNx7CFT}Need kingdom name".Translate());
+                return;
+            }
+            else if (!string.IsNullOrWhiteSpace(desiredName))
+            {
+                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Kingdom.All.FirstOrDefault(c =>
+                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+           
+
+            if (desiredKingdom != null)
+            {
+                Dictionary<Clan, List<Town>> fiefDict = desiredKingdom.Fiefs.Where(f => f.OwnerClan != null).GroupBy(f => f.OwnerClan).ToDictionary(g => g.Key, g => g.ToList());
+
+                string result = "Towns: " +
+                                string.Join(" - ",
+                                    fiefDict
+                                        .Select(kvp =>
+                                        {
+                                            var towns = kvp.Value.Where(t => t.IsTown).ToList();
+                                            if (towns.Count == 0) return null;
+
+                                            return $"{kvp.Key}:" +
+                                                   $"({string.Join(", ", towns.Select(t => t.Name))})";
+                                        })
+                                        .Where(s => s != null)
+                                )
+                                + " | Castles: " +
+                                string.Join(" - ",
+                                    fiefDict
+                                        .Select(kvp =>
+                                        {
+                                            var castles = kvp.Value.Where(t => t.IsCastle).ToList();
+                                            if (castles.Count == 0) return null;
+
+                                            return $"{kvp.Key}:" +
+                                                   $"({string.Join(", ", castles.Select(t => t.Name))})";
+                                        })
+                                        .Where(s => s != null)
+                                );
+
+
+                ActionManager.SendReply(context, result);
+            }
+            else
+            {
+                ActionManager.SendReply(context, $"Could not find a kingdom with the name {desiredName}");
+            }
+        }
+
         private void ShowClan(string desiredName, ReplyContext context)
         {
             if (string.IsNullOrWhiteSpace(desiredName))
@@ -417,18 +479,11 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            var desiredKingdom = Kingdom.All.FirstOrDefault(c =>
-                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
             var desiredClan = Clan.All.FirstOrDefault(c =>
-                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
-            if (desiredKingdom != null)
-            {
-                List<Clan> clanList = desiredKingdom.Clans.OrderByDescending(c => c.CurrentTotalStrength).ToList();
-                var clanString = string.Join(", ", clanList.Select(k => k.Name.ToString()));
-                ActionManager.SendReply(context, clanString);
-                return;
-            }
-            else if (desiredClan != null)
+                    c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Clan.All.FirstOrDefault(c =>
+                    c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+
+            if (desiredClan != null)
             {
                 var clanSb = new StringBuilder();
                 clanSb.Append("{=Ki8jvwkw}Clan Name: {name} | ".Translate(("name", desiredClan.Name.ToString())));
@@ -441,9 +496,9 @@ namespace BLTAdoptAHero
                         string mercGold = (desiredClan.MercenaryAwardMultiplier * Math.Round(desiredClan.Influence / 5f)).ToString() + "/" + desiredClan.MercenaryAwardMultiplier.ToString();
                         clanSb.Append("{=PbxexPi9}Mercenary💰: {mercenary} | ".Translate(("mercenary", mercGold)));
                     }
-                }                   
+                }
                 clanSb.Append("{=Sg11nEUe}Tier: {tier}({renown}) | ".Translate(("tier", desiredClan.Tier.ToString()), ("renown", Math.Round(desiredClan.Renown).ToString())));
-                clanSb.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(desiredClan.CurrentTotalStrength).ToString())));   
+                clanSb.Append("{=ZFGikYn8}Strength: {strength} | ".Translate(("strength", Math.Round(desiredClan.CurrentTotalStrength).ToString())));
                 int income = Campaign.Current.Models.ClanFinanceModel.CalculateClanGoldChange(desiredClan).RoundedResultNumber;
                 clanSb.Append("{=SDVLj0nw}Wealth: {wealth}({income}) | ".Translate(("wealth", desiredClan.Leader.Gold.ToString()), ("income", income)));
                 clanSb.Append("{=eHJYAZha}Members: {members} | ".Translate(("members", desiredClan.Heroes.Count.ToString())));
@@ -486,9 +541,64 @@ namespace BLTAdoptAHero
             }
             else
             {
-                ActionManager.SendReply(context, $"Could not find a kingdom/clan with the name {desiredName}");
+                ActionManager.SendReply(context, $"Could not find a clan with the name {desiredName}");
             }
         }
+
+        private void ShowClans(string desiredName, ReplyContext context)
+        {
+            var adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(context.UserName);
+            Kingdom desiredKingdom = adoptedHero?.Clan?.Kingdom;
+            if (string.IsNullOrWhiteSpace(desiredName) && desiredKingdom == null)
+            {
+                ActionManager.SendReply(context, "{=DSNx7CFT}Need kingdom name".Translate());
+                return;
+            }
+            else if (!string.IsNullOrWhiteSpace(desiredName))
+            {
+                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                    c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Kingdom.All.FirstOrDefault(c =>
+                    c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+                
+            if (desiredKingdom != null)
+            {
+                List<Clan> clanList = desiredKingdom.Clans.OrderByDescending(c => c.CurrentTotalStrength).ToList();
+                var noble = new StringBuilder();
+                var merc = new StringBuilder();
+
+                foreach (var clan in clanList)
+                {
+                    if (!clan.IsUnderMercenaryService)
+                    {
+                        if (clan.Kingdom.RulingClan == clan)
+                            noble.Append($"👑");
+                        noble.Append($"{clan.Name}(💪{(int)clan.CurrentTotalStrength}");
+                        if (clan.Fiefs.Count > 0)
+                            noble.Append($", 🏰{clan.Fiefs.Count}) - ");
+                        else noble.Append(") - ");
+                    }
+                    else
+                    {
+                        merc.Append($"{clan.Name}(💪{(int)clan.CurrentTotalStrength}) - ");
+                    }
+                }
+                if (merc.Length == 0)
+                    merc.Append("None");
+
+                string clansString = $"Nobles:{noble} | Mercs:{merc}";
+                ActionManager.SendReply(context, clansString);
+                return;
+            }
+            else
+            {
+                ActionManager.SendReply(context, $"Could not find a kingdom with the name {desiredName}");
+            }
+        }
+
+
+
         private void ShowVassals(string desiredName, ReplyContext context)
         {
             if (string.IsNullOrWhiteSpace(desiredName))
@@ -545,5 +655,5 @@ namespace BLTAdoptAHero
             string result = sb.ToString().TrimEnd(' ', '|');
             ActionManager.SendReply(context, result);
         }
-    }
+    }   
 }
