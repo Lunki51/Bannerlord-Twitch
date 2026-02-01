@@ -14,6 +14,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.Localization;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.ObjectSystem;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 
@@ -74,6 +75,12 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=GYzk7nZB}Allow selecting by clan or hero name"),
              PropertyOrder(8), UsedImplicitly]
             public bool ClanorName { get; set; } = false;
+
+            [LocDisplayName("{=Abc123}Forbidden Races"),
+             LocCategory("Race", "{=RaceSettings}Race Settings"),
+             LocDescription("{=Desc123}List of race IDs that are forbidden. Usage: 0,1,2"),
+             PropertyOrder(9)]
+            public int[] ForbiddenRaces { get; set; } = new int[] { };
 
             //[locdisplayname("{=testing}allow viewer marriage"),
             // loccategory("marriage", "{=testing}marriage"),
@@ -505,30 +512,25 @@ namespace BLTAdoptAHero.Actions
                             return;
                         }
                     }
-                //case "race":
-                //    {
-                //        if (splitArgs.Length < 2 || !int.TryParse(splitArgs[1], out int race))
-                //        {
-                //            onFailure("Usage: race <int>".Translate());
-                //            return;
-                //        }
+                case "race":
+                    {
+                        var validRaces = Enumerable.Range(0, 32)
+                            .Select(r => (RaceId: r, Monster: TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(r)))
+                            .Where(x => x.Monster != null && !settings.ForbiddenRaces.Contains(x.RaceId))
+                            .ToList();
 
-                //        BodyProperties newBody = BodyProperties.GetRandomBodyProperties(
-                //            race,
-                //            adoptedHero.IsFemale,
-                //            BodyProperties.Default,
-                //            BodyProperties.Default,
-                //            0,
-                //            MBRandom.RandomInt(),
-                //            "",
-                //            "",
-                //            ""
-                //        );
+                        if (splitArgs.Length < 2 || !int.TryParse(splitArgs[1], out int race) || !validRaces.Any(x => x.RaceId == race))
+                        {
+                            string list = string.Join(", ", validRaces.Select(x => $"{x.RaceId} ({x.Monster.BaseMonster})"));
+                            onFailure($"Valid races: {list}");
+                            return;
+                        }
 
-                //        adoptedHero.UpdatePlayerCharacterBodyProperties(newBody, race, adoptedHero.IsFemale);
-                //        onSuccess($"Hero race set to {race}".Translate());
-                //        return;
-                //    }
+                        BodyProperties newBody = adoptedHero.CharacterObject.GetBodyPropertiesMin();
+                        adoptedHero.CharacterObject.UpdatePlayerCharacterBodyProperties(newBody, race, adoptedHero.IsFemale);
+                        onSuccess($"Hero race set to {race} ({TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(race)?.BaseMonster})");
+                        return;
+                    }
                 default:
                     onFailure("{=6t9UWDR2}Invalid action".Translate());
                     return;
