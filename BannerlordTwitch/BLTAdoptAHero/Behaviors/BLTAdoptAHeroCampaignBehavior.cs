@@ -1464,8 +1464,8 @@ namespace BLTAdoptAHero
             }
             else
             {
-                Log.Error($"Couldn't find matching retinue type {retinueCharacterObject} " +
-                          $"for {retinueOwnerHero} to remove");
+                //Log.Error($"Couldn't find matching retinue type {retinueCharacterObject} " +
+                //          $"for {retinueOwnerHero} to remove");
             }
         }
 
@@ -1754,8 +1754,8 @@ namespace BLTAdoptAHero
             }
             else
             {
-                Log.Error($"Couldn't find matching secondary retinue type {RetinueCharacterObject} " +
-                          $"for {retinue2OwnerHero} to remove");
+                //Log.Error($"Couldn't find matching secondary retinue type {RetinueCharacterObject} " +
+                //          $"for {retinue2OwnerHero} to remove");
             }
         }
 

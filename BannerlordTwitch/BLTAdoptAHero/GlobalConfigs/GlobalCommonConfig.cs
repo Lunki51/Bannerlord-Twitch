@@ -77,13 +77,13 @@ namespace BLTAdoptAHero
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Multiplier to BLT children age"),
          PropertyOrder(5), UsedImplicitly]
-        public int BLTChildAgeMult { get; set; } = 1;
+        public int BLTChildAgeMult { get; set; } = 3;
 
         [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Show Campaign Map Overlay"),
          LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Enable or disable the campaign map overlay that shows in the top portion of the overlay. The map automatically hides during missions."),
         LocCategory("General", "{=C5T6nnix}General"),
          PropertyOrder(6)]
-        public bool ShowCampaignMapOverlay { get; set; } = false;
+        public bool ShowCampaignMapOverlay { get; set; } = true;
 
         [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
          LocCategory("General", "{=C5T6nnix}General"),
@@ -95,7 +95,7 @@ namespace BLTAdoptAHero
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}How much hearth is required per village prosperity level (affects food and goods production)."),
          PropertyOrder(8)]
-        public float HearthPerVillageTier { get; set; } = 300f;
+        public float HearthPerVillageTier { get; set; } = 200f;
 
         [LocDisplayName("{=}Minimum BLT-Led Army Lifetime"),
          LocCategory("General", "{=C5T6nnix}General"),

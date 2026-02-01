@@ -218,6 +218,7 @@ namespace BLTAdoptAHero
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
                     gameStarterObject.AddModel(new BLTPartySizeLimitModel(gameStarterObject.Models.OfType<PartySizeLimitModel>().FirstOrDefault()));
                     gameStarterObject.AddModel(new BLTPartySpeedModel(gameStarterObject.Models.OfType<PartySpeedModel>().FirstOrDefault()));
+                    gameStarterObject.AddModel(new BLTClanTierModel(gameStarterObject.Models.OfType<ClanTierModel>().FirstOrDefault()));
                 }
             }
             catch (Exception e)
