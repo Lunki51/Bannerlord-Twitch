@@ -77,10 +77,16 @@ namespace BLTAdoptAHero.Actions
             public bool ClanorName { get; set; } = false;
 
             [LocDisplayName("{=Abc123}Forbidden Races"),
-             LocCategory("Race", "{=RaceSettings}Race Settings"),
+             LocCategory("Race", "{=RaceSettings}Race"),
              LocDescription("{=Desc123}List of race IDs that are forbidden. Usage: 0,1,2"),
              PropertyOrder(9)]
             public string ForbiddenRaces { get; set; } = "";
+
+            [LocDisplayName("{=Abc123}Forbidden Cultures"),
+             LocCategory("Culture", "{=RaceSettings}Culture"),
+             LocDescription("{=Desc123}List of cultures that are forbidden. Usage: Vlandia,Battania"),
+             PropertyOrder(10)]
+            public string ForbiddenCultures { get; set; } = "";
 
             //[locdisplayname("{=testing}allow viewer marriage"),
             // loccategory("marriage", "{=testing}marriage"),
@@ -528,15 +534,44 @@ namespace BLTAdoptAHero.Actions
 
                         if (splitArgs.Length < 2 || !int.TryParse(splitArgs[1], out int race) || !validRaces.Any(x => x.RaceId == race))
                         {
-                            string list = string.Join(", ", validRaces.Select(x => $"{x.RaceId} ({x.Monster.Id})"));
+                            string list = string.Join(", ", validRaces.Select(x => $"{x.RaceId} ({x.Monster.StringId})"));
                             onFailure($"Valid races: {list}");
                             return;
                         }
 
                         BodyProperties newBody = adoptedHero.CharacterObject.GetBodyPropertiesMin();
                         adoptedHero.CharacterObject.UpdatePlayerCharacterBodyProperties(newBody, race, adoptedHero.IsFemale);
-                        onSuccess($"Hero race set to {race} ({TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(race)?.Id})");
+                        onSuccess($"Hero race set to {race} ({TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(race)?.StringId})");
                         return;
+                    }
+                case "culture":
+                    {
+                        var forbidden = settings.ForbiddenCultures
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => s.Trim())
+                            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        var allowedCultures = CampaignHelpers.MainCultures
+                            .Where(c => !forbidden.Contains(c.StringId))
+                            .ToList();
+
+
+                        if (splitArgs.Length < 2)
+                        {
+                            onFailure("Select a culture");
+                            return;
+                        }
+                        string value = string.Join(" ", splitArgs.Skip(1));
+                        var cult = allowedCultures.FirstOrDefault(c => c.Name.ToString().ToLower() == value.ToLower());
+                        if (cult == null)
+                        {
+                            onFailure($"No culture named {value}");
+                            return;
+                        }
+
+                        adoptedHero.Culture = cult;
+                        onSuccess($"Changed culture to {cult.Name}");
+
+                        break;
                     }
                 default:
                     onFailure("{=6t9UWDR2}Invalid action".Translate());

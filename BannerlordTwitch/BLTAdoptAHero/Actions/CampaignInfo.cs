@@ -441,7 +441,7 @@ namespace BLTAdoptAHero
                                             var towns = kvp.Value.Where(t => t.IsTown).ToList();
                                             if (towns.Count == 0) return null;
 
-                                            return $"{kvp.Key}:" +
+                                            return $"{kvp.Key.Name}:" +
                                                    $"({string.Join(", ", towns.Select(t => t.Name))})";
                                         })
                                         .Where(s => s != null)
@@ -454,7 +454,7 @@ namespace BLTAdoptAHero
                                             var castles = kvp.Value.Where(t => t.IsCastle).ToList();
                                             if (castles.Count == 0) return null;
 
-                                            return $"{kvp.Key}:" +
+                                            return $"{kvp.Key.Name}:" +
                                                    $"({string.Join(", ", castles.Select(t => t.Name))})";
                                         })
                                         .Where(s => s != null)
