@@ -76,16 +76,28 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(8), UsedImplicitly]
             public bool ClanorName { get; set; } = false;
 
+            [LocDisplayName("{=Abc123}Enabled"),
+             LocCategory("Race", "{=RaceSettings}Race"),
+             LocDescription("{=Desc123}Enabled"),
+             PropertyOrder(9)]
+            public bool RaceEnabled { get; set; } = true;
+
             [LocDisplayName("{=Abc123}Forbidden Races"),
              LocCategory("Race", "{=RaceSettings}Race"),
              LocDescription("{=Desc123}List of race IDs that are forbidden. Usage: 0,1,2"),
-             PropertyOrder(9)]
+             PropertyOrder(10)]
             public string ForbiddenRaces { get; set; } = "";
+
+            [LocDisplayName("{=Abc123}Enabled"),
+             LocCategory("Culture", "{=RaceSettings}Culture"),
+             LocDescription("{=Desc123}Enabled"),
+             PropertyOrder(11)]
+            public bool CultureEnabled { get; set; } = true;
 
             [LocDisplayName("{=Abc123}Forbidden Cultures"),
              LocCategory("Culture", "{=RaceSettings}Culture"),
              LocDescription("{=Desc123}List of cultures that are forbidden. Usage: Vlandia,Battania"),
-             PropertyOrder(10)]
+             PropertyOrder(12)]
             public string ForbiddenCultures { get; set; } = "";
 
             //[locdisplayname("{=testing}allow viewer marriage"),
@@ -520,6 +532,11 @@ namespace BLTAdoptAHero.Actions
                     }
                 case "race":
                     {
+                        if (!settings.RaceEnabled)
+                        {
+                            onFailure("Race command is disabled");
+                            return;
+                        }
                         var forbiddenRaces = settings.ForbiddenRaces
                             .Split(',')
                             .Select(s => s.Trim())
@@ -546,6 +563,11 @@ namespace BLTAdoptAHero.Actions
                     }
                 case "culture":
                     {
+                        if (!settings.CultureEnabled)
+                        {
+                            onFailure("Culture command is disabled");
+                            return;
+                        }
                         var forbidden = settings.ForbiddenCultures
                             .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
                             .Select(s => s.Trim())
