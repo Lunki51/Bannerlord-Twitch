@@ -94,9 +94,11 @@ namespace BLTAdoptAHero
                 case "clans":
                     ShowClans(desiredName, context);
                     break;
-
                 case "vassals":
                     ShowVassals(desiredName, context);
+                    break;
+                case "map":
+                    ShowMap(desiredName, context);
                     break;
                 default:
                     ActionManager.SendReply(context,
@@ -473,7 +475,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(desiredName))
             {
-                ActionManager.SendReply(context, "{=TESTING}Need a kingdom or clan name".Translate());
+                ActionManager.SendReply(context, "{=TESTING}Need aclan name".Translate());
                 return;
             }
 
@@ -595,8 +597,6 @@ namespace BLTAdoptAHero
             }
         }
 
-
-
         private void ShowVassals(string desiredName, ReplyContext context)
         {
             if (string.IsNullOrWhiteSpace(desiredName))
@@ -652,6 +652,95 @@ namespace BLTAdoptAHero
             // Remove trailing " | "
             string result = sb.ToString().TrimEnd(' ', '|');
             ActionManager.SendReply(context, result);
+        }
+
+        private void ShowMap(string desiredName, ReplyContext context)
+        {
+            var adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(context.UserName);
+            Kingdom desiredKingdom = adoptedHero?.Clan?.Kingdom;
+            if (string.IsNullOrWhiteSpace(desiredName) && desiredKingdom == null)
+            {
+                ActionManager.SendReply(context, "{=DSNx7CFT}Need kingdom name".Translate());
+                return;
+            }
+            else if (!string.IsNullOrWhiteSpace(desiredName))
+            {
+                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                    c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Kingdom.All.FirstOrDefault(c =>
+                    c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
+
+
+            if (desiredKingdom != null)
+            {
+                if (desiredKingdom.Fiefs.Count == 0)
+                {
+                    ActionManager.SendReply(context, "No fiefs".Translate());
+                    return;
+                }
+
+                float ClockwiseAngleFromNorth(CampaignVec2 from, CampaignVec2 to)
+                {
+                    var dx = to.X - from.X;
+                    var dy = to.Y - from.Y;
+
+                    var angle = (float)(Math.Atan2(dx, dy) * (180.0 / Math.PI));
+                    if (angle < 0f)
+                        angle += 360f;
+
+                    return angle;
+                }
+
+                string DirectionFromAngle(float angle)
+                {
+                    if (angle < 22.5f || angle >= 337.5f) return "↑ North";
+                    if (angle < 67.5f) return "↗ North-East";
+                    if (angle < 112.5f) return "→ East";
+                    if (angle < 157.5f) return "↘ South-East";
+                    if (angle < 202.5f) return "↓ South";
+                    if (angle < 247.5f) return "↙ South-West";
+                    if (angle < 292.5f) return "← West";
+                    return "↖ North-West";
+                }
+
+                List<(IFaction faction, float angle, string direction)> bordering = new();
+
+                var distance = Campaign.Current.Models.MapDistanceModel;
+                var kingdomCenter = desiredKingdom.FactionMidSettlement.Position;
+
+                foreach (var fief in desiredKingdom.Fiefs)
+                {
+                    var neighbors = distance.GetNeighborsOfFortification(
+                        fief,
+                        MobileParty.NavigationType.All
+                    );
+
+                    foreach (var n in neighbors)
+                    {
+                        if (n.MapFaction == desiredKingdom.MapFaction)
+                            continue;
+
+                        var faction = n.MapFaction;
+                        if (bordering.Any(b => b.faction == faction))
+                            continue;
+
+                        var center = faction.FactionMidSettlement?.Position;
+                        if (center == null)
+                            continue;
+
+                        var angle = ClockwiseAngleFromNorth(kingdomCenter, center.Value);
+                        var dir = DirectionFromAngle(angle);
+
+                        bordering.Add((faction, angle, dir));
+                    }
+                }
+                string result = string.Join(", ",
+                    bordering
+                        .OrderBy(b => b.angle)
+                        .Select(b => $"{b.faction.Name} ({b.direction})"));
+
+                ActionManager.SendReply(context, result);
+            }
         }
     }   
 }
