@@ -268,6 +268,16 @@ namespace BLTAdoptAHero
                         && !currentlyEquippedItemIds.Contains(o.StringId ?? ""),
                     cultureFilter, cultureFilterSpecified);
 
+                // Try again but with lower tier
+                if (foundItem == null)
+                {
+                    foundItem = FindRandomTieredEquipment(targetTier-1, adoptedHero, classDef?.Mounted == true, flags,
+                    o => filter?.Invoke(o) != false
+                        && !restrictedItemIds.Contains(o.StringId ?? "")
+                        && !currentlyEquippedItemIds.Contains(o.StringId ?? ""),
+                    cultureFilter, cultureFilterSpecified);
+                }
+
                 // If nothing found and we had duplicate restrictions, try again allowing duplicates
                 if (foundItem == null && currentlyEquippedItemIds.Any())
                 {
@@ -275,6 +285,15 @@ namespace BLTAdoptAHero
                         o => filter?.Invoke(o) != false
                             && !restrictedItemIds.Contains(o.StringId ?? ""),
                         cultureFilter, cultureFilterSpecified);
+                }
+
+                // Try one last time without culture filter
+                if (foundItem == null && cultureFilterSpecified == true)
+                {
+                    foundItem = FindRandomTieredEquipment(targetTier, adoptedHero, classDef?.Mounted == true, flags,
+                        o => filter?.Invoke(o) != false
+                            && !restrictedItemIds.Contains(o.StringId ?? ""),
+                        cultureFilter, false);
                 }
 
                 if (foundItem == null)
