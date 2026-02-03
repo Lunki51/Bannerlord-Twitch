@@ -101,14 +101,28 @@ namespace BLTAdoptAHero
             Action<string> onFailure)
         {
             var splitArgs = context.Args.Split(' ');
-            var mode = splitArgs[0];
-            var desiredName = string.Join(" ", splitArgs.Skip(1)).Trim();
+            var desiredName = string.Join(" ", splitArgs).Trim();
 
             CultureObject selectedCulture = null;
+            bool cultureFilterSpecified = false;
+
             if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                selectedCulture = CampaignHelpers.AllCultures
-                    .FirstOrDefault(c => c.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase));
+                // Check if user explicitly specified "null" to filter for items without culture
+                if (desiredName.Equals("null", StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedCulture = null;
+                    cultureFilterSpecified = true;
+                }
+                else
+                {
+                    selectedCulture = CampaignHelpers.AllCultures
+                        .FirstOrDefault(c => c.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase));
+                    if (selectedCulture != null)
+                    {
+                        cultureFilterSpecified = true;
+                    }
+                }
             }
 
             var settings = (Settings)config;
@@ -154,7 +168,15 @@ namespace BLTAdoptAHero
                 onFailure("{=FZh7ZtGp}Character class not found.".Translate());
                 return;
             }
-            UpgradeEquipment(adoptedHero, targetTier, charClass, replaceSameTier: settings.ReequipInsteadOfUpgrade, cultureFilter: selectedCulture);
+
+            // Get restricted items from global config
+            var restrictedItemIds = BLTAdoptAHeroModule.CommonConfig.RestrictedItemIds;
+
+            UpgradeEquipment(adoptedHero, targetTier, charClass,
+                replaceSameTier: settings.ReequipInsteadOfUpgrade,
+                cultureFilter: cultureFilterSpecified ? selectedCulture : null,
+                cultureFilterSpecified: cultureFilterSpecified,
+                restrictedItemIds: restrictedItemIds);
 
             BLTAdoptAHeroCampaignBehavior.Current.SetEquipmentTier(adoptedHero, targetTier);
             BLTAdoptAHeroCampaignBehavior.Current.SetEquipmentClass(adoptedHero, charClass);
@@ -205,9 +227,18 @@ namespace BLTAdoptAHero
             || o.Type == ItemObject.ItemTypeEnum.Crossbow && hero?.CharacterObject?.GetPerkValue(DefaultPerks.Crossbow.MountedCrossbowman) == true
             ;
 
-        public static void UpgradeEquipment(Hero adoptedHero, int targetTier, HeroClassDef classDef, bool replaceSameTier, CultureObject cultureFilter = null, Func<EquipmentElement, bool> customKeepFilter = null)
+        public static void UpgradeEquipment(Hero adoptedHero, int targetTier, HeroClassDef classDef, bool replaceSameTier, CultureObject cultureFilter = null, bool cultureFilterSpecified = false, Func<EquipmentElement, bool> customKeepFilter = null, HashSet<string> restrictedItemIds = null)
         {
             customKeepFilter ??= _ => true;
+            restrictedItemIds ??= new HashSet<string>();
+
+            // Collect currently equipped item StringIds to avoid duplicates
+            var currentlyEquippedItemIds = new HashSet<string>(
+                adoptedHero.BattleEquipment.YieldFilledEquipmentSlots()
+                    .Select(e => e.element.Item?.StringId)
+                    .Where(id => !string.IsNullOrEmpty(id)),
+                StringComparer.OrdinalIgnoreCase
+            );
 
             // Take existing equipment and the heroes custom items, so we can (re)use them if appropriate
             var availableItems =
@@ -218,6 +249,8 @@ namespace BLTAdoptAHero
                     // Can always use custom items
                     .Where(e => classDef?.Mounted != true || IsItemUsableMounted(adoptedHero, e.Item)))
                     .Where(customKeepFilter)
+                    // Filter out restricted items
+                    .Where(e => !restrictedItemIds.Contains(e.Item?.StringId ?? ""))
                 .ToList();
 
             // These functions select new equipment, preferring to use the availableItems list above, then
@@ -227,9 +260,26 @@ namespace BLTAdoptAHero
                 var oldEquipment = availableItems.FirstOrDefault(i => filter?.Invoke(i.Item) != false);
                 if (!oldEquipment.IsEmpty)
                     return oldEquipment;
-                var foundItem = FindRandomTieredEquipment(targetTier, adoptedHero, classDef?.Mounted == true, flags, o => filter?.Invoke(o) != false, cultureFilter);
+
+                // Try first without allowing duplicates
+                var foundItem = FindRandomTieredEquipment(targetTier, adoptedHero, classDef?.Mounted == true, flags,
+                    o => filter?.Invoke(o) != false
+                        && !restrictedItemIds.Contains(o.StringId ?? "")
+                        && !currentlyEquippedItemIds.Contains(o.StringId ?? ""),
+                    cultureFilter, cultureFilterSpecified);
+
+                // If nothing found and we had duplicate restrictions, try again allowing duplicates
+                if (foundItem == null && currentlyEquippedItemIds.Any())
+                {
+                    foundItem = FindRandomTieredEquipment(targetTier, adoptedHero, classDef?.Mounted == true, flags,
+                        o => filter?.Invoke(o) != false
+                            && !restrictedItemIds.Contains(o.StringId ?? ""),
+                        cultureFilter, cultureFilterSpecified);
+                }
+
                 if (foundItem == null)
                     return default;
+
                 return new(foundItem);
             }
 
@@ -365,7 +415,7 @@ namespace BLTAdoptAHero
                 }
             }
 
-            UpgradeCivilian(adoptedHero, targetTier, replaceSameTier);
+            UpgradeCivilian(adoptedHero, targetTier, replaceSameTier, cultureFilter, cultureFilterSpecified, restrictedItemIds);
         }
 
         public static bool HeroShouldUseHorse(Hero adoptedHero, HeroClassDef classDef)
@@ -391,8 +441,10 @@ namespace BLTAdoptAHero
         public static bool WeaponRequires(ItemObject w, ItemObject.ItemUsageSetFlags flag)
             => w.PrimaryWeapon?.ItemUsage != null && MBItem.GetItemUsageSetFlags(w.PrimaryWeapon.ItemUsage).HasFlag(flag);
 
-        private static void UpgradeCivilian(Hero adoptedHero, int targetTier, bool replaceSameTier)
+        private static void UpgradeCivilian(Hero adoptedHero, int targetTier, bool replaceSameTier, CultureObject cultureFilter = null, bool cultureFilterSpecified = false, HashSet<string> restrictedItemIds = null)
         {
+            restrictedItemIds ??= new HashSet<string>();
+
             void UpgradeItemInSlot(EquipmentIndex equipmentIndex, ItemObject.ItemTypeEnum itemType,
                 Equipment equipment, Hero hero, Func<ItemObject, bool> filter = null)
             {
@@ -413,7 +465,10 @@ namespace BLTAdoptAHero
                     var item = FindRandomTieredEquipment(targetTier, hero,
                         false, // never mounted in civilian clothes
                         FindFlags.None, o
-                        => o.ItemType == itemType && filter?.Invoke(o) != false);
+                        => o.ItemType == itemType
+                            && filter?.Invoke(o) != false
+                            && !restrictedItemIds.Contains(o.StringId ?? ""),
+                        cultureFilter, cultureFilterSpecified);
                     if (item != null)
                     {
                         equipment[equipmentIndex] = new(item);
@@ -459,26 +514,41 @@ namespace BLTAdoptAHero
             HeroIsMounted = 1 << 3,
         }
 
-        public static ItemObject FindRandomTieredEquipment(int tier, Hero hero, bool mustBeUsableMounted, FindFlags flags = FindFlags.None, Func<ItemObject, bool> filter = null, CultureObject cultureFilter = null)
+        public static ItemObject FindRandomTieredEquipment(int tier, Hero hero, bool mustBeUsableMounted, FindFlags flags = FindFlags.None, Func<ItemObject, bool> filter = null, CultureObject cultureFilter = null, bool cultureFilterSpecified = false)
         {
             var items = CampaignHelpers.AllItems
-        .Where(item =>
-            (!item.NotMerchandise || flags.HasFlag(FindFlags.AllowNonMerchandise)) &&
-            CanUseItem(hero, item, flags.HasFlag(FindFlags.IgnoreAbility), mustBeUsableMounted) &&
-            (filter?.Invoke(item) != false) &&
-            (cultureFilter == null || item.Culture == cultureFilter) // apply culture filter only if specified
-        )
-        .ToList();
+                .Where(item =>
+                    (!item.NotMerchandise || flags.HasFlag(FindFlags.AllowNonMerchandise)) &&
+                    CanUseItem(hero, item, flags.HasFlag(FindFlags.IgnoreAbility), mustBeUsableMounted) &&
+                    (filter?.Invoke(item) != false) &&
+                    // Apply culture filter logic:
+                    // - If cultureFilterSpecified is true and cultureFilter is null: only items with null culture
+                    // - If cultureFilterSpecified is true and cultureFilter is not null: only items matching that culture
+                    // - If cultureFilterSpecified is false: any culture (no filter)
+                    (!cultureFilterSpecified || item.Culture == cultureFilter)
+                )
+                .ToList();
 
-    if (flags.HasFlag(FindFlags.RequireExactTier))
-    {
-        return items.Where(item => (int)item.Tier == tier).SelectRandom();
-    }
-    else
-    {
-        return SelectRandomItemNearestTier(items, tier);
-    }
-}
+            // If culture filter is specified, find the highest tier available within that culture
+            if (cultureFilterSpecified)
+            {
+                // Group by tier and get the highest tier available
+                var tieredItems = items.GroupBy(item => (int)item.Tier)
+                    .OrderByDescending(g => g.Key)
+                    .ToList();
+
+                // Return a random item from the highest tier group
+                return tieredItems.FirstOrDefault()?.SelectRandom();
+            }
+            else if (flags.HasFlag(FindFlags.RequireExactTier))
+            {
+                return items.Where(item => (int)item.Tier == tier).SelectRandom();
+            }
+            else
+            {
+                return SelectRandomItemNearestTier(items, tier);
+            }
+        }
 
         public static ItemObject SelectRandomItemNearestTier(IEnumerable<ItemObject> items, int tier)
         {

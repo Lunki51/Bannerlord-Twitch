@@ -71,7 +71,7 @@ namespace BLTAdoptAHero
             if (agent == null && !MissionHelpers.InTournament())
             {
 
-                string battlestring = "Troops(P|E):" + (isDefend ? $"{defendCount}|{attackCount}" : $"{attackCount}|{defendCount}");
+                string battlestring = "Troops(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
 
@@ -207,7 +207,7 @@ namespace BLTAdoptAHero
 
             string message = "";
             if (!MissionHelpers.InTournament())
-                message += "Troops(P|E):" + (isDefend ? $"{defendCount}|{attackCount} - " : $"{attackCount}|{defendCount} - ");
+                message += "Troops(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
             message +=
                 $"Class: {adoptedHero.GetClass()?.Name.ToString() ?? "No class"}\n" +
                 $"- HP: {(int)agent.Health}/{(int)agent.HealthLimit}\n";
