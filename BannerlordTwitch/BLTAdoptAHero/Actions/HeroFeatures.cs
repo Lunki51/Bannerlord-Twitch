@@ -80,7 +80,7 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Race", "{=RaceSettings}Race Settings"),
              LocDescription("{=Desc123}List of race IDs that are forbidden. Usage: 0,1,2"),
              PropertyOrder(9)]
-            public int[] ForbiddenRaces { get; set; } = new int[] { };
+            public string ForbiddenRaces { get; set; } = "";
 
             //[locdisplayname("{=testing}allow viewer marriage"),
             // loccategory("marriage", "{=testing}marriage"),
@@ -514,21 +514,28 @@ namespace BLTAdoptAHero.Actions
                     }
                 case "race":
                     {
+                        var forbiddenRaces = settings.ForbiddenRaces
+                            .Split(',')
+                            .Select(s => s.Trim())
+                            .Where(s => int.TryParse(s, out _))
+                            .Select(int.Parse)
+                            .ToHashSet();
+
                         var validRaces = Enumerable.Range(0, 32)
                             .Select(r => (RaceId: r, Monster: TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(r)))
-                            .Where(x => x.Monster != null && !settings.ForbiddenRaces.Contains(x.RaceId))
+                            .Where(x => x.Monster != null && !forbiddenRaces.Contains(x.RaceId))
                             .ToList();
 
                         if (splitArgs.Length < 2 || !int.TryParse(splitArgs[1], out int race) || !validRaces.Any(x => x.RaceId == race))
                         {
-                            string list = string.Join(", ", validRaces.Select(x => $"{x.RaceId} ({x.Monster.BaseMonster})"));
+                            string list = string.Join(", ", validRaces.Select(x => $"{x.RaceId} ({x.Monster.Id})"));
                             onFailure($"Valid races: {list}");
                             return;
                         }
 
                         BodyProperties newBody = adoptedHero.CharacterObject.GetBodyPropertiesMin();
                         adoptedHero.CharacterObject.UpdatePlayerCharacterBodyProperties(newBody, race, adoptedHero.IsFemale);
-                        onSuccess($"Hero race set to {race} ({TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(race)?.BaseMonster})");
+                        onSuccess($"Hero race set to {race} ({TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(race)?.Id})");
                         return;
                     }
                 default:
