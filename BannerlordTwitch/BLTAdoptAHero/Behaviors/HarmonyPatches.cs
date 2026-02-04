@@ -161,9 +161,10 @@ namespace BLTAdoptAHero
     {
         [HarmonyPrefix]
         [HarmonyPatch("ApplyByJoinToKingdom")]
-        private static bool Prefix_ApplyByJoinToKingdom(Clan clan)
+        private static bool Prefix_ApplyByJoinToKingdom(Clan clan, Kingdom newKingdom)
         {
-            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
+            if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal") || (clan?.Leader != null && !clan.Leader.IsAdopted() && newKingdom.Leader.IsAdopted())
+                && !AdoptedHeroFlags._allowKingdomMove)
             {
                 try
                 {
@@ -179,9 +180,10 @@ namespace BLTAdoptAHero
 
         [HarmonyPrefix]
         [HarmonyPatch("ApplyByJoinToKingdomByDefection")]
-        private static bool Prefix_ApplyByJoinToKingdomByDefection(Clan clan)
+        private static bool Prefix_ApplyByJoinToKingdomByDefection(Clan clan, Kingdom newKingdom)
         {
-            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
+            if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal") || (clan?.Leader != null && !clan.Leader.IsAdopted() && newKingdom.Leader.IsAdopted())
+                && !AdoptedHeroFlags._allowKingdomMove)
             {
                 try
                 {
