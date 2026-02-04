@@ -535,6 +535,7 @@ namespace BLTAdoptAHero
 
         public static ItemObject FindRandomTieredEquipment(int tier, Hero hero, bool mustBeUsableMounted, FindFlags flags = FindFlags.None, Func<ItemObject, bool> filter = null, CultureObject cultureFilter = null, bool cultureFilterSpecified = false)
         {
+            var restrictedItemIds = BLTAdoptAHeroModule.CommonConfig.RestrictedItemIds;
             var items = CampaignHelpers.AllItems
                 .Where(item =>
                     (!item.NotMerchandise || flags.HasFlag(FindFlags.AllowNonMerchandise)) &&
@@ -552,7 +553,8 @@ namespace BLTAdoptAHero
             if (cultureFilterSpecified)
             {
                 // Group by tier and get the highest tier available
-                var tieredItems = items.GroupBy(item => (int)item.Tier)
+                var tieredItems = items.Where(i => !restrictedItemIds.Contains(i.StringId ?? ""))
+                    .GroupBy(item => (int)item.Tier)                   
                     .OrderByDescending(g => g.Key)
                     .ToList();
 
@@ -561,7 +563,7 @@ namespace BLTAdoptAHero
             }
             else if (flags.HasFlag(FindFlags.RequireExactTier))
             {
-                return items.Where(item => (int)item.Tier == tier).SelectRandom();
+                return items.Where(item => (int)item.Tier == tier && !restrictedItemIds.Contains(item.StringId ?? "")).SelectRandom();
             }
             else
             {
@@ -571,9 +573,10 @@ namespace BLTAdoptAHero
 
         public static ItemObject SelectRandomItemNearestTier(IEnumerable<ItemObject> items, int tier)
         {
+            var restrictedItemIds = BLTAdoptAHeroModule.CommonConfig.RestrictedItemIds;
             // This should order the tier groups to be
             // (closest tier below the desired one), (closest tier above the desired one), etc...
-            var tieredItems = items.GroupBy(item => (int)item.Tier)
+            var tieredItems = items.Where(i => !restrictedItemIds.Contains(i.StringId ?? "")).GroupBy(item => (int)item.Tier)
                 .OrderBy(t => 100 * Math.Abs(tier - t.Key) + t.Key)
                 .ToList();
 

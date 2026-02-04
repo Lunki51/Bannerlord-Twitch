@@ -29,7 +29,7 @@ namespace BannerlordTwitch
         [DllImport("user32.dll")]
         private static extern int SetWindowText(IntPtr hWnd, string text);
 
-        private const string ExpectedVersion = "v1.3.14";
+        private const string ExpectedVersion = "v1.3.13";
 
         static BLTModule()
         {
@@ -40,7 +40,7 @@ namespace BannerlordTwitch
                         ("ExpectedVersion", ExpectedVersion),
                         ("GameVersion", GameVersion.GameVersionString)),
                     "{=Oru6b9Cy}Bannerlord Twitch ERROR".Translate());
-                Application.Current.Shutdown(1);
+                //Application.Current.Shutdown(1);
             }
 
             // Set a consistent Window title so streaming software can find it
