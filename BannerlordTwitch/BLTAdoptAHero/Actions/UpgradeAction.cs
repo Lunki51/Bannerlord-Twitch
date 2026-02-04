@@ -729,6 +729,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             var upgrades = UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
+            //upgrades = clan.IsUnderMercenaryService ? upgrades.RemoveAll(up => up == ClanUpgrade) : upgrades;
             var sb = new StringBuilder();
             sb.AppendLine($"=== {clan.Name} Upgrades ===");
 

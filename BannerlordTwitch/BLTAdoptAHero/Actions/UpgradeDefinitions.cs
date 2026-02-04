@@ -362,40 +362,46 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(3), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
 
+        [LocDisplayName("{=BLT_LordOnly}Lord Only Upgrade"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription("{=BLT_LordOnlyDesc}Makes this upgrade only apply when the clan isnt a mercenary"),
+         PropertyOrder(4), UsedImplicitly, DefaultValue(false)]
+        public bool LordOnly { get; set; } = false;
+
         [LocDisplayName("{=BLT_MercOnly}Mercenary Only Upgrade"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_MercOnlyDesc}Makes this upgrade only apply when the clan is a mercenary"),
-         PropertyOrder(4), UsedImplicitly, DefaultValue(false)]
+         PropertyOrder(5), UsedImplicitly, DefaultValue(false)]
         public bool MercOnly { get; set; } = false;
 
         [LocDisplayName("{=BLT_MercFlat}Merc Income (Flat)"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_MercFlatDesc}Flat daily gold bonus from clan's mercenary contract"),
-         PropertyOrder(5), UsedImplicitly, DefaultValue(0)]
+         PropertyOrder(6), UsedImplicitly, DefaultValue(0)]
         public int MercIncomeFlat { get; set; } = 0;
 
         [LocDisplayName("{=BLT_MercPercent}Merc Income (Percent)"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_MercPercentDesc}Percent daily gold bonus from clan's mercenary contract"),
-         PropertyOrder(6), UsedImplicitly, DefaultValue(0)]
+         PropertyOrder(7), UsedImplicitly, DefaultValue(0)]
         public float MercIncomePercent { get; set; } = 0;
 
         [LocDisplayName("{=BLT_PartyAmountBonus}Max Parties Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_PartyAmountBonusDesc}Increases the maximum amount of parties the upgraded clan can have at once"),
-         PropertyOrder(7), UsedImplicitly, DefaultValue(0)]
+         PropertyOrder(8), UsedImplicitly, DefaultValue(0)]
         public int PartyAmountBonus { get; set; } = 0;
 
         [LocDisplayName("{=BLT_MaxVassalsBonus}Max Vassals Bonus"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_MaxVassalsBonusDesc}Increases the maximum amount of vassal clans the upgraded clan can have"),
-         PropertyOrder(8), UsedImplicitly, DefaultValue(0)]
+         PropertyOrder(9), UsedImplicitly, DefaultValue(0)]
         public int MaxVassalsBonus { get; set; } = 0;
 
         [LocDisplayName("{=BLT_ApplyToVassals}Apply to Vassals (Under Development)"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
          LocDescription("{=BLT_ApplyToVassalsDesc}(CURRENTLY DISABLED) Makes this upgrade apply to ALL vassal clans of the upgraded clan (Does not affect upgraded clan itself)"),
-         PropertyOrder(9), UsedImplicitly, DefaultValue(false)]
+         PropertyOrder(10), UsedImplicitly, DefaultValue(false)]
         public bool ApplyToVassals { get; set; } = false;
 
         // Settlement effects (applied to all clan settlements)
@@ -547,6 +553,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             string desc = base.GetFullDescription();
             desc += "\n\nClan Effects:";
 
+            if (LordOnly) desc += $"\n  Lord Only: {LordOnly}";
             if (MercOnly) desc += $"\n  Mercenary Only: {MercOnly}";
             if (ApplyToVassals) desc += $"\n  Apply to (only) Vassals: {ApplyToVassals}";
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day";

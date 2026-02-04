@@ -250,6 +250,7 @@ namespace BLTAdoptAHero
             {
                 var upgrade = ConfigSafe?.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
                 if (upgrade == null) continue;
+                if ((upgrade.LordOnly && clan.IsUnderMercenaryService) || (upgrade.MercOnly && !clan.IsUnderMercenaryService)) continue;
 
                 // Check if this upgrade buffs the spawning upgrade
                 if (upgrade.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
@@ -324,8 +325,8 @@ namespace BLTAdoptAHero
                     var upgrade = ConfigSafe.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
                     if (upgrade == null || upgrade.DailyTroopSpawnAmount <= 0) continue;
 
-                    // Check mercenary restriction
-                    if (upgrade.MercOnly && !clan.IsUnderMercenaryService) continue;
+                    // Lord/Merc restrictions
+                    if ((upgrade.LordOnly && clan.IsUnderMercenaryService) || (upgrade.MercOnly && !clan.IsUnderMercenaryService)) continue;
 
                     string accumulationKey = $"{clan.StringId}:{upgradeId}";
 
@@ -375,6 +376,8 @@ namespace BLTAdoptAHero
                 var culture = clan.Culture;
                 if (culture == null) return;
 
+                if ((upgrade.LordOnly && clan.IsUnderMercenaryService) || (upgrade.MercOnly && !clan.IsUnderMercenaryService)) return;
+
                 // Get effective tier (including buffs)
                 int effectiveTier = GetEffectiveTroopTier(clan, upgrade);
 
@@ -420,10 +423,11 @@ namespace BLTAdoptAHero
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null)
                 {
+                    bool lordAllow = !up.LordOnly || (up.LordOnly && !clan.IsUnderMercenaryService);
                     bool mercAllow = !up.MercOnly || (up.MercOnly && clan.IsUnderMercenaryService);
                     bool vassalAllow = !up.ApplyToVassals || (up.ApplyToVassals && applyToVassalsOnly);
 
-                    if (mercAllow && vassalAllow)
+                    if (lordAllow && mercAllow && vassalAllow)
                     {
                         sum += selector(up);
                     }
@@ -495,10 +499,11 @@ namespace BLTAdoptAHero
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up != null)
                 {
+                    bool lordAllow = !up.LordOnly || (up.LordOnly && !clan.IsUnderMercenaryService);
                     bool mercAllow = !up.MercOnly || (up.MercOnly && clan.IsUnderMercenaryService);
                     bool vassalAllow = !up.ApplyToVassals || (up.ApplyToVassals && applyToVassalsOnly);
 
-                    if (mercAllow && vassalAllow)
+                    if (lordAllow && mercAllow && vassalAllow)
                     {
                         sum += selector(up);
                     }
