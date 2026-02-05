@@ -115,7 +115,7 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            var desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+            var desiredKingdom = Kingdom.All.Where(k=> !k.IsEliminated).FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
 
             if (desiredKingdom == null)
@@ -235,7 +235,7 @@ namespace BLTAdoptAHero
             }
             else if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
@@ -295,7 +295,7 @@ namespace BLTAdoptAHero
             }
             else if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
             }
 
@@ -425,7 +425,7 @@ namespace BLTAdoptAHero
             }
             else if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
                 c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Kingdom.All.FirstOrDefault(c =>
                 c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
             }
@@ -556,7 +556,7 @@ namespace BLTAdoptAHero
             }
             else if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                desiredKingdom = Kingdom.All.FirstOrDefault(c =>
+                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
                     c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Kingdom.All.FirstOrDefault(c =>
                     c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
             }
