@@ -100,6 +100,10 @@ namespace BLTAdoptAHero
                 case "map":
                     ShowMap(desiredName, context);
                     break;
+                case "time":
+                case "date":
+                    ShowTime(context);
+                    break;
                 default:
                     ActionManager.SendReply(context,
                         "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), fiefs (kingdom), clan (clan), clans (kingdom), vassals (clan))".Translate());
@@ -580,16 +584,20 @@ namespace BLTAdoptAHero
                         if (clan.Fiefs.Count > 0)
                             noble.Append($", 🏰{clan.Fiefs.Count}) - ");
                         else noble.Append(") - ");
+                        nobleCount++;
                     }
                     else
                     {
                         merc.Append($"{clan.Name}(💪{(int)clan.CurrentTotalStrength}) - ");
+                        mercCount++;
                     }
                 }
                 if (merc.Length == 0)
                     merc.Append(" None");
+                string nobleS = noble.ToString().TrimEnd(' ', '-');
+                string mercS = merc.ToString().TrimEnd(' ', '-');
 
-                string clansString = $"Nobles({nobleCount}):{noble} | Mercs({mercCount}):{merc}";
+                string clansString = $"Nobles({nobleCount}):{nobleS} | Mercs({mercCount}):{mercS}";
                 ActionManager.SendReply(context, clansString);
                 return;
             }
@@ -743,6 +751,19 @@ namespace BLTAdoptAHero
 
                 ActionManager.SendReply(context, result);
             }
+        }
+
+        private void ShowTime(ReplyContext context)
+        {
+            CampaignTime date = CampaignTime.Now;
+            int days = (int)CampaignTime.Zero.ElapsedDaysUntilNow;
+            int years = CampaignTime.Now.GetYear;
+            int yearSize = CampaignTime.DaysInYear;
+
+            string result = $"Date: {date} | Days {days} since start | Year {years} ({yearSize} days/year)";
+
+            ActionManager.SendReply(context, result);
+
         }
     }   
 }
