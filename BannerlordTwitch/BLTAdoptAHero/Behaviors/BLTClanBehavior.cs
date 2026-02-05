@@ -208,6 +208,7 @@ namespace BLTAdoptAHero
                 }
             }
 
+            // Equipment
             public void RegisterEvents()
             {
                 CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, EquipBLTChildren);
