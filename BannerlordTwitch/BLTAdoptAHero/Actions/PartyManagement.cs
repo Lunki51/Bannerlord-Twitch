@@ -477,11 +477,6 @@ namespace BLTAdoptAHero.Actions
                             onFailure("{=LVFh1Pd5}Your hero is not leading a party".Translate());
                             return;
                         }
-                        if (party.Army != null && party.Army.LeaderParty != adoptedHero.PartyBelongedTo)
-                        {
-                            onFailure("Already in an army!");
-                            return;
-                        }
                         if (party.MapEvent != null)
                         {
                             onFailure("Your party is busy.");
@@ -533,6 +528,11 @@ namespace BLTAdoptAHero.Actions
                                         onFailure("Cannot leave own army");
                                         return;
                                     }
+                                    if (army != null && army.LeaderParty == MobileParty.MainParty)
+                                    {
+                                        onFailure("Cannot leave player army");
+                                        return;
+                                    }
                                     if (party.MapEvent != null)
                                     {
                                         onFailure("Your army is fighting!");
@@ -544,6 +544,10 @@ namespace BLTAdoptAHero.Actions
                                         party.Army = null;
                                         party.AttachedTo = null;
                                         onSuccess($"Your party has left {oldArmy.Name}");
+                                        if (oldArmy.LeaderPartyAndAttachedPartiesCount <= 1 && !oldArmy.IsWaitingForArmyMembers())
+                                        {
+                                            DisbandArmyAction.ApplyByUnknownReason(oldArmy);
+                                        }
                                         return;
                                     }
                                     break;
@@ -553,11 +557,18 @@ namespace BLTAdoptAHero.Actions
                                 return;
                         }
 
+                        if (army != null && army.LeaderParty != party)
+                        {
+                            onFailure("You are not leading the army!");
+                            return;
+                        }
+
                         if (armyType == Army.ArmyTypes.NumberOfArmyTypes)
                         {
                             return;
                         }
 
+                        // Already have army
                         if (army != null && army.LeaderParty == party)
                         {
                             adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;

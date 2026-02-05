@@ -274,21 +274,27 @@ namespace BLTAdoptAHero
             private Equipment GetStandardNobleArmor(Hero hero)
             {
                 // Find noble equipment roster for culture
-                var rosterName = hero.IsFemale ? "noble_fighter_template_lady" : "noble_fighter_template_m";
 
-                var roster = MBObjectManager.Instance.GetObjectTypeList<MBEquipmentRoster>()
-                    .FirstOrDefault(r =>
+                var rosters = MBObjectManager.Instance.GetObjectTypeList<MBEquipmentRoster>();
+
+                // 1) Try noble templates first
+                var roster = rosters.FirstOrDefault(r =>
+                    r.EquipmentCulture == hero.Culture &&
+                    r.HasEquipmentFlags(EquipmentFlags.IsNobleTemplate) &&
+                    r.HasEquipmentFlags(EquipmentFlags.IsCombatantTemplate));
+
+                // 2) Fallback to combatant if no noble found
+                if (roster == null)
+                {
+                    roster = rosters.FirstOrDefault(r =>
                         r.EquipmentCulture == hero.Culture &&
-                        r.HasEquipmentFlags(EquipmentFlags.IsNobleTemplate) &&
-                        r.HasEquipmentFlags(EquipmentFlags.IsCombatantTemplate) &&
-                        r.HasEquipmentFlags(EquipmentFlags.IsMediumTemplate) &&
-                        !r.HasEquipmentFlags(EquipmentFlags.IsChildEquipmentTemplate));
+                        r.HasEquipmentFlags(EquipmentFlags.IsCombatantTemplate));
+                }
 
                 if (roster?.AllEquipments?.Count > 0)
                 {
                     return roster.AllEquipments[MBRandom.RandomInt(roster.AllEquipments.Count)];
                 }
-
                 return null;
             }
 

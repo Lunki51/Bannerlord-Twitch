@@ -757,10 +757,10 @@ namespace BLTAdoptAHero
         {
             CampaignTime date = CampaignTime.Now;
             int days = (int)CampaignTime.Zero.ElapsedDaysUntilNow;
-            int years = CampaignTime.Now.GetYear;
+            int years = (int)CampaignTime.Zero.ElapsedYearsUntilNow;
             int yearSize = CampaignTime.DaysInYear;
 
-            string result = $"Date: {date} | Days {days} since start | Year {years} ({yearSize} days/year)";
+            string result = $"Date: {date} | {days} days since start | {years} years({yearSize} days/year)";
 
             ActionManager.SendReply(context, result);
 
