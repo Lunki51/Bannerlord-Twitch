@@ -396,9 +396,10 @@ namespace BLTAdoptAHero
                 return true;
             }
         }
+    #endregion
 
-        #region ClanPatches
-        [HarmonyPatch(typeof(Clan))]
+    #region ClanPatches
+    [HarmonyPatch(typeof(Clan))]
         internal static class ClanPatches
         {
             [HarmonyPrefix]
@@ -422,7 +423,7 @@ namespace BLTAdoptAHero
                 return true;
             }
         }
-        [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
         internal class BLTMarriage
         {
             static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
@@ -449,11 +450,28 @@ namespace BLTAdoptAHero
 #endif
             }
         }
-        #endregion
+    [HarmonyPatch(typeof(KillCharacterAction), nameof(KillCharacterAction.ApplyInLabor))]
+        internal class BLTNoPregnancyDeath_Action
+        {
+            static bool Prefix(Hero lostMother, bool showNotification)
+            {
+                if (lostMother.IsAdopted())
+                {
+    #if DEBUG
+                    Log.Trace($"[BLT] Prevented childbirth death for {lostMother?.Name}");
+    #endif
+                    return false;
+                }
+            return true;
+            }
 
-        #region OnShipOwnerChanged
+        }
 
-        [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
+    #endregion
+
+    #region OnShipOwnerChanged
+
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
         static class BLT_Suppress_OnShipOwnerChanged_Exception
         {
             static Exception Finalizer(Exception __exception)
@@ -470,11 +488,11 @@ namespace BLTAdoptAHero
             }
         }
 
-        #endregion
+    #endregion
 
-        #region TownFoodStocks
+    #region TownFoodStocks
 
-        [HarmonyPatch(nameof(DefaultSettlementFoodModel), "FoodStocksUpperLimit")]
+    [HarmonyPatch(nameof(DefaultSettlementFoodModel), "FoodStocksUpperLimit")]
         [HarmonyPatch(MethodType.Getter)]
         internal static class FoodStocksUpperLimitUncap
         {
@@ -505,8 +523,6 @@ namespace BLTAdoptAHero
                 return false;
             }
         }
-    #endregion
-
     #endregion
 
     #region DiplomacyPatches
