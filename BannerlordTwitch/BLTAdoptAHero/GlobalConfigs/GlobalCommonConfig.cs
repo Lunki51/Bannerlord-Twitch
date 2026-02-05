@@ -109,6 +109,12 @@ namespace BLTAdoptAHero
          PropertyOrder(10)]
         public float BLTArmyMinLifetimeDays { get; set; } = 30f;
 
+        [LocDisplayName("{=}Allow ai clans to join BLT kingdoms"),
+         LocCategory("General", "{=C5T6nnix}General"),
+         LocDescription("{=}Ai clans allowed to join BLT kingdoms"),
+         PropertyOrder(10)]
+        public bool AllowAIJoinBLT { get; set; } = true;
+
         [YamlIgnore, Browsable(false)]
         public HashSet<string> RestrictedItemIds
         {
