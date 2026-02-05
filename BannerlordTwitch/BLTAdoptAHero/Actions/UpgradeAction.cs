@@ -744,7 +744,7 @@ namespace BLTAdoptAHero.Actions
                 // Get all upgrade objects
                 var allUpgrades = upgrades
                 .Select(upgradeId => globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId))
-                .Where(upgrade => upgrade != null)
+                .Where(upgrade => upgrade != null && ((upgrade.MercOnly && clan.IsUnderMercenaryService)|| upgrade.LordOnly && !clan.IsUnderMercenaryService))
                 .ToList();
 
                 // Group by base ID (remove trailing digits) and keep only the highest tier
