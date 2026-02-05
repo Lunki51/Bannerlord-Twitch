@@ -457,9 +457,9 @@ namespace BLTAdoptAHero
             {
                 if (lostMother.IsAdopted())
                 {
-    #if DEBUG
+#if DEBUG
                     Log.Trace($"[BLT] Prevented childbirth death for {lostMother?.Name}");
-    #endif
+#endif
                     return false;
                 }
             return true;

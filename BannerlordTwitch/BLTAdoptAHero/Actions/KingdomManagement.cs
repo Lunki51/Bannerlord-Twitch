@@ -1544,7 +1544,6 @@ namespace BLTAdoptAHero.Actions
         {
             if (string.IsNullOrEmpty(input)) return string.Empty;
 
-            // This regex removes anything between < and > (e.g., <a...>, </a>, <b>, </b>)
             return Regex.Replace(input, "<.*?>", string.Empty);
         }
     }

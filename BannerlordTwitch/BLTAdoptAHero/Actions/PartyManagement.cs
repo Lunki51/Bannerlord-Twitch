@@ -542,6 +542,7 @@ namespace BLTAdoptAHero.Actions
                                     {
                                         var oldArmy = army;
                                         party.Army = null;
+                                        party.AttachedTo = null;
                                         onSuccess($"Your party has left {oldArmy.Name}");
                                         return;
                                     }

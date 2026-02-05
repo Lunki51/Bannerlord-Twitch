@@ -192,7 +192,7 @@ namespace BLTAdoptAHero
             if (tribute)
                 sb.Append("{=0GhTvF3K}Tribute: {tribute} | ".Translate(("tribute", tributeList.ToString())));
             if (desiredKingdom.RulingClan.HomeSettlement != null)
-                sb.Append("{=EXKsUpaU}Capital: {capital} | ".Translate(("capital", desiredKingdom.RulingClan.HomeSettlement.Name.ToString())));
+                sb.Append("{=EXKsUpaU}Capital: {capital}  ".Translate(("capital", desiredKingdom.RulingClan.HomeSettlement.Name.ToString())));
             if (desiredKingdom.Armies.Count >= 1)
                 sb.Append($"| Armies: {desiredKingdom.Armies.Count} ");
 
@@ -567,6 +567,8 @@ namespace BLTAdoptAHero
                 List<Clan> clanList = desiredKingdom.Clans.OrderByDescending(c => c.CurrentTotalStrength).ToList();
                 var noble = new StringBuilder();
                 var merc = new StringBuilder();
+                int nobleCount = 0;
+                int mercCount = 0;
 
                 foreach (var clan in clanList)
                 {
@@ -585,9 +587,9 @@ namespace BLTAdoptAHero
                     }
                 }
                 if (merc.Length == 0)
-                    merc.Append("None");
+                    merc.Append(" None");
 
-                string clansString = $"Nobles:{noble} | Mercs:{merc}";
+                string clansString = $"Nobles({nobleCount}):{noble} | Mercs({mercCount}):{merc}";
                 ActionManager.SendReply(context, clansString);
                 return;
             }
