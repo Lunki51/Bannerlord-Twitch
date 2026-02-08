@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
@@ -52,34 +53,327 @@ namespace BLTAdoptAHero
             var element = new EquipmentElement(item, itemModifier);
             bool isCustom = BLTCustomItemsCampaignBehavior.Current.IsRegistered(itemModifier);
 
-            // We always put our custom items into the heroes storage, even if we won't use them right now
+            // Always add custom items to hero's storage
             if (isCustom)
             {
                 BLTAdoptAHeroCampaignBehavior.Current.AddCustomItem(hero, element);
             }
 
+            // If a specific slot was provided, try to equip to that slot only
             if (slot != EquipmentIndex.None)
+            {
+                return AssignToSpecificSlot(hero, element, slot, isCustom);
+            }
+            // If no specific slot, intelligently find and fill all matching slots
+            else
+            {
+                return AssignToAllMatchingSlots(hero, element, isCustom);
+            }
+        }
+
+        private static string AssignToSpecificSlot(Hero hero, EquipmentElement element, EquipmentIndex slot, bool isCustom)
+        {
+            var currentItem = hero.BattleEquipment[slot];
+
+            // If slot is empty or new item is better, equip it
+            if (currentItem.IsEmpty || ShouldReplaceItem(currentItem, element))
             {
                 hero.BattleEquipment[slot] = element;
                 return "{=RczvXuxP}received {ItemName}"
-                           .Translate(("ItemName", RewardHelpers.GetItemNameAndModifiers(element)));
+                    .Translate(("ItemName", GetItemNameAndModifiers(element)));
             }
             else if (!isCustom)
             {
-                // Sell non-custom items
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, item.Value * 5);
+                // Sell non-custom items that aren't good enough
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, element.Item.Value * 5);
                 return "{=bNX0NiQ9}sold {ItemName} for {ItemValue}{GoldIcon} (not needed)"
                     .Translate(
                         ("ItemName", element.GetModifiedItemName()),
-                        ("ItemValue", item.Value),
+                        ("ItemValue", element.Item.Value),
                         ("GoldIcon", Naming.Gold));
             }
             else
             {
+                // Custom item stored but not equipped
                 return "{=RczvXuxP}received {ItemName}"
-                           .Translate(("ItemName", RewardHelpers.GetItemNameAndModifiers(element)))
-                           + " (" + "{=}not equipped".Translate() + ")";
+                    .Translate(("ItemName", GetItemNameAndModifiers(element)))
+                    + " (" + "{=}not equipped".Translate() + ")";
             }
+        }
+
+        private static string AssignToAllMatchingSlots(Hero hero, EquipmentElement element, bool isCustom)
+        {
+            var validSlots = GetValidSlotsForItemType(element.Item);
+            int slotsEquipped = 0;
+            int slotsReplaced = 0;
+
+            foreach (var slot in validSlots)
+            {
+                var currentItem = hero.BattleEquipment[slot];
+
+                // Only equip if slot is empty or new item is better
+                if (currentItem.IsEmpty)
+                {
+                    hero.BattleEquipment[slot] = element;
+                    slotsEquipped++;
+                }
+                else if (currentItem.Item.ItemType == element.Item.ItemType && ShouldReplaceItem(currentItem, element))
+                {
+                    hero.BattleEquipment[slot] = element;
+                    slotsReplaced++;
+                }
+            }
+
+            int totalSlots = slotsEquipped + slotsReplaced;
+
+            if (totalSlots > 0)
+            {
+                string message = "{=RczvXuxP}received {ItemName}".Translate(("ItemName", GetItemNameAndModifiers(element)));
+                if (totalSlots > 1)
+                {
+                    message += $" ({totalSlots} slots)";
+                }
+                return message;
+            }
+            else if (!isCustom)
+            {
+                // Sell non-custom items that couldn't be equipped
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, element.Item.Value * 5);
+                return "{=bNX0NiQ9}sold {ItemName} for {ItemValue}{GoldIcon} (not needed)"
+                    .Translate(
+                        ("ItemName", element.GetModifiedItemName()),
+                        ("ItemValue", element.Item.Value),
+                        ("GoldIcon", Naming.Gold));
+            }
+            else
+            {
+                // Custom item stored but not equipped
+                return "{=RczvXuxP}received {ItemName}"
+                    .Translate(("ItemName", GetItemNameAndModifiers(element)))
+                    + " (" + "{=}not equipped".Translate() + ")";
+            }
+        }
+
+        private static List<EquipmentIndex> GetValidSlotsForItemType(ItemObject item)
+        {
+            var slots = new List<EquipmentIndex>();
+
+            switch (item.ItemType)
+            {
+                case ItemObject.ItemTypeEnum.HeadArmor:
+                    slots.Add(EquipmentIndex.Head);
+                    break;
+
+                case ItemObject.ItemTypeEnum.BodyArmor:
+                    slots.Add(EquipmentIndex.Body);
+                    break;
+
+                case ItemObject.ItemTypeEnum.LegArmor:
+                    slots.Add(EquipmentIndex.Leg);
+                    break;
+
+                case ItemObject.ItemTypeEnum.HandArmor:
+                    slots.Add(EquipmentIndex.Gloves);
+                    break;
+
+                case ItemObject.ItemTypeEnum.Cape:
+                    slots.Add(EquipmentIndex.Cape);
+                    break;
+
+                case ItemObject.ItemTypeEnum.Horse:
+                    slots.Add(EquipmentIndex.Horse);
+                    break;
+
+                case ItemObject.ItemTypeEnum.HorseHarness:
+                    slots.Add(EquipmentIndex.HorseHarness);
+                    break;
+
+                case ItemObject.ItemTypeEnum.Shield:
+                    // Shields can go in weapon slots 1-3
+                    slots.Add(EquipmentIndex.Weapon1);
+                    slots.Add(EquipmentIndex.Weapon2);
+                    slots.Add(EquipmentIndex.Weapon3);
+                    break;
+
+                case ItemObject.ItemTypeEnum.Bow:
+                case ItemObject.ItemTypeEnum.Crossbow:
+                case ItemObject.ItemTypeEnum.OneHandedWeapon:
+                case ItemObject.ItemTypeEnum.TwoHandedWeapon:
+                case ItemObject.ItemTypeEnum.Polearm:
+                case ItemObject.ItemTypeEnum.Thrown:
+                case ItemObject.ItemTypeEnum.Pistol:
+                case ItemObject.ItemTypeEnum.Musket:
+                    // Weapons can go in weapon slots 0-3
+                    slots.Add(EquipmentIndex.Weapon0);
+                    slots.Add(EquipmentIndex.Weapon1);
+                    slots.Add(EquipmentIndex.Weapon2);
+                    slots.Add(EquipmentIndex.Weapon3);
+                    break;
+            }
+
+            return slots;
+        }
+
+        private static bool ShouldReplaceItem(EquipmentElement currentItem, EquipmentElement newItem)
+        {
+            // If items are not the same type, don't replace
+            if (currentItem.Item.ItemType != newItem.Item.ItemType)
+                return false;
+
+            // Don't replace custom items with non-custom items
+            bool currentIsCustom = BLTCustomItemsCampaignBehavior.Current.IsRegistered(currentItem.ItemModifier);
+            bool newIsCustom = BLTCustomItemsCampaignBehavior.Current.IsRegistered(newItem.ItemModifier);
+
+            if (currentIsCustom && !newIsCustom)
+                return false;
+
+            // Compare item effectiveness based on type
+            return GetItemEffectiveness(newItem) > GetItemEffectiveness(currentItem);
+        }
+
+        private static float GetItemEffectiveness(EquipmentElement equipment)
+        {
+            if (equipment.IsEmpty)
+                return 0f;
+
+            var item = equipment.Item;
+
+            switch (item.ItemType)
+            {
+                case ItemObject.ItemTypeEnum.HeadArmor:
+                case ItemObject.ItemTypeEnum.BodyArmor:
+                case ItemObject.ItemTypeEnum.LegArmor:
+                case ItemObject.ItemTypeEnum.HandArmor:
+                case ItemObject.ItemTypeEnum.Cape:
+                case ItemObject.ItemTypeEnum.HorseHarness:
+                    return GetArmorEffectiveness(equipment);
+
+                case ItemObject.ItemTypeEnum.Horse:
+                    return GetHorseEffectiveness(equipment);
+
+                case ItemObject.ItemTypeEnum.Shield:
+                case ItemObject.ItemTypeEnum.Bow:
+                case ItemObject.ItemTypeEnum.Crossbow:
+                case ItemObject.ItemTypeEnum.OneHandedWeapon:
+                case ItemObject.ItemTypeEnum.TwoHandedWeapon:
+                case ItemObject.ItemTypeEnum.Polearm:
+                case ItemObject.ItemTypeEnum.Thrown:
+                case ItemObject.ItemTypeEnum.Pistol:
+                case ItemObject.ItemTypeEnum.Musket:
+                    return GetWeaponEffectiveness(equipment);
+
+                default:
+                    return 0f;
+            }
+        }
+
+        private static float GetArmorEffectiveness(EquipmentElement armor)
+        {
+            if (armor.IsEmpty) return 0f;
+
+            var armorComponent = armor.Item.ArmorComponent;
+            if (armorComponent == null) return 0f;
+
+            float baseArmor = armorComponent.HeadArmor * 0.3f +
+                              armorComponent.BodyArmor * 0.4f +
+                              armorComponent.LegArmor * 0.2f +
+                              armorComponent.ArmArmor * 0.1f;
+
+            // Apply modifier bonus
+            if (armor.ItemModifier != null)
+            {
+                baseArmor += armor.ItemModifier.ModifyArmor(0);
+            }
+
+            return baseArmor;
+        }
+
+        private static float GetHorseEffectiveness(EquipmentElement horse)
+        {
+            if (horse.IsEmpty) return 0f;
+
+            var horseComponent = horse.Item.HorseComponent;
+            if (horseComponent == null) return 0f;
+
+            float baseEffectiveness = horseComponent.Speed * 2f +
+                                      horseComponent.Maneuver * 1.5f +
+                                      horseComponent.ChargeDamage +
+                                      horseComponent.HitPoints * 0.1f;
+
+            // Apply modifier bonuses
+            if (horse.ItemModifier != null)
+            {
+                float speedMod = horse.ItemModifier.ModifyMountSpeed(100) - 100;
+                float chargeMod = horse.ItemModifier.ModifyMountCharge(100) - 100;
+                float hpMod = horse.ItemModifier.ModifyMountHitPoints(100) - 100;
+                float maneuverMod = horse.ItemModifier.ModifyMountManeuver(100) - 100;
+
+                baseEffectiveness *= (1f + (speedMod + chargeMod + hpMod + maneuverMod) / 400f);
+            }
+
+            return baseEffectiveness;
+        }
+
+        private static float GetWeaponEffectiveness(EquipmentElement weapon)
+        {
+            if (weapon.IsEmpty) return 0f;
+
+            var weaponComponent = weapon.Item.WeaponComponent;
+            if (weaponComponent == null) return 0f;
+
+            var primaryWeapon = weaponComponent.PrimaryWeapon;
+
+            // Base damage value
+            float effectiveness = primaryWeapon.ThrustDamage + primaryWeapon.SwingDamage;
+
+            // Apply modifier bonuses for damage
+            if (weapon.ItemModifier != null)
+            {
+                effectiveness += weapon.ItemModifier.ModifyDamage(0);
+            }
+
+            // Factor in weapon handling
+            effectiveness += primaryWeapon.Accuracy * 0.1f;
+
+            float missileSpeed = primaryWeapon.MissileSpeed;
+            if (weapon.ItemModifier != null)
+            {
+                missileSpeed += weapon.ItemModifier.ModifyMissileSpeed(0);
+            }
+            effectiveness += missileSpeed * 0.05f;
+
+            // For shields, prioritize hit points
+            if (weapon.Item.ItemType == ItemObject.ItemTypeEnum.Shield)
+            {
+                float shieldHP = primaryWeapon.MaxDataValue;
+                if (weapon.ItemModifier != null)
+                {
+                    shieldHP += weapon.ItemModifier.ModifyHitPoints(0);
+                }
+                effectiveness = shieldHP * 0.5f;
+            }
+
+            // For throwing weapons, factor in stack amount
+            if (weapon.Item.ItemType == ItemObject.ItemTypeEnum.Thrown)
+            {
+                float stackSize = primaryWeapon.MaxDataValue;
+                if (weapon.ItemModifier != null)
+                {
+                    stackSize += weapon.ItemModifier.ModifyStackCount(0);
+                }
+                effectiveness *= (stackSize / 10f);
+            }
+
+            // For melee weapons, consider swing speed
+            if (weapon.Item.ItemType == ItemObject.ItemTypeEnum.OneHandedWeapon ||
+                weapon.Item.ItemType == ItemObject.ItemTypeEnum.TwoHandedWeapon ||
+                weapon.Item.ItemType == ItemObject.ItemTypeEnum.Polearm)
+            {
+                float speedBonus = weapon.ItemModifier?.ModifySpeed(0) ?? 0;
+                effectiveness *= (1f + speedBonus * 0.01f);
+            }
+
+            return effectiveness;
         }
 
         private static (ItemObject item, ItemModifier modifier, EquipmentIndex slot) GenerateCulturedRewardTypeWeapon(
