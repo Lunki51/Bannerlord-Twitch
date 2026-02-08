@@ -578,7 +578,7 @@ namespace BLTAdoptAHero
 
 #if DEBUG
                         Log.Trace($"[Tribute] {payer.Name} (BLT) → {receiver.Name} (BLT): {amount}/day");
-                        Log.Trace($"  Game Gold: -{gameGoldToTransfer} / +{gameGoldToTransfer}");
+                        //Log.Trace($"  Game Gold: -{gameGoldToTransfer} / +{gameGoldToTransfer}");
                         Log.Trace($"  BLT Gold Available: {payerBLTGold}");
                         Log.Trace($"  BLT Gold Deducted: -{amountToDeduct}");
                         Log.Trace($"  BLT Gold Given: +{amountToGive}");

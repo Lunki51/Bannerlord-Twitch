@@ -33,6 +33,24 @@ namespace BLTAdoptAHero
                 return;
             }
 
+            Mission mission = Mission.Current;
+            bool isDefend = false;
+            int attackCount = 0;
+            int defendCount = 0;
+            if (!MissionHelpers.InTournament())
+            {
+                // Count alive agents by side
+                attackCount = mission.GetMemberCountOfSide(BattleSideEnum.Attacker);
+                defendCount = mission.GetMemberCountOfSide(BattleSideEnum.Defender);
+
+                Team playerTeam = mission.PlayerTeam;
+                Team allyTeam = mission.PlayerAllyTeam;
+                Team enemyTeam = mission.PlayerEnemyTeam;
+                
+                if (playerTeam != null && playerTeam.Side == BattleSideEnum.Defender || (allyTeam != null && allyTeam.Side == BattleSideEnum.Defender))
+                    isDefend = true;
+            }
+
             var missionBehavior = BLTAdoptAHeroCommonMissionBehavior.Current;
             if (missionBehavior == null)
             {
@@ -52,7 +70,10 @@ namespace BLTAdoptAHero
             }
             if (agent == null && !MissionHelpers.InTournament())
             {
-                string battlestring = $"Hero is not currently in battle! ({cd}s)";
+
+                string battlestring = "Troops(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+
+                battlestring += $"Hero is not currently in battle! ({cd}s)";
 
                 if (diedInfo.killer != null)
                 {
@@ -73,8 +94,6 @@ namespace BLTAdoptAHero
             }
 
 
-
-
             static float ActivePowerFraction(Hero hero)
             {
                 var classDef = BLTAdoptAHeroCampaignBehavior.Current?.GetClass(hero);
@@ -89,6 +108,9 @@ namespace BLTAdoptAHero
 
                 return duration > 0 ? remaining / duration : 0f;
             }
+
+            // Active combat
+            bool hasAttacked = (agent.LastMeleeAttackTime < 10f) || (agent.LastRangedAttackTime < 10f) || (agent.LastMeleeHitTime < 10f) || (agent.LastRangedHitTime < 10f);
 
 
             // Mounted info
@@ -183,7 +205,10 @@ namespace BLTAdoptAHero
                 }
             }
 
-            string message =
+            string message = "";
+            if (!MissionHelpers.InTournament())
+                message += "Troops(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+            message +=
                 $"Class: {adoptedHero.GetClass()?.Name.ToString() ?? "No class"}\n" +
                 $"- HP: {(int)agent.Health}/{(int)agent.HealthLimit}\n";
             if (agent.MountAgent != null)
@@ -196,6 +221,8 @@ namespace BLTAdoptAHero
                 $"- Gold: {state.WonGold}\n" +
                 $"- XP: {state.WonXP}\n" +
                 $"- Power: { ActivePowerFraction(adoptedHero) * 100:0}% ";
+            if (hasAttacked)
+                message += $"- Active combat";
 
             onSuccess(message);
         }

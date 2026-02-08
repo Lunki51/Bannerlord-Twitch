@@ -67,41 +67,68 @@ namespace BLTAdoptAHero
          PropertyOrder(3), UsedImplicitly]
         public int CustomItemLimit { get; set; } = 8;
 
+        [LocDisplayName("{=RstrItm}Restricted Items"),
+         LocCategory("General", "{=C5T5nnix}General"),
+         LocDescription("{=RstrItmDesc}Comma-separated list of ItemObject StringIds to exclude from equipment selection in equip, smith, and rewards (e.g., 'battanian_noble_sword,empire_spear_1')"),
+         PropertyOrder(4), UsedImplicitly]
+        public string RestrictedItems { get; set; } = "";
+
         [LocDisplayName("{=}Custom Companion Limit"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Flat number increase to companion limit"),
-         PropertyOrder(4), UsedImplicitly]
+         PropertyOrder(5), UsedImplicitly]
         public int CustomCompanionLimit { get; set; } = 7;
 
         [LocDisplayName("{=}BLT children aging multiplier"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Multiplier to BLT children age"),
-         PropertyOrder(5), UsedImplicitly]
+         PropertyOrder(6), UsedImplicitly]
         public int BLTChildAgeMult { get; set; } = 3;
 
         [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Show Campaign Map Overlay"),
          LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Enable or disable the campaign map overlay that shows in the top portion of the overlay. The map automatically hides during missions."),
         LocCategory("General", "{=C5T6nnix}General"),
-         PropertyOrder(6)]
+         PropertyOrder(7)]
         public bool ShowCampaignMapOverlay { get; set; } = true;
 
         [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Enable or disable the vanilla maximum of 300 foodstocks in towns and castles for all settlements."),
-         PropertyOrder(7)]
+         PropertyOrder(8)]
         public bool UncapFoodStocks { get; set; } = false;
 
         [LocDisplayName("{=}Hearth Per Village Tier"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}How much hearth is required per village prosperity level (affects food and goods production)."),
-         PropertyOrder(8)]
+         PropertyOrder(9)]
         public float HearthPerVillageTier { get; set; } = 200f;
 
         [LocDisplayName("{=}Minimum BLT-Led Army Lifetime"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Minimum days a BLT-Led army will persist before being allowed to disband."),
-         PropertyOrder(9)]
+         PropertyOrder(10)]
         public float BLTArmyMinLifetimeDays { get; set; } = 30f;
+
+        [LocDisplayName("{=}Allow ai clans to join BLT kingdoms"),
+         LocCategory("General", "{=C5T6nnix}General"),
+         LocDescription("{=}Ai clans allowed to join BLT kingdoms"),
+         PropertyOrder(10)]
+        public bool AllowAIJoinBLT { get; set; } = true;
+
+        [YamlIgnore, Browsable(false)]
+        public HashSet<string> RestrictedItemIds
+        {
+            get
+            {
+                return new HashSet<string>(
+                    RestrictedItems
+                        .Split(',')
+                        .Select(s => s.Trim())
+                        .Where(s => !string.IsNullOrWhiteSpace(s)),
+                    StringComparer.OrdinalIgnoreCase
+                );
+            }
+        }
 
         #endregion
 
@@ -203,7 +230,7 @@ namespace BLTAdoptAHero
         [LocDisplayName("{=TESTING}Nametag toggle key"),
                  LocCategory("Battle", "{=9qAD6eZR}Battle"),
                  LocDescription("{=TESTING}Case sensitive"),
-                 PropertyOrder(12),                 
+                 PropertyOrder(12),
                  Document, UsedImplicitly]
         public string NametagKey { get; set; } = "H";
         #endregion
@@ -335,48 +362,48 @@ namespace BLTAdoptAHero
          PropertyOrder(1), UsedImplicitly,
          Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
         public ObservableCollection<FiefUpgrade> FiefUpgrades { get; set; } = new()
-{
-    new FiefUpgrade
-    {
-        ID = "fief_loyalty_1",
-        Name = "Improved Administration",
-        Description = "Better administration increases loyalty growth",
-        GoldCost = 15000,
-        LoyaltyDailyFlat = 0.5f
-    },
-    new FiefUpgrade
-    {
-        ID = "fief_prosperity_1",
-        Name = "Trade Hub",
-        Description = "Attract more merchants to boost prosperity",
-        GoldCost = 20000,
-        ProsperityDailyFlat = 1.0f
-    },
-    new FiefUpgrade
-    {
-        ID = "fief_security_1",
-        Name = "Guard Posts",
-        Description = "Additional guard posts improve security",
-        GoldCost = 12000,
-        SecurityDailyFlat = 0.5f
-    },
-    new FiefUpgrade
-    {
-        ID = "fief_militia_1",
-        Name = "Militia Training",
-        Description = "Train civilians as militia",
-        GoldCost = 10000,
-        MilitiaDailyFlat = 2.0f
-    },
-    new FiefUpgrade
-    {
-        ID = "fief_food_1",
-        Name = "Granary Expansion",
-        Description = "Larger granaries store more food",
-        GoldCost = 8000,
-        FoodDailyFlat = 5.0f
-    }
-};
+        {
+            new FiefUpgrade
+            {
+                ID = "fief_loyalty_1",
+                Name = "Improved Administration",
+                Description = "Better administration increases loyalty growth",
+                GoldCost = 15000,
+                LoyaltyDailyFlat = 0.5f
+            },
+            new FiefUpgrade
+            {
+                ID = "fief_prosperity_1",
+                Name = "Trade Hub",
+                Description = "Attract more merchants to boost prosperity",
+                GoldCost = 20000,
+                ProsperityDailyFlat = 1.0f
+            },
+            new FiefUpgrade
+            {
+                ID = "fief_security_1",
+                Name = "Guard Posts",
+                Description = "Additional guard posts improve security",
+                GoldCost = 12000,
+                SecurityDailyFlat = 0.5f
+            },
+            new FiefUpgrade
+            {
+                ID = "fief_militia_1",
+                Name = "Militia Training",
+                Description = "Train civilians as militia",
+                GoldCost = 10000,
+                MilitiaDailyFlat = 2.0f
+            },
+            new FiefUpgrade
+            {
+                ID = "fief_food_1",
+                Name = "Granary Expansion",
+                Description = "Larger granaries store more food",
+                GoldCost = 8000,
+                FoodDailyFlat = 5.0f
+            }
+        };
 
         [LocDisplayName("{=BLT_ClanUpgrades}Clan Upgrades"),
          LocCategory("Upgrades", "{=BLT_Upgrades}Upgrades"),
@@ -384,33 +411,33 @@ namespace BLTAdoptAHero
          PropertyOrder(2), UsedImplicitly,
          Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
         public ObservableCollection<ClanUpgrade> ClanUpgrades { get; set; } = new()
-{
-    new ClanUpgrade
-    {
-        ID = "clan_renown_1",
-        Name = "Clan Prestige",
-        Description = "Increase your clan's fame across the land",
-        GoldCost = 30000,
-        RenownDaily = 1.0f
-    },
-    new ClanUpgrade
-    {
-        ID = "clan_party_1",
-        Name = "Recruitment Drive",
-        Description = "Allow larger party sizes for all clan members",
-        GoldCost = 40000,
-        PartySizeBonus = 20
-    },
-    new ClanUpgrade
-    {
-        ID = "clan_settlements_1",
-        Name = "Clan Development",
-        Description = "Improve loyalty and prosperity in all clan settlements",
-        GoldCost = 50000,
-        LoyaltyDailyFlat = 0.3f,
-        ProsperityDailyFlat = 0.5f
-    }
-};
+        {
+            new ClanUpgrade
+            {
+                ID = "clan_renown_1",
+                Name = "Clan Prestige",
+                Description = "Increase your clan's fame across the land",
+                GoldCost = 30000,
+                RenownDaily = 1.0f
+            },
+            new ClanUpgrade
+            {
+                ID = "clan_party_1",
+                Name = "Recruitment Drive",
+                Description = "Allow larger party sizes for all clan members",
+                GoldCost = 40000,
+                PartySizeBonus = 20
+            },
+            new ClanUpgrade
+            {
+                ID = "clan_settlements_1",
+                Name = "Clan Development",
+                Description = "Improve loyalty and prosperity in all clan settlements",
+                GoldCost = 50000,
+                LoyaltyDailyFlat = 0.3f,
+                ProsperityDailyFlat = 0.5f
+            }
+        };
 
         [LocDisplayName("{=BLT_KingdomUpgrades}Kingdom Upgrades"),
          LocCategory("Upgrades", "{=BLT_Upgrades}Upgrades"),
@@ -418,37 +445,37 @@ namespace BLTAdoptAHero
          PropertyOrder(3), UsedImplicitly,
          Editor(typeof(DefaultCollectionEditor), typeof(DefaultCollectionEditor))]
         public ObservableCollection<KingdomUpgrade> KingdomUpgrades { get; set; } = new()
-{
-    new KingdomUpgrade
-    {
-        ID = "kingdom_influence_1",
-        Name = "Royal Authority",
-        Description = "Strengthen the ruler's influence",
-        GoldCost = 100000,
-        InfluenceCost = 500,
-        InfluenceDaily = 2.0f
-    },
-    new KingdomUpgrade
-    {
-        ID = "kingdom_military_1",
-        Name = "Kingdom Military Reform",
-        Description = "Increase party sizes and militia across the kingdom",
-        GoldCost = 150000,
-        InfluenceCost = 1000,
-        PartySizeBonus = 15,
-        MilitiaDailyFlat = 1.0f
-    },
-    new KingdomUpgrade
-    {
-        ID = "kingdom_prosperity_1",
-        Name = "Kingdom Prosperity Initiative",
-        Description = "Boost prosperity and loyalty in all kingdom settlements",
-        GoldCost = 200000,
-        InfluenceCost = 1500,
-        LoyaltyDailyFlat = 0.2f,
-        ProsperityDailyFlat = 0.5f
-    }
-};
+        {
+            new KingdomUpgrade
+            {
+                ID = "kingdom_influence_1",
+                Name = "Royal Authority",
+                Description = "Strengthen the ruler's influence",
+                GoldCost = 100000,
+                InfluenceCost = 500,
+                InfluenceDaily = 2.0f
+            },
+            new KingdomUpgrade
+            {
+                ID = "kingdom_military_1",
+                Name = "Kingdom Military Reform",
+                Description = "Increase party sizes and militia across the kingdom",
+                GoldCost = 150000,
+                InfluenceCost = 1000,
+                PartySizeBonus = 15,
+                MilitiaDailyFlat = 1.0f
+            },
+            new KingdomUpgrade
+            {
+                ID = "kingdom_prosperity_1",
+                Name = "Kingdom Prosperity Initiative",
+                Description = "Boost prosperity and loyalty in all kingdom settlements",
+                GoldCost = 200000,
+                InfluenceCost = 1500,
+                LoyaltyDailyFlat = 0.2f,
+                ProsperityDailyFlat = 0.5f
+            }
+        };
         #endregion
 
         #region XP
@@ -748,7 +775,7 @@ namespace BLTAdoptAHero
                                         {
                                             generator.P(
                                                 "power-title",
-                                                a.PassivePowerReward.Name.ToString()+ ":"
+                                                a.PassivePowerReward.Name.ToString() + ":"
                                             );
 
                                             foreach (var power in a.PassivePowerReward.Powers)
