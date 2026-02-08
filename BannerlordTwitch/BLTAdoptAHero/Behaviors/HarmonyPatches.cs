@@ -26,7 +26,8 @@ namespace BLTAdoptAHero
     {
         public static bool _allowKingdomMove = false;
         public static bool _allowDiplomacyAction = false;
-        public static bool _allowMarriage = false;
+        //public static bool _allowMarriage = false;
+        public static bool _allowAIjoinBLT = GlobalCommonConfig.Get().AllowAIJoinBLT;
     }
 
     #region FactionDiscontinuationCampaignBehavior
@@ -161,17 +162,34 @@ namespace BLTAdoptAHero
     {
         [HarmonyPrefix]
         [HarmonyPatch("ApplyByJoinToKingdom")]
-        private static bool Prefix_ApplyByJoinToKingdom(Clan clan)
+        private static bool Prefix_ApplyByJoinToKingdom(Clan clan, Kingdom newKingdom)
         {
-            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
+            if (!AdoptedHeroFlags._allowKingdomMove)
             {
-                try
+                if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal"))
                 {
-                    return false;
+                    try
+                    {
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT] Prefix_ApplyByJoinToKingdom(blt)error: {ex}");
+                    }
                 }
-                catch (Exception ex)
+            }
+            if (!AdoptedHeroFlags._allowAIjoinBLT)
+            {
+                if (clan?.Leader != null && !clan.Leader.IsAdopted() && clan.Leader != Hero.MainHero && newKingdom.Leader.IsAdopted() && !clan.Name.ToString().ToLower().Contains("vassal"))
                 {
-                    Log.Error($"[BLT] Prefix_ApplyByJoinToKingdom error: {ex}");
+                    try
+                    {
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT] Prefix_ApplyByJoinToKingdom(ai)error: {ex}");
+                    }
                 }
             }
             return true;
@@ -179,17 +197,34 @@ namespace BLTAdoptAHero
 
         [HarmonyPrefix]
         [HarmonyPatch("ApplyByJoinToKingdomByDefection")]
-        private static bool Prefix_ApplyByJoinToKingdomByDefection(Clan clan)
+        private static bool Prefix_ApplyByJoinToKingdomByDefection(Clan clan, Kingdom newKingdom)
         {
-            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
+            if (!AdoptedHeroFlags._allowKingdomMove)
             {
-                try
+                if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal"))
                 {
-                    return false;
+                    try
+                    {
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT] Prefix_ApplyByJoinToKingdom(blt)error: {ex}");
+                    }
                 }
-                catch (Exception ex)
+            }
+            if (!AdoptedHeroFlags._allowAIjoinBLT)
+            {
+                if (clan?.Leader != null && !clan.Leader.IsAdopted() && clan.Leader != Hero.MainHero && newKingdom.Leader.IsAdopted() && !clan.Name.ToString().ToLower().Contains("vassal"))
                 {
-                    Log.Error($"[BLT] Prefix_ApplyByJoinToKingdomByDefection error: {ex}");
+                    try
+                    {
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT] Prefix_ApplyByJoinToKingdom(ai)error: {ex}");
+                    }
                 }
             }
             return true;
@@ -199,15 +234,18 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByLeaveKingdom")]
         private static bool Prefix_ApplyByLeaveKingdom(Clan clan)
         {
-            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
+            if (!AdoptedHeroFlags._allowKingdomMove)
             {
-                try
+                if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal"))
                 {
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"[BLT] Prefix_ApplyByLeaveKingdom error: {ex}");
+                    try
+                    {
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT] Prefix_ApplyByLeaveKingdom error: {ex}");
+                    }
                 }
             }
             return true;
@@ -217,15 +255,18 @@ namespace BLTAdoptAHero
         [HarmonyPatch("ApplyByLeaveWithRebellionAgainstKingdom")]
         private static bool Prefix_ApplyByLeaveWithRebellionAgainstKingdom(Clan clan)
         {
-            if (((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal")) && !AdoptedHeroFlags._allowKingdomMove)
+            if (!AdoptedHeroFlags._allowKingdomMove)
             {
-                try
+                if ((clan?.Leader != null && clan.Leader.IsAdopted()) || clan.Name.ToString().ToLower().Contains("vassal"))
                 {
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"[BLT] Prefix_ApplyByLeaveWithRebellionAgainstKingdom error: {ex}");
+                    try
+                    {
+                        return false;
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[BLT] Prefix_ApplyByLeaveWithRebellionAgainstKingdom error: {ex}");
+                    }
                 }
             }
             return true;
@@ -382,9 +423,10 @@ namespace BLTAdoptAHero
                 return true;
             }
         }
+    #endregion
 
-        #region ClanPatches
-        [HarmonyPatch(typeof(Clan))]
+    #region ClanPatches
+    [HarmonyPatch(typeof(Clan))]
         internal static class ClanPatches
         {
             [HarmonyPrefix]
@@ -408,7 +450,7 @@ namespace BLTAdoptAHero
                 return true;
             }
         }
-        [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
         internal class BLTMarriage
         {
             static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
@@ -435,11 +477,28 @@ namespace BLTAdoptAHero
 #endif
             }
         }
-        #endregion
+    [HarmonyPatch(typeof(KillCharacterAction), nameof(KillCharacterAction.ApplyInLabor))]
+        internal class BLTNoPregnancyDeath_Action
+        {
+            static bool Prefix(Hero lostMother, bool showNotification)
+            {
+                if (lostMother.IsAdopted())
+                {
+#if DEBUG
+                    Log.Trace($"[BLT] Prevented childbirth death for {lostMother?.Name}");
+#endif
+                    return false;
+                }
+            return true;
+            }
 
-        #region OnShipOwnerChanged
+        }
 
-        [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
+    #endregion
+
+    #region OnShipOwnerChanged
+
+    [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]
         static class BLT_Suppress_OnShipOwnerChanged_Exception
         {
             static Exception Finalizer(Exception __exception)
@@ -456,18 +515,18 @@ namespace BLTAdoptAHero
             }
         }
 
-        #endregion
+    #endregion
 
-        #region TownFoodStocks
+    #region TownFoodStocks
 
-        [HarmonyPatch(nameof(DefaultSettlementFoodModel), "FoodStocksUpperLimit")]
+    [HarmonyPatch(nameof(DefaultSettlementFoodModel), "FoodStocksUpperLimit")]
         [HarmonyPatch(MethodType.Getter)]
         internal static class FoodStocksUpperLimitUncap
         {
             [HarmonyPrefix]
             public static bool FoodStocksUpperLimitPrefix(ref int __result)
             {
-                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks;
+                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
                 return false; // Skip original method
             }
         }
@@ -491,8 +550,6 @@ namespace BLTAdoptAHero
                 return false;
             }
         }
-    #endregion
-
     #endregion
 
     #region DiplomacyPatches
@@ -584,6 +641,13 @@ namespace BLTAdoptAHero
                 // Never interfere with player army
                 if (__instance.LeaderParty == MobileParty.MainParty)
                     return true;
+
+                // Quick Cleanup
+                if (__instance.LeaderParty?.Army != __instance)
+                {
+                    ArmyCreationTimes.Remove(__instance);
+                    return true;
+                }
 
                 // Record creation time if first seen
                 if (!ArmyCreationTimes.ContainsKey(__instance))

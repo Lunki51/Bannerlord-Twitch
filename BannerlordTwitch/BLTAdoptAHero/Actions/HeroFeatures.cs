@@ -14,6 +14,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.Localization;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.ObjectSystem;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 
@@ -74,6 +75,30 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=GYzk7nZB}Allow selecting by clan or hero name"),
              PropertyOrder(8), UsedImplicitly]
             public bool ClanorName { get; set; } = false;
+
+            [LocDisplayName("{=Abc123}Enabled"),
+             LocCategory("Race", "{=RaceSettings}Race"),
+             LocDescription("{=Desc123}Enabled"),
+             PropertyOrder(9)]
+            public bool RaceEnabled { get; set; } = true;
+
+            [LocDisplayName("{=Abc123}Forbidden Races"),
+             LocCategory("Race", "{=RaceSettings}Race"),
+             LocDescription("{=Desc123}List of race IDs that are forbidden. Usage: 0,1,2"),
+             PropertyOrder(10)]
+            public string ForbiddenRaces { get; set; } = "";
+
+            [LocDisplayName("{=Abc123}Enabled"),
+             LocCategory("Culture", "{=RaceSettings}Culture"),
+             LocDescription("{=Desc123}Enabled"),
+             PropertyOrder(11)]
+            public bool CultureEnabled { get; set; } = true;
+
+            [LocDisplayName("{=Abc123}Forbidden Cultures"),
+             LocCategory("Culture", "{=RaceSettings}Culture"),
+             LocDescription("{=Desc123}List of cultures that are forbidden. Usage: Vlandia,Battania"),
+             PropertyOrder(12)]
+            public string ForbiddenCultures { get; set; } = "";
 
             //[locdisplayname("{=testing}allow viewer marriage"),
             // loccategory("marriage", "{=testing}marriage"),
@@ -505,30 +530,71 @@ namespace BLTAdoptAHero.Actions
                             return;
                         }
                     }
-                //case "race":
-                //    {
-                //        if (splitArgs.Length < 2 || !int.TryParse(splitArgs[1], out int race))
-                //        {
-                //            onFailure("Usage: race <int>".Translate());
-                //            return;
-                //        }
+                case "race":
+                    {
+                        if (!settings.RaceEnabled)
+                        {
+                            onFailure("Race command is disabled");
+                            return;
+                        }
+                        var forbiddenRaces = settings.ForbiddenRaces
+                            .Split(',')
+                            .Select(s => s.Trim())
+                            .Where(s => int.TryParse(s, out _))
+                            .Select(int.Parse)
+                            .ToHashSet();
 
-                //        BodyProperties newBody = BodyProperties.GetRandomBodyProperties(
-                //            race,
-                //            adoptedHero.IsFemale,
-                //            BodyProperties.Default,
-                //            BodyProperties.Default,
-                //            0,
-                //            MBRandom.RandomInt(),
-                //            "",
-                //            "",
-                //            ""
-                //        );
+                        var validRaces = Enumerable.Range(0, 32)
+                            .Select(r => (RaceId: r, Monster: TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(r)))
+                            .Where(x => x.Monster != null && !forbiddenRaces.Contains(x.RaceId))
+                            .ToList();
 
-                //        adoptedHero.UpdatePlayerCharacterBodyProperties(newBody, race, adoptedHero.IsFemale);
-                //        onSuccess($"Hero race set to {race}".Translate());
-                //        return;
-                //    }
+                        if (splitArgs.Length < 2 || !int.TryParse(splitArgs[1], out int race) || !validRaces.Any(x => x.RaceId == race))
+                        {
+                            string list = string.Join(", ", validRaces.Select(x => $"{x.RaceId} ({x.Monster.StringId})"));
+                            onFailure($"Valid races: {list}");
+                            return;
+                        }
+
+                        BodyProperties newBody = adoptedHero.CharacterObject.GetBodyPropertiesMin();
+                        adoptedHero.CharacterObject.UpdatePlayerCharacterBodyProperties(newBody, race, adoptedHero.IsFemale);
+                        onSuccess($"Hero race set to {race} ({TaleWorlds.Core.FaceGen.GetBaseMonsterFromRace(race)?.StringId})");
+                        return;
+                    }
+                case "culture":
+                    {
+                        if (!settings.CultureEnabled)
+                        {
+                            onFailure("Culture command is disabled");
+                            return;
+                        }
+                        var forbidden = settings.ForbiddenCultures
+                            .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(s => s.Trim())
+                            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                        var allowedCultures = CampaignHelpers.MainCultures
+                            .Where(c => !forbidden.Contains(c.StringId))
+                            .ToList();
+
+
+                        if (splitArgs.Length < 2)
+                        {
+                            onFailure("Select a culture");
+                            return;
+                        }
+                        string value = string.Join(" ", splitArgs.Skip(1));
+                        var cult = allowedCultures.FirstOrDefault(c => c.Name.ToString().ToLower() == value.ToLower());
+                        if (cult == null)
+                        {
+                            onFailure($"No culture named {value}");
+                            return;
+                        }
+
+                        adoptedHero.Culture = cult;
+                        onSuccess($"Changed culture to {cult.Name}");
+
+                        break;
+                    }
                 default:
                     onFailure("{=6t9UWDR2}Invalid action".Translate());
                     return;

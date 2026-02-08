@@ -729,6 +729,7 @@ namespace BLTAdoptAHero.Actions
             }
 
             var upgrades = UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
+            //upgrades = clan.IsUnderMercenaryService ? upgrades.RemoveAll(up => up == ClanUpgrade) : upgrades;
             var sb = new StringBuilder();
             sb.AppendLine($"=== {clan.Name} Upgrades ===");
 
@@ -743,7 +744,7 @@ namespace BLTAdoptAHero.Actions
                 // Get all upgrade objects
                 var allUpgrades = upgrades
                 .Select(upgradeId => globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId))
-                .Where(upgrade => upgrade != null)
+                .Where(upgrade => upgrade != null && ((upgrade.MercOnly && clan.IsUnderMercenaryService)|| upgrade.LordOnly && !clan.IsUnderMercenaryService))
                 .ToList();
 
                 // Group by base ID (remove trailing digits) and keep only the highest tier

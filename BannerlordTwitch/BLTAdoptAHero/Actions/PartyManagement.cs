@@ -477,11 +477,6 @@ namespace BLTAdoptAHero.Actions
                             onFailure("{=LVFh1Pd5}Your hero is not leading a party".Translate());
                             return;
                         }
-                        if (party.Army != null && party.Army.LeaderParty != adoptedHero.PartyBelongedTo)
-                        {
-                            onFailure("Already in an army!");
-                            return;
-                        }
                         if (party.MapEvent != null)
                         {
                             onFailure("Your party is busy.");
@@ -533,6 +528,11 @@ namespace BLTAdoptAHero.Actions
                                         onFailure("Cannot leave own army");
                                         return;
                                     }
+                                    if (army != null && army.LeaderParty == MobileParty.MainParty)
+                                    {
+                                        onFailure("Cannot leave player army");
+                                        return;
+                                    }
                                     if (party.MapEvent != null)
                                     {
                                         onFailure("Your army is fighting!");
@@ -542,7 +542,12 @@ namespace BLTAdoptAHero.Actions
                                     {
                                         var oldArmy = army;
                                         party.Army = null;
+                                        party.AttachedTo = null;
                                         onSuccess($"Your party has left {oldArmy.Name}");
+                                        if (oldArmy.LeaderPartyAndAttachedPartiesCount <= 1 && !oldArmy.IsWaitingForArmyMembers())
+                                        {
+                                            DisbandArmyAction.ApplyByUnknownReason(oldArmy);
+                                        }
                                         return;
                                     }
                                     break;
@@ -552,11 +557,18 @@ namespace BLTAdoptAHero.Actions
                                 return;
                         }
 
+                        if (army != null && army.LeaderParty != party)
+                        {
+                            onFailure("You are not leading the army!");
+                            return;
+                        }
+
                         if (armyType == Army.ArmyTypes.NumberOfArmyTypes)
                         {
                             return;
                         }
 
+                        // Already have army
                         if (army != null && army.LeaderParty == party)
                         {
                             adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
@@ -567,7 +579,7 @@ namespace BLTAdoptAHero.Actions
                             if (armyType == Army.ArmyTypes.Besieger)
                             {
                                 // Find enemy settlement to besiege
-                                targetSettlement = FindBestSettlementToTarget(party, adoptedHero.Clan.Kingdom, true);
+                                targetSettlement = FindBestSettlementToTarget(adoptedHero.Clan.Kingdom, true);
                                 if (targetSettlement != null)
                                 {
                                     army.AiBehaviorObject = targetSettlement;
@@ -602,7 +614,7 @@ namespace BLTAdoptAHero.Actions
                         Settlement initialObjective = null;
                         if (armyType == Army.ArmyTypes.Besieger)
                         {
-                            initialObjective = FindBestSettlementToTarget(party, adoptedHero.Clan.Kingdom, true);
+                            initialObjective = FindBestSettlementToTarget(adoptedHero.Clan.Kingdom, true);
                         }
                         else if (armyType == Army.ArmyTypes.Defender)
                         {
@@ -640,10 +652,12 @@ namespace BLTAdoptAHero.Actions
             }
         }
 
-        private Settlement FindBestSettlementToTarget(MobileParty party, Kingdom kingdom, bool forSiege)
+        private Settlement FindBestSettlementToTarget(Kingdom kingdom, bool forSiege)
         {
+            var distModel = Campaign.Current.Models.MapDistanceModel;
             Settlement bestSettlement = null;
             float bestScore = 0f;
+            var midSet = kingdom.FactionMidSettlement;
 
             foreach (var enemy in kingdom.FactionsAtWarWith)
             {
@@ -656,11 +670,13 @@ namespace BLTAdoptAHero.Actions
                     if (!settlement.IsFortification) continue;
                     if (settlement.IsUnderSiege && settlement.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction != kingdom) continue;
 
-                    float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(party, settlement, false, party.NavigationCapability, out float ratio);
-                    float strength = settlement.Town?.GarrisonParty?.Party.EstimatedStrength ?? 0f;
+                    float distance = Campaign.Current.Models.MapDistanceModel.GetDistance(midSet, settlement, false, false, MobileParty.NavigationType.All);
+                    float strength = settlement.Town?.GarrisonParty?.Party.EstimatedStrength + settlement.Town.Militia ?? 0f;
+                    var neighbours = Campaign.Current.Models.MapDistanceModel.GetNeighborsOfFortification(settlement.Town, MobileParty.NavigationType.All);
+                    bool direct = neighbours.Any(n => kingdom.Settlements.Contains(n));
 
                     // Score based on proximity and defensive strength
-                    float score = (1000f / (distance + 1f) - strength * 0.1f) * (Math.Max(1, stance));
+                    float score = (10000f / distance - Math.Min(strength * 0.05f, 10000f / distance - 1f)) * (Math.Max(1, stance) * (direct ? 1.1f : 1f));
 
                     if (score > bestScore)
                     {

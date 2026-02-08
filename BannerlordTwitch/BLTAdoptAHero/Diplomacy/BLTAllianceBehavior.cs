@@ -38,7 +38,12 @@ namespace BLTAdoptAHero
 
                 // Skip if this is a BLT-initiated action (to avoid double processing)
                 if (AdoptedHeroFlags._allowDiplomacyAction)
+                {
+#if DEBUG
+                    Log.Trace($"[BLT Alliance] Skipping - BLT-initiated war declaration");
+#endif
                     return;
+                }
 
                 Kingdom attacker = faction1 as Kingdom;
                 Kingdom defender = faction2 as Kingdom;
@@ -48,13 +53,31 @@ namespace BLTAdoptAHero
 
                 // Don't process rebellions
                 if (declareWarDetail == DeclareWarAction.DeclareWarDetail.CausedByRebellion)
+                {
+#if DEBUG
+                    Log.Trace($"[BLT Alliance] Skipping rebellion war: {attacker.Name} vs {defender.Name}");
+#endif
                     return;
+                }
 
-                // Check if defender has allies that should auto-join
+#if DEBUG
+                Log.Trace($"[BLT Alliance] War declared: {attacker.Name} (attacker) vs {defender.Name} (defender)");
+#endif
+
+                // DEFENSIVE ONLY: Check if defender has allies that should auto-join
                 var defenderAlliances = BLTTreatyManager.Current.GetAlliancesFor(defender);
 
                 if (defenderAlliances.Count == 0)
+                {
+#if DEBUG
+                    Log.Trace($"[BLT Alliance] {defender.Name} has no allies to call");
+#endif
                     return;
+                }
+
+#if DEBUG
+                Log.Trace($"[BLT Alliance] {defender.Name} has {defenderAlliances.Count} alliance(s), checking for auto-join...");
+#endif
 
                 // Find or create the BLT war
                 var war = BLTTreatyManager.Current.GetWar(attacker, defender);
@@ -64,7 +87,7 @@ namespace BLTAdoptAHero
                     // War was declared outside BLT system, create tracking
                     war = BLTTreatyManager.Current.CreateWar(attacker, defender);
 #if DEBUG
-                    Log.Trace($"[BLT] Created war tracking for non-BLT war: {attacker.Name} vs {defender.Name}");
+                    Log.Trace($"[BLT Alliance] Created war tracking for non-BLT war: {attacker.Name} vs {defender.Name}");
 #endif
                 }
 
@@ -76,13 +99,31 @@ namespace BLTAdoptAHero
                         var ally = alliance.GetOtherKingdom(defender);
 
                         if (ally == null || ally.IsEliminated)
+                        {
+#if DEBUG
+                            Log.Trace($"[BLT Alliance] Skipping null/eliminated ally");
+#endif
                             continue;
+                        }
+
+#if DEBUG
+                        Log.Trace($"[BLT Alliance] Checking ally {ally.Name}...");
+#endif
+
+                        // Skip if ally is the attacker (shouldn't happen but safety check)
+                        if (ally == attacker)
+                        {
+#if DEBUG
+                            Log.Trace($"[BLT Alliance] {ally.Name} is the attacker - skipping");
+#endif
+                            continue;
+                        }
 
                         // Skip if already at war with attacker
                         if (ally.IsAtWarWith(attacker))
                         {
 #if DEBUG
-                            Log.Trace($"[BLT] {ally.Name} already at war with {attacker.Name}");
+                            Log.Trace($"[BLT Alliance] {ally.Name} already at war with {attacker.Name}");
 #endif
                             continue;
                         }
@@ -92,17 +133,21 @@ namespace BLTAdoptAHero
                         if (allianceWithAttacker != null)
                         {
                             // Cannot auto-join if allied with both sides
-                            Log.Trace($"[BLT] {ally.Name} cannot auto-join {defender.Name} - allied with both sides");
+                            Log.Trace($"[BLT Alliance] {ally.Name} cannot auto-join {defender.Name} - allied with both sides!");
+                            Log.ShowInformation(
+                                $"{ally.Name} cannot join {defender.Name}'s defense - they are allied with both sides!",
+                                ally.Leader?.CharacterObject
+                            );
                             continue;
                         }
 
-                        // Defensive alliance calls OVERRIDE NAPs and truces
+                        // DEFENSIVE ALLIANCE: Overrides NAPs and truces
                         var napWithAttacker = BLTTreatyManager.Current.GetNAP(ally, attacker);
                         if (napWithAttacker != null)
                         {
                             BLTTreatyManager.Current.RemoveNAP(ally, attacker);
 #if DEBUG
-                            Log.Trace($"[BLT] Removed NAP between {ally.Name} and {attacker.Name} for defensive alliance");
+                            Log.Trace($"[BLT Alliance] Removed NAP between {ally.Name} and {attacker.Name} for defensive alliance");
 #endif
                         }
 
@@ -111,7 +156,7 @@ namespace BLTAdoptAHero
                         {
                             BLTTreatyManager.Current.RemoveTruce(ally, attacker);
 #if DEBUG
-                            Log.Trace($"[BLT] Removed truce between {ally.Name} and {attacker.Name} for defensive alliance");
+                            Log.Trace($"[BLT Alliance] Removed truce between {ally.Name} and {attacker.Name} for defensive alliance");
 #endif
                         }
 
@@ -124,6 +169,10 @@ namespace BLTAdoptAHero
                         // Declare actual game war
                         DeclareWarAction.ApplyByDefault(ally, attacker);
                         FactionManager.DeclareWar(ally, attacker);
+
+#if DEBUG
+                        Log.Trace($"[BLT Alliance] {ally.Name} auto-joined DEFENSIVE war for {defender.Name} against {attacker.Name}");
+#endif
 
                         // Log the auto-join
                         Log.ShowInformation(
@@ -141,13 +190,9 @@ namespace BLTAdoptAHero
                                 .Trim();
 
                             Log.LogFeedResponse(
-                                $"@{allyLeaderName} Your alliance with {defender.Name} has automatically brought you into war against {attacker.Name}!"
+                                $"@{allyLeaderName} Your defensive alliance with {defender.Name} has automatically brought you into war against {attacker.Name}!"
                             );
                         }
-
-#if DEBUG
-                        Log.Trace($"[BLT] {ally.Name} auto-joined defensive war for {defender.Name} against {attacker.Name}");
-#endif
                     }
                 }
                 finally
@@ -157,7 +202,7 @@ namespace BLTAdoptAHero
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT] OnWarDeclared (BLTAllianceBehavior) error: {ex}");
+                Log.Error($"[BLT Alliance] OnWarDeclared error: {ex}");
             }
         }
     }

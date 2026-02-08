@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Collections.Generic;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
@@ -18,6 +19,8 @@ namespace BLTAdoptAHero
             Mount,
             Shield
         }
+
+        private static HashSet<string> restrictedItemIds = BLTAdoptAHeroModule.CommonConfig.RestrictedItemIds;
 
         public static (ItemObject item, ItemModifier modifier, EquipmentIndex slot) GenerateRewardType(
             RewardType rewardType, int tier, Hero hero, HeroClassDef heroClass,
@@ -152,7 +155,7 @@ namespace BLTAdoptAHero
                         item: EquipHero.FindRandomTieredEquipment(tier, hero,
                             heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                             EquipHero.FindFlags.IgnoreAbility | EquipHero.FindFlags.RequireExactTier,
-                            i => i.IsEquipmentType(c.type), culture),
+                            i => i.IsEquipmentType(c.type) && !restrictedItemIds.Contains(i.StringId ?? ""), culture),
                         index: c.index))
                     .FirstOrDefault(w => w.item != null);
                 return item == null || hero.BattleEquipment[index].Item?.Tier >= item.Tier
@@ -601,14 +604,14 @@ namespace BLTAdoptAHero
             var item = EquipHero.FindRandomTieredEquipment(6, hero,
                 heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                 EquipHero.FindFlags.IgnoreAbility,
-                o => o.IsEquipmentType(EquipmentType.Shield));
+                o => o.IsEquipmentType(EquipmentType.Shield) && !restrictedItemIds.Contains(o.StringId ?? ""));
 
             if (item == null)
             {
                 item = EquipHero.FindRandomTieredEquipment(5, hero,
                 heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                 EquipHero.FindFlags.IgnoreAbility,
-                o => o.IsEquipmentType(EquipmentType.Shield));
+                o => o.IsEquipmentType(EquipmentType.Shield) && !restrictedItemIds.Contains(o.StringId ?? ""));
             }
             return item;
         }
@@ -621,7 +624,7 @@ namespace BLTAdoptAHero
                 var item = EquipHero.FindRandomTieredEquipment(5, hero,
                     heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                     EquipHero.FindFlags.IgnoreAbility,
-                    o => o.IsEquipmentType(weaponType));
+                    o => o.IsEquipmentType(weaponType) && !restrictedItemIds.Contains(o.StringId ?? ""));
                 return item;
             }
             else
@@ -636,14 +639,14 @@ namespace BLTAdoptAHero
             var item = EquipHero.FindRandomTieredEquipment(6, hero,
                 heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                 EquipHero.FindFlags.IgnoreAbility,
-                o => o.IsEquipmentType(EquipmentType.Shield), culture);
+                o => o.IsEquipmentType(EquipmentType.Shield) && !restrictedItemIds.Contains(o.StringId ?? ""), culture);
 
             if (item == null)
             {
                 item = EquipHero.FindRandomTieredEquipment(5, hero,
                 heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                 EquipHero.FindFlags.IgnoreAbility,
-                o => o.IsEquipmentType(EquipmentType.Shield), culture);
+                o => o.IsEquipmentType(EquipmentType.Shield) && !restrictedItemIds.Contains(o.StringId ?? ""), culture);
             }
             return item;
         }
@@ -656,7 +659,7 @@ namespace BLTAdoptAHero
                 var item = EquipHero.FindRandomTieredEquipment(5, hero,
                     heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                     EquipHero.FindFlags.IgnoreAbility,
-                    o => o.IsEquipmentType(weaponType), culture);
+                    o => o.IsEquipmentType(weaponType) && !restrictedItemIds.Contains(o.StringId ?? ""), culture);
                 return item;
             }
             else

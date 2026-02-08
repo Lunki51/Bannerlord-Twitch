@@ -40,7 +40,7 @@ namespace BannerlordTwitch
                         ("ExpectedVersion", ExpectedVersion),
                         ("GameVersion", GameVersion.GameVersionString)),
                     "{=Oru6b9Cy}Bannerlord Twitch ERROR".Translate());
-                Application.Current.Shutdown(1);
+                //Application.Current.Shutdown(1);
             }
 
             // Set a consistent Window title so streaming software can find it

@@ -350,7 +350,7 @@ namespace BLTAdoptAHero
                             int vassalFiefIncome = GoldIncomeAction.CalculateSettlementIncome(fief);
 
                             // Master gets a percentage as bonus
-                            bonus = (int)(vassalFiefIncome * FiefIncomeSharePercent);
+                            bonus += (int)(vassalFiefIncome * FiefIncomeSharePercent);
                         }
 
                         totalBonus += bonus;

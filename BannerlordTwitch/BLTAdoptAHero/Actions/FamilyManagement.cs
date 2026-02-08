@@ -349,7 +349,7 @@ namespace BLTAdoptAHero.Actions
                         break;                      
                     case "skills":
                         { 
-                            string skills = ShowSkills(adoptedHero.Spouse);
+                            string skills = ShowSkills(child);
                             onSuccess(skills);
                             return;
                         }

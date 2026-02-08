@@ -6,7 +6,9 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.ComponentInterfaces;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.Core;
+using TaleWorlds.ObjectSystem;
 using BannerlordTwitch.Util;
+using BannerlordTwitch.Helpers;
 using BLTAdoptAHero;
 using BannerlordTwitch.Rewards;
 
@@ -31,6 +33,7 @@ namespace BLTAdoptAHero
                     _bltFamily = new BLTFamily();
                     _bltFamily.Initialize();
                     _lastFamilyInitTime = CampaignTime.Now;
+                    _bltFamily.RegisterEvents();
                 }
                 else
                 {
@@ -201,6 +204,244 @@ namespace BLTAdoptAHero
                             grandchild.SetBirthDay(grandchild.BirthDay - CampaignTime.Days(growthRatePerDay));
 
                         }
+                    }
+                }
+            }
+
+            // Equipment
+            public void RegisterEvents()
+            {
+                CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, EquipBLTChildren);
+                CampaignEvents.WeeklyTickEvent.AddNonSerializedListener(this, UpdateEquipment);
+            }
+
+            private void UpdateEquipment()
+            {
+                var bltHeroes = Hero.AllAliveHeroes
+                    .Where(h => h != null && h.IsAdopted())
+                    .ToList();
+                foreach (var bltHero in bltHeroes)
+                {
+                    var spouse = bltHero.Spouse;
+                    if (spouse != null)
+                    {                     
+                        EquipBLTChildren(spouse);
+                    }
+                    foreach (var child in bltHero.Children)
+                    {
+                        EquipBLTChildren(child);
+                        foreach (var grandchild in child.Children)
+                        {
+                            EquipBLTChildren(grandchild);
+                        }
+                    }
+                }
+            }
+
+            private void EquipBLTChildren(Hero child)
+            {
+                if (child.IsChild || child.Culture == null)
+                    return;
+                if (child.IsDead)
+                    return;
+
+                float armor = child.CharacterObject.GetTotalArmorSum();
+                if (armor < 100f)
+                {
+                    // Get standard noble armor from culture
+                    var armorEquipment = GetStandardNobleArmor(child);
+                    if (armorEquipment != null)
+                    {
+                        // Copy armor pieces only
+                        child.BattleEquipment[EquipmentIndex.Head] = armorEquipment[EquipmentIndex.Head];
+                        child.BattleEquipment[EquipmentIndex.Cape] = armorEquipment[EquipmentIndex.Cape];
+                        child.BattleEquipment[EquipmentIndex.Body] = armorEquipment[EquipmentIndex.Body];
+                        child.BattleEquipment[EquipmentIndex.Gloves] = armorEquipment[EquipmentIndex.Gloves];
+                        child.BattleEquipment[EquipmentIndex.Leg] = armorEquipment[EquipmentIndex.Leg];
+                    }
+                }
+                    
+                // Equip weapons based on skills
+                EquipWeaponsBySkill(child);
+
+                // Equip horse if good riding skill
+                if (child.GetSkillValue(DefaultSkills.Riding) > 100)
+                {
+                    EquipHorse(child);
+                }
+            }
+
+            private Equipment GetStandardNobleArmor(Hero hero)
+            {
+                // Find noble equipment roster for culture
+
+                var rosters = MBObjectManager.Instance.GetObjectTypeList<MBEquipmentRoster>();
+
+                // 1) Try noble templates first
+                var roster = rosters.FirstOrDefault(r =>
+                    r.EquipmentCulture == hero.Culture &&
+                    r.HasEquipmentFlags(EquipmentFlags.IsNobleTemplate) &&
+                    r.HasEquipmentFlags(EquipmentFlags.IsCombatantTemplate));
+
+                // 2) Fallback to combatant if no noble found
+                if (roster == null)
+                {
+                    roster = rosters.FirstOrDefault(r =>
+                        r.EquipmentCulture == hero.Culture &&
+                        r.HasEquipmentFlags(EquipmentFlags.IsCombatantTemplate));
+                }
+
+                if (roster?.AllEquipments?.Count > 0)
+                {
+                    return roster.AllEquipments[MBRandom.RandomInt(roster.AllEquipments.Count)];
+                }
+                return null;
+            }
+
+            private void EquipWeaponsBySkill(Hero hero)
+            {
+                // Clear weapon slots
+                for (int i = 0; i < 4; i++)
+                {
+                    hero.BattleEquipment[i] = EquipmentElement.Invalid;
+                }
+                var rangeSkills = new []
+                {
+                    (skill: DefaultSkills.Bow, value: hero.GetSkillValue(DefaultSkills.Bow)),
+                    (skill: DefaultSkills.Crossbow, value: hero.GetSkillValue(DefaultSkills.Crossbow)),
+                    (skill: DefaultSkills.Throwing, value: hero.GetSkillValue(DefaultSkills.Throwing))
+                }.OrderByDescending(s => s.value).ToList();
+
+                // Get best melee skill
+                var meleeSkills = new[]
+                {
+                    (skill: DefaultSkills.OneHanded, value: hero.GetSkillValue(DefaultSkills.OneHanded)),
+                    (skill: DefaultSkills.TwoHanded, value: hero.GetSkillValue(DefaultSkills.TwoHanded)),
+                    (skill: DefaultSkills.Polearm, value: hero.GetSkillValue(DefaultSkills.Polearm))
+                }.OrderByDescending(s => s.value).ToList();
+
+                var bestMelee = meleeSkills[0].skill;
+                var bestRanged = rangeSkills[0].skill;
+
+                int slot = 0;
+
+                if (rangeSkills[0].value > meleeSkills[0].value || rangeSkills[0].value >= 100)
+                {
+                    var ranged = CampaignHelpers.AllItems
+                    .Where(i => i.RelevantSkill == bestRanged &&
+                               (i.Culture == hero.Culture || i.Culture == null) &&
+                               !i.NotMerchandise && !i.WeaponComponent.PrimaryWeapon.IsAmmo)
+                    .OrderByDescending(i => i.Tier)
+                    .SelectRandomWeighted(i => i.Tierf + (i.Culture == hero.Culture ? 1f : 0f));
+
+                    if (ranged != null)
+                    {
+                        hero.BattleEquipment[EquipmentIndex.Weapon0] = new EquipmentElement(ranged);
+                        slot++;
+
+                        var weaponType = ranged.WeaponComponent.PrimaryWeapon.WeaponClass;
+
+                        // Map weapon type to ammo type
+                        ItemObject.ItemTypeEnum ammoType = weaponType switch
+                        {
+                            WeaponClass.Bow => ItemObject.ItemTypeEnum.Arrows,
+                            WeaponClass.Crossbow => ItemObject.ItemTypeEnum.Bolts,
+                            WeaponClass.Sling => ItemObject.ItemTypeEnum.SlingStones,
+                            _ => ItemObject.ItemTypeEnum.Arrows
+                        };
+
+                        // Select matching ammo
+                        var ammo = CampaignHelpers.AllItems
+                            .Where(i => !i.NotMerchandise &&
+                                        i.WeaponComponent.PrimaryWeapon.IsAmmo &&
+                                        i.ItemType == ammoType)
+                            .SelectRandomWeighted(i => i.Tierf * (i.Culture == hero.Culture ? 2f : 1f));
+
+                        var thrownWeapons = new[]
+                        {
+                            WeaponClass.Javelin,
+                            WeaponClass.ThrowingAxe,
+                            WeaponClass.ThrowingKnife
+                        };
+
+                        bool isThrown = thrownWeapons.Contains(ranged.WeaponComponent.PrimaryWeapon.WeaponClass);
+
+                        if (bestRanged == DefaultSkills.Throwing && isThrown)
+                        {
+                            hero.BattleEquipment[EquipmentIndex.Weapon1] = new EquipmentElement(ranged);
+                            slot++;
+                        }
+                        else if (ammo != null)
+                        {
+                            hero.BattleEquipment[EquipmentIndex.Weapon1] = new EquipmentElement(ammo);
+                            hero.BattleEquipment[EquipmentIndex.Weapon2] = new EquipmentElement(ammo);
+                            slot += 2;
+                        }
+                    }
+                }
+
+                // Find weapon
+                var weapon = CampaignHelpers.AllItems
+                    .Where(i => i.RelevantSkill == bestMelee &&
+                               (i.Culture == hero.Culture || i.Culture == null) &&
+                               !i.NotMerchandise)
+                    .OrderByDescending(i => i.Tier)
+                    .SelectRandomWeighted(i => i.Tierf + (i.Culture == hero.Culture ? 1f : 0f));
+
+                if (weapon != null)
+                {
+                    EquipmentIndex index = slot switch
+                    {
+                        0 => EquipmentIndex.Weapon0,
+                        1 => EquipmentIndex.Weapon1,
+                        2 => EquipmentIndex.Weapon2,
+                        _ => EquipmentIndex.Weapon3
+                    };
+
+                    hero.BattleEquipment[index] = new EquipmentElement(weapon);
+
+                    // Add shield if one-handed
+                    if (bestMelee == DefaultSkills.OneHanded && slot < 3)
+                    {
+                        var shield = CampaignHelpers.AllItems
+                            .Where(i => i.ItemType == ItemObject.ItemTypeEnum.Shield &&
+                                       (i.Culture == hero.Culture || i.Culture == null) &&
+                                       !i.NotMerchandise)
+                            .OrderByDescending(i => i.Tier)
+                            .SelectRandomWeighted(i => i.Tierf + (i.Culture == hero.Culture ? 1f : 0f));
+
+                        if (shield != null)
+                        {
+                            hero.BattleEquipment[index + 1] = new EquipmentElement(shield);
+                        }
+                    }
+                }
+            }
+
+            private void EquipHorse(Hero hero)
+            {
+                var horse = CampaignHelpers.AllItems
+                    .Where(i => i.ItemType == ItemObject.ItemTypeEnum.Horse &&
+                               (i.Culture == hero.Culture || i.Culture == null) &&
+                               !i.NotMerchandise &&
+                               i.HorseComponent?.Monster?.FamilyType == 1)
+                    .OrderByDescending(i => i.Tier)
+                    .SelectRandomWeighted(i => i.Tierf + (i.Culture == hero.Culture ? 1f : 0f));
+
+                if (horse != null)
+                {
+                    hero.BattleEquipment[EquipmentIndex.Horse] = new EquipmentElement(horse);
+
+                    var saddle = CampaignHelpers.AllItems
+                        .Where(i => i.ItemType == ItemObject.ItemTypeEnum.HorseHarness &&
+                                   (i.Culture == hero.Culture || i.Culture == null) &&
+                                   !i.NotMerchandise)
+                        .OrderByDescending(i => i.Tier)
+                        .SelectRandomWeighted(i => i.Tierf + (i.Culture == hero.Culture ? 1f : 0f));
+
+                    if (saddle != null)
+                    {
+                        hero.BattleEquipment[EquipmentIndex.HorseHarness] = new EquipmentElement(saddle);
                     }
                 }
             }

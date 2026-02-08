@@ -526,36 +526,114 @@ namespace BLTAdoptAHero
 
                 if (payer == null || receiver == null || payer.Leader == null || receiver.Leader == null)
                 {
-                    // Skip this iteration if payer or receiver is unavailable
+                    // Skip if either kingdom is missing or has no leader
                     continue;
                 }
 
                 int amount = tribute.DailyAmount;
+                bool payerIsBLT = payer.Leader.IsAdopted();
+                bool receiverIsBLT = receiver.Leader.IsAdopted();
 
-                // Transfer game gold
-                int payerGold = payer.Leader.Gold;
-                int gameGoldToTransfer = Math.Min(amount, payerGold);
+                // === GAME GOLD TRANSFER (Always happens for all kingdoms) ===
+                int payerGameGold = payer.Leader.Gold;
 
-                // Guarantee at least 50% even if not available
-                if (gameGoldToTransfer < amount / 2)
+                // Deduct only what they can afford (never go negative!)
+                int gameGoldToDeduct = Math.Min(amount, payerGameGold);
+
+                // Receiver gets max of (what we deducted, 50% minimum)
+                int gameGoldToGive = Math.Max(gameGoldToDeduct, amount / 2);
+
+                // Only deduct if they have something
+                if (gameGoldToDeduct > 0)
                 {
-                    gameGoldToTransfer = amount / 2;
+                    payer.Leader.Gold -= gameGoldToDeduct;
                 }
 
-                payer.Leader.Gold -= gameGoldToTransfer;
-                receiver.Leader.Gold += gameGoldToTransfer;
+                // Always give receiver their amount (min 50%)
+                receiver.Leader.Gold += gameGoldToGive;
 
-                // Transfer BLT gold (same amount)
-                int payerBLTGold = BLTAdoptAHeroCampaignBehavior.Current?.GetHeroGold(payer.Leader) ?? 0;
-                int bltGoldToTransfer = Math.Min(amount, payerBLTGold);
-
-                if (bltGoldToTransfer < amount / 2)
+                // === BLT GOLD TRANSFER (Only when receiver is BLT) ===
+                if (receiverIsBLT)
                 {
-                    bltGoldToTransfer = amount / 2;
-                }
+                    if (payerIsBLT)
+                    {
+                        // BLT → BLT: Deduct what we can, give minimum 50%
+                        int payerBLTGold = BLTAdoptAHeroCampaignBehavior.Current?.GetHeroGold(payer.Leader) ?? 0;
 
-                BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(payer.Leader, -bltGoldToTransfer, false);
-                BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(receiver.Leader, bltGoldToTransfer, false);
+                        // Deduct only what they can afford (never go negative!)
+                        int amountToDeduct = Math.Min(amount, payerBLTGold);
+
+                        // Receiver gets max of (what we deducted, 50% minimum)
+                        // If payer is broke, the difference comes from "thin air"
+                        int amountToGive = Math.Max(amountToDeduct, amount / 2);
+
+                        // Only deduct if they have something to deduct
+                        if (amountToDeduct > 0)
+                        {
+                            BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(payer.Leader, -amountToDeduct, false);
+                        }
+
+                        // Always give receiver their amount (min 50%)
+                        BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(receiver.Leader, amountToGive, false);
+
+#if DEBUG
+                        Log.Trace($"[Tribute] {payer.Name} (BLT) → {receiver.Name} (BLT): {amount}/day");
+                        //Log.Trace($"  Game Gold: -{gameGoldToTransfer} / +{gameGoldToTransfer}");
+                        Log.Trace($"  BLT Gold Available: {payerBLTGold}");
+                        Log.Trace($"  BLT Gold Deducted: -{amountToDeduct}");
+                        Log.Trace($"  BLT Gold Given: +{amountToGive}");
+                        if (amountToGive > amountToDeduct)
+                        {
+                            Log.Trace($"  Created from thin air: {amountToGive - amountToDeduct} (50% minimum guarantee)");
+                        }
+#endif
+                    }
+                    else
+                    {
+                        // AI → BLT: Give FULL tribute to BLT receiver (free money!)
+                        BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(receiver.Leader, amount, false);
+
+#if DEBUG
+                        Log.Trace($"[Tribute] {payer.Name} (AI) → {receiver.Name} (BLT): {amount}/day");
+                        Log.Trace($"  Game Gold: -{gameGoldToDeduct} / +{gameGoldToGive}");
+                        if (gameGoldToGive > gameGoldToDeduct)
+                        {
+                            Log.Trace($"  Game Gold from thin air: {gameGoldToGive - gameGoldToDeduct}");
+                        }
+                        Log.Trace($"  BLT Gold: AI pays FULL {amount} to BLT (free money)");
+#endif
+                    }
+                }
+                else
+                {
+                    // Receiver is AI
+                    if (payerIsBLT)
+                    {
+                        // BLT → AI: Don't touch BLT gold (only game gold transfers)
+#if DEBUG
+                        Log.Trace($"[Tribute] {payer.Name} (BLT) → {receiver.Name} (AI): {amount}/day");
+                        Log.Trace($"  Game Gold: -{gameGoldToDeduct} / +{gameGoldToGive}");
+                        if (gameGoldToGive > gameGoldToDeduct)
+                        {
+                            Log.Trace($"  Game Gold from thin air: {gameGoldToGive - gameGoldToDeduct}");
+                        }
+                        Log.Trace($"  BLT Gold: Not transferred (receiver is AI)");
+#endif
+                    }
+                    else
+                    {
+                        // AI → AI: Only game gold
+#if DEBUG
+                        Log.Trace($"[Tribute] {payer.Name} (AI) → {receiver.Name} (AI): {amount}/day");
+                        Log.Trace($"  Game Gold: -{gameGoldToDeduct} / +{gameGoldToGive}");
+                        if (gameGoldToGive > gameGoldToDeduct)
+                        {
+                            Log.Trace($"  Game Gold from thin air: {gameGoldToGive - gameGoldToDeduct}");
+                        }
+                        Log.Trace($"  BLT Gold: Not applicable (both AI)");
+#endif
+                    }
+                }
 
                 // Compute days remaining based on CampaignTime
                 int daysRemaining = tribute.DaysRemaining();
