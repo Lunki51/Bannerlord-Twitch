@@ -576,10 +576,6 @@
       <Project>{a858b7fe-dd3e-4969-9d30-670042c75b16}</Project>
       <Name>BannerlordTwitch</Name>
     </ProjectReference>
-    <ProjectReference Include="..\BLTBuffet\BLTBuffet.csproj">
-      <Project>{9C6729F7-A099-4878-BBBB-EC7911EA50B0}</Project>
-      <Name>BLTBuffet</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
