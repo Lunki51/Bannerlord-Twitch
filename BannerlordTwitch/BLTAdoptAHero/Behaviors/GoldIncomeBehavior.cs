@@ -94,7 +94,7 @@ namespace BLTAdoptAHero.Behaviors
 
                 totalTaxCollected += taxAmount;
 
-                // If this is a BLT clan, deduct the tax from their gold
+                // If this is a BLT or Vassal clan, deduct the tax from their income
                 // (This will happen when their tick processes and they see reduced income)
                 // For AI clans, we just collect the tax from thin air
 
