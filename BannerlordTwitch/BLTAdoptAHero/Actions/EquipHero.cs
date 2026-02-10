@@ -118,6 +118,11 @@ namespace BLTAdoptAHero
                 {
                     selectedCulture = CampaignHelpers.AllCultures
                         .FirstOrDefault(c => c.Name.ToString().Equals(desiredName, StringComparison.OrdinalIgnoreCase));
+                    if (selectedCulture == null)
+                    {
+                        selectedCulture = CampaignHelpers.AllCultures
+                            .FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                    }
                     if (selectedCulture != null)
                     {
                         cultureFilterSpecified = true;

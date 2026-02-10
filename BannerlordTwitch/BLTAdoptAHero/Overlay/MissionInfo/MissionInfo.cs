@@ -22,6 +22,7 @@ namespace BLTAdoptAHero.UI
             [UsedImplicitly] public float CooldownSecondsRemaining;
 
             [UsedImplicitly] public float ActivePowerFractionRemaining;
+            [UsedImplicitly] public float HealFractionRemaining;
 
             [UsedImplicitly] public bool IsPlayerSide;
 

@@ -35,7 +35,7 @@ namespace BLTBuffet
             {
                 if (config.HealPerSecond != 0 && config.HealPercent != 0)
                 {
-                    agent.Health = Math.Min(agent.HealthLimit, agent.Health + Math.Abs(config.HealPerSecond+config.HealPercent*agent.HealthLimit/100) * dt);
+                    agent.Health = Math.Min(agent.HealthLimit, agent.Health + Math.Abs(config.HealPerSecond + config.HealPercent * agent.HealthLimit / 100) * dt);
                 }
 
                 if (config.HealPerSecond != 0 && config.HealPercent == 0)
@@ -45,7 +45,7 @@ namespace BLTBuffet
 
                 if (config.HealPercent != 0 && config.HealPerSecond == 0)
                 {
-                    agent.Health = Math.Min(agent.HealthLimit, agent.Health + Math.Abs(config.HealPercent * agent.HealthLimit/100) * dt);
+                    agent.Health = Math.Min(agent.HealthLimit, agent.Health + Math.Abs(config.HealPercent * agent.HealthLimit / 100) * dt);
                 }
 
                 if (config.DamagePerSecond != 0 && agent.CurrentMortalityState == Agent.MortalityState.Mortal && Mission.Current?.DisableDying != true)
@@ -130,19 +130,19 @@ namespace BLTBuffet
             }
         }
 
-        internal class BLTEffectsBehaviour : MissionBehavior
+        public class BLTEffectsBehaviour : MissionBehavior
         {
             private readonly Dictionary<Agent, List<CharacterEffectState>> agentEffectsActive = new();
 
             private float accumulatedTime;
 
-            public bool Contains(Agent agent, Config config)
+            internal bool Contains(Agent agent, Config config)
             {
                 return agentEffectsActive.TryGetValue(agent, out var effects)
                        && effects.Any(e => e.config.Name == config.Name);
             }
 
-            public CharacterEffectState Add(Agent agent, Config config)
+            internal CharacterEffectState Add(Agent agent, Config config)
             {
                 if (!agentEffectsActive.TryGetValue(agent, out var effects))
                 {
@@ -165,6 +165,30 @@ namespace BLTBuffet
                 }
 
                 return beh;
+            }
+
+            /// <summary>
+            /// Gets active heal effects for an agent (effects with HealPerSecond > 0 and Duration)
+            /// </summary>
+            public List<(float duration, float remaining)> InternalGetActiveHealingEffects(Agent agent)
+            {
+                var results = new List<(float duration, float remaining)>();
+                if (!agentEffectsActive.TryGetValue(agent, out var effects))
+                    return results;
+
+                float currentTime = CampaignHelpers.GetTotalMissionTime();
+                foreach (var effect in effects)
+                {
+                    if (effect.config.HealPerSecond > 0 && effect.config.Duration.HasValue)
+                    {
+                        float remaining = effect.config.Duration.Value + effect.started - currentTime;
+                        if (remaining > 0)
+                        {
+                            results.Add((effect.config.Duration.Value, remaining));
+                        }
+                    }
+                }
+                return results;
             }
 
             public void ApplyHitDamage(Agent attackerAgent, Agent victimAgent, ref AttackCollisionData attackCollisionData)

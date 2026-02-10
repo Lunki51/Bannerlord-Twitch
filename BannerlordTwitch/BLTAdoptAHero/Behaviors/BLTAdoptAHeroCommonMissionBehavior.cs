@@ -373,6 +373,7 @@ namespace BLTAdoptAHero
                     CooldownFractionRemaining = 1 - summonState?.CoolDownFraction ?? 0,
                     CooldownSecondsRemaining = summonState?.CooldownRemaining ?? 0,
                     ActivePowerFractionRemaining = state is AgentState.Active ? ActivePowerFractionRemaining(hero) : 0,
+                    //HealFractionRemaining = state is AgentState.Active ? HealFractionRemaining(hero) : 0,
                     State = state.ToString().ToLower(),
                     Retinue = summonState?.ActiveRetinue ?? 0,
                     DeadRetinue = summonState?.DeadRetinue ?? 0,
@@ -392,6 +393,12 @@ namespace BLTAdoptAHero
             (float duration, float remaining) = classDef?.ActivePower?.DurationRemaining(hero) ?? (1, 0);
             return duration == 0 ? 0 : remaining / duration;
         }
+        //private static float HealFractionRemaining(Hero hero)
+        //{
+        //    var Healing = BLTEffectsBehavior.Get().(hero.GetAgent);
+        //    (float duration, float remaining) = Healing?.DurationRemaining(hero) ?? (1, 0);
+        //    return duration == 0 ? 0 : remaining / duration;
+        //}
 
         // public static string KillStateVerb(AgentState state) =>
         //     state switch
