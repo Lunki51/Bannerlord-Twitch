@@ -330,7 +330,7 @@ namespace BLTAdoptAHero
                     var ranged = CampaignHelpers.AllItems
                     .Where(i => i.RelevantSkill == bestRanged &&
                                (i.Culture == hero.Culture || i.Culture == null) &&
-                               !i.NotMerchandise && !i.WeaponComponent.PrimaryWeapon.IsAmmo)
+                               !i.NotMerchandise && (i.HasWeaponComponent && !i.WeaponComponent.PrimaryWeapon.IsAmmo))
                     .OrderByDescending(i => i.Tier)
                     .SelectRandomWeighted(i => i.Tierf + (i.Culture == hero.Culture ? 1f : 0f));
 
@@ -352,8 +352,8 @@ namespace BLTAdoptAHero
 
                         // Select matching ammo
                         var ammo = CampaignHelpers.AllItems
-                            .Where(i => !i.NotMerchandise &&
-                                        i.WeaponComponent.PrimaryWeapon.IsAmmo &&
+                            .Where(i => !i.NotMerchandise &&(i.HasWeaponComponent &&
+                                        i.WeaponComponent.PrimaryWeapon.IsAmmo) &&
                                         i.ItemType == ammoType)
                             .SelectRandomWeighted(i => i.Tierf * (i.Culture == hero.Culture ? 2f : 1f));
 
