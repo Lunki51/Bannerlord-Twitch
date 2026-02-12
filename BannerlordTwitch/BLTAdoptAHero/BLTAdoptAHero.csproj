@@ -332,6 +332,7 @@
     <Compile Include="Actions\AddGoldToHero.cs" />
     <Compile Include="Actions\CampaignInfo.cs" />
     <Compile Include="Actions\BattleInfo.cs" />
+    <Compile Include="Actions\ManageFief.cs" />
     <Compile Include="Actions\FamilyManagement.cs" />
     <Compile Include="Actions\GoldIncomeFeature.cs" />
     <Compile Include="Actions\PartyManagement.cs" />
