@@ -13,6 +13,9 @@ using BLTAdoptAHero;
 
 namespace BLTAdoptAHero.Actions
 {
+    [LocDisplayName("{=TESTING}FormationCommand"),
+     LocDescription("{=TESTING}Show and change hero formation"),
+     UsedImplicitly]
     public class FormationCommand : HeroCommandHandlerBase
     {
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
@@ -29,9 +32,17 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=TESTING}No mission!".Translate());
                 return;
             }
-            string num = context.Args[0].ToString();
+            string num = "";
+            if (context.Args.Length > 0)
+                num = context.Args[0].ToString();
+
             var agent = adoptedHero.GetAgent();
-            var currentFormation = agent.Formation;
+            if (agent == null)
+            {
+                onFailure("No hero");
+                return;
+            }
+            Formation currentFormation = agent.Formation;
 
             if (currentFormation == null)
             {
@@ -50,7 +61,7 @@ namespace BLTAdoptAHero.Actions
             };
             //FormationClass formType = currentFormation.FormationIndex;
 
-            var allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.FormationIndex == formType && f.CountOfUnits > 0);
+            var allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.PhysicalClass == formType && f.CountOfUnits > 0);
 
             List<int> indexes = new();
             foreach (var a in allFormations)
@@ -79,11 +90,27 @@ namespace BLTAdoptAHero.Actions
 
             var newformation = allFormations.FirstOrDefault(f => f.Index == newIndex);
 
-            currentFormation.RemoveUnit(agent);
-            newformation.AddUnit(agent);
+            TransferHeroToFormation(agent, newformation);
 
             onSuccess("Moved hero to new formation");
             return;
+        }
+
+        private void TransferHeroToFormation(Agent heroAgent, Formation target)
+        {
+            if (heroAgent == null || target == null) return;
+
+            Formation oldFormation = heroAgent.Formation;
+            heroAgent.Formation = target;
+
+            if (oldFormation != null)
+            {
+                oldFormation.Team.TriggerOnFormationsChanged(oldFormation);
+            }
+            target.Team.TriggerOnFormationsChanged(target);
+
+            Log.Trace($"{heroAgent.Name} transferred to {target.FormationIndex.GetName()}");
+
         }
     }
 }
