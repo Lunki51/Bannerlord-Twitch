@@ -186,7 +186,7 @@ namespace BLTAdoptAHero.Powers
         private void OnDecideCrushedThroughDelegate(Agent attackerAgent,
             Agent victimAgent, BLTAgentApplyDamageModel.DecideCrushedThroughParams meleeHitParams)
         {
-            if (CutThroughChancePercent != 0 && MBRandom.RandomFloat * 100f < UnblockableChancePercent)
+            if (UnblockableChancePercent != 0 && MBRandom.RandomFloat * 100f < UnblockableChancePercent)
             {
                 meleeHitParams.crushThrough = true;
             }
@@ -195,7 +195,7 @@ namespace BLTAdoptAHero.Powers
         private void OnDoMissileHit(Agent attackerAgent, Agent victimAgent,
             BLTHeroPowersMissionBehavior.MissileHitParams missileHitParams)
         {
-            if (IgnoreDamageType(victimAgent, missileHitParams.collisionData))
+            if (IgnoreDamageType(attackerAgent, victimAgent, missileHitParams.collisionData))
             {
                 return;
             }
@@ -214,7 +214,7 @@ namespace BLTAdoptAHero.Powers
         private void OnDoMeleeHit(Agent attackerAgent, Agent victimAgent,
             BLTHeroPowersMissionBehavior.MeleeHitParams meleeHitParams)
         {
-            if (IgnoreDamageType(victimAgent, meleeHitParams.collisionData))
+            if (IgnoreDamageType(attackerAgent, victimAgent, meleeHitParams.collisionData))
             {
                 return;
             }
@@ -225,7 +225,7 @@ namespace BLTAdoptAHero.Powers
         private void OnPostDoMeleeHit(Agent attackerAgent, Agent victimAgent,
             BLTHeroPowersMissionBehavior.MeleeHitParams meleeHitParams)
         {
-            if (IgnoreDamageType(victimAgent, meleeHitParams.collisionData))
+            if (IgnoreDamageType(attackerAgent, victimAgent, meleeHitParams.collisionData))
             {
                 return;
             }
@@ -275,7 +275,7 @@ namespace BLTAdoptAHero.Powers
         }
 
 
-        private bool IgnoreDamageType(Agent victimAgent, AttackCollisionData attackCollisionData)
+        private bool IgnoreDamageType(Agent attackerAgent, Agent victimAgent, AttackCollisionData attackCollisionData)
         {
             return victimAgent == null
                    || attackCollisionData.IsFallDamage
@@ -283,15 +283,15 @@ namespace BLTAdoptAHero.Powers
                    || !ApplyAgainstHeroes && victimAgent.IsHero
                    || !ApplyAgainstNonHeroes && !victimAgent.IsHero
                    || !ApplyAgainstPlayer && victimAgent == Agent.Main
-                   || !Melee && !(attackCollisionData.IsMissile || attackCollisionData.IsHorseCharge)
-                   || !Ranged && attackCollisionData.IsMissile
+                   || !Melee && !((attackCollisionData.IsMissile || attackerAgent.WieldedWeapon.IsAnyConsumable()) || attackCollisionData.IsHorseCharge)
+                   || !Ranged && (attackCollisionData.IsMissile || attackerAgent.WieldedWeapon.IsAnyConsumable())
                    || !Charge && attackCollisionData.IsHorseCharge;
         }
 
         private void OnDoDamage(Agent agent, Agent victimAgent,
             BLTHeroPowersMissionBehavior.RegisterBlowParams blowParams)
         {
-            if (IgnoreDamageType(victimAgent, blowParams.collisionData))
+            if (IgnoreDamageType(agent, victimAgent, blowParams.collisionData))
             {
                 return;
             }

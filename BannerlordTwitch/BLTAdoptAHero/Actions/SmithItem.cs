@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using BannerlordTwitch;
+using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.UI;
@@ -76,14 +77,18 @@ namespace BLTAdoptAHero
 
             if (settings.AllowCultureSelection && context.Args?.Length > 0)
             {
-                string cultureName = (context.Args[0]).ToString().Trim();
+                string cultureName = string.Join(" ", context.Args);
                 targetCulture = FindCultureByName(cultureName);
 
-                if (targetCulture == null)
+                // Check if user explicitly specified "null" to filter for items without culture
+                if (cultureName.Equals("null", StringComparison.OrdinalIgnoreCase))
                 {
-                    var validCultures = string.Join(", ", Campaign.Current.Kingdoms
-                        .Where(k => k.Culture?.IsMainCulture == true)
-                        .Select(k => k.Culture.Name.ToString())
+                    targetCulture = null;
+                }
+                else if (targetCulture == null)
+                {
+                    var validCultures = string.Join(", ", CampaignHelpers.MainCultures
+                        .Select(c => c.Name.ToString())
                         .Distinct()
                         .OrderBy(n => n));
 

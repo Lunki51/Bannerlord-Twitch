@@ -43,6 +43,8 @@
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release 1.6.2|AnyCPU' ">
     <OutputPath>bin\Release 1.6.2\</OutputPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+  </PropertyGroup>
   <Import Project="$(SolutionDir)BLTProperties.targets" />
   <ItemGroup>
     <Reference Include="$(BANNERLORD_GAME_DIR)\bin\Win64_Shipping_Client\TaleWorlds.AchievementSystem.dll">

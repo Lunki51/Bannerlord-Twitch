@@ -297,6 +297,7 @@ namespace BLTAdoptAHero.Actions
                 var effects = new System.Text.StringBuilder();
                 effects.AppendLine("<strong>Effects:</strong><br>");
 
+                if (upgrade.CanBeRemoved) effects.AppendLine($"Can Be Removed<br>");
                 if (upgrade.LoyaltyDailyFlat != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyFlat > 0 ? "+" : "")}{upgrade.LoyaltyDailyFlat}/day<br>");
                 if (upgrade.LoyaltyDailyPercent != 0) effects.AppendLine($"Loyalty: {(upgrade.LoyaltyDailyPercent > 0 ? "+" : "")}{upgrade.LoyaltyDailyPercent}%/day<br>");
                 if (upgrade.ProsperityDailyFlat != 0) effects.AppendLine($"Prosperity: {(upgrade.ProsperityDailyFlat > 0 ? "+" : "")}{upgrade.ProsperityDailyFlat}/day<br>");

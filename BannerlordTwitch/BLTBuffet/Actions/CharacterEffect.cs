@@ -172,6 +172,11 @@ namespace BLTBuffet
             onSuccess("{Config} is active on {Target}!".Translate(("Config", config.Name), ("Target", target.Name)));
         }
 
+        public static List<(float duration, float remaining)> GetActiveHealingEffects(Agent agent)
+        {
+            return BLTEffectsBehaviour.Get().InternalGetActiveHealingEffects(agent);
+        }
+
         private static void ApplyPropertyModifiers(Agent target, Config config)
         {
             foreach (var prop in config.Properties ?? Enumerable.Empty<PropertyDef>())
