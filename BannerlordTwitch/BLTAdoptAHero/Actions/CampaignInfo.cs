@@ -756,9 +756,11 @@ namespace BLTAdoptAHero
         private void ShowTime(ReplyContext context)
         {
             CampaignTime date = CampaignTime.Now;
-            int days = (int)CampaignTime.DeltaTime.ElapsedDaysUntilNow;
-            int years = (int)CampaignTime.DeltaTime.ElapsedYearsUntilNow;
+
+            int days = (int)Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedDaysUntilNow;
             int yearSize = CampaignTime.DaysInYear;
+            int years = (int)Campaign.Current.Models.CampaignTimeModel.CampaignStartTime.ElapsedYearsUntilNow;
+
 
             string result = $"Date: {date} | {days} days since start | {years} years({yearSize} days/year)";
 
