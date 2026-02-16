@@ -388,7 +388,7 @@ namespace BLTAdoptAHero
                 if (settings.ShowAchievements)
                 {
                     var achievements = BLTAdoptAHeroCampaignBehavior.Current
-                        .GetAchievements(adoptedHero)
+                        .GetAchievements(adoptedHero).Where(a=> a.IsAchieved(adoptedHero))
                         .ToList();
                     infoStrings.Add("{=giS3vq1V}[ACHIEV]".Translate() +
                                     " " +
