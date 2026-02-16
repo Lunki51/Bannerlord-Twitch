@@ -368,9 +368,9 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleGrandchildCommand(Hero parent, string[] args, Action<string> onSuccess, Action<string> onFailure)
         {
-            if (parent.Children.Count == 0)
+            if (parent.Children.Count == 0 && parent.Spouse == null)
             {
-                onFailure("{=NoGrandchildren}{parent} has no children".Translate(("parent", CleanName(parent.Name.ToString()))));
+                onFailure("{=NoGrandchildren}{parent} has no children and spouse".Translate(("parent", CleanName(parent.Name.ToString()))));
                 return;
             }
 
@@ -383,8 +383,10 @@ namespace BLTAdoptAHero.Actions
                 grandchildName = match.Groups[1].Value;
                 index = int.Parse(match.Groups[2].Value);
             }
+            var family = parent.Children;
+            family.Insert(0, parent.Spouse);
 
-            var matchingGrandchildren = parent.Children
+            var matchingGrandchildren = family
                 .Where(c => CleanName(c.Name.ToString()).IndexOf(grandchildName, StringComparison.OrdinalIgnoreCase) >= 0)
                 .ToList();
 
