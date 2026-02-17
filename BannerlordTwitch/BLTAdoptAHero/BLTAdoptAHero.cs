@@ -208,7 +208,8 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new UpgradeBehavior());
                     campaignStarter.AddBehavior(new VassalBehavior());
                     campaignStarter.AddBehavior(new KingdomTaxBehavior());
-                    //campaignStarter.AddBehavior(new MercenaryArmyBehavior());
+                    campaignStarter.AddBehavior(new MercenaryArmyBehavior());
+                    campaignStarter.AddBehavior(new PartyOrderBehavior());
                     // Diplomacy
                     campaignStarter.AddBehavior(new BLTTreatyManager());       // 1. Core data
                     campaignStarter.AddBehavior(new BLTDiplomacyHelper());     // 2. Rebellion tracking

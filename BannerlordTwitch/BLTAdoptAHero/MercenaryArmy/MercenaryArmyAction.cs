@@ -75,6 +75,12 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(4), UsedImplicitly]
             public int EliteTroopPercentage { get; set; } = 20;
 
+            [LocDisplayName("{=MaxReissueAttempts}Max Re-issue Attempts"),
+             LocCategory("Army Config", "{=ArmyConfigCat}Army Configuration"),
+             LocDescription("{=MaxReissueAttemptsDesc}How many times the system will silently re-issue the siege order if the AI overrides it before giving up and disbanding. Higher = more persistent, lower = faster cleanup on genuinely invalid orders."),
+             PropertyOrder(5), UsedImplicitly]
+            public int MaxReissueAttempts { get; set; } = 5;
+
             [LocDisplayName("{=MaxActiveArmies}Max Active Armies Per Hero"),
              LocCategory("Restrictions", "{=RestrictionsCat}Restrictions"),
              LocDescription("{=MaxActiveArmiesDesc}Maximum number of active mercenary armies per hero (0 = unlimited)"),
@@ -95,21 +101,27 @@ namespace BLTAdoptAHero.Actions
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                if (!Enabled)
-                {
-                    generator.Value("<strong>Enabled:</strong> No");
-                    return;
-                }
+                if (!Enabled) { generator.Value("<strong>Enabled:</strong> No"); return; }
 
-                generator.Value("<strong>Command:</strong> !mercenary <settlement> <troops>");
+                generator.Value("<strong>Command:</strong> !mercenary [settlement] [troops]");
                 generator.Value("<strong>Example:</strong> !mercenary Pravend 100");
-                generator.Value("<strong>Base cost:</strong> {base}{icon}".Translate(("base", BaseCost), ("icon", Naming.Gold)));
-                generator.Value("<strong>Cost per troop:</strong> {cost}{icon}".Translate(("cost", CostPerTroop), ("icon", Naming.Gold)));
-                generator.Value("<strong>Troop range:</strong> {min}-{max}".Translate(("min", MinTroops), ("max", MaxTroops)));
-                generator.Value("<strong>Elite troops:</strong> {percent}%".Translate(("percent", EliteTroopPercentage)));
-                generator.Value("<strong>Max active armies:</strong> {max}".Translate(("max", MaxActiveArmiesPerHero == 0 ? "Unlimited" : MaxActiveArmiesPerHero.ToString())));
-                generator.Value("<strong>Max lifetime:</strong> {days} days".Translate(("days", MaxLifetimeDays == 0 ? "Unlimited" : MaxLifetimeDays.ToString())));
-                generator.Value("<strong>Refund on cancel:</strong> {percent}%".Translate(("percent", RefundPercentage)));
+                generator.Value("<strong>Base cost:</strong> {base}{icon}".Translate(
+                    ("base", BaseCost), ("icon", Naming.Gold)));
+                generator.Value("<strong>Cost per troop:</strong> {cost}{icon}".Translate(
+                    ("cost", CostPerTroop), ("icon", Naming.Gold)));
+                generator.Value("<strong>Troop range:</strong> {min}–{max}".Translate(
+                    ("min", MinTroops), ("max", MaxTroops)));
+                generator.Value("<strong>Elite troops:</strong> {pct}%".Translate(
+                    ("pct", EliteTroopPercentage)));
+                generator.Value("<strong>Max active armies:</strong> {max}".Translate(
+                    ("max", MaxActiveArmiesPerHero == 0 ? "Unlimited" : MaxActiveArmiesPerHero.ToString())));
+                generator.Value("<strong>Max lifetime:</strong> {days}".Translate(
+                    ("days", MaxLifetimeDays == 0 ? "Unlimited" : $"{MaxLifetimeDays} days")));
+                generator.Value("<strong>Max re-issue attempts:</strong> {n}".Translate(
+                    ("n", MaxReissueAttempts)));
+                generator.Value("<strong>Refund on cancel:</strong> {pct}%".Translate(
+                    ("pct", RefundPercentage)));
+                generator.Value("<strong>Cohesion:</strong> locked at 100 (managed automatically)");
             }
         }
 
@@ -366,6 +378,7 @@ namespace BLTAdoptAHero.Actions
                     troopCount: troopCount,
                     elitePercentage: settings.EliteTroopPercentage,
                     minTroopThreshold: settings.MinimumTroopThreshold,
+                    maxReissueAttempts: settings.MaxReissueAttempts,
                     totalCost: totalCost,
                     refundAmount: refundAmount,
                     maxLifetimeDays: settings.MaxLifetimeDays
@@ -381,11 +394,10 @@ namespace BLTAdoptAHero.Actions
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -totalCost, true);
 
                 // Success notification
-                string message = $"Hired {troopCount} mercenaries to capture {target.Name} for {totalCost}{Naming.Gold}";
+                string message = $"Hired {troopCount} mercenaries targeting {target.Name} "
+                    + $"for {totalCost}{Naming.Gold}";
                 if (settings.MaxLifetimeDays > 0)
-                {
-                    message += $" (contract expires in {settings.MaxLifetimeDays} days)";
-                }
+                    message += $" (expires in {settings.MaxLifetimeDays} days)";
 
                 onSuccess(message);
 

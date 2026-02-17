@@ -15,19 +15,21 @@ namespace BLTAdoptAHero
     public class MercenaryArmyBehavior : CampaignBehaviorBase
     {
         public static MercenaryArmyBehavior Current { get; private set; }
-        private List<MercenaryArmyData> _mercenaryArmies = new();
 
-        public MercenaryArmyBehavior()
-        {
-            Current = this;
-        }
+        private List<MercenaryArmyData> _armies = new();
+
+        public MercenaryArmyBehavior() { Current = this; }
+
+        // ─────────────────────────────────────────────
+        //  LIFECYCLE
+        // ─────────────────────────────────────────────
 
         public override void RegisterEvents()
         {
+            CampaignEvents.HourlyTickPartyEvent.AddNonSerializedListener(this, OnHourlyTickParty);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnSettlementOwnerChanged);
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
-            CampaignEvents.OnClanDestroyedEvent.AddNonSerializedListener(this, OnClanDestroyed);
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
             CampaignEvents.MakePeace.AddNonSerializedListener(this, OnMakePeace);
         }
@@ -36,34 +38,45 @@ namespace BLTAdoptAHero
         {
             try
             {
-                dataStore.SyncData("BLT_MercenaryArmies", ref _mercenaryArmies);
-                _mercenaryArmies ??= new List<MercenaryArmyData>();
+                dataStore.SyncData("BLT_MercenaryArmies", ref _armies);
+                _armies ??= new List<MercenaryArmyData>();
 
-                if (dataStore.IsLoading)
+                if (!dataStore.IsLoading) return;
+
+                // Strip invalid entries
+                _armies.RemoveAll(a => a == null
+                    || string.IsNullOrEmpty(a.PartyId)
+                    || string.IsNullOrEmpty(a.KingdomId));
+
+                // Rebuild patch registrations; re-apply locks on surviving entries
+                MercenaryArmyPatches.ClearAllRegistrations();
+                foreach (var d in _armies)
                 {
-                    // Remove invalid armies
-                    _mercenaryArmies.RemoveAll(a => a == null ||
-                        string.IsNullOrEmpty(a.PartyId) ||
-                        string.IsNullOrEmpty(a.KingdomId));
-
-                    // Rebuild patch registrations
-                    MercenaryArmyPatches.ClearAllRegistrations();
-                    foreach (var armyData in _mercenaryArmies)
+                    var p = MobileParty.All.FirstOrDefault(x => x.StringId == d.PartyId);
+                    if (p == null || !p.IsActive)
                     {
-                        var party = MobileParty.All.FirstOrDefault(p => p.StringId == armyData.PartyId);
-                        if (party?.Army != null)
-                        {
-                            MercenaryArmyPatches.RegisterMercenaryArmy(party, party.Army);
-                        }
+                        d.IsActive = false;
+                        continue;
                     }
+
+                    if (p.Army != null)
+                        MercenaryArmyPatches.RegisterMercenaryArmy(p, p.Army);
+
+                    // Re-apply AI lock so load doesn't give the AI a free re-evaluation
+                    if (d.IsActive)
+                        p.Ai.SetDoNotMakeNewDecisions(true);
                 }
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] MercenaryArmyBehavior.SyncData error: {ex}");
-                _mercenaryArmies = new List<MercenaryArmyData>();
+                _armies = new List<MercenaryArmyData>();
             }
         }
+
+        // ─────────────────────────────────────────────
+        //  PUBLIC API
+        // ─────────────────────────────────────────────
 
         public class ArmyCreationResult
         {
@@ -78,205 +91,243 @@ namespace BLTAdoptAHero
             int troopCount,
             int elitePercentage,
             int minTroopThreshold,
+            int maxReissueAttempts,
             int totalCost,
             int refundAmount,
             int maxLifetimeDays)
         {
-            Hero mercCommander = null;
+            Hero commander = null;
             MobileParty party = null;
-            Army army = null;
 
             try
             {
-                // Validate
                 if (originalHero?.Clan?.Kingdom == null)
-                    return new ArmyCreationResult { Success = false, ErrorMessage = "Invalid hero or clan" };
+                    return Fail("Invalid hero or clan");
                 if (targetSettlement == null)
-                    return new ArmyCreationResult { Success = false, ErrorMessage = "Invalid target settlement" };
+                    return Fail("Invalid target settlement");
 
-                // Create commander
-                mercCommander = CreateCommander(originalHero);
-                if (mercCommander == null)
-                {
-                    return new ArmyCreationResult { Success = false, ErrorMessage = "Failed to create commander" };
-                }
+                // ── Siege prerequisites (guide: Validation Requirements) ──
+                if (!targetSettlement.IsFortification)
+                    return Fail($"{targetSettlement.Name} is not a fortification");
+                if (targetSettlement.IsUnderSiege)
+                    return Fail($"{targetSettlement.Name} is already under siege");
+                if (!originalHero.Clan.Kingdom.IsAtWarWith(
+                        targetSettlement.OwnerClan?.Kingdom
+                        ?? targetSettlement.OwnerClan?.MapFaction))
+                    return Fail($"Not at war with {targetSettlement.Name}'s owner");
 
-                // Find spawn location
+                // ── Create commander ──
+                commander = CreateCommander(originalHero);
+                if (commander == null)
+                    return Fail("Failed to create commander");
+
+                // ── Find spawn point (closest friendly settlement to target) ──
                 var spawnSettlement = FindClosestFriendlySettlement(originalHero.Clan.Kingdom, targetSettlement);
                 if (spawnSettlement == null)
                 {
-                    Cleanup(mercCommander, null, null);
-                    return new ArmyCreationResult { Success = false, ErrorMessage = "No friendly settlements" };
+                    Cleanup(commander, null, null);
+                    return Fail("No friendly settlements to spawn from");
                 }
 
-                // Create party
-                party = MobilePartyHelper.SpawnLordParty(mercCommander, spawnSettlement.GatePosition, 0.5f);
+                // ── Spawn party ──
+                party = MobilePartyHelper.SpawnLordParty(commander, spawnSettlement.GatePosition, 0.5f);
                 if (party == null || !party.IsActive)
                 {
-                    Cleanup(mercCommander, null, null);
-                    return new ArmyCreationResult { Success = false, ErrorMessage = "Failed to create party" };
+                    Cleanup(commander, null, null);
+                    return Fail("Failed to create party");
                 }
 
-                // Add troops
+                // ── Populate troops ──
                 party.MemberRoster?.Clear();
-                AddTroops(party, mercCommander.Culture, troopCount, elitePercentage);
+                AddTroops(party, commander.Culture, troopCount, elitePercentage);
                 if (party.MemberRoster.TotalManCount < troopCount / 2)
                 {
-                    Cleanup(mercCommander, party, null);
-                    return new ArmyCreationResult { Success = false, ErrorMessage = "Failed to recruit troops" };
+                    Cleanup(commander, party, null);
+                    return Fail("Failed to recruit sufficient troops");
                 }
 
-                // Add food
-                int food = party.MemberRoster.TotalManCount / 4;
-                if (food > 0)
-                    party.ItemRoster?.AddToCounts(DefaultItems.Grain, food);
+                // ── Add food ──
+                int food = Math.Max(1, party.MemberRoster.TotalManCount / 4);
+                party.ItemRoster?.AddToCounts(DefaultItems.Grain, food);
 
-                // Create army (void method, sets party.Army)
-                originalHero.Clan.Kingdom.CreateArmy(mercCommander, targetSettlement, Army.ArmyTypes.Besieger, null);
+                // ── Create army (leader-only; no gather phase allies needed) ──
+                //    Kingdom.CreateArmy handles proper engine-side registration.
+                //    We immediately override the gather-phase move with our siege order.
+                originalHero.Clan.Kingdom.CreateArmy(commander, targetSettlement, Army.ArmyTypes.Besieger, null);
 
-                // Get the created army from the party
-                army = party.Army;
+                var army = party.Army;
                 if (army == null)
                 {
-                    Cleanup(mercCommander, party, null);
-                    return new ArmyCreationResult { Success = false, ErrorMessage = "Failed to create army" };
+                    Cleanup(commander, party, null);
+                    return Fail("Army object not created");
                 }
 
-                // Create data
-                var armyData = new MercenaryArmyData
+                // ── Issue siege order ──
+                var nav = party.IsCurrentlyAtSea
+                    ? MobileParty.NavigationType.Naval
+                    : MobileParty.NavigationType.Default;
+                SetPartyAiAction.GetActionForBesiegingSettlement(party, targetSettlement, nav, party.IsCurrentlyAtSea);
+
+                // ── Lock Tier 3 AI (siege order survives hourly re-evaluation) ──
+                party.Ai.SetDoNotMakeNewDecisions(true);
+
+                // ── Register ──
+                var data = new MercenaryArmyData
                 {
-                    CommanderHeroId = mercCommander.StringId,
+                    CommanderHeroId = commander.StringId,
                     OriginalHeroId = originalHero.StringId,
                     PartyId = party.StringId,
                     KingdomId = originalHero.Clan.Kingdom.StringId,
                     TargetSettlementId = targetSettlement.StringId,
-                    TargetFactionId = (targetSettlement.OwnerClan?.Kingdom ?? targetSettlement.OwnerClan?.MapFaction)?.StringId,
+                    TargetFactionId = (targetSettlement.OwnerClan?.Kingdom
+                                         ?? targetSettlement.OwnerClan?.MapFaction)?.StringId,
                     InitialTroopCount = party.MemberRoster.TotalManCount,
                     MinimumTroopThreshold = minTroopThreshold,
+                    MaxReissueAttempts = maxReissueAttempts,
                     TotalCost = totalCost,
                     RefundAmount = refundAmount,
                     CreationTimeDays = CampaignTime.Now.ToDays,
                     MaxLifetimeDays = maxLifetimeDays,
+                    Status = "Marching",
                     IsActive = true
                 };
 
-                // Register
-                _mercenaryArmies.Add(armyData);
+                _armies.Add(data);
                 MercenaryArmyPatches.RegisterMercenaryArmy(party, army);
 
-                Log.Info($"[BLT] Created mercenary army: {party.Name} -> {targetSettlement.Name}");
-                return new ArmyCreationResult { Success = true, ArmyData = armyData };
+                Log.Info($"[BLT] Mercenary army created: {party.Name} → {targetSettlement.Name}");
+                return new ArmyCreationResult { Success = true, ArmyData = data };
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] CreateMercenaryArmy error: {ex}");
-                Cleanup(mercCommander, party, army);
-                return new ArmyCreationResult { Success = false, ErrorMessage = ex.Message };
+                Cleanup(commander, party, null);
+                return Fail(ex.Message);
             }
+
+            static ArmyCreationResult Fail(string msg) =>
+                new() { Success = false, ErrorMessage = msg };
         }
 
-        private Hero CreateCommander(Hero originalHero)
+        public int GetActiveArmiesForHero(Hero hero)
+        {
+            if (hero == null) return 0;
+            return _armies.Count(a => a.IsActive && a.OriginalHeroId == hero.StringId);
+        }
+
+        // ─────────────────────────────────────────────
+        //  EVENT HANDLERS
+        // ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Core monitoring loop. Runs every in-game hour for every mobile party.
+        /// Only processes parties we are tracking; everything else returns immediately.
+        /// </summary>
+        private void OnHourlyTickParty(MobileParty party)
         {
             try
             {
-                var template = originalHero.Culture.NotableTemplates.FirstOrDefault();
-                if (template == null) return null;
+                var data = _armies.FirstOrDefault(a => a.IsActive && a.PartyId == party?.StringId);
+                if (data == null) return;
 
-                var homeSettlement = originalHero.HomeSettlement
-                    ?? Settlement.All.FirstOrDefault(s => s.OwnerClan?.Kingdom == originalHero.Clan.Kingdom && s.IsTown);
-                if (homeSettlement == null) return null;
+                // ── Party no longer alive ──
+                if (!party.IsActive)
+                {
+                    DisbandArmy(data, "Party lost", false);
+                    return;
+                }
 
-                var commander = HeroCreator.CreateSpecialHero(template, homeSettlement, originalHero.Clan, null, 30);
-                if (commander == null) return null;
+                // ── Troop threshold (skip if currently fighting) ──
+                if (party.MapEvent == null
+                    && party.MemberRoster.TotalHealthyCount < data.MinimumTroopThreshold)
+                {
+                    DisbandArmy(data, "Troops depleted", false);
+                    return;
+                }
 
-                commander.SetName(new TextObject($"{originalHero.FirstName}'s Mercenary"), new TextObject("Mercenary Captain"));
-                commander.SetNewOccupation(Occupation.Lord);
+                // ── Verify target still exists ──
+                var target = Settlement.Find(data.TargetSettlementId);
+                if (target == null)
+                {
+                    DisbandArmy(data, "Target settlement missing", true);
+                    return;
+                }
 
-                // Set skills
-                commander.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.Leadership, 150);
-                commander.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.Tactics, 120);
+                // ── Siege underway — milestone notification (once only) ──
+                if (party.BesiegedSettlement == target && data.Status != "Besieging")
+                {
+                    data.Status = "Besieging";
+                    data.ReissueAttempts = 0;
+                    NotifyHero(data, $"Your mercenaries are besieging {target.Name}!", Log.Sound.Notification1);
+                    return;
+                }
 
-                return commander;
+                // ── Behavior drift detection (not in combat, not already besieging) ──
+                if (party.MapEvent != null || party.DefaultBehavior == AiBehavior.BesiegeSettlement)
+                {
+                    // All good or actively fighting — reset counter if besieging
+                    if (party.DefaultBehavior == AiBehavior.BesiegeSettlement)
+                        data.ReissueAttempts = 0;
+                    return;
+                }
+
+                // DefaultBehavior has drifted away from siege and we're not in combat
+                if (data.ReissueAttempts >= data.MaxReissueAttempts)
+                {
+                    DisbandArmy(data, "Siege order could not be maintained", true);
+                    return;
+                }
+
+                // Re-validate before re-issuing
+                bool canSiege = target.IsFortification
+                    && !target.IsUnderSiege
+                    && party.MapFaction.IsAtWarWith(target.MapFaction)
+                    && party.BesiegedSettlement == null
+                    && party.MapEvent == null;
+
+                if (!canSiege)
+                {
+                    DisbandArmy(data, "Siege no longer possible", true);
+                    return;
+                }
+
+                // Silent re-issue
+                var nav = party.IsCurrentlyAtSea
+                    ? MobileParty.NavigationType.Naval
+                    : MobileParty.NavigationType.Default;
+                SetPartyAiAction.GetActionForBesiegingSettlement(party, target, nav, party.IsCurrentlyAtSea);
+                party.Ai.SetDoNotMakeNewDecisions(true);
+                data.ReissueAttempts++;
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT] CreateCommander error: {ex}");
-                return null;
+                Log.Error($"[BLT] OnHourlyTickParty error: {ex}");
             }
         }
-
-        private void AddTroops(MobileParty party, CultureObject culture, int troopCount, int elitePercentage)
-        {
-            int eliteCount = (int)(troopCount * (elitePercentage / 100f));
-            int regularCount = troopCount - eliteCount;
-
-            // Get troop types
-            var regular = culture.MeleeMilitiaTroop ?? culture.BasicTroop;
-            var elite = culture.MeleeEliteMilitiaTroop ?? culture.EliteBasicTroop ?? regular;
-
-            if (regular != null && regularCount > 0)
-                party.MemberRoster.AddToCounts(regular, regularCount);
-            if (elite != null && eliteCount > 0)
-                party.MemberRoster.AddToCounts(elite, eliteCount);
-        }
-
-        private Settlement FindClosestFriendlySettlement(Kingdom kingdom, Settlement target)
-        {
-            return Settlement.All
-                .Where(s => s.OwnerClan?.Kingdom == kingdom && (s.IsTown || s.IsCastle))
-                .OrderBy(s => s.GetPosition2D.DistanceSquared(target.GetPosition2D))
-                .FirstOrDefault();
-        }
-
-        private void Cleanup(Hero commander, MobileParty party, Army army)
-        {
-            try
-            {
-                if (army != null)
-                    DisbandArmyAction.ApplyByUnknownReason(army);
-                if (party != null)
-                    DestroyPartyAction.Apply(null, party);
-                if (commander != null)
-                    KillCharacterAction.ApplyByRemove(commander);
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] Cleanup error: {ex}");
-            }
-        }
-
-        // ===== EVENT HANDLERS =====
 
         private void OnDailyTick()
         {
             try
             {
-                foreach (var armyData in _mercenaryArmies.ToList())
+                foreach (var data in _armies.ToList())
                 {
-                    if (!armyData.IsActive) continue;
+                    if (!data.IsActive) continue;
 
-                    // Add food
-                    var party = MobileParty.All.FirstOrDefault(p => p.StringId == armyData.PartyId);
-                    if (party != null)
+                    var party = MobileParty.All.FirstOrDefault(p => p.StringId == data.PartyId);
+                    if (party == null) continue;
+
+                    // ── Food top-up ──
+                    int desired = Math.Max(1, party.MemberRoster.TotalManCount / 4);
+                    int current = party.TotalFoodAtInventory;
+                    if (current < desired)
+                        party.ItemRoster?.AddToCounts(DefaultItems.Grain, desired - current);
+
+                    // ── Lifetime expiry ──
+                    if (data.MaxLifetimeDays > 0
+                        && CampaignTime.Now.ToDays >= data.CreationTimeDays + data.MaxLifetimeDays)
                     {
-                        int desired = party.MemberRoster.TotalManCount / 4;
-                        int current = party.TotalFoodAtInventory;
-                        if (current < desired)
-                            party.ItemRoster?.AddToCounts(DefaultItems.Grain, desired - current);
+                        DisbandArmy(data, "Contract expired", true);
                     }
-
-                    // Check lifetime
-                    if (armyData.MaxLifetimeDays > 0)
-                    {
-                        double expiryDay =
-                            armyData.CreationTimeDays + armyData.MaxLifetimeDays;
-
-                        if (CampaignTime.Now.ToDays >= expiryDay)
-                        {
-                            DisbandArmy(armyData, "Contract expired", true);
-                        }
-                    }
-
                 }
             }
             catch (Exception ex)
@@ -285,26 +336,30 @@ namespace BLTAdoptAHero
             }
         }
 
-        private void OnSettlementOwnerChanged(Settlement settlement, bool openToClaim, Hero newOwner, Hero oldOwner, Hero capturerHero, ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
+        private void OnSettlementOwnerChanged(
+            Settlement settlement, bool openToClaim,
+            Hero newOwner, Hero oldOwner, Hero capturer,
+            ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
             try
             {
                 if (settlement == null) return;
 
-                foreach (var armyData in _mercenaryArmies.Where(a => a.TargetSettlementId == settlement.StringId).ToList())
+                foreach (var data in _armies.Where(a => a.IsActive && a.TargetSettlementId == settlement.StringId).ToList())
                 {
-                    var originalHero = Hero.FindFirst(h => h.StringId == armyData.OriginalHeroId);
-                    bool success = newOwner?.Clan?.Kingdom != null && originalHero?.Clan?.Kingdom == newOwner.Clan.Kingdom;
+                    var originalHero = Hero.FindFirst(h => h.StringId == data.OriginalHeroId);
+                    bool ours = newOwner?.Clan?.Kingdom != null
+                                && originalHero?.Clan?.Kingdom == newOwner.Clan.Kingdom;
 
-                    DisbandArmy(armyData, success ? "Target captured!" : "Target lost to others", !success);
-
-                    if (originalHero != null)
+                    if (ours)
                     {
-                        Log.ShowInformation(
-                            success ? $"Your mercenaries captured {settlement.Name}!" : $"{settlement.Name} was captured by {newOwner?.Name}",
-                            originalHero.CharacterObject,
-                            Log.Sound.Notification1
-                        );
+                        NotifyHero(data, $"Your mercenaries captured {settlement.Name}!", Log.Sound.Notification1);
+                        DisbandArmy(data, "Target captured", false); // success — no refund needed
+                    }
+                    else
+                    {
+                        NotifyHero(data, $"{settlement.Name} was captured by {newOwner?.Name.ToString() ?? "someone else"}", Log.Sound.Notification1);
+                        DisbandArmy(data, "Target lost to others", true);
                     }
                 }
             }
@@ -319,12 +374,9 @@ namespace BLTAdoptAHero
             try
             {
                 if (party == null) return;
-
-                var armyData = _mercenaryArmies.FirstOrDefault(a => a.PartyId == party.StringId);
-                if (armyData != null)
-                {
-                    DisbandArmy(armyData, "Army destroyed in battle", false);
-                }
+                var data = _armies.FirstOrDefault(a => a.IsActive && a.PartyId == party.StringId);
+                if (data != null)
+                    DisbandArmy(data, "Army destroyed in battle", false);
             }
             catch (Exception ex)
             {
@@ -332,35 +384,15 @@ namespace BLTAdoptAHero
             }
         }
 
-        private void OnClanDestroyed(Clan clan)
-        {
-            try
-            {
-                if (clan == null) return;
-                foreach (var armyData in _mercenaryArmies.Where(a =>
-                {
-                    var hero = Hero.FindFirst(h => h.StringId == a.OriginalHeroId);
-                    return hero?.Clan == clan;
-                }).ToList())
-                {
-                    DisbandArmy(armyData, "Clan destroyed", true);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] OnClanDestroyed error: {ex}");
-            }
-        }
-
-        private void OnHeroKilled(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
+        private void OnHeroKilled(
+            Hero victim, Hero killer,
+            KillCharacterAction.KillCharacterActionDetail detail, bool showNotification)
         {
             try
             {
                 if (victim == null) return;
-                foreach (var armyData in _mercenaryArmies.Where(a => a.OriginalHeroId == victim.StringId).ToList())
-                {
-                    DisbandArmy(armyData, "Hero killed", true);
-                }
+                foreach (var data in _armies.Where(a => a.IsActive && a.OriginalHeroId == victim.StringId).ToList())
+                    DisbandArmy(data, "Commissioning hero died", true);
             }
             catch (Exception ex)
             {
@@ -368,29 +400,32 @@ namespace BLTAdoptAHero
             }
         }
 
-        private void OnMakePeace(IFaction faction1, IFaction faction2, MakePeaceAction.MakePeaceDetail detail)
+        private void OnMakePeace(IFaction f1, IFaction f2, MakePeaceAction.MakePeaceDetail detail)
         {
             try
             {
-                if (faction1 == null || faction2 == null) return;
+                if (f1 == null || f2 == null) return;
 
-                foreach (var armyData in _mercenaryArmies.ToList())
+                foreach (var data in _armies.Where(a => a.IsActive).ToList())
                 {
-                    var target = Settlement.Find(armyData.TargetSettlementId);
+                    var target = Settlement.Find(data.TargetSettlementId);
                     if (target == null) continue;
 
-                    var originalHero = Hero.FindFirst(h => h.StringId == armyData.OriginalHeroId);
-                    if (originalHero?.Clan?.Kingdom == null) continue;
+                    var hero = Hero.FindFirst(h => h.StringId == data.OriginalHeroId);
+                    if (hero?.Clan?.Kingdom == null) continue;
 
                     var targetFaction = target.OwnerClan?.Kingdom ?? target.OwnerClan?.MapFaction;
                     if (targetFaction == null) continue;
 
-                    bool peaceMade = (faction1 == originalHero.Clan.Kingdom && faction2 == targetFaction) ||
-                                    (faction2 == originalHero.Clan.Kingdom && faction1 == targetFaction);
+                    bool peace = (f1 == hero.Clan.Kingdom && f2 == targetFaction)
+                              || (f2 == hero.Clan.Kingdom && f1 == targetFaction);
 
-                    if (peaceMade)
+                    if (peace)
                     {
-                        DisbandArmy(armyData, "Peace declared", true);
+                        NotifyHero(data,
+                            $"Peace with {targetFaction.Name} — mercenary contract cancelled. {data.RefundAmount}g refunded.",
+                            Log.Sound.Notification1);
+                        DisbandArmy(data, "Peace declared", true);
                     }
                 }
             }
@@ -400,37 +435,37 @@ namespace BLTAdoptAHero
             }
         }
 
-        private void DisbandArmy(MercenaryArmyData armyData, string reason, bool refund)
+        // ─────────────────────────────────────────────
+        //  INTERNALS
+        // ─────────────────────────────────────────────
+
+        private void DisbandArmy(MercenaryArmyData data, string reason, bool refund)
         {
             try
             {
-                if (armyData == null || !armyData.IsActive) return;
+                if (data == null || !data.IsActive) return;
+                data.IsActive = false;
 
-                armyData.IsActive = false;
-                Log.Info($"[BLT] Disbanding army {armyData.PartyId}: {reason} (refund={refund})");
+                Log.Info($"[BLT] Disbanding mercenary army {data.PartyId}: {reason} (refund={refund})");
 
-                // Get party and army
-                var party = MobileParty.All.FirstOrDefault(p => p.StringId == armyData.PartyId);
+                var party = MobileParty.All.FirstOrDefault(p => p.StringId == data.PartyId);
                 var army = party?.Army;
-                var commander = Hero.FindFirst(h => h.StringId == armyData.CommanderHeroId);
+                var commander = Hero.FindFirst(h => h.StringId == data.CommanderHeroId);
 
-                // Unregister
-                MercenaryArmyPatches.UnregisterMercenaryArmy(armyData.PartyId);
+                // Release lock before cleanup — prevents engine fighting the destroy action
+                if (party != null)
+                    party.Ai.SetDoNotMakeNewDecisions(false);
 
-                // Refund
-                if (refund && armyData.RefundAmount > 0)
+                MercenaryArmyPatches.UnregisterMercenaryArmy(data.PartyId);
+
+                if (refund && data.RefundAmount > 0)
                 {
-                    var hero = Hero.FindFirst(h => h.StringId == armyData.OriginalHeroId);
-                    if (hero != null)
-                    {
-                        BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(hero, armyData.RefundAmount, true);
-                    }
+                    var hero = Hero.FindFirst(h => h.StringId == data.OriginalHeroId);
+                    BLTAdoptAHeroCampaignBehavior.Current?.ChangeHeroGold(hero, data.RefundAmount, true);
                 }
 
-                // Cleanup
                 Cleanup(commander, party, army);
-
-                _mercenaryArmies.Remove(armyData);
+                _armies.Remove(data);
             }
             catch (Exception ex)
             {
@@ -438,22 +473,83 @@ namespace BLTAdoptAHero
             }
         }
 
-        public int GetActiveArmiesForHero(Hero hero)
+        private static void Cleanup(Hero commander, MobileParty party, Army army)
         {
-            if (hero == null) return 0;
-            return _mercenaryArmies.Count(a => a.IsActive && a.OriginalHeroId == hero.StringId);
+            try { if (army != null) DisbandArmyAction.ApplyByUnknownReason(army); }
+            catch (Exception ex) { Log.Error($"[BLT] Cleanup(army) error: {ex}"); }
+
+            try { if (party != null && party.IsActive) DestroyPartyAction.Apply(null, party); }
+            catch (Exception ex) { Log.Error($"[BLT] Cleanup(party) error: {ex}"); }
+
+            try { if (commander != null) KillCharacterAction.ApplyByRemove(commander); }
+            catch (Exception ex) { Log.Error($"[BLT] Cleanup(commander) error: {ex}"); }
         }
 
-        public int GetActiveArmiesForClan(Clan clan)
+        private static void NotifyHero(MercenaryArmyData data, string message, Log.Sound sound)
         {
-            if (clan == null) return 0;
-            return _mercenaryArmies.Count(a =>
+            try
             {
-                if (!a.IsActive) return false;
-                var hero = Hero.FindFirst(h => h.StringId == a.OriginalHeroId);
-                return hero?.Clan == clan;
-            });
+                var hero = Hero.FindFirst(h => h.StringId == data.OriginalHeroId);
+                if (hero != null)
+                    Log.ShowInformation(message, hero.CharacterObject, sound);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] NotifyHero error: {ex}");
+            }
         }
+
+        private static Hero CreateCommander(Hero originalHero)
+        {
+            try
+            {
+                var template = originalHero.Culture.NotableTemplates?.FirstOrDefault();
+                if (template == null) return null;
+
+                var home = originalHero.HomeSettlement
+                    ?? Settlement.All.FirstOrDefault(s =>
+                        s.OwnerClan?.Kingdom == originalHero.Clan.Kingdom && s.IsTown);
+                if (home == null) return null;
+
+                var c = HeroCreator.CreateSpecialHero(template, home, originalHero.Clan, null, 30);
+                if (c == null) return null;
+
+                c.SetName(
+                    new TextObject($"{originalHero.FirstName}'s Mercenary"),
+                    new TextObject("Mercenary Captain"));
+                c.SetNewOccupation(Occupation.Lord);
+                c.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.Leadership, 150);
+                c.HeroDeveloper.SetInitialSkillLevel(DefaultSkills.Tactics, 120);
+                return c;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] CreateCommander error: {ex}");
+                return null;
+            }
+        }
+
+        private static void AddTroops(MobileParty party, CultureObject culture, int total, int elitePct)
+        {
+            int elite = (int)(total * (elitePct / 100f));
+            int regular = total - elite;
+
+            var reg = culture.MeleeMilitiaTroop ?? culture.BasicTroop;
+            var eli = culture.MeleeEliteMilitiaTroop ?? culture.EliteBasicTroop ?? reg;
+
+            if (reg != null && regular > 0) party.MemberRoster.AddToCounts(reg, regular);
+            if (eli != null && elite > 0) party.MemberRoster.AddToCounts(eli, elite);
+        }
+
+        private static Settlement FindClosestFriendlySettlement(Kingdom kingdom, Settlement target) =>
+            Settlement.All
+                .Where(s => s.OwnerClan?.Kingdom == kingdom && (s.IsTown || s.IsCastle))
+                .OrderBy(s => s.GetPosition2D.DistanceSquared(target.GetPosition2D))
+                .FirstOrDefault();
+
+        // ─────────────────────────────────────────────
+        //  DATA
+        // ─────────────────────────────────────────────
 
         [Serializable]
         public class MercenaryArmyData
@@ -466,10 +562,13 @@ namespace BLTAdoptAHero
             public string TargetFactionId { get; set; }
             public int InitialTroopCount { get; set; }
             public int MinimumTroopThreshold { get; set; }
+            public int MaxReissueAttempts { get; set; }
+            public int ReissueAttempts { get; set; }
             public int TotalCost { get; set; }
             public int RefundAmount { get; set; }
             public double CreationTimeDays { get; set; }
             public int MaxLifetimeDays { get; set; }
+            public string Status { get; set; } = "Marching";
             public bool IsActive { get; set; }
         }
     }
