@@ -619,69 +619,113 @@ namespace BLTAdoptAHero
             return true;
         }
     }
+    #endregion
+
+    #region ArmyDispersionAndCohesionPatches
 
     [HarmonyPatch(typeof(Army), "CheckArmyDispersion")]
     internal static class BLT_ArmyDispersionPatch
     {
-        // Track army creation time (CampaignTime is a struct, safe as key)
         private static readonly Dictionary<Army, CampaignTime> ArmyCreationTimes = new();
 
         static bool Prefix(Army __instance)
         {
             try
             {
-                // Safety checks
                 if (__instance?.LeaderParty?.LeaderHero == null)
                     return true;
 
-                // Only care about BLT-led armies
-                if (!__instance.LeaderParty.LeaderHero.IsAdopted())
+                // Mercenary armies: MercenaryArmyPatches owns those — skip here
+                // (MercenaryArmyPatches.Prefix_CheckArmyDispersion already blocks them)
+                if (MercenaryArmyPatches.IsMercenaryArmy(__instance))
                     return true;
 
-                // Never interfere with player army
                 if (__instance.LeaderParty == MobileParty.MainParty)
                     return true;
 
-                // Quick Cleanup
+                // Only process armies led by adopted heroes
+                if (!__instance.LeaderParty.LeaderHero.IsAdopted())
+                    return true;
+
+                // Quick cleanup of stale tracking entry
                 if (__instance.LeaderParty?.Army != __instance)
                 {
                     ArmyCreationTimes.Remove(__instance);
                     return true;
                 }
 
-                // Record creation time if first seen
+                // Track creation time
                 if (!ArmyCreationTimes.ContainsKey(__instance))
-                {
                     ArmyCreationTimes[__instance] = CampaignTime.Now;
-#if DEBUG
-                    Log.Trace($"[BLT] Tracking army creation time for BLT army led by {__instance.LeaderParty.LeaderHero.Name}");
-#endif
-                }
 
-                // Calculate age
                 float daysAlive =
                     (float)(CampaignTime.Now.ToDays - ArmyCreationTimes[__instance].ToDays);
 
-                // If kingdom is no longer at war, allow normal disbanding
+                // If no active wars with real factions, allow normal disbanding
                 var kingdom = __instance.LeaderParty.MapFaction as Kingdom;
-                if (kingdom == null || kingdom.FactionsAtWarWith.Where(f => f.IsKingdomFaction || (f.IsClan && f.Fiefs.Count() > 0)).Count() == 0)
+                if (kingdom == null
+                    || !kingdom.FactionsAtWarWith.Any(f =>
+                        f.IsKingdomFaction || (f.IsClan && f.Fiefs.Any())))
+                {
+                    ArmyCreationTimes.Remove(__instance);
                     return true;
+                }
 
-                // If army has lived long enough, allow normal behavior
-                if (daysAlive >= BLTAdoptAHeroModule.CommonConfig.BLTArmyMinLifetimeDays)
-                    return true;
-
+                // Still within minimum lifetime — block dispersion
+                if (daysAlive < BLTAdoptAHeroModule.CommonConfig.BLTArmyMinLifetimeDays)
+                {
 #if DEBUG
-                Log.Trace($"[BLT] Prevented army disbanding (age {daysAlive:F1} days) for BLT army led by {__instance.LeaderParty.LeaderHero.Name}");
+                Log.Trace($"[BLT] Blocked dispersion (age {daysAlive:F1}d) for {__instance.LeaderParty.LeaderHero.Name}'s army");
 #endif
+                    return false;
+                }
 
-                // BLOCK CheckArmyDispersion entirely
-                return false;
+                // Beyond minimum lifetime but LockPlayerArmyCohesion enabled:
+                // block dispersion that would have been caused by cohesion only
+                // (peace/no-war path already returned above; this blocks the
+                //  CohesionDepleted path while leaving LeaderDead etc. through)
+                if (BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion
+                    && __instance.Cohesion >= 100f)
+                {
+                    return false; // cohesion can't actually be the problem; skip
+                }
+
+                return true;
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT] Army.CheckArmyDispersion patch error: {ex}");
-                return true; // Fail-safe: allow vanilla logic
+                Log.Error($"[BLT] BLT_ArmyDispersionPatch error: {ex}");
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clamps cohesion to 100 for player BLT armies when LockPlayerArmyCohesion is on.
+    /// Mercenary army cohesion is handled separately in MercenaryArmyPatches.
+    /// </summary>
+    [HarmonyPatch(typeof(Army), nameof(Army.Cohesion), MethodType.Setter)]
+    internal static class BLT_ArmyCohesionSetterPatch
+    {
+        static void Postfix(Army __instance)
+        {
+            try
+            {
+                // Mercenary armies handled in MercenaryArmyPatches — skip
+                if (MercenaryArmyPatches.IsMercenaryArmy(__instance)) return;
+                if (__instance.LeaderParty == MobileParty.MainParty) return;
+
+                if (!BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion) return;
+
+                if (__instance.LeaderParty?.LeaderHero?.IsAdopted() == true
+                    && __instance.Cohesion < 100f)
+                {
+                    __instance.Cohesion = 100f;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_ArmyCohesionSetterPatch error: {ex}");
             }
         }
     }

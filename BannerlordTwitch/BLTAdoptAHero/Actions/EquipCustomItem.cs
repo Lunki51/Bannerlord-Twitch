@@ -204,19 +204,24 @@ namespace BLTAdoptAHero.Actions
         {
             int slotsEquipped = 0;
             var equipment = hero.BattleEquipment;
+            var heroClass = hero.GetClass();
 
-            // Determine which slots can hold this item type
-            var validSlots = GetValidSlotsForItem(customItem.Item);
+            // Get indexed slots from hero's class (tuple of index and type)
+            var indexedSlots = heroClass.IndexedSlots;
 
-            foreach (var slot in validSlots)
+            foreach (var (slotIndex, slotType) in indexedSlots)
             {
-                var currentItem = equipment[slot];
+                // Check if this slot type can hold this item
+                if (!IsItemCompatibleWithSlot(customItem.Item, slotType))
+                    continue;
+
+                var currentItem = equipment[slotIndex];
 
                 // If slot is empty OR has same item type, equip the custom item
                 // No stat comparison - this is a manual user choice
                 if (currentItem.IsEmpty || currentItem.Item.ItemType == customItem.Item.ItemType)
                 {
-                    equipment[slot] = customItem;
+                    equipment[slotIndex] = customItem;
                     slotsEquipped++;
                 }
             }
@@ -224,70 +229,42 @@ namespace BLTAdoptAHero.Actions
             return slotsEquipped;
         }
 
-        private List<EquipmentIndex> GetValidSlotsForItem(ItemObject item)
+        private bool IsItemCompatibleWithSlot(ItemObject item, EquipmentType slotType)
         {
-            var slots = new List<EquipmentIndex>();
+            if (slotType == EquipmentType.None)
+                return false;
 
-            switch (item.ItemType)
+            // For weapons, we need to check the specific weapon class
+            if (item.WeaponComponent != null)
             {
-                case ItemObject.ItemTypeEnum.HeadArmor:
-                    slots.Add(EquipmentIndex.Head);
-                    break;
-
-                case ItemObject.ItemTypeEnum.BodyArmor:
-                    slots.Add(EquipmentIndex.Body);
-                    break;
-
-                case ItemObject.ItemTypeEnum.LegArmor:
-                    slots.Add(EquipmentIndex.Leg);
-                    break;
-
-                case ItemObject.ItemTypeEnum.HandArmor:
-                    slots.Add(EquipmentIndex.Gloves);
-                    break;
-
-                case ItemObject.ItemTypeEnum.Cape:
-                    slots.Add(EquipmentIndex.Cape);
-                    break;
-
-                case ItemObject.ItemTypeEnum.Horse:
-                    slots.Add(EquipmentIndex.Horse);
-                    break;
-
-                case ItemObject.ItemTypeEnum.HorseHarness:
-                    slots.Add(EquipmentIndex.HorseHarness);
-                    break;
-
-                case ItemObject.ItemTypeEnum.Shield:
-                    // Shields can go in weapon slots 1-3
-                    slots.Add(EquipmentIndex.Weapon1);
-                    slots.Add(EquipmentIndex.Weapon2);
-                    slots.Add(EquipmentIndex.Weapon3);
-                    break;
-
-                case ItemObject.ItemTypeEnum.Bow:
-                case ItemObject.ItemTypeEnum.Crossbow:
-                case ItemObject.ItemTypeEnum.OneHandedWeapon:
-                case ItemObject.ItemTypeEnum.TwoHandedWeapon:
-                case ItemObject.ItemTypeEnum.Polearm:
-                case ItemObject.ItemTypeEnum.Thrown:
-                case ItemObject.ItemTypeEnum.Pistol:
-                case ItemObject.ItemTypeEnum.Musket:
-                    // Weapons can go in weapon slots 0-3
-                    slots.Add(EquipmentIndex.Weapon0);
-                    slots.Add(EquipmentIndex.Weapon1);
-                    slots.Add(EquipmentIndex.Weapon2);
-                    slots.Add(EquipmentIndex.Weapon3);
-                    break;
-
-                case ItemObject.ItemTypeEnum.Arrows:
-                case ItemObject.ItemTypeEnum.Bolts:
-                case ItemObject.ItemTypeEnum.Bullets:
                     // Ammo typically doesn't get equipped via this system
-                    break;
-            }
+                var weaponClass = item.WeaponComponent.PrimaryWeapon.WeaponClass;
 
-            return slots;
+                return weaponClass switch
+                {
+                    WeaponClass.Dagger => slotType == EquipmentType.Dagger,
+                    WeaponClass.OneHandedSword => slotType == EquipmentType.OneHandedSword,
+                    WeaponClass.TwoHandedSword => slotType == EquipmentType.TwoHandedSword,
+                    WeaponClass.OneHandedAxe => slotType == EquipmentType.OneHandedAxe,
+                    WeaponClass.TwoHandedAxe => slotType == EquipmentType.TwoHandedAxe,
+                    WeaponClass.Mace => slotType == EquipmentType.OneHandedMace,
+                    WeaponClass.TwoHandedMace => slotType == EquipmentType.TwoHandedMace,
+                    WeaponClass.OneHandedPolearm => slotType == EquipmentType.OneHandedLance || slotType == EquipmentType.OneHandedGlaive,
+                    WeaponClass.TwoHandedPolearm => slotType == EquipmentType.TwoHandedLance || slotType == EquipmentType.TwoHandedGlaive,
+                    WeaponClass.LowGripPolearm => slotType == EquipmentType.TwoHandedLance || slotType == EquipmentType.TwoHandedGlaive,
+                    WeaponClass.Bow => slotType == EquipmentType.Bow,
+                    WeaponClass.Crossbow => slotType == EquipmentType.Crossbow,
+                    WeaponClass.Arrow => slotType == EquipmentType.Arrows,
+                    WeaponClass.Bolt => slotType == EquipmentType.Bolts,
+                    WeaponClass.ThrowingAxe => slotType == EquipmentType.ThrowingAxes,
+                    WeaponClass.ThrowingKnife => slotType == EquipmentType.ThrowingKnives,
+                    WeaponClass.Javelin => slotType == EquipmentType.ThrowingJavelins,
+                    WeaponClass.Stone => slotType == EquipmentType.Stone,
+                    WeaponClass.SmallShield or WeaponClass.LargeShield => slotType == EquipmentType.Shield,
+                    _ => false
+                };
+            }
+            return false;
         }
     }
 }

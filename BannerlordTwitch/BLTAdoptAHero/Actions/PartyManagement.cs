@@ -40,23 +40,60 @@ namespace BLTAdoptAHero.Actions
         [CategoryOrder("Army", 0)]
         private class Settings : IDocumentable
         {
-            [LocDisplayName("{=TESTING}Army"),
-             LocCategory("Army", "{=TESTING}Army"),
-             LocDescription("{=TESTING}Enable creating army command"),
+            [LocDisplayName("{=ArmyEnabled}Army"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("{=ArmyEnabledDesc}Enable the !party army command"),
              PropertyOrder(1), UsedImplicitly]
             public bool ArmyEnabled { get; set; } = true;
 
-            [LocDisplayName("{=TESTING}Price"),
-             LocCategory("Army", "{=TESTING}Army"),
-             LocDescription("{=TESTING}Army command price"),
+            [LocDisplayName("{=ArmyPrice}Price"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("{=ArmyPriceDesc}Gold cost to create an army"),
              PropertyOrder(2), UsedImplicitly]
             public int ArmyPrice { get; set; } = 50000;
+
+            [LocDisplayName("{=ArmyMaxReissue}Max Re-issue Attempts"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("{=ArmyMaxReissueDesc}How many times the system silently re-issues a drifted army order before releasing it. 0 = never re-issue."),
+             PropertyOrder(3), UsedImplicitly]
+            public int ArmyMaxReissueAttempts { get; set; } = 5;
+
+            [LocDisplayName("{=ArmyOrderExpiry}Order Expiry (Hours)"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("{=ArmyOrderExpiryDesc}In-game hours before an army order auto-expires. 0 = no expiry."),
+             PropertyOrder(4), UsedImplicitly]
+            public int ArmyOrderExpiryHours { get; set; } = 0;
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value("!party/!party create/!party govern (fief)/!party stats/!party army (siege/defend/patrol)");
+                generator.Value("<strong>Commands:</strong>");
+                generator.Value("!party — current party/army status");
+                generator.Value("!party create — spawn a new party");
+                generator.Value("!party govern [fief] — become governor of a clan fief");
+                generator.Value("!party stats — detailed party stats");
+                generator.Value("");
+                generator.Value("<strong>Army subcommands:</strong> !party army [subcommand]");
+                generator.Value("  siege [settlement] — besiege a named enemy settlement (or auto-pick best)");
+                generator.Value("  defend [settlement] — defend a named friendly settlement (or auto-pick)");
+                generator.Value("  patrol [settlement] — patrol around a settlement or current position");
+                generator.Value("  status — army strength, behavior, cohesion, food, active order info");
+                generator.Value("  disband — disband your army");
+                generator.Value("  leave — leave someone else's army");
+                generator.Value("  reassign [hero] — transfer army leadership to a hero in your army");
+
                 if (ArmyEnabled)
-                    generator.Value("<strong>Army Config: </strong>" +
-                                    "Price={price}{icon}".Translate(("price", ArmyEnabled.ToString()), ("icon", Naming.Gold)));
+                {
+                    generator.Value("");
+                    generator.Value("<strong>Army config:</strong>");
+                    generator.Value($"  Creation cost: {ArmyPrice}{Naming.Gold}");
+                    generator.Value($"  Max re-issue attempts: {ArmyMaxReissueAttempts}");
+                    generator.Value(ArmyOrderExpiryHours > 0
+                        ? $"  Order expiry: {ArmyOrderExpiryHours}h"
+                        : "  Order expiry: none");
+                }
+                else
+                {
+                    generator.Value("<strong>Army command: disabled</strong>");
+                }
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -447,206 +484,326 @@ namespace BLTAdoptAHero.Actions
                     }
                 case "army":
                     {
-                        if (!settings.ArmyEnabled)
+                        // ── Top-level guards (unchanged) ──────────────────────────────────────
+                        if (!settings.ArmyEnabled) { onFailure("Army disabled"); return; }
+                        if (adoptedHero.Clan.Kingdom == null) { onFailure("Not in a kingdom"); return; }
+                        if (adoptedHero.Clan.IsUnderMercenaryService) { onFailure("Mercenaries can't create armies"); return; }
+                        if (adoptedHero.IsPrisoner) { onFailure("You are a prisoner!"); return; }
+
+                        // Parse subcommand + optional target
+                        // e.g. "army siege Pravend" → subCmd="siege", targetArg="Pravend"
+                        // e.g. "army status"        → subCmd="status", targetArg=""
+                        var armyParts = desiredName.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                        var subCmd = armyParts.Length > 0 ? armyParts[0].ToLower() : "";
+                        var targetArg = armyParts.Length > 1 ? armyParts[1].Trim() : "";
+
+                        if (string.IsNullOrEmpty(subCmd))
                         {
-                            onFailure("Army disabled");
-                            return;
-                        }
-                        if (adoptedHero.Clan.Kingdom == null)
-                        {
-                            onFailure("Not in a kingdom");
-                            return;
-                        }
-                        if (adoptedHero.Clan.IsUnderMercenaryService)
-                        {
-                            onFailure("Mercenaries cant create armies");
-                            return;
-                        }
-                        if (adoptedHero.Clan.Kingdom.FactionsAtWarWith.Count == 0)
-                        {
-                            onFailure("No wars");
-                            return;
-                        }
-                        if (adoptedHero.IsPrisoner)
-                        {
-                            onFailure("{=TESTING}You are prisoner!".Translate());
-                            return;
-                        }
-                        if (!adoptedHero.IsPartyLeader)
-                        {
-                            onFailure("{=LVFh1Pd5}Your hero is not leading a party".Translate());
-                            return;
-                        }
-                        if (party.MapEvent != null)
-                        {
-                            onFailure("Your party is busy.");
+                            onFailure("Specify: siege [target] / defend [target] / patrol / status / disband / leave / reassign [hero]");
                             return;
                         }
 
-                        Army.ArmyTypes armyType = Army.ArmyTypes.NumberOfArmyTypes;
-                        if (splitArgs.Length < 2)
+                        switch (subCmd)
                         {
-                            onFailure("Specify an army type: defend/siege/patrol");
-                            return;
-                        }
+                            // ── STATUS ────────────────────────────────────────────────────────
+                            case "status":
+                                {
+                                    if (army == null)
+                                    {
+                                        onFailure("You have no army");
+                                        return;
+                                    }
 
-                        switch (desiredName.ToLower())
-                        {
-                            case "siege":
-                                {
-                                    armyType = Army.ArmyTypes.Besieger;
-                                    break;
+                                    var sb = new System.Text.StringBuilder();
+                                    sb.Append($"Army: {army.Name} | Str: {(int)army.EstimatedStrength} | ");
+                                    sb.Append($"{army.TotalHealthyMembers} troops / {army.LeaderPartyAndAttachedPartiesCount} parties | ");
+                                    sb.Append($"Cohesion: {(int)army.Cohesion}");
+
+                                    string behavior = party.DefaultBehavior.ToString();
+                                    string targetName = party.TargetSettlement?.Name?.ToString()
+                                                     ?? party.TargetParty?.Name?.ToString()
+                                                     ?? "—";
+                                    sb.Append($" | {behavior} → {targetName}");
+                                    sb.Append($" | Morale: {(int)army.Morale}");
+
+                                    // Food estimate in days
+                                    if (party.FoodChange < 0f && party.Food > 0f)
+                                    {
+                                        int foodDays = (int)(party.Food / Math.Abs(party.FoodChange));
+                                        sb.Append($" | Food: ~{foodDays}d");
+                                    }
+
+                                    // Active order info
+                                    var activeOrder = PartyOrderBehavior.Current?.GetActiveOrder(party.StringId);
+                                    if (activeOrder != null)
+                                        sb.Append($" | Order locked ({activeOrder.ReissueAttempts}/{activeOrder.MaxReissueAttempts} re-issues)");
+
+                                    onSuccess(sb.ToString());
+                                    return;
                                 }
-                            case "defend":
-                                {
-                                    armyType = Army.ArmyTypes.Defender;
-                                    break;
-                                }
-                            case "patrol":
-                                {
-                                    armyType = Army.ArmyTypes.Patrolling;
-                                    break;
-                                }
+
+                            // ── DISBAND ───────────────────────────────────────────────────────
                             case "disband":
                                 {
-                                    if (army != null && army.LeaderParty == party && party.MapEvent == null)
+                                    if (army == null || army.LeaderParty != party)
                                     {
-                                        DisbandArmyAction.ApplyByUnknownReason(army);
-                                        onSuccess("Disbanded army");
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        onFailure("Cannot disband army at this moment");
-                                    }
-                                    break;
-                                }
-                            case "leave":
-                                {
-                                    if (army != null && army.LeaderParty == party)
-                                    {
-                                        onFailure("Cannot leave own army");
-                                        return;
-                                    }
-                                    if (army != null && army.LeaderParty == MobileParty.MainParty)
-                                    {
-                                        onFailure("Cannot leave player army");
+                                        onFailure("You are not leading an army");
                                         return;
                                     }
                                     if (party.MapEvent != null)
                                     {
-                                        onFailure("Your army is fighting!");
+                                        onFailure("Your army is in combat");
                                         return;
                                     }
+                                    PartyOrderBehavior.Current?.CancelOrdersForParty(party.StringId, null, false);
+                                    DisbandArmyAction.ApplyByUnknownReason(army);
+                                    onSuccess("Army disbanded");
+                                    return;
+                                }
+
+                            // ── LEAVE ─────────────────────────────────────────────────────────
+                            case "leave":
+                                {
+                                    if (army == null) { onFailure("You are not in an army"); return; }
+                                    if (army.LeaderParty == party) { onFailure("Cannot leave your own army"); return; }
+                                    if (army.LeaderParty == MobileParty.MainParty) { onFailure("Cannot leave the player's army"); return; }
+                                    if (party.MapEvent != null) { onFailure("Your army is fighting"); return; }
+
+                                    var oldArmy = army;
+                                    party.Army = null;
+                                    party.AttachedTo = null;
+                                    onSuccess($"Left {oldArmy.Name}");
+                                    if (oldArmy.LeaderPartyAndAttachedPartiesCount <= 1 && !oldArmy.IsWaitingForArmyMembers())
+                                        DisbandArmyAction.ApplyByUnknownReason(oldArmy);
+                                    return;
+                                }
+
+                            // ── REASSIGN ──────────────────────────────────────────────────────
+                            case "reassign":
+                                {
+                                    if (string.IsNullOrWhiteSpace(targetArg)) { onFailure("Specify a hero name"); return; }
+                                    if (army == null || army.LeaderParty != party) { onFailure("You must be leading an army"); return; }
+                                    if (party.MapEvent != null) { onFailure("Your army is in combat"); return; }
+
+                                    // Find target hero in the army
+                                    var newLeaderParty = army.Parties.FirstOrDefault(p =>
+                                        p != party
+                                        && p.LeaderHero != null
+                                        && p.LeaderHero.Name.ToString().IndexOf(targetArg, StringComparison.OrdinalIgnoreCase) >= 0);
+
+                                    if (newLeaderParty == null)
+                                    {
+                                        onFailure($"Could not find '{targetArg}' in your army");
+                                        return;
+                                    }
+                                    if (newLeaderParty.MapEvent != null)
+                                    {
+                                        onFailure($"{newLeaderParty.LeaderHero.Name} is in combat");
+                                        return;
+                                    }
+
+                                    // Capture current order before tearing down
+                                    var curOrder = PartyOrderBehavior.Current?.GetActiveOrder(party.StringId);
+                                    var curTarget = curOrder?.TargetSettlementId != null
+                                        ? Settlement.Find(curOrder.TargetSettlementId) : null;
+                                    var curType = curOrder?.Type ?? PartyOrderType.Patrol;
+
+                                    var armyType = curType == PartyOrderType.Siege ? Army.ArmyTypes.Besieger
+                                                 : curType == PartyOrderType.Defend ? Army.ArmyTypes.Defender
+                                                 : Army.ArmyTypes.Patrolling;
+
+                                    // Capture remaining members (excluding old and new leader)
+                                    var remaining = army.Parties
+                                        .Where(p => p != party && p != newLeaderParty)
+                                        .ToMBList();
+
+                                    // Cancel order and disband old army
+                                    PartyOrderBehavior.Current?.CancelOrdersForParty(party.StringId, null, false);
+                                    DisbandArmyAction.ApplyByUnknownReason(army);
+
+                                    // Recreate under new leader
+                                    var gatherPoint = curTarget ?? newLeaderParty.CurrentSettlement
+                                        ?? adoptedHero.HomeSettlement;
+                                    adoptedHero.Clan.Kingdom.CreateArmy(
+                                        newLeaderParty.LeaderHero, gatherPoint, armyType, remaining);
+
+                                    var newArmy = newLeaderParty.Army;
+                                    if (newArmy == null)
+                                    {
+                                        onFailure("Failed to transfer army leadership");
+                                        return;
+                                    }
+
+                                    // Re-issue and register order for new leader if there was one
+                                    if (curTarget != null)
+                                    {
+                                        PartyOrderBehavior.IssueOrder(newLeaderParty, curType, curTarget);
+                                        newLeaderParty.Ai.SetDoNotMakeNewDecisions(true);
+                                        PartyOrderBehavior.Current?.RegisterOrder(
+                                            adoptedHero, newLeaderParty, curType, curTarget,
+                                            settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                                    }
+
+                                    onSuccess($"Army command transferred to {newLeaderParty.LeaderHero.Name}");
+                                    return;
+                                }
+
+                            // ── SIEGE / DEFEND / PATROL ───────────────────────────────────────
+                            case "siege":
+                            case "defend":
+                            case "patrol":
+                                {
+                                    var armyType = subCmd == "siege" ? Army.ArmyTypes.Besieger
+                                                 : subCmd == "defend" ? Army.ArmyTypes.Defender
+                                                 : Army.ArmyTypes.Patrolling;
+
+                                    var orderType = subCmd == "siege" ? PartyOrderType.Siege
+                                                  : subCmd == "defend" ? PartyOrderType.Defend
+                                                  : PartyOrderType.Patrol;
+
+                                    // ── Resolve target settlement ──────────────────────────────
+                                    Settlement target = null;
+                                    if (!string.IsNullOrWhiteSpace(targetArg))
+                                    {
+                                        target = FindSettlementByName(targetArg, orderType, adoptedHero);
+                                        if (target == null)
+                                        {
+                                            onFailure($"Settlement '{targetArg}' not found or invalid for {subCmd}");
+                                            return;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        target = orderType == PartyOrderType.Siege
+                                            ? FindBestSettlementToTarget(adoptedHero.Clan.Kingdom, true)
+                                            : orderType == PartyOrderType.Defend
+                                                ? FindBestSettlementToDefend(party, adoptedHero.Clan.Kingdom)
+                                                : null; // patrol can be null (patrols current position)
+                                    }
+
+                                    // ── Validate order-specific requirements ────────────────────
+                                    if (orderType == PartyOrderType.Siege)
+                                    {
+                                        if (adoptedHero.Clan.Kingdom.FactionsAtWarWith.Count == 0)
+                                        {
+                                            onFailure("No active wars");
+                                            return;
+                                        }
+                                        if (target == null)
+                                        {
+                                            onFailure("No valid enemy settlement found to besiege");
+                                            return;
+                                        }
+                                        if (!target.IsFortification)
+                                        {
+                                            onFailure($"{target.Name} is not a fortification");
+                                            return;
+                                        }
+                                        if (target.IsUnderSiege)
+                                        {
+                                            onFailure($"{target.Name} is already under siege");
+                                            return;
+                                        }
+                                        if (!adoptedHero.Clan.Kingdom.IsAtWarWith(
+                                                target.OwnerClan?.Kingdom ?? target.OwnerClan?.MapFaction))
+                                        {
+                                            onFailure($"Not at war with {target.Name}'s owner");
+                                            return;
+                                        }
+                                    }
+
+                                    if (!adoptedHero.IsPartyLeader) { onFailure("You are not leading a party"); return; }
+                                    if (party.MapEvent != null) { onFailure("Your party is in combat"); return; }
+
+                                    // ── REDIRECT existing army ──────────────────────────────────
+                                    if (army != null && army.LeaderParty == party)
+                                    {
+                                        army.ArmyType = armyType;
+                                        if (target != null) army.AiBehaviorObject = target;
+
+                                        PartyOrderBehavior.IssueOrder(party, orderType, target);
+                                        party.Ai.SetDoNotMakeNewDecisions(true);
+                                        PartyOrderBehavior.Current?.RegisterOrder(
+                                            adoptedHero, party, orderType, target,
+                                            settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+
+                                        onSuccess($"Army redirected: {subCmd}"
+                                            + (target != null ? $" → {target.Name}" : " (current position)"));
+                                        return;
+                                    }
+
+                                    // ── CREATE new army ─────────────────────────────────────────
                                     if (army != null && army.LeaderParty != party)
                                     {
-                                        var oldArmy = army;
-                                        party.Army = null;
-                                        party.AttachedTo = null;
-                                        onSuccess($"Your party has left {oldArmy.Name}");
-                                        if (oldArmy.LeaderPartyAndAttachedPartiesCount <= 1 && !oldArmy.IsWaitingForArmyMembers())
-                                        {
-                                            DisbandArmyAction.ApplyByUnknownReason(oldArmy);
-                                        }
+                                        onFailure("You are in someone else's army");
                                         return;
                                     }
-                                    break;
+
+                                    if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ArmyPrice)
+                                    {
+                                        onFailure(Naming.NotEnoughGold(settings.ArmyPrice,
+                                            BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+                                        return;
+                                    }
+
+                                    var navType = party.IsCurrentlyAtSea
+                                        ? MobileParty.NavigationType.Naval
+                                        : MobileParty.NavigationType.Default;
+                                    var nearestSettlement = SettlementHelper.FindNearestSettlementToMobileParty(party, navType)
+                                        ?? adoptedHero.HomeSettlement;
+                                    var gatherPoint = target ?? nearestSettlement;
+
+                                    // Build member list (vassals + army model suggestions)
+                                    var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
+                                    var vassalParties = adoptedHero.Clan.Kingdom.AllParties
+                                        .Where(p => (p.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan))
+                                                 && p != party
+                                                 && p.Army == null
+                                                 && p.AttachedTo == null
+                                                 && p.LeaderHero != null
+                                                 && p.MapEvent == null
+                                                 && !p.IsDisbanding)
+                                        .ToMBList();
+                                    var modelParties = Campaign.Current.Models.ArmyManagementCalculationModel
+                                        .GetMobilePartiesToCallToArmy(party);
+                                    var mergedParties = vassalParties.Concat(modelParties)
+                                        .Where(p => p != null)
+                                        .Distinct()
+                                        .ToMBList();
+
+                                    // Give influence, deduct gold
+                                    adoptedHero.Clan.Influence += 200f;
+                                    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
+
+                                    adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, gatherPoint, armyType, mergedParties);
+                                    var newArmy = party.Army;
+
+                                    if (newArmy == null)
+                                    {
+                                        onFailure("Army creation failed");
+                                        // Refund on failure
+                                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, settings.ArmyPrice, false);
+                                        return;
+                                    }
+
+                                    if (target != null) newArmy.AiBehaviorObject = target;
+
+                                    // Issue order immediately — don't leave the gather-phase AI in charge
+                                    PartyOrderBehavior.IssueOrder(party, orderType, target);
+                                    party.Ai.SetDoNotMakeNewDecisions(true);
+                                    PartyOrderBehavior.Current?.RegisterOrder(
+                                        adoptedHero, party, orderType, target,
+                                        settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+
+                                    onSuccess($"Gathering {armyType} army ({mergedParties.Count} parties)"
+                                        + (target != null ? $" → {target.Name}" : ""));
+                                    return;
                                 }
+
                             default:
-                                onFailure($"Invalid army type: {desiredName}");
+                                onFailure("Specify: siege [target] / defend [target] / patrol / status / disband / leave / reassign [hero]");
                                 return;
                         }
-
-                        if (army != null && army.LeaderParty != party)
-                        {
-                            onFailure("You are not leading the army!");
-                            return;
-                        }
-
-                        if (armyType == Army.ArmyTypes.NumberOfArmyTypes)
-                        {
-                            return;
-                        }
-
-                        // Already have army
-                        if (army != null && army.LeaderParty == party)
-                        {
-                            adoptedHero.PartyBelongedTo.Army.ArmyType = armyType;
-
-                            // Set appropriate objective based on army type
-                            Settlement targetSettlement = null;
-
-                            if (armyType == Army.ArmyTypes.Besieger)
-                            {
-                                // Find enemy settlement to besiege
-                                targetSettlement = FindBestSettlementToTarget(adoptedHero.Clan.Kingdom, true);
-                                if (targetSettlement != null)
-                                {
-                                    army.AiBehaviorObject = targetSettlement;
-                                }
-                            }
-                            else if (armyType == Army.ArmyTypes.Defender)
-                            {
-                                // Find friendly settlement to defend or patrol around
-                                targetSettlement = FindBestSettlementToDefend(party, adoptedHero.Clan.Kingdom);
-                                if (targetSettlement != null)
-                                {
-                                    army.AiBehaviorObject = targetSettlement;
-                                }
-                            }
-                            // Patrolling armies keep their current AiBehaviorObject
-                            onSuccess($"Changed army type to {armyType}");
-                            return;
-                        }
-
-                        if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ArmyPrice)
-                        {
-                            onFailure(Naming.NotEnoughGold(settings.ArmyPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
-                            return;
-                        }
-
-                        adoptedHero.Clan.Influence += 200f;
-                        var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
-                        Settlement pos = SettlementHelper.FindNearestSettlementToMobileParty(party, nav) ?? adoptedHero.HomeSettlement;
-
-                        // Determine initial objective for new army
-                        Settlement initialObjective = null;
-                        if (armyType == Army.ArmyTypes.Besieger)
-                        {
-                            initialObjective = FindBestSettlementToTarget(adoptedHero.Clan.Kingdom, true);
-                        }
-                        else if (armyType == Army.ArmyTypes.Defender)
-                        {
-                            initialObjective = FindBestSettlementToDefend(party, adoptedHero.Clan.Kingdom);
-                        }
-
-                        Settlement gatherPoint = initialObjective ?? pos;
-
-                        var vassals = VassalBehavior.Current.GetVassalClans(adoptedHero.Clan);
-                        var sameClanParties = adoptedHero.Clan.Kingdom.AllParties
-                            .Where(p => (p?.ActualClan == adoptedHero.Clan || vassals.Contains(p.ActualClan)) && p != party && p.Army == null && p.AttachedTo == null && p.LeaderHero != null && p.MapEvent == null && !p.IsDisbanding)
-                            .ToMBList();
-                        var armyModel = Campaign.Current.Models.ArmyManagementCalculationModel;
-                        var partyList = armyModel.GetMobilePartiesToCallToArmy(party);
-                        var mergedParties = sameClanParties
-                            .Concat(partyList)
-                            .Where(p => p != null)
-                            .Distinct()
-                            .ToMBList();
-
-                        adoptedHero.Clan.Kingdom.CreateArmy(adoptedHero, gatherPoint, armyType, mergedParties);
-                        Army newArmy = party.Army;
-
-                        // Set the objective after army creation
-                        if (initialObjective != null && newArmy != null)
-                        {
-                            newArmy.AiBehaviorObject = initialObjective;                           
-                        }
-
-                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
-
-                        onSuccess($"Gathering {armyType} army({mergedParties.Count}) at {gatherPoint}");
-                        break;
                     }
             }
         }
@@ -717,11 +874,41 @@ namespace BLTAdoptAHero.Actions
             return bestSettlement ?? kingdom.Settlements.FirstOrDefault(s => s.IsFortification);
         }
 
+        /// <summary>
+        /// Fuzzy settlement lookup by name, with order-type-appropriate validation.
+        /// Returns null with no failure message — caller reports the error.
+        /// </summary>
+        private Settlement FindSettlementByName(string name, PartyOrderType orderType, Hero hero)
+        {
+            // Exact match first
+            var match = Settlement.All.FirstOrDefault(s =>
+                s?.Name?.ToString().Equals(name, StringComparison.OrdinalIgnoreCase) == true);
 
+            if (match == null)
+            {
+                var partials = Settlement.All
+                    .Where(s => s?.Name?.ToString().IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+                    .ToList();
+                if (partials.Count == 1) match = partials[0];
+                // Ambiguous / not found → return null, caller handles it
+            }
 
+            if (match == null) return null;
 
+            // Order-type validation
+            switch (orderType)
+            {
+                case PartyOrderType.Siege:
+                    if (!match.IsFortification) return null;
+                    if (match.OwnerClan?.Kingdom == hero.Clan.Kingdom) return null; // own settlement
+                    break;
+                case PartyOrderType.Defend:
+                    if (!match.IsFortification) return null;
+                    break;
+                    // Patrol: any settlement is fine
+            }
 
-
-
+            return match;
+        }
     }
 }
