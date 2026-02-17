@@ -17,7 +17,7 @@ namespace BLTAdoptAHero.UI
     {
         private static MapData currentMapData = null;
         private static DateTime lastUpdate = DateTime.MinValue;
-        private static readonly TimeSpan UpdateInterval = TimeSpan.FromSeconds(5);
+        private static readonly TimeSpan UpdateInterval = TimeSpan.FromMinutes(3);
         private static Mission lastMission = null;
 
         // Overlay dimensions for aspect ratio calculation
@@ -187,8 +187,8 @@ namespace BLTAdoptAHero.UI
 
                 // Normalize settlements
                 var settlements = new List<SettlementData>();
-                float minNormX = 100f, maxNormX = 0f;
-                float minNormY = 95f, maxNormY = 0f;
+                float minNormX = 98f, maxNormX = 2f;
+                float minNormY = 96f, maxNormY = 2f;
 
                 foreach (var s in rawSettlements)
                 {
@@ -201,36 +201,25 @@ namespace BLTAdoptAHero.UI
                         X = NormalizeX(s.Position.X, mapBounds),
                         Y = NormalizeY(s.Position.Y, mapBounds)
                     };
-
-                    // Track actual normalized range BEFORE spreading
-                    minNormX = Math.Min(minNormX, settlement.X);
-                    maxNormX = Math.Max(maxNormX, settlement.X);
-                    minNormY = Math.Min(minNormY, settlement.Y);
-                    maxNormY = Math.Max(maxNormY, settlement.Y);
-
-                    //Spread overlapping settlements
-                    var (spreadX, spreadY) = SpreadSettlement(settlement.X, settlement.Y, settlements);
-                    settlement.X = spreadX;
-                    settlement.Y = spreadY;
-
+                 
                     settlements.Add(settlement);
                 }
 
-                float normWidth = maxNormX - minNormX;
-                float normHeight = maxNormY - minNormY;
+                //float normWidth = maxNormX - minNormX;
+                //float normHeight = maxNormY - minNormY;
 
-                Log.Trace($"[MapHub] Normalized BEFORE spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
+                //Log.Trace($"[MapHub] Normalized BEFORE spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
 
-                // Track AFTER spreading
-                minNormX = settlements.Min(s => s.X);
-                maxNormX = settlements.Max(s => s.X);
-                minNormY = settlements.Min(s => s.Y);
-                maxNormY = settlements.Max(s => s.Y);
-                normWidth = maxNormX - minNormX;
-                normHeight = maxNormY - minNormY;
+                //// Track AFTER spreading
+                //minNormX = settlements.Min(s => s.X);
+                //maxNormX = settlements.Max(s => s.X);
+                //minNormY = settlements.Min(s => s.Y);
+                //maxNormY = settlements.Max(s => s.Y);
+                //normWidth = maxNormX - minNormX;
+                //normHeight = maxNormY - minNormY;
 
-                Log.Trace($"[MapHub] Normalized AFTER spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
-
+                //Log.Trace($"[MapHub] Normalized AFTER spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
+                SpreadSettlements(settlements);
                 mapData.Settlements = settlements;
 
                 currentMapData = mapData;
@@ -250,7 +239,7 @@ namespace BLTAdoptAHero.UI
         private static (float minX, float maxX, float minY, float maxY) GetMapBounds()
         {
             var settlements = Campaign.Current.Settlements
-                .Where(s => (s.IsTown || s.IsCastle) && (s.Position.X != 0 || s.Position.Y != 0))
+                .Where(s => s.IsTown || s.IsCastle)
                 .ToList();
 
             if (!settlements.Any())
@@ -274,7 +263,7 @@ namespace BLTAdoptAHero.UI
             float normalized = (x - bounds.minX) / width;
 
             // STRETCH TO FULL WIDTH: Map to 0-100 (edge to edge)
-            return normalized * 100f;
+            return 3f + (normalized * 94f);
         }
 
         private static float NormalizeY(float y, (float minX, float maxX, float minY, float maxY) bounds)
@@ -290,42 +279,157 @@ namespace BLTAdoptAHero.UI
             return 5f + ((1f - normalized) * 85f);
         }
 
-        // Minimal spreading - we want to maintain the stretched layout
-        private static (float x, float y) SpreadSettlement(float x, float y, List<SettlementData> existingSettlements)
+
+        private static void SpreadSettlements(List<SettlementData> settlements)
         {
-            const float minDistance = 1f; // Minimum distance between settlements
-            const int maxIterations = 5; // Minimal iterations
+            if (settlements.Count == 0) return;
 
-            for (int iteration = 0; iteration < maxIterations; iteration++)
+            // --- Tuning knobs ---
+            const float clumpRadius = 8.0f;   // Settlements within this range form one clump
+            const float minSpacing = 3.5f;   // Min centre-to-centre gap (icons are ~4 units wide)
+            const float spreadBias = 1.4f;   // Multiplier: clumps expand to this * minSpacing per pair
+            const float clumpRepelRadius = 10.0f;  // Clump centres within this range get pushed apart
+            const float clumpRepelStrength = 0.5f;   // Fraction of overlap to correct per iteration
+            const int intraIter = 150;    // Iterations for within-clump separation
+            const int interIter = 40;     // Iterations for clump-vs-clump repulsion
+
+            int n = settlements.Count;
+
+            // Save original positions so clumps can be anchored to their geographic centre
+            float[] origX = settlements.Select(s => s.X).ToArray();
+            float[] origY = settlements.Select(s => s.Y).ToArray();
+
+            // --- Step 1: Union-Find clustering on ORIGINAL positions ---
+            int[] parent = Enumerable.Range(0, n).ToArray();
+
+            int Find(int i)
             {
-                bool moved = false;
+                while (parent[i] != i) { parent[i] = parent[parent[i]]; i = parent[i]; }
+                return i;
+            }
+            void Union(int a, int b)
+            {
+                a = Find(a); b = Find(b);
+                if (a != b) parent[a] = b;
+            }
 
-                foreach (var other in existingSettlements)
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++)
                 {
-                    float dx = x - other.X;
-                    float dy = y - other.Y;
-                    float dist = (float)Math.Sqrt(dx * dx + dy * dy);
-
-                    if (dist < minDistance && dist > 0.01f)
-                    {
-                        // Small push to separate overlapping settlements
-                        float overlap = minDistance - dist;
-                        float pushX = (dx / dist) * overlap;// * 0.01f;
-                        float pushY = (dy / dist) * overlap;// * 0.01f;
-                        x += pushX;
-                        y += pushY;
-                        moved = true;
-                    }
+                    float dx = origX[i] - origX[j];
+                    float dy = origY[i] - origY[j];
+                    if (dx * dx + dy * dy <= clumpRadius * clumpRadius)
+                        Union(i, j);
                 }
 
-                // Keep within bounds - full X range, padded Y range
-                x = Math.Max(3f, Math.Min(97f, x));
-                y = Math.Max(5f, Math.Min(90f, y));
+            // Group indices by clump
+            var clumps = new Dictionary<int, List<int>>();
+            for (int i = 0; i < n; i++)
+            {
+                int root = Find(i);
+                if (!clumps.TryGetValue(root, out var list))
+                    clumps[root] = list = new List<int>();
+                list.Add(i);
+            }
 
+            // --- Step 2: Spread within each clump ---
+            // We spread positions outward from the original centroid. After each full pass we
+            // re-anchor the centroid so the clump stays geographically correct while its members
+            // fan out. We use a target spacing of spreadBias * minSpacing so there's visible air.
+            float targetSpacing = minSpacing * spreadBias;
+
+            foreach (var clump in clumps.Values)
+            {
+                if (clump.Count <= 1) continue;
+
+                // Original centroid (geographic anchor)
+                float anchorX = clump.Average(i => origX[i]);
+                float anchorY = clump.Average(i => origY[i]);
+
+                for (int iter = 0; iter < intraIter; iter++)
+                {
+                    bool moved = false;
+
+                    for (int a = 0; a < clump.Count; a++)
+                        for (int b = a + 1; b < clump.Count; b++)
+                        {
+                            int ia = clump[a], ib = clump[b];
+                            float dx = settlements[ia].X - settlements[ib].X;
+                            float dy = settlements[ia].Y - settlements[ib].Y;
+                            float distSq = dx * dx + dy * dy;
+
+                            if (distSq < targetSpacing * targetSpacing)
+                            {
+                                float dist = distSq > 1e-6f ? (float)Math.Sqrt(distSq) : 0.01f;
+                                if (dist < 0.01f)
+                                {
+                                    // Exact stack: break symmetry deterministically
+                                    dx = 0.3f + a * 0.07f;
+                                    dy = 0.2f + b * 0.05f;
+                                    dist = (float)Math.Sqrt(dx * dx + dy * dy);
+                                }
+                                float push = (targetSpacing - dist) * 0.5f;
+                                float nx = dx / dist, ny = dy / dist;
+                                settlements[ia].X += nx * push;
+                                settlements[ia].Y += ny * push;
+                                settlements[ib].X -= nx * push;
+                                settlements[ib].Y -= ny * push;
+                                moved = true;
+                            }
+                        }
+
+                    // Re-anchor centroid every iteration so the clump fans out in place
+                    float cx = clump.Average(i => settlements[i].X);
+                    float cy = clump.Average(i => settlements[i].Y);
+                    float shiftX = anchorX - cx;
+                    float shiftY = anchorY - cy;
+                    foreach (int i in clump)
+                    {
+                        settlements[i].X += shiftX;
+                        settlements[i].Y += shiftY;
+                    }
+
+                    if (!moved) break;
+                }
+            }
+
+            // --- Step 3: Gentle inter-clump repulsion ---
+            // Treat each clump as a rigid body and push overlapping clumps apart.
+            var clumpList = clumps.Values.ToList();
+            for (int iter = 0; iter < interIter; iter++)
+            {
+                bool moved = false;
+                for (int a = 0; a < clumpList.Count; a++)
+                    for (int b = a + 1; b < clumpList.Count; b++)
+                    {
+                        float ax = clumpList[a].Average(i => settlements[i].X);
+                        float ay = clumpList[a].Average(i => settlements[i].Y);
+                        float bx = clumpList[b].Average(i => settlements[i].X);
+                        float by = clumpList[b].Average(i => settlements[i].Y);
+
+                        float dx = ax - bx, dy = ay - by;
+                        float distSq = dx * dx + dy * dy;
+
+                        if (distSq < clumpRepelRadius * clumpRepelRadius)
+                        {
+                            float dist = distSq > 1e-6f ? (float)Math.Sqrt(distSq) : 0.1f;
+                            float push = (clumpRepelRadius - dist) * clumpRepelStrength;
+                            float nx = dx / dist, ny = dy / dist;
+
+                            foreach (int i in clumpList[a]) { settlements[i].X += nx * push; settlements[i].Y += ny * push; }
+                            foreach (int i in clumpList[b]) { settlements[i].X -= nx * push; settlements[i].Y -= ny * push; }
+                            moved = true;
+                        }
+                    }
                 if (!moved) break;
             }
 
-            return (x, y);
+            // --- Step 4: Clamp to overlay bounds ---
+            foreach (var s in settlements)
+            {
+                s.X = Math.Max(3f, Math.Min(97f, s.X));
+                s.Y = Math.Max(5f, Math.Min(90f, s.Y));
+            }
         }
 
         private static string ColorToHex(uint color)
