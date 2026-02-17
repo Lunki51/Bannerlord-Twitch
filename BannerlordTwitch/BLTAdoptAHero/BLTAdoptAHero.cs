@@ -200,7 +200,6 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new BLTAdoptAHeroCampaignBehavior());
                     campaignStarter.AddBehavior(new BLTTournamentQueueBehavior());
                     campaignStarter.AddBehavior(new BLTCustomItemsCampaignBehavior());
-                    //campaignStarter.AddBehavior(new BLTClanBannerSaveBehavior());
                     campaignStarter.AddBehavior(new BLTClanBehavior());
                     campaignStarter.AddBehavior(new GoldIncomeBehavior()); 
                     campaignStarter.AddBehavior(new BLTSettlementUpgradeBehavior());
@@ -208,6 +207,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new UpgradeBehavior());
                     campaignStarter.AddBehavior(new VassalBehavior());
                     campaignStarter.AddBehavior(new KingdomTaxBehavior());
+                    campaignStarter.AddBehavior(new BLTLogsBehavior());
                     campaignStarter.AddBehavior(new MercenaryArmyBehavior());
                     campaignStarter.AddBehavior(new PartyOrderBehavior());
                     // Diplomacy

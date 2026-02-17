@@ -37,15 +37,18 @@ namespace BLTAdoptAHero
             bool isDefend = false;
             int attackCount = 0;
             int defendCount = 0;
+            Team playerTeam = null;
+            Team allyTeam = null;
+            Team enemyTeam = null;
             if (!MissionHelpers.InTournament())
             {
                 // Count alive agents by side
                 attackCount = mission.GetMemberCountOfSide(BattleSideEnum.Attacker);
                 defendCount = mission.GetMemberCountOfSide(BattleSideEnum.Defender);
 
-                Team playerTeam = mission.PlayerTeam;
-                Team allyTeam = mission.PlayerAllyTeam;
-                Team enemyTeam = mission.PlayerEnemyTeam;
+                playerTeam = mission.PlayerTeam;
+                allyTeam = mission.PlayerAllyTeam;
+                enemyTeam = mission.PlayerEnemyTeam;
                 
                 if (playerTeam != null && playerTeam.Side == BattleSideEnum.Defender || (allyTeam != null && allyTeam.Side == BattleSideEnum.Defender))
                     isDefend = true;
@@ -76,8 +79,8 @@ namespace BLTAdoptAHero
 
             if (agent == null && !MissionHelpers.InTournament())
             {
-
-                string battlestring = "Troops(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = enemyTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown";
+                string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
 
@@ -218,7 +221,11 @@ namespace BLTAdoptAHero
 
             string message = "";
             if (!MissionHelpers.InTournament())
-                message += "Troops(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+            {
+                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = enemyTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown";
+                message += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+            }
+                
             message +=
                 $"Class: {adoptedHero.GetClass()?.Name.ToString() ?? "No class"}\n" +
                 $"- HP: {(int)agent.Health}/{(int)agent.HealthLimit}\n";

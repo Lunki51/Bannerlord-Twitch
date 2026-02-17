@@ -332,6 +332,8 @@
     <Compile Include="Actions\AddGoldToHero.cs" />
     <Compile Include="Actions\CampaignInfo.cs" />
     <Compile Include="Actions\BattleInfo.cs" />
+    <Compile Include="Actions\CampaignLogs.cs" />
+    <Compile Include="Actions\FormationCommand.cs" />
     <Compile Include="Actions\EquipCustomItem.cs" />
     <Compile Include="Actions\ManageFief.cs" />
     <Compile Include="Actions\FamilyManagement.cs" />
@@ -390,8 +392,8 @@
     <Compile Include="Behaviors\BLTTournamentMissionBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentQueueBehavior.cs" />
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
-    <Compile Include="Behaviors\BLTClanBannerSaveBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
+    <Compile Include="Behaviors\BLTLogsBehavior.cs" />
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
