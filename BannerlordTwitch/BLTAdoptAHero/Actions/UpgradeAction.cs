@@ -28,7 +28,7 @@ namespace BLTAdoptAHero.Actions
     public class UpgradeAction : HeroCommandHandlerBase
     {
         [CategoryOrder("General", 0),
- CategoryOrder("Permissions", 1)]
+         CategoryOrder("Permissions", 1)]
         public class Settings : IDocumentable
         {
             [LocDisplayName("{=BLT_UpgradeEnabled}Enabled"),

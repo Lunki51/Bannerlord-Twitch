@@ -68,6 +68,12 @@ namespace BLTAdoptAHero
             {
                 diedInfo = (null, default); // fallback if no record exists
             }
+
+            // Calculate death chance
+            bool canDie = GlobalCommonConfig.Get().AllowDeath;
+            float deathMod = GlobalCommonConfig.Get().DeathChance;
+            var deathChance = Campaign.Current.Models.PartyHealingModel.GetSurvivalChance(adoptedHero.PartyBelongedTo.Party, adoptedHero.CharacterObject, diedInfo.blow.DamageType, true);
+
             if (agent == null && !MissionHelpers.InTournament())
             {
 
@@ -82,6 +88,11 @@ namespace BLTAdoptAHero
 
                     battlestring +=
                         $" | Killed by {diedInfo.killer.Name} with {weaponName}({diedInfo.blow.InflictedDamage})";
+
+                    if (canDie)
+                        battlestring +=
+                            $" | Death chance: {(deathChance*deathMod*100)}%";
+
                 }
 
                 onFailure(battlestring);
@@ -110,7 +121,7 @@ namespace BLTAdoptAHero
             }
 
             // Active combat
-            bool hasAttacked = (agent.LastMeleeAttackTime < 10f) || (agent.LastRangedAttackTime < 10f) || (agent.LastMeleeHitTime < 10f) || (agent.LastRangedHitTime < 10f);
+            bool hasAttacked = (agent.LastMeleeAttackTime < 5f) || (agent.LastRangedAttackTime < 5f) || (agent.LastMeleeHitTime < 5f) || (agent.LastRangedHitTime < 5f);
 
 
             // Mounted info

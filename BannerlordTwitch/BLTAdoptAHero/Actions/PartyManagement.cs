@@ -595,7 +595,6 @@ namespace BLTAdoptAHero.Actions
                                 }
                             }
                             // Patrolling armies keep their current AiBehaviorObject
-
                             onSuccess($"Changed army type to {armyType}");
                             return;
                         }
@@ -641,7 +640,7 @@ namespace BLTAdoptAHero.Actions
                         // Set the objective after army creation
                         if (initialObjective != null && newArmy != null)
                         {
-                            newArmy.AiBehaviorObject = initialObjective;
+                            newArmy.AiBehaviorObject = initialObjective;                           
                         }
 
                         BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.ArmyPrice, true);
