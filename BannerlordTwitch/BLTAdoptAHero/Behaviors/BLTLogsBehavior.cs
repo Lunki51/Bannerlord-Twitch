@@ -105,7 +105,7 @@ namespace BLTAdoptAHero.Behaviors
                         string enemyPartyName = enemySide.LeaderParty?.Name?.ToString() ?? "unknown party";
                         string enemyFactionName = enemySide.LeaderParty?.MapFaction?.Name?.ToString() ?? "unknown faction";
 
-                        string battleLog = $"[{date}]{eventType} against {enemyPartyName} ({enemyFactionName})({heroSide.HealthyTroopCountAtMapEventStart} vs {enemySide.HealthyTroopCountAtMapEventStart}) - {(won ? "Victory" : "Defeat")}";
+                        string battleLog = $"[{date}]{eventType} against {enemyPartyName} ({enemyFactionName}) - {(won ? "Victory" : "Defeat")}";
 
                         if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
                         {
@@ -382,7 +382,7 @@ namespace BLTAdoptAHero.Behaviors
                     }
                     if (newKingdom != null)
                     {
-                        string kingdomOwnerLog2 = $"[{date}]{fief.Name} has been obtained by: {reason}{(oldKingdom != null ? $" from {oldKingdom.Name}" : "")}";
+                        string kingdomOwnerLog2 = $"[{date}]{fief.Name} has been obtained by: {reason}{(oldKingdom.MapFaction != null ? $" from {oldKingdom.MapFaction.Name}" : "")}";
 
                         if (!_kingdomLogs.TryGetValue(newKingdom.StringId, out var logs))
                         {
