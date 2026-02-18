@@ -115,7 +115,7 @@ namespace BLTAdoptAHero
          PropertyOrder(11)]
         public float BLTArmyMinLifetimeDays { get; set; } = 30f;
 
-        [LocDisplayName("{=}Lock Player Army Cohesion"),
+        [LocDisplayName("{=}Lock BLT Army Cohesion"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}When enabled, (standard) armies led by adopted heroes also have their cohesion locked at 100 and are exempt from automatic dispersion checks. 'Mercenary' armies always have this applied regardless."),
          PropertyOrder(12), UsedImplicitly]

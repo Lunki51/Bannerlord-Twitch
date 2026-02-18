@@ -122,7 +122,7 @@ namespace BLTAdoptAHero
             try
             {
                 // Skip mercenary parties — MercenaryArmyBehavior owns those
-                if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
+                //if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
 
                 var order = _orders.FirstOrDefault(o => o.IsActive && o.PartyId == party?.StringId);
                 if (order == null) return;
@@ -293,6 +293,26 @@ namespace BLTAdoptAHero
             catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnArmyDispersed error: {ex}"); }
         }
 
+        /// <summary>
+        /// Returns false if the settlement cannot be reached by the party's
+        /// navigation capability (e.g. island with no naval access).
+        /// MapDistanceModel returns float.MaxValue for unreachable paths.
+        /// </summary>
+        public static bool IsSettlementReachable(MobileParty party, Settlement target)
+        {
+            try
+            {
+                float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                    party, target, false, party.NavigationCapability, out _);
+                return dist < float.MaxValue - 1f;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] IsSettlementReachable error: {ex}");
+                return false;
+            }
+        }
+
         // ─────────────────────────────────────────────
         //  HELPERS
         // ─────────────────────────────────────────────
@@ -347,7 +367,8 @@ namespace BLTAdoptAHero
                     if (target != null)
                         SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, atSea, false);
                     else
-                        SetPartyAiAction.GetActionForPatrollingAroundPoint(party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
+                        SetPartyAiAction.GetActionForPatrollingAroundPoint(
+                            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
                     break;
             }
         }
@@ -393,13 +414,21 @@ namespace BLTAdoptAHero
         {
             public string HeroId { get; set; }
             public string PartyId { get; set; }
-            public PartyOrderType Type { get; set; }
+            public int TypeRaw { get; set; } // PartyOrderType stored as int for serialization safety
             public string TargetSettlementId { get; set; }
             public double IssuedAtDays { get; set; }
             public double ExpiresAtDays { get; set; }
             public int MaxReissueAttempts { get; set; }
             public int ReissueAttempts { get; set; }
             public bool IsActive { get; set; }
+
+            [System.Xml.Serialization.XmlIgnore]
+            [Newtonsoft.Json.JsonIgnore]
+            public PartyOrderType Type
+            {
+                get => (PartyOrderType)TypeRaw;
+                set => TypeRaw = (int)value;
+            }
         }
     }
 }

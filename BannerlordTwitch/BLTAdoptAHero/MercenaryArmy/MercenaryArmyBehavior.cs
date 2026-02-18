@@ -179,8 +179,7 @@ namespace BLTAdoptAHero
                     PartyId = party.StringId,
                     KingdomId = originalHero.Clan.Kingdom.StringId,
                     TargetSettlementId = targetSettlement.StringId,
-                    TargetFactionId = (targetSettlement.OwnerClan?.Kingdom
-                                         ?? targetSettlement.OwnerClan?.MapFaction)?.StringId,
+                    TargetFactionId = (targetSettlement.OwnerClan?.Kingdom ?? targetSettlement.OwnerClan?.MapFaction)?.StringId,
                     InitialTroopCount = party.MemberRoster.TotalManCount,
                     MinimumTroopThreshold = minTroopThreshold,
                     MaxReissueAttempts = maxReissueAttempts,
@@ -547,29 +546,30 @@ namespace BLTAdoptAHero
                 .OrderBy(s => s.GetPosition2D.DistanceSquared(target.GetPosition2D))
                 .FirstOrDefault();
 
-        // ─────────────────────────────────────────────
-        //  DATA
-        // ─────────────────────────────────────────────
+    }
 
-        [Serializable]
-        public class MercenaryArmyData
-        {
-            public string CommanderHeroId { get; set; }
-            public string OriginalHeroId { get; set; }
-            public string PartyId { get; set; }
-            public string KingdomId { get; set; }
-            public string TargetSettlementId { get; set; }
-            public string TargetFactionId { get; set; }
-            public int InitialTroopCount { get; set; }
-            public int MinimumTroopThreshold { get; set; }
-            public int MaxReissueAttempts { get; set; }
-            public int ReissueAttempts { get; set; }
-            public int TotalCost { get; set; }
-            public int RefundAmount { get; set; }
-            public double CreationTimeDays { get; set; }
-            public int MaxLifetimeDays { get; set; }
-            public string Status { get; set; } = "Marching";
-            public bool IsActive { get; set; }
-        }
+    // Top-level class — NOT nested inside MercenaryArmyBehavior.
+    // Bannerlord's XML serializer resolves types by name; nested classes
+    // produce "MercenaryArmyBehavior+MercenaryArmyData" which it cannot
+    // reliably round-trip, causing save failure even with an empty list.
+    [Serializable]
+    public class MercenaryArmyData
+    {
+        public string CommanderHeroId { get; set; }
+        public string OriginalHeroId { get; set; }
+        public string PartyId { get; set; }
+        public string KingdomId { get; set; }
+        public string TargetSettlementId { get; set; }
+        public string TargetFactionId { get; set; }
+        public int InitialTroopCount { get; set; }
+        public int MinimumTroopThreshold { get; set; }
+        public int MaxReissueAttempts { get; set; }
+        public int ReissueAttempts { get; set; }
+        public int TotalCost { get; set; }
+        public int RefundAmount { get; set; }
+        public double CreationTimeDays { get; set; }
+        public int MaxLifetimeDays { get; set; }
+        public string Status { get; set; }
+        public bool IsActive { get; set; }
     }
 }
