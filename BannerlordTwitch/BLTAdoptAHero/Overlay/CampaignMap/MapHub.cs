@@ -286,7 +286,7 @@ namespace BLTAdoptAHero.UI
 
             // --- Tuning knobs ---
             const float clumpRadius = 8.0f;   // Settlements within this range form one clump
-            const float minSpacing = 3.5f;   // Min centre-to-centre gap (icons are ~4 units wide)
+            float minSpacing = GlobalCommonConfig.Get().MapOverlayMinSpacing;  // Min centre-to-centre gap (icons are ~4 units wide)
             const float spreadBias = 1.4f;   // Multiplier: clumps expand to this * minSpacing per pair
             const float clumpRepelRadius = 10.0f;  // Clump centres within this range get pushed apart
             const float clumpRepelStrength = 0.5f;   // Fraction of overlap to correct per iteration
