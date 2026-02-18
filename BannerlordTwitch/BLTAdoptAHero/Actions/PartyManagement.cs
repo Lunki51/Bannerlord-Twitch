@@ -63,6 +63,24 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=ArmyOrderExpiryDesc}In-game hours before an army order auto-expires. 0 = no expiry."),
              PropertyOrder(4), UsedImplicitly]
             public int ArmyOrderExpiryHours { get; set; } = 0;
+
+            [LocDisplayName("{=ThreatEnabled}Threat Scan"),
+             LocCategory("Threat", "{=ThreatCat}Threat"),
+             LocDescription("{=ThreatEnabledDesc}Enable !party threat scan subcommand"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool ThreatEnabled { get; set; } = true;
+
+            [LocDisplayName("{=ThreatMaxResults}Threat Max Results"),
+             LocCategory("Threat", "{=ThreatCat}Threat"),
+             LocDescription("{=ThreatMaxResultsDesc}Maximum number of threats listed in the output, sorted by danger"),
+             PropertyOrder(2), UsedImplicitly]
+            public int ThreatMaxResults { get; set; } = 3;
+
+            [LocDisplayName("{=ThreatRadius}Threat Scan Radius"),
+             LocCategory("Threat", "{=ThreatCat}Threat"),
+             LocDescription("{=ThreatRadiusDesc}Map-unit radius to scan for nearby hostile parties. Default 12 covers roughly the same area the engine uses for encounter detection."),
+             PropertyOrder(3), UsedImplicitly]
+            public float ThreatScanRadius { get; set; } = 12f;
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 generator.Value("<strong>Commands:</strong>");
@@ -710,6 +728,18 @@ namespace BLTAdoptAHero.Actions
                                             onFailure($"Not at war with {target.Name}'s owner");
                                             return;
                                         }
+                                        // Reachability — fall back to patrol if target is on an island
+                                        if (!PartyOrderBehavior.IsSettlementReachable(party, target))
+                                        {
+                                            var fallbackTarget = FindBestSettlementToDefend(party, adoptedHero.Clan.Kingdom);
+                                            PartyOrderBehavior.IssueOrder(party, PartyOrderType.Patrol, fallbackTarget);
+                                            party.Ai.SetDoNotMakeNewDecisions(true);
+                                            PartyOrderBehavior.Current?.RegisterOrder(
+                                                adoptedHero, party, PartyOrderType.Patrol, fallbackTarget,
+                                                settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                                            onFailure($"{target.Name} is not reachable by land — army set to patrol instead");
+                                            return;
+                                        }
                                     }
 
                                     if (!adoptedHero.IsPartyLeader) { onFailure("You are not leading a party"); return; }
@@ -800,6 +830,56 @@ namespace BLTAdoptAHero.Actions
                                     return;
                                 }
 
+                            // ── THREAT ───────────────────────────────────────────────────────
+                            case "threat":
+                                {
+                                    if (!settings.ThreatEnabled) { onFailure("Threat scan is disabled"); return; }
+                                    if (party == null) { onFailure("You have no party"); return; }
+
+                                    float radius = settings.ThreatScanRadius;
+                                    float ourStrength = party.GetTotalLandStrengthWithFollowers();
+                                    var ourPos = party.GetPosition2D;
+
+                                    var threats = new List<(string name, float enemyStr, float attackScore, float avoidScore, bool flee)>();
+
+                                    foreach (var other in MobileParty.All)
+                                    {
+                                        if (other == party || !other.IsActive || other.IsMainParty) continue;
+                                        if (other.MapEvent != null) continue;
+                                        if (!other.MapFaction.IsAtWarWith(party.MapFaction)) continue;
+                                        if (other.GetPosition2D.Distance(ourPos) > radius) continue;
+
+                                        float enemyStr = other.GetTotalLandStrengthWithFollowers();
+                                        if (enemyStr <= 0f) continue;
+
+                                        // Guide formula (DefaultMobilePartyAIModel lines 549-560)
+                                        float adv = ourStrength / enemyStr;
+                                        float attackScore = MBMath.ClampFloat(0.5f * (1f + adv), 0.05f, 3.0f);
+                                        float avoidScore = adv < 1f
+                                            ? MBMath.ClampFloat(1f / adv, 0.05f, 3.0f) : 0f;
+
+                                        threats.Add((
+                                            other.Name?.ToString() ?? "Unknown",
+                                            enemyStr, attackScore, avoidScore,
+                                            flee: avoidScore > attackScore));
+                                    }
+
+                                    if (threats.Count == 0) { onSuccess("No hostile forces detected nearby"); return; }
+
+                                    var top = threats
+                                        .OrderByDescending(t => t.flee ? t.avoidScore : 0f)
+                                        .ThenByDescending(t => !t.flee ? t.attackScore : 0f)
+                                        .Take(settings.ThreatMaxResults)
+                                        .Select(t =>
+                                        {
+                                            string icon = t.flee ? "⚠ FLEE" : "→ ENGAGE";
+                                            return $"[{icon}] {t.name} (Str:{t.enemyStr:0} vs {ourStrength:0})";
+                                        });
+
+                                    onSuccess(string.Join(" | ", top));
+                                    return;
+                                }
+
                             default:
                                 onFailure("Specify: siege [target] / defend [target] / patrol / status / disband / leave / reassign [hero]");
                                 return;
@@ -878,6 +958,10 @@ namespace BLTAdoptAHero.Actions
         /// Fuzzy settlement lookup by name, with order-type-appropriate validation.
         /// Returns null with no failure message — caller reports the error.
         /// </summary>
+        /// <summary>
+        /// Fuzzy settlement lookup by name, with order-type-appropriate validation.
+        /// Returns null with no failure message — caller reports the error.
+        /// </summary>
         private Settlement FindSettlementByName(string name, PartyOrderType orderType, Hero hero)
         {
             // Exact match first
@@ -900,7 +984,10 @@ namespace BLTAdoptAHero.Actions
             {
                 case PartyOrderType.Siege:
                     if (!match.IsFortification) return null;
-                    if (match.OwnerClan?.Kingdom == hero.Clan.Kingdom) return null; // own settlement
+                    var targetFaction = match.OwnerClan?.Kingdom ?? match.OwnerClan?.MapFaction;
+                    if (targetFaction == null) return null;
+                    if (targetFaction == hero.Clan.Kingdom) return null; // own settlement
+                    if (!hero.Clan.Kingdom.IsAtWarWith(targetFaction)) return null; // not at war
                     break;
                 case PartyOrderType.Defend:
                     if (!match.IsFortification) return null;

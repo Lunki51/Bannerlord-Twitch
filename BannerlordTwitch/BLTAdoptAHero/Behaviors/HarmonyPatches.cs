@@ -680,11 +680,11 @@ namespace BLTAdoptAHero
                     return false;
                 }
 
-                // Beyond minimum lifetime but LockPlayerArmyCohesion enabled:
+                // Beyond minimum lifetime but LockBLTArmyCohesion enabled:
                 // block dispersion that would have been caused by cohesion only
                 // (peace/no-war path already returned above; this blocks the
                 //  CohesionDepleted path while leaving LeaderDead etc. through)
-                if (BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion
+                if (BLTAdoptAHeroModule.CommonConfig.LockBLTArmyCohesion
                     && __instance.Cohesion >= 100f)
                 {
                     return false; // cohesion can't actually be the problem; skip

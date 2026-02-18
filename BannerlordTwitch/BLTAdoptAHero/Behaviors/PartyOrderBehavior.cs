@@ -36,32 +36,32 @@ namespace BLTAdoptAHero
 
         public override void SyncData(IDataStore dataStore)
         {
-            //try
-            //{
-            //    dataStore.SyncData("BLT_PartyOrders", ref _orders);
-            //    _orders ??= new List<PartyOrderData>();
-            //
-            //    if (!dataStore.IsLoading) return;
-            //
-            //    _orders.RemoveAll(o => o == null || string.IsNullOrEmpty(o.PartyId));
-            //
-            //    // Re-apply AI locks on surviving active orders
-            //    foreach (var order in _orders.Where(o => o.IsActive))
-            //    {
-            //        var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
-            //        if (party == null || !party.IsActive)
-            //        {
-            //            order.IsActive = false;
-            //            continue;
-            //        }
-            //        party.Ai.SetDoNotMakeNewDecisions(true);
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    Log.Error($"[BLT] PartyOrderBehavior.SyncData error: {ex}");
-            //    _orders = new List<PartyOrderData>();
-            //}
+            try
+            {
+                dataStore.SyncData("BLT_PartyOrders", ref _orders);
+                _orders ??= new List<PartyOrderData>();
+
+                if (!dataStore.IsLoading) return;
+
+                _orders.RemoveAll(o => o == null || string.IsNullOrEmpty(o.PartyId));
+
+                // Re-apply AI locks on surviving active orders
+                foreach (var order in _orders.Where(o => o.IsActive))
+                {
+                    var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
+                    if (party == null || !party.IsActive)
+                    {
+                        order.IsActive = false;
+                        continue;
+                    }
+                    party.Ai.SetDoNotMakeNewDecisions(true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] PartyOrderBehavior.SyncData error: {ex}");
+                _orders = new List<PartyOrderData>();
+            }
         }
 
         // ─────────────────────────────────────────────
@@ -293,6 +293,26 @@ namespace BLTAdoptAHero
             catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnArmyDispersed error: {ex}"); }
         }
 
+        /// <summary>
+        /// Returns false if the settlement cannot be reached by the party's
+        /// navigation capability (e.g. island with no naval access).
+        /// MapDistanceModel returns float.MaxValue for unreachable paths.
+        /// </summary>
+        public static bool IsSettlementReachable(MobileParty party, Settlement target)
+        {
+            try
+            {
+                float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                    party, target, false, party.NavigationCapability, out _);
+                return dist < float.MaxValue - 1f;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] IsSettlementReachable error: {ex}");
+                return false;
+            }
+        }
+
         // ─────────────────────────────────────────────
         //  HELPERS
         // ─────────────────────────────────────────────
@@ -347,7 +367,8 @@ namespace BLTAdoptAHero
                     if (target != null)
                         SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, atSea, false);
                     else
-                        SetPartyAiAction.GetActionForPatrollingAroundPoint(party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
+                        SetPartyAiAction.GetActionForPatrollingAroundPoint(
+                            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
                     break;
             }
         }
@@ -393,13 +414,21 @@ namespace BLTAdoptAHero
         {
             public string HeroId { get; set; }
             public string PartyId { get; set; }
-            public PartyOrderType Type { get; set; }
+            public int TypeRaw { get; set; } // PartyOrderType stored as int for serialization safety
             public string TargetSettlementId { get; set; }
             public double IssuedAtDays { get; set; }
             public double ExpiresAtDays { get; set; }
             public int MaxReissueAttempts { get; set; }
             public int ReissueAttempts { get; set; }
             public bool IsActive { get; set; }
+
+            [System.Xml.Serialization.XmlIgnore]
+            [Newtonsoft.Json.JsonIgnore]
+            public PartyOrderType Type
+            {
+                get => (PartyOrderType)TypeRaw;
+                set => TypeRaw = (int)value;
+            }
         }
     }
 }
