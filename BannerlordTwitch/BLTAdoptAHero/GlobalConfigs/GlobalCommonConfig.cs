@@ -91,22 +91,28 @@ namespace BLTAdoptAHero
          PropertyOrder(7)]
         public bool ShowCampaignMapOverlay { get; set; } = true;
 
+        [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Overlay Map Settlement spacing"),
+         LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Min centre-to-centre space between settlements"),
+        LocCategory("General", "{=C5T6nnix}General"),
+         PropertyOrder(8)]
+        public float MapOverlayMinSpacing { get; set; } = 3.5f;
+
         [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Enable or disable the vanilla maximum of 300 foodstocks in towns and castles for all settlements."),
-         PropertyOrder(8)]
+         PropertyOrder(9)]
         public bool UncapFoodStocks { get; set; } = false;
 
         [LocDisplayName("{=}Hearth Per Village Tier"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}How much hearth is required per village prosperity level (affects food and goods production)."),
-         PropertyOrder(9)]
+         PropertyOrder(10)]
         public float HearthPerVillageTier { get; set; } = 200f;
 
         [LocDisplayName("{=}Minimum BLT-Led Army Lifetime"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Minimum days a BLT-Led army will persist before being allowed to disband."),
-         PropertyOrder(10)]
+         PropertyOrder(11)]
         public float BLTArmyMinLifetimeDays { get; set; } = 30f;
 
         [LocDisplayName("{=}Lock BLT Army Cohesion"),

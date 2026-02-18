@@ -150,10 +150,10 @@ namespace BLTAdoptAHero.Actions
                 var newquery = newformation.QuerySystem;
                 FormationClass newformType = query switch
                 {
-                    _ when query.IsMeleeFormationReadOnly => FormationClass.Infantry,
-                    _ when query.IsRangedFormationReadOnly => FormationClass.Ranged,
-                    _ when query.IsCavalryFormationReadOnly => FormationClass.Cavalry,
-                    _ when query.IsRangedCavalryFormationReadOnly => FormationClass.HorseArcher,
+                    _ when newquery.IsMeleeFormationReadOnly => FormationClass.Infantry,
+                    _ when newquery.IsRangedFormationReadOnly => FormationClass.Ranged,
+                    _ when newquery.IsCavalryFormationReadOnly => FormationClass.Cavalry,
+                    _ when newquery.IsRangedCavalryFormationReadOnly => FormationClass.HorseArcher,
                     _ => FormationClass.Infantry
                 };
 
