@@ -637,8 +637,8 @@ namespace BLTAdoptAHero
 
                 // Mercenary armies: MercenaryArmyPatches owns those — skip here
                 // (MercenaryArmyPatches.Prefix_CheckArmyDispersion already blocks them)
-                if (MercenaryArmyPatches.IsMercenaryArmy(__instance))
-                    return true;
+                //if (MercenaryArmyPatches.IsMercenaryArmy(__instance))
+                //    return true;
 
                 if (__instance.LeaderParty == MobileParty.MainParty)
                     return true;
@@ -704,31 +704,31 @@ namespace BLTAdoptAHero
     /// Clamps cohesion to 100 for player BLT armies when LockPlayerArmyCohesion is on.
     /// Mercenary army cohesion is handled separately in MercenaryArmyPatches.
     /// </summary>
-    [HarmonyPatch(typeof(Army), nameof(Army.Cohesion), MethodType.Setter)]
-    internal static class BLT_ArmyCohesionSetterPatch
-    {
-        static void Postfix(Army __instance)
-        {
-            try
-            {
-                // Mercenary armies handled in MercenaryArmyPatches — skip
-                if (MercenaryArmyPatches.IsMercenaryArmy(__instance)) return;
-                if (__instance.LeaderParty == MobileParty.MainParty) return;
-
-                if (!BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion) return;
-
-                if (__instance.LeaderParty?.LeaderHero?.IsAdopted() == true
-                    && __instance.Cohesion < 100f)
-                {
-                    __instance.Cohesion = 100f;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] BLT_ArmyCohesionSetterPatch error: {ex}");
-            }
-        }
-    }
+    //[HarmonyPatch(typeof(Army), nameof(Army.Cohesion), MethodType.Setter)]
+    //internal static class BLT_ArmyCohesionSetterPatch
+    //{
+    //    static void Postfix(Army __instance)
+    //    {
+    //        try
+    //        {
+    //            // Mercenary armies handled in MercenaryArmyPatches — skip
+    //            //if (MercenaryArmyPatches.IsMercenaryArmy(__instance)) return;
+    //            if (__instance.LeaderParty == MobileParty.MainParty) return;
+    //
+    //            if (!BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion) return;
+    //
+    //            if (__instance.LeaderParty?.LeaderHero?.IsAdopted() == true
+    //                && __instance.Cohesion < 100f)
+    //            {
+    //                __instance.Cohesion = 100f;
+    //            }
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            Log.Error($"[BLT] BLT_ArmyCohesionSetterPatch error: {ex}");
+    //        }
+    //    }
+    //}
     #endregion
 
     #region MilitiaSallyOut

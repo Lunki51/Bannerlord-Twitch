@@ -36,32 +36,32 @@ namespace BLTAdoptAHero
 
         public override void SyncData(IDataStore dataStore)
         {
-            try
-            {
-                dataStore.SyncData("BLT_PartyOrders", ref _orders);
-                _orders ??= new List<PartyOrderData>();
-
-                if (!dataStore.IsLoading) return;
-
-                _orders.RemoveAll(o => o == null || string.IsNullOrEmpty(o.PartyId));
-
-                // Re-apply AI locks on surviving active orders
-                foreach (var order in _orders.Where(o => o.IsActive))
-                {
-                    var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
-                    if (party == null || !party.IsActive)
-                    {
-                        order.IsActive = false;
-                        continue;
-                    }
-                    party.Ai.SetDoNotMakeNewDecisions(true);
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] PartyOrderBehavior.SyncData error: {ex}");
-                _orders = new List<PartyOrderData>();
-            }
+            //try
+            //{
+            //    dataStore.SyncData("BLT_PartyOrders", ref _orders);
+            //    _orders ??= new List<PartyOrderData>();
+            //
+            //    if (!dataStore.IsLoading) return;
+            //
+            //    _orders.RemoveAll(o => o == null || string.IsNullOrEmpty(o.PartyId));
+            //
+            //    // Re-apply AI locks on surviving active orders
+            //    foreach (var order in _orders.Where(o => o.IsActive))
+            //    {
+            //        var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
+            //        if (party == null || !party.IsActive)
+            //        {
+            //            order.IsActive = false;
+            //            continue;
+            //        }
+            //        party.Ai.SetDoNotMakeNewDecisions(true);
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    Log.Error($"[BLT] PartyOrderBehavior.SyncData error: {ex}");
+            //    _orders = new List<PartyOrderData>();
+            //}
         }
 
         // ─────────────────────────────────────────────
@@ -122,7 +122,7 @@ namespace BLTAdoptAHero
             try
             {
                 // Skip mercenary parties — MercenaryArmyBehavior owns those
-                if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
+                //if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
 
                 var order = _orders.FirstOrDefault(o => o.IsActive && o.PartyId == party?.StringId);
                 if (order == null) return;
