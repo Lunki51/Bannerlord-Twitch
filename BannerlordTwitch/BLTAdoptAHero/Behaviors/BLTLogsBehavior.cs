@@ -265,6 +265,53 @@ namespace BLTAdoptAHero.Behaviors
                         logs.RemoveAt(0);
                     logs.Add(deathLog);
                 });
+
+                // Kingdom Change
+                CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, (clan, oldKingdom, newKingdom, detail, notif) =>
+                {
+                    if (!_clans.Contains(clan)) return;
+                    var date = CampaignTime.Now;
+                    string changeKingdomLog = detail switch
+                    {
+                        ChangeKingdomAction.ChangeKingdomActionDetail.JoinAsMercenary => $"[{date}] Joined {newKingdom?.Name} as mercenary",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdom => $"[{date}] Joined {newKingdom?.Name}",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.JoinKingdomByDefection => $"[{date}] Defected from {oldKingdom?.Name} to {newKingdom?.Name}",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.LeaveKingdom => $"[{date}] Left {oldKingdom?.Name}",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.LeaveWithRebellion => $"[{date}] Rebelled against {oldKingdom?.Name}",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.LeaveAsMercenary => $"[{date}] Ended mercenary contract with {oldKingdom?.Name}",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.LeaveByClanDestruction => $"[{date}] Clan destroyed",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.LeaveByKingdomDestruction => $"[{date}] Left kingdom due to its destruction",
+                        ChangeKingdomAction.ChangeKingdomActionDetail.CreateKingdom => $"[{date}] Created kingdom {newKingdom?.Name}",
+                        _ => $"[{date}] Kingdom status changed"
+                    };
+
+                    if (!_clanLogs.TryGetValue(clan.StringId, out var logs))
+                    {
+                        logs = new List<string>();
+                        _clanLogs[clan.StringId] = logs;
+                    }
+                    if (logs.Count >= maxLogs)
+                        logs.RemoveAt(0);
+                    logs.Add(changeKingdomLog);
+                });
+
+                // Party Create
+                CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, party =>
+                {
+                    if (!_clans.Contains(party.ActualClan)) return;
+                    var date = CampaignTime.Now;
+
+                    string partyLog = $"[{date}]{party.LeaderHero.Name} has created a party({party.Party.NumberOfAllMembers})";
+
+                    if (!_clanLogs.TryGetValue(party.ActualClan.StringId, out var logs))
+                    {
+                        logs = new List<string>();
+                        _clanLogs[party.ActualClan.StringId] = logs;
+                    }
+                    if (logs.Count >= maxLogs)
+                        logs.RemoveAt(0);
+                    logs.Add(partyLog);
+                });
             }
         }
         #endregion
@@ -382,7 +429,7 @@ namespace BLTAdoptAHero.Behaviors
                     }
                     if (newKingdom != null)
                     {
-                        string kingdomOwnerLog2 = $"[{date}]{fief.Name} has been obtained by: {reason}{(oldKingdom != null ? $" from {oldKingdom.Name}" : "")}";
+                        string kingdomOwnerLog2 = $"[{date}]{fief.Name} has been obtained by: {reason}{(oldOwner.MapFaction != null ? $" from {oldOwner.MapFaction?.Name}" : "")}";
 
                         if (!_kingdomLogs.TryGetValue(newKingdom.StringId, out var logs))
                         {
@@ -414,6 +461,7 @@ namespace BLTAdoptAHero.Behaviors
                     var oldClan = oldOwner.Clan;
                     var newKingdom = newClan.Kingdom;
                     var oldKingdom = oldClan.Kingdom;
+                    if (oldClan == newClan) return;
 
                     string fiefOwnerLog = $"[{date}]Ownership changed from {oldClan.Name}{(oldKingdom != null ? $"({oldKingdom.Name})" : "")} to {newClan.Name}{(newKingdom != null ? $"({newKingdom.Name})" : "")}";
                     if (!_fiefLogs.TryGetValue(fief.Town.StringId, out var logs))
