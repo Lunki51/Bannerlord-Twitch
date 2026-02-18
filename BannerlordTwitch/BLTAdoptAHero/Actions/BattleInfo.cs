@@ -7,6 +7,7 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using JetBrains.Annotations;
 using TaleWorlds.CampaignSystem;
+using TaleWorlds.CampaignSystem.Encounters;
 using TaleWorlds.Core;
 using TaleWorlds.MountAndBlade;
 using BLTAdoptAHero;
@@ -33,6 +34,7 @@ namespace BLTAdoptAHero
                 return;
             }
 
+            var mapEvent = PlayerEncounter.Battle;
             Mission mission = Mission.Current;
             bool isDefend = false;
             int attackCount = 0;
@@ -79,7 +81,7 @@ namespace BLTAdoptAHero
 
             if (agent == null && !MissionHelpers.InTournament())
             {
-                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = enemyTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown";
+                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString());
                 string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
@@ -222,7 +224,8 @@ namespace BLTAdoptAHero
             string message = "";
             if (!MissionHelpers.InTournament())
             {
-                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = enemyTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown";
+                var leader = enemyTeam?.Leader ?? enemyTeam?.GeneralAgent;
+                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString());
                 message += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
             }
                 

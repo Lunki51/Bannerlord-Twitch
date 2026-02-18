@@ -73,7 +73,7 @@ namespace BLTAdoptAHero.Actions
                 //    Governor();
                 //    break;
                 default:
-                    onFailure("invalid mode. Use info, projects (buildings), gold (amount)");
+                    onFailure("invalid mode. Use fiefname info, projects (buildings), gold (amount)");
                     break;
             }
         }
