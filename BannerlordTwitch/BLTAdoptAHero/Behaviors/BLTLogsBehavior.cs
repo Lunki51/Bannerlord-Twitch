@@ -414,6 +414,7 @@ namespace BLTAdoptAHero.Behaviors
                     var oldClan = oldOwner.Clan;
                     var newKingdom = newClan.Kingdom;
                     var oldKingdom = oldClan.Kingdom;
+                    if (oldClan == newClan) return;
 
                     string fiefOwnerLog = $"[{date}]Ownership changed from {oldClan.Name}{(oldKingdom != null ? $"({oldKingdom.Name})" : "")} to {newClan.Name}{(newKingdom != null ? $"({newKingdom.Name})" : "")}";
                     if (!_fiefLogs.TryGetValue(fief.Town.StringId, out var logs))
