@@ -397,6 +397,7 @@
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
+    <Compile Include="Behaviors\PartyOrderBehavior.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="Behaviors\ReinforcementBehavior.cs" />
     <Compile Include="Behaviors\UpgradeBehavior.cs" />
@@ -415,6 +416,9 @@
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroPowerConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalTournamentConfig.cs" />
+    <Compile Include="MercenaryArmy\MercenaryArmyAction.cs" />
+    <Compile Include="MercenaryArmy\MercenaryArmyBehavior.cs" />
+    <Compile Include="MercenaryArmy\MercenaryArmyPatches.cs" />
     <Compile Include="Models\BLTUpgradeModels.cs" />
     <Compile Include="Overlay\CampaignMap\MapHub.cs" />
     <Compile Include="Overlay\MissionInfo\MissionInfo.cs" />
