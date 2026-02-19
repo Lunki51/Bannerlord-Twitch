@@ -717,9 +717,9 @@ namespace BLTAdoptAHero.Actions
                                             onFailure($"{target.Name} is not a fortification");
                                             return;
                                         }
-                                        if (target.IsUnderSiege)
+                                        if (target.IsUnderSiege && target.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction != adoptedHero.Clan.Kingdom)
                                         {
-                                            onFailure($"{target.Name} is already under siege");
+                                            onFailure($"{target.Name} is under siege by another faction");
                                             return;
                                         }
                                         if (!adoptedHero.Clan.Kingdom.IsAtWarWith(

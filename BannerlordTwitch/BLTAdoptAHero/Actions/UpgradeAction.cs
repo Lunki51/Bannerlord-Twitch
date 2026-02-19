@@ -121,8 +121,9 @@ namespace BLTAdoptAHero.Actions
                 // Clan Upgrades - Split by MercOnly and ApplyToVassals
                 if (config.ClanUpgrades != null && config.ClanUpgrades.Count > 0)
                 {
-                    var standardClanUpgrades = config.ClanUpgrades.Where(u => !u.MercOnly && !u.ApplyToVassals).ToList();
-                    var mercOnlyUpgrades = config.ClanUpgrades.Where(u => u.MercOnly && !u.ApplyToVassals).ToList();
+                    var standardClanUpgrades = config.ClanUpgrades.Where(u => (u.MercOnly && u.LordOnly && !u.ApplyToVassals) || (!u.MercOnly && !u.LordOnly && !u.ApplyToVassals)).ToList();
+                    var lordOnlyUpgrades = config.ClanUpgrades.Where(u => u.MercOnly && !u.LordOnly && !u.ApplyToVassals).ToList();
+                    var mercOnlyUpgrades = config.ClanUpgrades.Where(u => u.LordOnly && !u.MercOnly && !u.ApplyToVassals).ToList();
                     var vassalOnlyUpgrades = config.ClanUpgrades.Where(u => u.ApplyToVassals).ToList();
 
                     generator.H2("Clan Upgrades");
@@ -131,6 +132,12 @@ namespace BLTAdoptAHero.Actions
                     {
                         generator.H3("Standard Clan Upgrades");
                         GenerateClanUpgradeTable(generator, standardClanUpgrades);
+                    }
+
+                    if (lordOnlyUpgrades.Count > 0)
+                    {
+                        generator.H3("Lord Only Clan Upgrades");
+                        GenerateClanUpgradeTable(generator, lordOnlyUpgrades);
                     }
 
                     if (mercOnlyUpgrades.Count > 0)
@@ -689,7 +696,7 @@ namespace BLTAdoptAHero.Actions
             }
             else
             {
-                sb.AppendLine("Active Upgrades:");
+                sb.AppendLine("Purchased Upgrades:");
 
                 // Get all upgrade objects
                 var allUpgrades = upgrades
@@ -730,7 +737,6 @@ namespace BLTAdoptAHero.Actions
             }
 
             var upgrades = UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
-            //upgrades = clan.IsUnderMercenaryService ? upgrades.RemoveAll(up => up == ClanUpgrade) : upgrades;
             var sb = new StringBuilder();
             sb.AppendLine($"=== {clan.Name} Upgrades ===");
 
@@ -740,12 +746,12 @@ namespace BLTAdoptAHero.Actions
             }
             else
             {
-                sb.AppendLine("Active Upgrades:");
+                sb.AppendLine("Purchased Upgrades:");
 
                 // Get all upgrade objects
                 var allUpgrades = upgrades
                 .Select(upgradeId => globalConfig.ClanUpgrades.FirstOrDefault(u => u.ID == upgradeId))
-                .Where(upgrade => upgrade != null && ((upgrade.MercOnly && clan.IsUnderMercenaryService)|| upgrade.LordOnly && !clan.IsUnderMercenaryService))
+                .Where(upgrade => upgrade != null)
                 .ToList();
 
                 // Group by base ID (remove trailing digits) and keep only the highest tier
@@ -797,7 +803,7 @@ namespace BLTAdoptAHero.Actions
             }
             else
             {
-                sb.AppendLine("Active Upgrades:");
+                sb.AppendLine("Purchased Upgrades:");
 
                 // Get all upgrade objects
                 var allUpgrades = upgrades

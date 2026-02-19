@@ -781,7 +781,7 @@ namespace BLTAdoptAHero
         private static bool _didMutate;
 
         private static bool IsSiegeRelated(MapEvent e) =>
-            e.IsSiegeAssault || e.IsSallyOut || e.IsSiegeOutside || e.IsBlockade || e.IsBlockadeSallyOut;
+            e.IsSiegeAssault || e.IsSallyOut || e.IsSiegeOutside;
 
         static void Prefix(MapEvent __instance)
         {
@@ -863,6 +863,11 @@ namespace BLTAdoptAHero
 
                 // If the party (or its army leader) is besieging a settlement,
                 // this hero is retreating from a siege — don't make them fugitive.
+                // Only land sieges — exclude naval blockades which have different finalization
+                var mapEvent = party.MapEvent ?? party.Army?.LeaderParty?.MapEvent;
+                if (mapEvent != null && (mapEvent.IsBlockade || mapEvent.IsBlockadeSallyOut))
+                    return true;
+
                 bool isInSiegingParty = party.BesiegedSettlement != null
                     || (party.Army != null && party.Army.LeaderParty?.BesiegedSettlement != null);
 
