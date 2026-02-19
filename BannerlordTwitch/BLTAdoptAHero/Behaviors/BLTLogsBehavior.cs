@@ -296,6 +296,7 @@ namespace BLTAdoptAHero.Behaviors
                 // Party Create
                 CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, party =>
                 {
+                    if (party.ActualClan == null) return;
                     if (!isBLTClan(party.ActualClan)) return;
                     var date = CampaignTime.Now;
 
