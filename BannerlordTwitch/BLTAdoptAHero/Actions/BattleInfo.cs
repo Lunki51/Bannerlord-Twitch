@@ -76,18 +76,16 @@ namespace BLTAdoptAHero
 
             // Calculate death chance
             bool canDie = GlobalCommonConfig.Get().AllowDeath;
-            float deathMod = GlobalCommonConfig.Get().DeathChance;
-            var deathChance = Campaign.Current.Models.PartyHealingModel.GetSurvivalChance(adoptedHero.PartyBelongedTo.Party, adoptedHero.CharacterObject, diedInfo.blow.DamageType, true);
 
             if (agent == null && !MissionHelpers.InTournament())
             {
-                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString());
+                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
                 string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
 
                 if (diedInfo.killer != null)
-                {
+                {                   
                     var weaponClass = (WeaponClass)diedInfo.blow.WeaponClass;
                     string weaponName = weaponClass.ToString();
 
@@ -95,8 +93,13 @@ namespace BLTAdoptAHero
                         $" | Killed by {diedInfo.killer.Name} with {weaponName}({diedInfo.blow.InflictedDamage})";
 
                     if (canDie)
+                    {
+                        float deathMod = GlobalCommonConfig.Get().DeathChance;
+                        var deathChance = Campaign.Current.Models.PartyHealingModel.GetSurvivalChance(adoptedHero.PartyBelongedTo.Party, adoptedHero.CharacterObject, diedInfo.blow.DamageType, true);
                         battlestring +=
-                            $" | Death chance: {(deathChance*deathMod*100)}%";
+                            $" | Death chance: {(deathChance * deathMod * 100)}%";
+                    }
+                        
 
                 }
 
@@ -126,7 +129,11 @@ namespace BLTAdoptAHero
             }
 
             // Active combat
-            bool hasAttacked = (agent.LastMeleeAttackTime < 5f) || (agent.LastRangedAttackTime < 5f) || (agent.LastMeleeHitTime < 5f) || (agent.LastRangedHitTime < 5f);
+            float currentTime = Mission.Current.CurrentTime;
+            bool hasAttacked = (currentTime - agent.LastMeleeAttackTime < 10f)
+                || (currentTime - agent.LastRangedAttackTime < 10f)
+                || (currentTime - agent.LastMeleeHitTime < 10f)
+                || (currentTime - agent.LastRangedHitTime < 10f);
 
 
             // Mounted info
@@ -225,7 +232,7 @@ namespace BLTAdoptAHero
             if (!MissionHelpers.InTournament())
             {
                 var leader = enemyTeam?.Leader ?? enemyTeam?.GeneralAgent;
-                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString());
+                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
                 message += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
             }
                 
