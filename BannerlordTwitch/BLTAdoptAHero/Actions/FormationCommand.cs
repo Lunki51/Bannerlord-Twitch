@@ -72,7 +72,7 @@ namespace BLTAdoptAHero.Actions
             var query = currentFormation.QuerySystem;
             FormationClass formType = query switch
             {
-                _ when query.IsMeleeFormationReadOnly => FormationClass.Infantry,
+                _ when query.IsInfantryFormationReadOnly => FormationClass.Infantry,
                 _ when query.IsRangedFormationReadOnly => FormationClass.Ranged,
                 _ when query.IsCavalryFormationReadOnly => FormationClass.Cavalry,
                 _ when query.IsRangedCavalryFormationReadOnly => FormationClass.HorseArcher,
@@ -80,8 +80,17 @@ namespace BLTAdoptAHero.Actions
             };
             if (settings.Filter)
             {
-                IEnumerable<Formation> allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.PhysicalClass == formType && f.CountOfUnits > 0);
+                IEnumerable<Formation> allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.PhysicalClass == formType && f.CountOfUnits > 0).OrderBy(f => f.Index);
                 List<int> indexes = new();
+                var sb = new StringBuilder();
+                int number = 1;
+                foreach (var f in allFormations)
+                {
+                    int troops = f.CountOfUnits;
+                    sb.Append($"{number}: {troops}, ");
+                    number++;
+                }
+
                 foreach (var a in allFormations)
                 {
                     indexes.Add(a.Index);
@@ -93,7 +102,7 @@ namespace BLTAdoptAHero.Actions
 
                 if (string.IsNullOrEmpty(num) || !int.TryParse(num, out int numb))
                 {
-                    string result = $"{formType} formation {position} out of {count}. It has {currentFormation.CountOfUnits} troops";
+                    string result = $"{formType} formation {position} out of {count}. {currentFormation.CountOfUnits} troops | {sb}";
                     onSuccess(result);
                     return;
                 }
@@ -136,7 +145,8 @@ namespace BLTAdoptAHero.Actions
                         _ when q.IsRangedCavalryFormationReadOnly => "Horse archer",
                         _ => "unknown"
                     };
-                    sb.Append($"{number}: {type}, ");
+                    int troops = f.CountOfUnits;
+                    sb.Append($"{number}: {type}({troops}), ");
                     number++;
                 }
                 List<int> indexes = new();
@@ -151,7 +161,7 @@ namespace BLTAdoptAHero.Actions
 
                 if (string.IsNullOrEmpty(num) || !int.TryParse(num, out int numb))
                 {
-                    string result = $"{formType} formation {position} out of {count}. It has {currentFormation.CountOfUnits} troops | {sb}";
+                    string result = $"{formType} formation {position} | {currentFormation.CountOfUnits} troops | {sb}";
                     onSuccess(result);
                     return;
                 }
@@ -180,7 +190,7 @@ namespace BLTAdoptAHero.Actions
 
                 TransferHeroToFormation(agent, newformation);
 
-                onSuccess($"Moved hero to new formation({newformType}). It has {newformation.CountOfUnits} troops");
+                onSuccess($"Moved hero to new formation({newformType})");
                 return;
             }         
         }

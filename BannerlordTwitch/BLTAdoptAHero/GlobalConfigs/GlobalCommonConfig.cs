@@ -119,7 +119,7 @@ namespace BLTAdoptAHero
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}When enabled, (standard) armies led by adopted heroes also have their cohesion locked at 100 and are exempt from automatic dispersion checks. 'Mercenary' armies always have this applied regardless."),
          PropertyOrder(12), UsedImplicitly]
-        public bool LockPlayerArmyCohesion { get; set; } = true;
+        public bool LockBLTArmyCohesion { get; set; } = true;
 
         [LocDisplayName("{=}Allow ai clans to join BLT kingdoms"),
          LocCategory("General", "{=C5T6nnix}General"),

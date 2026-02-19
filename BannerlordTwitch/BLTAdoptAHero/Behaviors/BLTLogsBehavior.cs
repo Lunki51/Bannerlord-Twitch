@@ -24,10 +24,7 @@ namespace BLTAdoptAHero.Behaviors
 {
     public class BLTLogsBehavior : CampaignBehaviorBase
     {
-        // Helpers
-        public static List<Hero> _heroes = BLTAdoptAHeroCampaignBehavior.GetAllAdoptedHeroes().ToList();
-        public static List<Clan> _clans = Clan.All.Where(c => c.Leader != null && c.Leader.IsAdopted()).ToList();
-
+        // Logs
         public HeroLogs heroLogs { get; } = new HeroLogs();
         public ClanLogs clanLogs { get; } = new ClanLogs();
         public KingdomLogs kingdomLogs { get; } = new KingdomLogs();
@@ -42,6 +39,7 @@ namespace BLTAdoptAHero.Behaviors
 
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, () =>
             {
+
                 var heroesToClean = heroLogs._heroLogs.Keys.ToList();
                 foreach (var heroId in heroesToClean)
                 {
@@ -184,7 +182,7 @@ namespace BLTAdoptAHero.Behaviors
                     if (newborns.Count == 0) return;
 
                     var clan = mother.Clan;
-                    if (!_clans.Contains(clan)) return;
+                    if (!isBLTClan(clan)) return;
 
                     var date = CampaignTime.Now;
 
@@ -216,12 +214,12 @@ namespace BLTAdoptAHero.Behaviors
                 //Marriages
                 CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, (hero1, hero2, notif) => 
                 {
-                    if (_clans.Contains(hero1.Clan) && _clans.Contains(hero2.Clan)) return;
+                    if (isBLTClan(hero1.Clan) && isBLTClan(hero2.Clan)) return;
                     var date = CampaignTime.Now;
                     var clan1 = hero1.Clan;
                     var clan2 = hero2.Clan;
 
-                    if (_clans.Contains(clan1))
+                    if (isBLTClan(clan1))
                     {
                         string marryLog1 = $"[{date}]{hero1.Name} has married {hero2.Name} of {clan2.Name}";
                         if (!_clanLogs.TryGetValue(clan1.StringId, out var logs))
@@ -234,7 +232,7 @@ namespace BLTAdoptAHero.Behaviors
                         logs.Add(marryLog1);
                     }
 
-                    if (_clans.Contains(clan2))
+                    if (isBLTClan(clan2))
                     {
                         string marryLog2 = $"[{date}]{hero2.Name} has married {hero1.Name} of {clan1.Name}";
                         if (!_clanLogs.TryGetValue(clan2.StringId, out var logs))
@@ -251,7 +249,7 @@ namespace BLTAdoptAHero.Behaviors
                 //Deaths
                 CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, DetachmentData, notif) => 
                 {
-                    if (!_clans.Contains(victim.Clan)) return;
+                    if (!isBLTClan(victim.Clan)) return;
                     var date = CampaignTime.Now;
 
                     string deathLog = $"[{date}]{victim.Name} {(killer == null ? "has died" : $"was killed by {killer.Name}{(killer.Clan == null ? "" : $" of {killer.Clan.Name}")}")}";
@@ -269,7 +267,7 @@ namespace BLTAdoptAHero.Behaviors
                 // Kingdom Change
                 CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, (clan, oldKingdom, newKingdom, detail, notif) =>
                 {
-                    if (!_clans.Contains(clan)) return;
+                    if (!isBLTClan(clan)) return;
                     var date = CampaignTime.Now;
                     string changeKingdomLog = detail switch
                     {
@@ -298,7 +296,7 @@ namespace BLTAdoptAHero.Behaviors
                 // Party Create
                 CampaignEvents.MobilePartyCreated.AddNonSerializedListener(this, party =>
                 {
-                    if (!_clans.Contains(party.ActualClan)) return;
+                    if (!isBLTClan(party.ActualClan)) return;
                     var date = CampaignTime.Now;
 
                     string partyLog = $"[{date}]{party.LeaderHero.Name} has created a party({party.Party.NumberOfAllMembers})";
@@ -312,6 +310,11 @@ namespace BLTAdoptAHero.Behaviors
                         logs.RemoveAt(0);
                     logs.Add(partyLog);
                 });
+            }
+
+            public bool isBLTClan(Clan clan)
+            {
+                return clan.Leader != null && clan.Leader.IsAdopted();
             }
         }
         #endregion
@@ -510,7 +513,7 @@ namespace BLTAdoptAHero.Behaviors
         private void ClanLogsCleanup(string clanId)
         {
             var clan = Clan.FindFirst(c => c.StringId == clanId);
-            if (clan == null || !_clans.Contains(clan) || clan.IsEliminated)
+            if (clan == null || !clanLogs.isBLTClan(clan) || clan.IsEliminated)
             {
                 clanLogs._clanLogs.Remove(clanId);
             }
