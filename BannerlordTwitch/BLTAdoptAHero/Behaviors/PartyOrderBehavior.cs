@@ -6,6 +6,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using BannerlordTwitch.Util;
+using BLTAdoptAHero;
 
 namespace BLTAdoptAHero
 {
@@ -15,6 +16,10 @@ namespace BLTAdoptAHero
     {
         public static PartyOrderBehavior Current { get; private set; }
 
+        private List<string> _ordersJson = new();
+
+        // Runtime list — deserialized from _ordersJson on load
+        [NonSerialized]
         private List<PartyOrderData> _orders = new();
 
         public PartyOrderBehavior() { Current = this; }
@@ -38,29 +43,44 @@ namespace BLTAdoptAHero
         {
             try
             {
-                dataStore.SyncData("BLT_PartyOrders", ref _orders);
-                _orders ??= new List<PartyOrderData>();
+                dataStore.SyncData("BLT_PartyOrders", ref _ordersJson);
+                _ordersJson ??= new List<string>();
 
-                if (!dataStore.IsLoading) return;
-
-                _orders.RemoveAll(o => o == null || string.IsNullOrEmpty(o.PartyId));
-
-                // Re-apply AI locks on surviving active orders
-                foreach (var order in _orders.Where(o => o.IsActive))
+                if (dataStore.IsLoading)
                 {
-                    var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
-                    if (party == null || !party.IsActive)
+                    _orders = _ordersJson
+                        .Select(json =>
+                        {
+                            try { return Newtonsoft.Json.JsonConvert.DeserializeObject<PartyOrderData>(json); }
+                            catch { return null; }
+                        })
+                        .Where(o => o != null && !string.IsNullOrEmpty(o.PartyId))
+                        .ToList();
+
+                    foreach (var order in _orders.Where(o => o.IsActive))
                     {
-                        order.IsActive = false;
-                        continue;
+                        var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
+                        if (party == null || !party.IsActive) { order.IsActive = false; continue; }
+                        party.Ai.SetDoNotMakeNewDecisions(true);
                     }
-                    party.Ai.SetDoNotMakeNewDecisions(true);
+                }
+                else
+                {
+                    _ordersJson = _orders
+                        .Select(o =>
+                        {
+                            try { return Newtonsoft.Json.JsonConvert.SerializeObject(o); }
+                            catch { return null; }
+                        })
+                        .Where(s => s != null)
+                        .ToList();
                 }
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] PartyOrderBehavior.SyncData error: {ex}");
                 _orders = new List<PartyOrderData>();
+                _ordersJson = new List<string>();
             }
         }
 
@@ -302,8 +322,12 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Force land-only navigation regardless of party capability.
+                // Using party.NavigationCapability can return a valid water-crossing
+                // path even when embarkation is blocked by a mod, causing the party
+                // to jesus-walk along the coast indefinitely.
                 float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                    party, target, false, party.NavigationCapability, out _);
+                    party, target, false, MobileParty.NavigationType.Default, out _);
                 return dist < float.MaxValue - 1f;
             }
             catch (Exception ex)
@@ -405,30 +429,30 @@ namespace BLTAdoptAHero
             _ => AiBehavior.None
         };
 
-        // ─────────────────────────────────────────────
-        //  DATA
-        // ─────────────────────────────────────────────
+    }
+}
 
-        [Serializable]
-        public class PartyOrderData
-        {
-            public string HeroId { get; set; }
-            public string PartyId { get; set; }
-            public int TypeRaw { get; set; } // PartyOrderType stored as int for serialization safety
-            public string TargetSettlementId { get; set; }
-            public double IssuedAtDays { get; set; }
-            public double ExpiresAtDays { get; set; }
-            public int MaxReissueAttempts { get; set; }
-            public int ReissueAttempts { get; set; }
-            public bool IsActive { get; set; }
+// Top-level class — NOT nested inside PartyOrderBehavior.
+// Bannerlord's save system scans registered behavior types at save time;
+// nested classes produce mangled names that cause save failure even when
+// SyncData does nothing.
+[Serializable]
+public class PartyOrderData
+{
+    public string HeroId { get; set; }
+    public string PartyId { get; set; }
+    public int TypeRaw { get; set; } // PartyOrderType as int — custom enums are safer this way
+    public string TargetSettlementId { get; set; }
+    public double IssuedAtDays { get; set; }
+    public double ExpiresAtDays { get; set; }
+    public int MaxReissueAttempts { get; set; }
+    public int ReissueAttempts { get; set; }
+    public bool IsActive { get; set; }
 
-            [System.Xml.Serialization.XmlIgnore]
-            [Newtonsoft.Json.JsonIgnore]
-            public PartyOrderType Type
-            {
-                get => (PartyOrderType)TypeRaw;
-                set => TypeRaw = (int)value;
-            }
-        }
+    // Convenience accessor — not serialized, just casts TypeRaw
+    public PartyOrderType Type
+    {
+        get => (PartyOrderType)TypeRaw;
+        set => TypeRaw = (int)value;
     }
 }
