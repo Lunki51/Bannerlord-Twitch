@@ -45,7 +45,7 @@
     function renderMap(data) {
         kingdomColors.clear();
         if (data.Kingdoms) {
-            data.Kingdoms.forEach(k => kingdomColors.set(k.Id, k.Color));
+            data.Kingdoms.forEach(k => kingdomColors.set(k.Id, { fill: k.Color1, border: k.Color2 }));
         }
         renderSettlements(data.Settlements || []);
     }
@@ -58,7 +58,9 @@
             group.setAttribute('class', `settlement-marker ${settlement.Type}`);
             group.setAttribute('transform', `translate(${settlement.X},${settlement.Y})`);
 
-            const color = kingdomColors.get(settlement.KingdomId) || '#888888';
+            const kingdom = kingdomColors.get(settlement.KingdomId);
+            const fillColor = kingdom ? kingdom.fill : '#888888';
+            const borderColor = kingdom ? kingdom.border : '#ffffff';
 
             let shape;
             if (settlement.Type === 'Town') {
@@ -74,7 +76,9 @@
                 shape.setAttribute('height', 3.5);
             }
 
-            shape.setAttribute('fill', color);
+            shape.setAttribute('fill', fillColor);
+            shape.setAttribute('stroke', borderColor);
+            shape.setAttribute('stroke-width', '0.6');
             group.appendChild(shape);
             settlementMarkersGroup.appendChild(group);
         });

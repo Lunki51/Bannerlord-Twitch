@@ -91,34 +91,40 @@ namespace BLTAdoptAHero
          PropertyOrder(7)]
         public bool ShowCampaignMapOverlay { get; set; } = true;
 
+        [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Overlay Map Settlement spacing"),
+         LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Min centre-to-centre space between settlements"),
+        LocCategory("General", "{=C5T6nnix}General"),
+         PropertyOrder(8)]
+        public float MapOverlayMinSpacing { get; set; } = 3.5f;
+
         [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Enable or disable the vanilla maximum of 300 foodstocks in towns and castles for all settlements."),
-         PropertyOrder(8)]
+         PropertyOrder(9)]
         public bool UncapFoodStocks { get; set; } = false;
 
         [LocDisplayName("{=}Hearth Per Village Tier"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}How much hearth is required per village prosperity level (affects food and goods production)."),
-         PropertyOrder(9)]
+         PropertyOrder(10)]
         public float HearthPerVillageTier { get; set; } = 200f;
 
         [LocDisplayName("{=}Minimum BLT-Led Army Lifetime"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Minimum days a BLT-Led army will persist before being allowed to disband."),
-         PropertyOrder(10)]
+         PropertyOrder(11)]
         public float BLTArmyMinLifetimeDays { get; set; } = 30f;
 
-        [LocDisplayName("{=}Lock Player Army Cohesion"),
+        [LocDisplayName("{=}Lock BLT Army Cohesion"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}When enabled, (standard) armies led by adopted heroes also have their cohesion locked at 100 and are exempt from automatic dispersion checks. 'Mercenary' armies always have this applied regardless."),
-         PropertyOrder(11), UsedImplicitly]
-        public bool LockPlayerArmyCohesion { get; set; } = true;
+         PropertyOrder(12), UsedImplicitly]
+        public bool LockBLTArmyCohesion { get; set; } = true;
 
         [LocDisplayName("{=}Allow ai clans to join BLT kingdoms"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Ai clans allowed to join BLT kingdoms"),
-         PropertyOrder(12)]
+         PropertyOrder(13)]
         public bool AllowAIJoinBLT { get; set; } = true;
 
         [YamlIgnore, Browsable(false)]
@@ -817,15 +823,18 @@ namespace BLTAdoptAHero
 
                     foreach (var kingdom in kingdoms)
                     {
-                        string hex = kingdom.Color.StartsWith("#")
-                            ? kingdom.Color
-                            : "#" + kingdom.Color;
+                        string hex1 = kingdom.Color1.StartsWith("#")
+                            ? kingdom.Color1
+                            : "#" + kingdom.Color1;
+                        string hex2 = kingdom.Color2.StartsWith("#")
+                            ? kingdom.Color2
+                            : "#" + kingdom.Color2;
 
                         generator.TR(() =>
                         {
                             generator.TD(
                                 "",
-                                $"<div style=\"background-color:{hex}; width:20px; height:20px; border:1px solid #fff; border-radius:3px;\"></div>"
+                                $"<div style=\"background-color:{hex1}; width:20px; height:20px; border:1px solid {hex2}; border-radius:3px;\"></div>"
                             );
 
                             var rkingdom = Kingdom.All.FirstOrDefault(f => f.StringId == kingdom.Id);

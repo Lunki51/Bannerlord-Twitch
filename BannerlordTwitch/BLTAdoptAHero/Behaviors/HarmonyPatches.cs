@@ -637,8 +637,8 @@ namespace BLTAdoptAHero
 
                 // Mercenary armies: MercenaryArmyPatches owns those — skip here
                 // (MercenaryArmyPatches.Prefix_CheckArmyDispersion already blocks them)
-                if (MercenaryArmyPatches.IsMercenaryArmy(__instance))
-                    return true;
+                //if (MercenaryArmyPatches.IsMercenaryArmy(__instance))
+                //    return true;
 
                 if (__instance.LeaderParty == MobileParty.MainParty)
                     return true;
@@ -680,11 +680,11 @@ namespace BLTAdoptAHero
                     return false;
                 }
 
-                // Beyond minimum lifetime but LockPlayerArmyCohesion enabled:
+                // Beyond minimum lifetime but LockBLTArmyCohesion enabled:
                 // block dispersion that would have been caused by cohesion only
                 // (peace/no-war path already returned above; this blocks the
                 //  CohesionDepleted path while leaving LeaderDead etc. through)
-                if (BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion
+                if (BLTAdoptAHeroModule.CommonConfig.LockBLTArmyCohesion
                     && __instance.Cohesion >= 100f)
                 {
                     return false; // cohesion can't actually be the problem; skip
@@ -704,31 +704,31 @@ namespace BLTAdoptAHero
     /// Clamps cohesion to 100 for player BLT armies when LockPlayerArmyCohesion is on.
     /// Mercenary army cohesion is handled separately in MercenaryArmyPatches.
     /// </summary>
-    [HarmonyPatch(typeof(Army), nameof(Army.Cohesion), MethodType.Setter)]
-    internal static class BLT_ArmyCohesionSetterPatch
-    {
-        static void Postfix(Army __instance)
-        {
-            try
-            {
-                // Mercenary armies handled in MercenaryArmyPatches — skip
-                if (MercenaryArmyPatches.IsMercenaryArmy(__instance)) return;
-                if (__instance.LeaderParty == MobileParty.MainParty) return;
-
-                if (!BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion) return;
-
-                if (__instance.LeaderParty?.LeaderHero?.IsAdopted() == true
-                    && __instance.Cohesion < 100f)
-                {
-                    __instance.Cohesion = 100f;
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] BLT_ArmyCohesionSetterPatch error: {ex}");
-            }
-        }
-    }
+    //[HarmonyPatch(typeof(Army), nameof(Army.Cohesion), MethodType.Setter)]
+    //internal static class BLT_ArmyCohesionSetterPatch
+    //{
+    //    static void Postfix(Army __instance)
+    //    {
+    //        try
+    //        {
+    //            // Mercenary armies handled in MercenaryArmyPatches — skip
+    //            //if (MercenaryArmyPatches.IsMercenaryArmy(__instance)) return;
+    //            if (__instance.LeaderParty == MobileParty.MainParty) return;
+    //
+    //            if (!BLTAdoptAHeroModule.CommonConfig.LockPlayerArmyCohesion) return;
+    //
+    //            if (__instance.LeaderParty?.LeaderHero?.IsAdopted() == true
+    //                && __instance.Cohesion < 100f)
+    //            {
+    //                __instance.Cohesion = 100f;
+    //            }
+    //        }
+    //        catch (Exception ex)
+    //        {
+    //            Log.Error($"[BLT] BLT_ArmyCohesionSetterPatch error: {ex}");
+    //        }
+    //    }
+    //}
     #endregion
 
     #region MilitiaSallyOut
@@ -758,5 +758,135 @@ namespace BLTAdoptAHero
             }
         }
     }
+    #endregion
+
+    #region SiegeRetreatFix
+
+    /// <summary>
+    /// Fixes the vanilla bug where retreating from a siege assault causes the ENTIRE
+    /// besieging army to be captured/killed, and lords made fugitive respawning with 1 troop.
+    /// </summary>
+
+    // -------------------------------------------------------------------------
+    // Part 1: Suppress troop capture for siege retreats with survivors
+    // -------------------------------------------------------------------------
+    [HarmonyPatch(typeof(MapEvent), "CalculateAndCommitMapEventResults")]
+    internal static class BLT_SiegeRetreatFix
+    {
+        private static readonly PropertyInfo RetreatingSideProp =
+            typeof(MapEvent).GetProperty("RetreatingSide",
+                BindingFlags.Public | BindingFlags.Instance);
+
+        [ThreadStatic]
+        private static bool _didMutate;
+
+        private static bool IsSiegeRelated(MapEvent e) =>
+            e.IsSiegeAssault || e.IsSallyOut || e.IsSiegeOutside || e.IsBlockade || e.IsBlockadeSallyOut;
+
+        static void Prefix(MapEvent __instance)
+        {
+            _didMutate = false;
+            try
+            {
+                if (!IsSiegeRelated(__instance))
+                    return;
+
+                if (!__instance.HasWinner)
+                    return;
+
+                if (__instance.RetreatingSide != BattleSideEnum.None)
+                    return;
+
+                var defeatedSide = __instance.GetMapEventSide(__instance.DefeatedSide);
+                if (defeatedSide == null)
+                    return;
+
+                int survivors = defeatedSide.GetTotalHealthyTroopCountOfSide();
+
+                if (survivors <= 0)
+                    return; // Truly wiped out — full vanilla capture is correct
+
+                RetreatingSideProp?.SetValue(__instance, __instance.DefeatedSide);
+                _didMutate = true;
+
+#if DEBUG
+                Log.Trace($"[BLT] SiegeRetreatFix: {survivors} survivors on " +
+                          $"{__instance.DefeatedSide} side — temporarily suppressing troop capture.");
+#endif
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_SiegeRetreatFix Prefix error: {ex}");
+                _didMutate = false;
+            }
+        }
+
+        static void Postfix(MapEvent __instance)
+        {
+            if (!_didMutate)
+                return;
+
+            _didMutate = false;
+            try
+            {
+                // Restore so FinalizeEventAux → OnMapEventEnded → AiMilitaryBehavior
+                // sees the expected state (siege defeat, not retreat).
+                RetreatingSideProp?.SetValue(__instance, BattleSideEnum.None);
+
+#if DEBUG
+                Log.Trace($"[BLT] SiegeRetreatFix: RetreatingSide restored to None.");
+#endif
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_SiegeRetreatFix Postfix error: {ex}");
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Part 2: Safety net — prevent lords from being made fugitive if they belong
+    //         to a party that is actively part of a siege besieger camp.
+    //         This catches any code path that bypasses Part 1.
+    // -------------------------------------------------------------------------
+    [HarmonyPatch(typeof(MakeHeroFugitiveAction), nameof(MakeHeroFugitiveAction.Apply))]
+    internal static class BLT_SiegeLordFugitiveFix
+    {
+        static bool Prefix(Hero fugitive, bool showNotification)
+        {
+            try
+            {
+                // Allow normally if the hero has no party or isn't in a siege
+                MobileParty party = fugitive.PartyBelongedTo;
+                if (party == null)
+                    return true;
+
+                // If the party (or its army leader) is besieging a settlement,
+                // this hero is retreating from a siege — don't make them fugitive.
+                bool isInSiegingParty = party.BesiegedSettlement != null
+                    || (party.Army != null && party.Army.LeaderParty?.BesiegedSettlement != null);
+
+                if (!isInSiegingParty)
+                    return true;
+
+                // Extra guard: only suppress if there are healthy troops remaining —
+                // if the party is truly wiped out, let vanilla do its thing.
+                if (party.Party.NumberOfHealthyMembers <= 0)
+                    return true;
+
+#if DEBUG
+                Log.Trace($"[BLT] SiegeLordFugitiveFix: Blocked MakeHeroFugitive for " +
+                          $"{fugitive.Name} (besieging {party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
+#endif
+                return false; // Hero stays in their party
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_SiegeLordFugitiveFix error: {ex}");
+                return true;
+            }
+        }
+    }
+
     #endregion
 }
