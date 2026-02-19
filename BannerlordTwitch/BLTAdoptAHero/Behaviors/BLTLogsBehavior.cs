@@ -182,6 +182,7 @@ namespace BLTAdoptAHero.Behaviors
                     if (newborns.Count == 0) return;
 
                     var clan = mother.Clan;
+                    if (clan == null) return;
                     if (!isBLTClan(clan)) return;
 
                     var date = CampaignTime.Now;
@@ -214,6 +215,7 @@ namespace BLTAdoptAHero.Behaviors
                 //Marriages
                 CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, (hero1, hero2, notif) => 
                 {
+                    if (hero1.Clan == null || hero2.Clan == null) return;
                     if (isBLTClan(hero1.Clan) && isBLTClan(hero2.Clan)) return;
                     var date = CampaignTime.Now;
                     var clan1 = hero1.Clan;
@@ -249,6 +251,7 @@ namespace BLTAdoptAHero.Behaviors
                 //Deaths
                 CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, DetachmentData, notif) => 
                 {
+                    if (victim.Clan == null) return;
                     if (!isBLTClan(victim.Clan)) return;
                     var date = CampaignTime.Now;
 
@@ -267,6 +270,7 @@ namespace BLTAdoptAHero.Behaviors
                 // Kingdom Change
                 CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, (clan, oldKingdom, newKingdom, detail, notif) =>
                 {
+                    if (clan == null) return;
                     if (!isBLTClan(clan)) return;
                     var date = CampaignTime.Now;
                     string changeKingdomLog = detail switch
