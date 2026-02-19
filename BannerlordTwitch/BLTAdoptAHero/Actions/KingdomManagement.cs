@@ -966,6 +966,8 @@ namespace BLTAdoptAHero.Actions
             var newKingdom = adoptedHero.Clan.Kingdom;
             newKingdom.KingdomBudgetWallet = 2000000;
             adoptedHero.Clan.Influence = 2000;
+            adoptedHero.Clan.Kingdom.Banner = adoptedHero.Clan.Banner;
+            adoptedHero.Clan.Kingdom.Banner.ChangeBackgroundColor(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetSecondaryColor());
 
             onSuccess("{=TESTING}Created kingdom {name}".Translate(("name", desiredName)));
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
