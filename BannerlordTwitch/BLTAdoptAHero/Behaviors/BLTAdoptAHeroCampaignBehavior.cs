@@ -1178,13 +1178,16 @@ namespace BLTAdoptAHero
             if (BLTAdoptAHeroModule.CommonConfig?.Achievements == null) return;
 
             var achievementPowerIds = GetHeroAchievementPassivePowers(hero);
+            var ach = BLTAdoptAHeroCampaignBehavior.Current
+                        .GetAchievements(hero).Where(a => a.IsAchieved(hero))
+                        .ToList();
 
             foreach (var achievementId in achievementPowerIds)
             {
                 var achievement = BLTAdoptAHeroModule.CommonConfig.Achievements
                     .FirstOrDefault(a => a.ID == achievementId);
 
-                if (achievement?.GivePassivePower == true && achievement.PassivePowerReward != null)
+                if (achievement?.GivePassivePower == true && achievement.PassivePowerReward != null && ach.Contains(achievement))
                 {
                     // The PassivePowerGroup.OnHeroJoinedBattle will handle creating/getting handlers
                     achievement.PassivePowerReward.OnHeroJoinedBattle(hero);

@@ -51,6 +51,11 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=TESTING}No mission!".Translate());
                 return;
             }
+            if (Mission.Current.IsNavalBattle)
+            {
+                onFailure("Cannot change formation in naval battle");
+                return;
+            }
             string num = "";
             if (context.Args.Length > 0)
                 num = context.Args[0].ToString();

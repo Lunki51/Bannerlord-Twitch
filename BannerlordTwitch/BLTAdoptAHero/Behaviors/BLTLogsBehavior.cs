@@ -195,9 +195,9 @@ namespace BLTAdoptAHero.Behaviors
                     string childrenNames = newborns.Count switch
                     {
                         1 => newborns[0].Name.ToString(),
-                        2 => $"{newborns[0].Name} and {newborns[1].Name}",
-                        _ => string.Join(", ", newborns.Take(newborns.Count - 1).Select(c => c.Name.ToString()))
-                             + $", and {newborns.Last().Name}"
+                        2 => $"{newborns[0].FirstName} and {newborns[1].FirstName}",
+                        _ => string.Join(", ", newborns.Take(newborns.Count - 1).Select(c => c.FirstName.ToString()))
+                             + $", and {newborns.Last().FirstName}"
                     };
 
                     string birthType = newborns.Count > 1 ? $" ({newborns.Count} children)" : "";
