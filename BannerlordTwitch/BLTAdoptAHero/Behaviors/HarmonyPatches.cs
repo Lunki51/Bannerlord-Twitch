@@ -852,12 +852,12 @@ namespace BLTAdoptAHero
     [HarmonyPatch(typeof(MakeHeroFugitiveAction), nameof(MakeHeroFugitiveAction.Apply))]
     internal static class BLT_SiegeLordFugitiveFix
     {
-        static bool Prefix(Hero hero, bool isEscape)
+        static bool Prefix(Hero fugitive, bool showNotification)
         {
             try
             {
                 // Allow normally if the hero has no party or isn't in a siege
-                MobileParty party = hero.PartyBelongedTo;
+                MobileParty party = fugitive.PartyBelongedTo;
                 if (party == null)
                     return true;
 
