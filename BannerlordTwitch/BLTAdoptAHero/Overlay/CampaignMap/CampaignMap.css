@@ -39,14 +39,3 @@
     display: flex;
     background: rgba(26,26,26,0.1);
 }
-
-/* Settlement markers - no interaction */
-.settlement-marker {
-    pointer-events: none;
-}
-
-    .settlement-marker circle,
-    .settlement-marker rect {
-        stroke: rgba(255,255,255,0.9);
-        stroke-width: 0.4;
-    }

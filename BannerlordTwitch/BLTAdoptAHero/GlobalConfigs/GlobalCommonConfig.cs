@@ -823,15 +823,18 @@ namespace BLTAdoptAHero
 
                     foreach (var kingdom in kingdoms)
                     {
-                        string hex = kingdom.Color.StartsWith("#")
-                            ? kingdom.Color
-                            : "#" + kingdom.Color;
+                        string hex1 = kingdom.Color1.StartsWith("#")
+                            ? kingdom.Color1
+                            : "#" + kingdom.Color1;
+                        string hex2 = kingdom.Color2.StartsWith("#")
+                            ? kingdom.Color2
+                            : "#" + kingdom.Color2;
 
                         generator.TR(() =>
                         {
                             generator.TD(
                                 "",
-                                $"<div style=\"background-color:{hex}; width:20px; height:20px; border:1px solid #fff; border-radius:3px;\"></div>"
+                                $"<div style=\"background-color:{hex1}; width:20px; height:20px; border:1px solid {hex2}; border-radius:3px;\"></div>"
                             );
 
                             var rkingdom = Kingdom.All.FirstOrDefault(f => f.StringId == kingdom.Id);

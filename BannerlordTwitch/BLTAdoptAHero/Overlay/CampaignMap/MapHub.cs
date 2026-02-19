@@ -38,7 +38,8 @@ namespace BLTAdoptAHero.UI
         {
             public string Id { get; set; }
             public string Name { get; set; }
-            public string Color { get; set; }
+            public string Color1 { get; set; }
+            public string Color2 { get; set; }
         }
 
         public class SettlementData
@@ -91,15 +92,25 @@ namespace BLTAdoptAHero.UI
                 Clients.Caller.updateMap(currentMapData);
             }
         }
-        private static string GetKingdomColor(Kingdom k)
+        private static string GetKingdomColor(Kingdom k, bool first)
         {
-            // Check if kingdom color is valid (has RGB data)
-            uint color = (k.Color != 0 && (k.Color & 0x00FFFFFF) != 0)
-                ? k.Color
-                : k.RulingClan.Color;
+            if (first)
+            {
+                uint color = (k.Color != 0 && (k.Color & 0x00FFFFFF) != 0)
+                    ? k.Color
+                    : k.RulingClan.Color;
 
-            // Force alpha to full opacity
-            return ColorToHex(color | 0xFF000000);
+                return ColorToHex(color | 0xFF000000);
+            }
+            else
+            {
+                uint color = (k.Color2 != 0 && (k.Color2 & 0x00FFFFFF) != 0)
+                    ? k.Color2
+                    : k.RulingClan.Color2;
+
+                return ColorToHex(color | 0xFF000000);
+            }
+            
         }
 
         public static void UpdateMapData()
@@ -169,7 +180,8 @@ namespace BLTAdoptAHero.UI
                     {
                         Id = k.StringId,
                         Name = k.Name?.ToString() ?? "Unknown",
-                        Color = GetKingdomColor(k)
+                        Color1 = GetKingdomColor(k, true),
+                        Color2 = GetKingdomColor(k, false)
                     })
                     .ToList();
 

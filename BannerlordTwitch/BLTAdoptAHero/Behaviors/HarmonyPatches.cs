@@ -876,7 +876,7 @@ namespace BLTAdoptAHero
 
 #if DEBUG
                 Log.Trace($"[BLT] SiegeLordFugitiveFix: Blocked MakeHeroFugitive for " +
-                          $"{hero.Name} (besieging {party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
+                          $"{fugitive.Name} (besieging {party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
 #endif
                 return false; // Hero stays in their party
             }
