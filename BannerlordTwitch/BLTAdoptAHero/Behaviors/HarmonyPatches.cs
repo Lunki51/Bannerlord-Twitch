@@ -852,7 +852,7 @@ namespace BLTAdoptAHero
     [HarmonyPatch(typeof(MakeHeroFugitiveAction), nameof(MakeHeroFugitiveAction.Apply))]
     internal static class BLT_SiegeLordFugitiveFix
     {
-        static bool Prefix(Hero hero)
+        static bool Prefix(Hero hero, bool isEscape)
         {
             try
             {
