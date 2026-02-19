@@ -119,7 +119,8 @@ namespace BLTAdoptAHero.Behaviors
 
                 //Imprison
                 CampaignEvents.HeroPrisonerTaken.AddNonSerializedListener(this, (party, hero) =>
-                { 
+                {
+                    if (hero == null) return;
                     if (hero.IsAdopted())
                     {
                         var date = CampaignTime.Now;
@@ -140,6 +141,7 @@ namespace BLTAdoptAHero.Behaviors
                 //Release
                 CampaignEvents.HeroPrisonerReleased.AddNonSerializedListener(this, (hero, party, faction, detail, wasBattle) =>
                 {
+                    if (hero == null) return;
                     if (hero.IsAdopted())
                     {
                         string reason = detail switch
@@ -255,7 +257,7 @@ namespace BLTAdoptAHero.Behaviors
                     if (!isBLTClan(victim.Clan)) return;
                     var date = CampaignTime.Now;
 
-                    string deathLog = $"[{date}]{victim.Name} {(killer == null ? "has died" : $"was killed by {killer.Name}{(killer.Clan == null ? "" : $" of {killer.Clan.Name}")}")}";
+                    string deathLog = $"[{date}]{victim.Name} {(killer == null ? "has died" : $"was killed by {killer.Name}{(killer.MapFaction == null ? "" : $" of {killer.MapFaction.Name}")}")}";
 
                     if (!_clanLogs.TryGetValue(victim.Clan.StringId, out var logs))
                     {
