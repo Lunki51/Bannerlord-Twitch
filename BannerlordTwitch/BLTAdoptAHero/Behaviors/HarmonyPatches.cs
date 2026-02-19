@@ -759,4 +759,75 @@ namespace BLTAdoptAHero
         }
     }
     #endregion
+
+    #region SiegeRetreatFix
+
+    /// <summary>
+    /// Fixes the vanilla bug where retreating from a siege assault causes the ENTIRE
+    /// besieging army (including all attached parties still in camp) to be captured/killed.
+    ///
+    /// Root cause: After a lost siege battle mission, BattleState = DefenderVictory but
+    /// RetreatingSide = None. LootDefeatedPartyMembers checks RetreatingSide == None
+    /// before capturing troops, so every party on the attacker side gets processed —
+    /// including thousands of troops that never entered the breach.
+    ///
+    /// Fix: Before results are committed, if the defeated side still has healthy troops,
+    /// set RetreatingSide to the defeated side. LootDefeatedPartyMembers will then skip
+    /// troop capture entirely (items/gold looting still proceeds normally).
+    /// </summary>
+    [HarmonyPatch(typeof(MapEvent), "CalculateAndCommitMapEventResults")]
+    internal static class BLT_SiegeRetreatFix
+    {
+        // Cache the reflected PropertyInfo once
+        private static readonly PropertyInfo RetreatingSideProp =
+            typeof(MapEvent).GetProperty("RetreatingSide",
+                BindingFlags.Public | BindingFlags.Instance);
+
+        static void Prefix(MapEvent __instance)
+        {
+            try
+            {
+                // Only relevant for siege assaults and sally outs
+                if (!__instance.IsSiegeAssault && !__instance.IsSallyOut)
+                    return;
+
+                // Must have a decided winner
+                if (!__instance.HasWinner)
+                    return;
+
+                // Already flagged as a retreat — vanilla handles it correctly
+                if (__instance.RetreatingSide != BattleSideEnum.None)
+                    return;
+
+                // Get the defeated side and count survivors
+                var defeatedSide = __instance.GetMapEventSide(__instance.DefeatedSide);
+                if (defeatedSide == null)
+                    return;
+
+                // Count all healthy troops remaining on the losing side.
+                // If any survived, the army retreated — they shouldn't be captured.
+                int survivors = defeatedSide.GetTotalHealthyTroopCountOfSide()
+                              + defeatedSide.GetTotalHealthyHeroCountOfSide();
+
+                if (survivors <= 0)
+                    return; // Truly wiped out — vanilla behavior is correct
+
+                // Set RetreatingSide so LootDefeatedPartyMembers skips troop capture.
+                // Items and gold looting still proceed (appropriate for a retreat).
+                RetreatingSideProp?.SetValue(__instance, __instance.DefeatedSide);
+
+#if DEBUG
+                Log.Trace($"[BLT] SiegeRetreatFix: {survivors} survivors on " +
+                          $"{__instance.DefeatedSide} side — marked as retreat, " +
+                          $"troop capture suppressed.");
+#endif
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_SiegeRetreatFix error: {ex}");
+            }
+        }
+    }
+
+    #endregion
 }
