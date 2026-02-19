@@ -764,67 +764,126 @@ namespace BLTAdoptAHero
 
     /// <summary>
     /// Fixes the vanilla bug where retreating from a siege assault causes the ENTIRE
-    /// besieging army (including all attached parties still in camp) to be captured/killed.
-    ///
-    /// Root cause: After a lost siege battle mission, BattleState = DefenderVictory but
-    /// RetreatingSide = None. LootDefeatedPartyMembers checks RetreatingSide == None
-    /// before capturing troops, so every party on the attacker side gets processed —
-    /// including thousands of troops that never entered the breach.
-    ///
-    /// Fix: Before results are committed, if the defeated side still has healthy troops,
-    /// set RetreatingSide to the defeated side. LootDefeatedPartyMembers will then skip
-    /// troop capture entirely (items/gold looting still proceeds normally).
+    /// besieging army to be captured/killed, and lords made fugitive respawning with 1 troop.
     /// </summary>
+
+    // -------------------------------------------------------------------------
+    // Part 1: Suppress troop capture for siege retreats with survivors
+    // -------------------------------------------------------------------------
     [HarmonyPatch(typeof(MapEvent), "CalculateAndCommitMapEventResults")]
     internal static class BLT_SiegeRetreatFix
     {
-        // Cache the reflected PropertyInfo once
         private static readonly PropertyInfo RetreatingSideProp =
             typeof(MapEvent).GetProperty("RetreatingSide",
                 BindingFlags.Public | BindingFlags.Instance);
 
+        [ThreadStatic]
+        private static bool _didMutate;
+
+        private static bool IsSiegeRelated(MapEvent e) =>
+            e.IsSiegeAssault || e.IsSallyOut || e.IsSiegeOutside || e.IsBlockade || e.IsBlockadeSallyOut;
+
         static void Prefix(MapEvent __instance)
         {
+            _didMutate = false;
             try
             {
-                // Only relevant for siege assaults and sally outs
-                if (!__instance.IsSiegeAssault && !__instance.IsSallyOut)
+                if (!IsSiegeRelated(__instance))
                     return;
 
-                // Must have a decided winner
                 if (!__instance.HasWinner)
                     return;
 
-                // Already flagged as a retreat — vanilla handles it correctly
                 if (__instance.RetreatingSide != BattleSideEnum.None)
                     return;
 
-                // Get the defeated side and count survivors
                 var defeatedSide = __instance.GetMapEventSide(__instance.DefeatedSide);
                 if (defeatedSide == null)
                     return;
 
-                // Count all healthy troops remaining on the losing side.
-                // If any survived, the army retreated — they shouldn't be captured.
-                int survivors = defeatedSide.GetTotalHealthyTroopCountOfSide()
-                              + defeatedSide.GetTotalHealthyHeroCountOfSide();
+                int survivors = defeatedSide.GetTotalHealthyTroopCountOfSide();
 
                 if (survivors <= 0)
-                    return; // Truly wiped out — vanilla behavior is correct
+                    return; // Truly wiped out — full vanilla capture is correct
 
-                // Set RetreatingSide so LootDefeatedPartyMembers skips troop capture.
-                // Items and gold looting still proceed (appropriate for a retreat).
                 RetreatingSideProp?.SetValue(__instance, __instance.DefeatedSide);
+                _didMutate = true;
 
 #if DEBUG
                 Log.Trace($"[BLT] SiegeRetreatFix: {survivors} survivors on " +
-                          $"{__instance.DefeatedSide} side — marked as retreat, " +
-                          $"troop capture suppressed.");
+                          $"{__instance.DefeatedSide} side — temporarily suppressing troop capture.");
 #endif
             }
             catch (Exception ex)
             {
-                Log.Error($"[BLT] BLT_SiegeRetreatFix error: {ex}");
+                Log.Error($"[BLT] BLT_SiegeRetreatFix Prefix error: {ex}");
+                _didMutate = false;
+            }
+        }
+
+        static void Postfix(MapEvent __instance)
+        {
+            if (!_didMutate)
+                return;
+
+            _didMutate = false;
+            try
+            {
+                // Restore so FinalizeEventAux → OnMapEventEnded → AiMilitaryBehavior
+                // sees the expected state (siege defeat, not retreat).
+                RetreatingSideProp?.SetValue(__instance, BattleSideEnum.None);
+
+#if DEBUG
+                Log.Trace($"[BLT] SiegeRetreatFix: RetreatingSide restored to None.");
+#endif
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_SiegeRetreatFix Postfix error: {ex}");
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Part 2: Safety net — prevent lords from being made fugitive if they belong
+    //         to a party that is actively part of a siege besieger camp.
+    //         This catches any code path that bypasses Part 1.
+    // -------------------------------------------------------------------------
+    [HarmonyPatch(typeof(MakeHeroFugitiveAction), nameof(MakeHeroFugitiveAction.Apply))]
+    internal static class BLT_SiegeLordFugitiveFix
+    {
+        static bool Prefix(Hero fugitive, bool showNotification)
+        {
+            try
+            {
+                // Allow normally if the hero has no party or isn't in a siege
+                MobileParty party = fugitive.PartyBelongedTo;
+                if (party == null)
+                    return true;
+
+                // If the party (or its army leader) is besieging a settlement,
+                // this hero is retreating from a siege — don't make them fugitive.
+                bool isInSiegingParty = party.BesiegedSettlement != null
+                    || (party.Army != null && party.Army.LeaderParty?.BesiegedSettlement != null);
+
+                if (!isInSiegingParty)
+                    return true;
+
+                // Extra guard: only suppress if there are healthy troops remaining —
+                // if the party is truly wiped out, let vanilla do its thing.
+                if (party.Party.NumberOfHealthyMembers <= 0)
+                    return true;
+
+#if DEBUG
+                Log.Trace($"[BLT] SiegeLordFugitiveFix: Blocked MakeHeroFugitive for " +
+                          $"{hero.Name} (besieging {party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
+#endif
+                return false; // Hero stays in their party
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_SiegeLordFugitiveFix error: {ex}");
+                return true;
             }
         }
     }
