@@ -52,9 +52,9 @@ namespace BLTAdoptAHero.Actions
             }
 
             var splitArgs = context.Args.Split(' ');
-            var command = splitArgs[1];
-            var fief = adoptedHero.Clan.Fiefs.FirstOrDefault(f => f.Name.ToString().ToLower() == splitArgs[0].ToLower()) ?? adoptedHero.Clan.Fiefs.FirstOrDefault(c =>
-                 c.Name.ToString().IndexOf(splitArgs[0], StringComparison.OrdinalIgnoreCase) >= 0);
+            var command = splitArgs[0];
+            var fief = adoptedHero.Clan.Fiefs.FirstOrDefault(f => f.Name.ToString().ToLower() == splitArgs[1].ToLower()) ?? adoptedHero.Clan.Fiefs.FirstOrDefault(c =>
+                 c.Name.ToString().IndexOf(splitArgs[1], StringComparison.OrdinalIgnoreCase) >= 0);
 
             string[] args = splitArgs.Skip(2).ToArray();
 
