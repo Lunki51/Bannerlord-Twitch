@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Text;
 using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
@@ -114,12 +115,30 @@ namespace BLTAdoptAHero.Actions
             }
             else
             {
-                IEnumerable<Formation> allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0);
+                IEnumerable<Formation> allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0).OrderBy(f => f.Index);
                 //IEnumerable<Formation> infantries = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.Infantry);
                 //IEnumerable<Formation> ranged = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.Ranged);
                 //IEnumerable<Formation> cavalries = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.Cavalry);
                 //IEnumerable<Formation> horsearchers = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.HorseArcher);
 
+                var sb = new StringBuilder();
+                int number = 1;
+                foreach (var f in allFormations)
+                {
+                    var q = f.QuerySystem;
+                    string type = q switch
+                    {
+                        _ when q.IsInfantryFormationReadOnly && q.IsRangedFormationReadOnly => "Mixed",
+                        _ when q.IsInfantryFormationReadOnly => "Infantry",
+                        _ when q.IsRangedFormationReadOnly => "Ranged",
+                        _ when q.IsCavalryFormationReadOnly && q.IsRangedCavalryFormationReadOnly => "Horse mixed",
+                        _ when q.IsCavalryFormationReadOnly => "Cavalry",
+                        _ when q.IsRangedCavalryFormationReadOnly => "Horse archer",
+                        _ => "unknown"
+                    };
+                    sb.Append($"{number}: {type}, ");
+                    number++;
+                }
                 List<int> indexes = new();
                 foreach (var a in allFormations)
                 {
@@ -132,7 +151,7 @@ namespace BLTAdoptAHero.Actions
 
                 if (string.IsNullOrEmpty(num) || !int.TryParse(num, out int numb))
                 {
-                    string result = $"{formType} formation {position} out of {count}. It has {currentFormation.CountOfUnits} troops";
+                    string result = $"{formType} formation {position} out of {count}. It has {currentFormation.CountOfUnits} troops | {sb}";
                     onSuccess(result);
                     return;
                 }
@@ -148,13 +167,15 @@ namespace BLTAdoptAHero.Actions
                 var newformation = allFormations.FirstOrDefault(f => f.Index == newIndex);
 
                 var newquery = newformation.QuerySystem;
-                FormationClass newformType = query switch
+                string newformType = newquery switch
                 {
-                    _ when newquery.IsMeleeFormationReadOnly => FormationClass.Infantry,
-                    _ when newquery.IsRangedFormationReadOnly => FormationClass.Ranged,
-                    _ when newquery.IsCavalryFormationReadOnly => FormationClass.Cavalry,
-                    _ when newquery.IsRangedCavalryFormationReadOnly => FormationClass.HorseArcher,
-                    _ => FormationClass.Infantry
+                    _ when newquery.IsInfantryFormationReadOnly && newquery.IsRangedFormationReadOnly => "Mixed",
+                    _ when newquery.IsInfantryFormationReadOnly => "Infantry",
+                    _ when newquery.IsRangedFormationReadOnly => "Ranged",
+                    _ when newquery.IsCavalryFormationReadOnly && newquery.IsRangedCavalryFormationReadOnly => "Horse mixed",
+                    _ when newquery.IsCavalryFormationReadOnly => "Cavalry",
+                    _ when newquery.IsRangedCavalryFormationReadOnly => "Horse archer",
+                    _ => "unknown"
                 };
 
                 TransferHeroToFormation(agent, newformation);
