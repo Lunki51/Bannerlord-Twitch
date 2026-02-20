@@ -334,6 +334,7 @@ namespace BLTAdoptAHero.Actions
                 {
                     effects.AppendLine("<strong>Clan Effects:</strong><br>");
                     if (upgrade.RenownDaily != 0) effects.AppendLine($"Renown: {(upgrade.RenownDaily > 0 ? "+" : "")}{upgrade.RenownDaily}/day<br>");
+                    if (upgrade.InfluenceDaily != 0) effects.AppendLine($"Influence: {(upgrade.InfluenceDaily > 0 ? "+" : "")}{upgrade.InfluenceDaily}/day<br>");
                     if (upgrade.PartySizeBonus != 0) effects.AppendLine($"Party Size: {(upgrade.PartySizeBonus > 0 ? "+" : "")}{upgrade.PartySizeBonus}<br>");
                     if (upgrade.PartySpeedBonus != 0) effects.AppendLine($"Party Speed: {(upgrade.PartySpeedBonus > 0 ? "+" : "")}{upgrade.PartySpeedBonus}<br>");
                     if (upgrade.PartyAmountBonus != 0) effects.AppendLine($"Party Limit: {(upgrade.PartyAmountBonus > 0 ? "+" : "")}{upgrade.PartyAmountBonus}<br>");
@@ -403,6 +404,7 @@ namespace BLTAdoptAHero.Actions
                     if (upgrade.RenownDaily != 0) effects.AppendLine($"Renown: {(upgrade.RenownDaily > 0 ? "+" : "")}{upgrade.RenownDaily}/day<br>");
                     if (upgrade.PartySizeBonus != 0) effects.AppendLine($"Party Size: {(upgrade.PartySizeBonus > 0 ? "+" : "")}{upgrade.PartySizeBonus}<br>");
                     if (upgrade.PartySpeedBonus != 0) effects.AppendLine($"Party Speed: {(upgrade.PartySpeedBonus > 0 ? "+" : "")}{upgrade.PartySpeedBonus}<br>");
+                    if (upgrade.InfluenceDaily != 0) effects.AppendLine($"Influence: {(upgrade.InfluenceDaily > 0 ? "+" : "")}{upgrade.InfluenceDaily}/day (all clans)<br>");
                 }
 
                 // Settlement Effects
@@ -426,6 +428,19 @@ namespace BLTAdoptAHero.Actions
                     if (upgrade.TaxIncomePercent != 0) effects.AppendLine($"Tax Income: {(upgrade.TaxIncomePercent > 0 ? "+" : "")}{upgrade.TaxIncomePercent}%<br>");
                     if (upgrade.GarrisonCapacityBonus != 0) effects.AppendLine($"Garrison Capacity: {(upgrade.GarrisonCapacityBonus > 0 ? "+" : "")}{upgrade.GarrisonCapacityBonus}<br>");
                     if (upgrade.HearthDaily != 0) effects.AppendLine($"Hearth: {(upgrade.HearthDaily > 0 ? "+" : "")}{upgrade.HearthDaily}<br>");
+                }
+
+                if (upgrade.DailyTroopSpawnAmount > 0 || upgrade.TroopTierBonus > 0)
+                {
+                    effects.AppendLine("<br><strong>Troop Spawning (All Kingdom Clans):</strong><br>");
+                    if (upgrade.DailyTroopSpawnAmount > 0)
+                    {
+                        effects.AppendLine($"Daily Spawn: {upgrade.DailyTroopSpawnAmount} troops/day per clan<br>");
+                        effects.AppendLine($"Troop Tree: {upgrade.TroopTree}<br>");
+                        effects.AppendLine($"Base Tier: {upgrade.TroopTier}<br>");
+                    }
+                    if (upgrade.TroopTierBonus > 0 && !string.IsNullOrEmpty(upgrade.BuffsTroopTierOf))
+                        effects.AppendLine($"Tier Bonus: +{upgrade.TroopTierBonus} to {upgrade.BuffsTroopTierOf}<br>");
                 }
 
                 return effects.Length > 0 ? effects.ToString() : "No effects configured";

@@ -356,6 +356,30 @@ namespace BLTAdoptAHero
                         _troopSpawnAccumulation.Remove(accumulationKey);
                     }
                 }
+                // Kingdom troop spawning — runs for every clan in the kingdom
+                if (clan.Kingdom != null && ConfigSafe.KingdomUpgrades != null)
+                {
+                    foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
+                    {
+                        var upgrade = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+                        if (upgrade == null || upgrade.DailyTroopSpawnAmount <= 0) continue;
+
+                        string accumulationKey = $"kdom:{clan.Kingdom.StringId}:{clan.StringId}:{upgradeId}";
+                        if (!_troopSpawnAccumulation.TryGetValue(accumulationKey, out float accumulated))
+                            accumulated = 0f;
+
+                        accumulated += upgrade.DailyTroopSpawnAmount;
+
+                        while (accumulated >= 1.0f && clan.WarPartyComponents.Any(p => p.MobileParty.MemberRoster.Count < p.Party.PartySizeLimit))
+                        {
+                            SpawnTroopForClanFromKingdomUpgrade(clan, upgrade);
+                            accumulated -= 1.0f;
+                        }
+
+                        if (accumulated > 0f) _troopSpawnAccumulation[accumulationKey] = accumulated;
+                        else _troopSpawnAccumulation.Remove(accumulationKey);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -394,6 +418,41 @@ namespace BLTAdoptAHero
                 TaleWorlds.Library.InformationManager.DisplayMessage(
                     new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] Spawn troop error: {ex.Message}")
                 );
+            }
+        }
+
+        private int GetEffectiveTroopTierFromKingdom(Clan clan, KingdomUpgrade spawningUpgrade)
+        {
+            if (clan == null || spawningUpgrade == null || clan.Kingdom == null) return 1;
+            int tierBonus = 0;
+            foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
+            {
+                var upgrade = ConfigSafe?.KingdomUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
+                if (upgrade == null) continue;
+                if (upgrade.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
+                    tierBonus += upgrade.TroopTierBonus;
+            }
+            return Math.Max(1, spawningUpgrade.TroopTier + tierBonus);
+        }
+
+        private void SpawnTroopForClanFromKingdomUpgrade(Clan clan, KingdomUpgrade upgrade)
+        {
+            try
+            {
+                var party = clan.Leader.PartyBelongedTo != null &&
+                            clan.Leader.PartyBelongedTo.Party.MemberRoster.Count < clan.Leader.PartyBelongedTo.Party.PartySizeLimit
+                    ? clan.Leader.PartyBelongedTo
+                    : clan.WarPartyComponents.Where(p => p.MobileParty.MemberRoster.Count < p.Party.PartySizeLimit).SelectRandom()?.MobileParty;
+                if (party == null) return;
+                var culture = clan.Culture;
+                if (culture == null) return;
+                var troop = GetTroopForCulture(culture, upgrade.TroopTree, GetEffectiveTroopTierFromKingdom(clan, upgrade));
+                if (troop != null) party.MemberRoster.AddToCounts(troop, 1);
+            }
+            catch (Exception ex)
+            {
+                TaleWorlds.Library.InformationManager.DisplayMessage(
+                    new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] Kingdom spawn troop error: {ex.Message}"));
             }
         }
 
@@ -643,8 +702,12 @@ namespace BLTAdoptAHero
 
         public void ApplyRenownDaily(Clan clan)
         {
-            float bonus = GetTotalRenownDaily(clan.Leader);
-            clan.AddRenown(bonus, false);
+            clan.AddRenown(GetTotalRenownDaily(clan.Leader), false);
+
+            // Influence daily — clan upgrade applies to this clan; kingdom upgrade applies to all kingdom clans
+            float influenceBonus = GetClanInfluenceDaily(clan);
+            if (clan.Kingdom != null) influenceBonus += GetKingdomInfluenceDaily(clan.Kingdom);
+            if (influenceBonus != 0) clan.Influence += influenceBonus;
         }
 
         // Max Clans
@@ -703,6 +766,12 @@ namespace BLTAdoptAHero
 
         public float GetTotalFoodDailyPercent(Settlement s)
             => SumSettlementFloatTyped(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent);
+
+        public float GetClanInfluenceDaily(Clan clan)
+            => SumClanFloat(clan, c => c.InfluenceDaily);
+
+        public float GetKingdomInfluenceDaily(Kingdom kingdom)
+            => SumKingdomFloat(kingdom, k => k.InfluenceDaily);
 
         // Backward-compatible short names used by some models
         public float GetLoyaltyFlat(Settlement s) => GetTotalLoyaltyDailyFlat(s);
