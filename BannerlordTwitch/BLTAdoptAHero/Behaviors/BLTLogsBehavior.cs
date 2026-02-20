@@ -99,10 +99,11 @@ namespace BLTAdoptAHero.Behaviors
                         var heroSide = hero.PartyBelongedTo.MapEventSide;
                         bool won = mapEvent.Winner == heroSide;
                         var enemySide = heroSide.OtherSide;
+                        if (enemySide.HealthyTroopCountAtMapEventStart == 0 && eventType == "Raid") continue;
 
                         string enemyPartyName = enemySide.LeaderParty?.Name?.ToString() ?? "unknown party";
                         string enemyFactionName = enemySide.LeaderParty?.MapFaction?.Name?.ToString() ?? "unknown faction";
-
+                        
                         string battleLog = $"[{date}]{eventType} against {enemyPartyName} ({enemyFactionName})({heroSide.HealthyTroopCountAtMapEventStart} vs {enemySide.HealthyTroopCountAtMapEventStart}) - {(won ? "Victory" : "Defeat")}";
 
                         if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
