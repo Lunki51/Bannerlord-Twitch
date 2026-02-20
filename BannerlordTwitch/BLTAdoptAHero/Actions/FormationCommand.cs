@@ -92,7 +92,8 @@ namespace BLTAdoptAHero.Actions
                 foreach (var f in allFormations)
                 {
                     int troops = f.CountOfUnits;
-                    sb.Append($"{number}: {troops}, ");
+                    var order = f.GetMovementState();
+                    sb.Append($"{number}: {troops}({order}), ");
                     number++;
                 }
 
@@ -150,8 +151,9 @@ namespace BLTAdoptAHero.Actions
                         _ when q.IsRangedCavalryFormationReadOnly => "Horse archer",
                         _ => "unknown"
                     };
+                    var order = f.GetMovementState();
                     int troops = f.CountOfUnits;
-                    sb.Append($"{number}: {type}({troops}), ");
+                    sb.Append($"{number}: {type}({troops},{order}), ");
                     number++;
                 }
                 List<int> indexes = new();
