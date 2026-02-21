@@ -500,6 +500,103 @@ namespace BLTAdoptAHero.Actions
                         onSuccess(partyStats.ToString());
                         break;
                     }
+                case "disband":
+                    {
+                        if (adoptedHero.Clan == null)
+                        {
+                            onFailure("You are not in a clan");
+                            return;
+                        }
+                        if (adoptedHero.Clan.Leader.IsHumanPlayerCharacter)
+                        {
+                            onFailure("Cannot disband parties in the player clan");
+                            return;
+                        }
+
+                        // ── DISBAND ALL ────────────────────────────────────────────────────
+                        if (desiredName.Equals("all", StringComparison.OrdinalIgnoreCase))
+                        {
+                            var toDisband = adoptedHero.Clan.WarPartyComponents
+                                .Select(wpc => wpc?.MobileParty)
+                                .Where(mp => mp != null && mp.LeaderHero != null && mp.IsLordParty
+                                          && mp.MapEvent == null && mp.Army == null)
+                                .ToList();
+
+                            if (toDisband.Count == 0)
+                            {
+                                onFailure("No eligible parties to disband");
+                                return;
+                            }
+
+                            int disbanded = 0;
+                            foreach (var mp in toDisband)
+                            {
+                                var leader = mp.LeaderHero;
+                                DestroyPartyAction.Apply(null, mp);
+                                disbanded++;
+                                FallbackLeaderToSettlement(leader, adoptedHero);
+                            }
+
+                            onSuccess($"Disbanded {disbanded} parties");
+                            return;
+                        }
+
+                        // ── DISBAND (single) ───────────────────────────────────────────────
+                        MobileParty targetParty;
+
+                        if (string.IsNullOrWhiteSpace(desiredName))
+                        {
+                            if (party == null)
+                            {
+                                onFailure("You have no party to disband");
+                                return;
+                            }
+                            targetParty = party;
+                        }
+                        else
+                        {
+                            if (!int.TryParse(desiredName.Trim(), out int idx) || idx < 1)
+                            {
+                                onFailure("Specify a valid party index (e.g. !party disband 2)");
+                                return;
+                            }
+
+                            int count = 0;
+                            targetParty = null;
+                            foreach (var wpc in adoptedHero.Clan.WarPartyComponents)
+                            {
+                                var mp = wpc?.MobileParty;
+                                if (mp == null || mp.LeaderHero == null || !mp.IsLordParty) continue;
+                                if (++count == idx) { targetParty = mp; break; }
+                            }
+
+                            if (targetParty == null)
+                            {
+                                onFailure($"No party at index {idx} (clan has {count} active parties)");
+                                return;
+                            }
+                        }
+
+                        if (targetParty.MapEvent != null)
+                        {
+                            onFailure($"{targetParty.Name} is currently in combat");
+                            return;
+                        }
+                        if (targetParty.Army != null)
+                        {
+                            onFailure($"{targetParty.Name} is part of an army — leave/disband the army first");
+                            return;
+                        }
+
+                        string disbandedName = targetParty.Name.ToString();
+                        Hero disbandedLeader = targetParty.LeaderHero;
+
+                        DestroyPartyAction.Apply(null, targetParty);
+                        FallbackLeaderToSettlement(disbandedLeader, adoptedHero);
+
+                        onSuccess($"Disbanded {disbandedName}");
+                        break;
+                    }
                 case "army":
                     {
                         // ── Top-level guards (unchanged) ──────────────────────────────────────
@@ -923,6 +1020,17 @@ namespace BLTAdoptAHero.Actions
             }
 
             return bestSettlement;
+        }
+
+        private static void FallbackLeaderToSettlement(Hero leader, Hero requester)
+        {
+            if (leader == null || leader == requester) return;
+            if (leader.PartyBelongedTo != null || leader.CurrentSettlement != null) return;
+
+            var fallback = leader.HomeSettlement
+                        ?? Settlement.All.Where(s => s.IsTown).SelectRandom();
+            if (fallback != null)
+                EnterSettlementAction.ApplyForCharacterOnly(leader, fallback);
         }
 
         private Settlement FindBestSettlementToDefend(MobileParty party, Kingdom kingdom)
