@@ -517,26 +517,24 @@ namespace BLTAdoptAHero.Actions
                         if (desiredName.Equals("all", StringComparison.OrdinalIgnoreCase))
                         {
                             var toDisband = adoptedHero.Clan.WarPartyComponents
-                                .Select(wpc => wpc?.MobileParty)
-                                .Where(mp => mp != null && mp.LeaderHero != null && mp.IsLordParty
-                                          && mp.MapEvent == null && mp.Army == null)
-                                .ToList();
+                            .Select(wpc => wpc?.MobileParty)
+                            .Where(mp => mp != null && mp.LeaderHero != null
+                                      && mp.IsLordParty && mp.MapEvent == null)
+                            .ToList(); // Note: no longer filters mp.Army == null
 
-                            if (toDisband.Count == 0)
-                            {
-                                onFailure("No eligible parties to disband");
-                                return;
-                            }
+                            if (toDisband.Count == 0) { onFailure("No eligible parties to disband"); return; }
 
                             int disbanded = 0;
                             foreach (var mp in toDisband)
                             {
+                                // Teardown any army membership before destroy
+                                SafeRemovePartyFromArmy(mp);
+
                                 var leader = mp.LeaderHero;
                                 DestroyPartyAction.Apply(null, mp);
                                 disbanded++;
                                 FallbackLeaderToSettlement(leader, adoptedHero);
                             }
-
                             onSuccess($"Disbanded {disbanded} parties");
                             return;
                         }
@@ -582,26 +580,38 @@ namespace BLTAdoptAHero.Actions
                             onFailure($"{targetParty.Name} is currently in combat");
                             return;
                         }
+
+                        // Graceful army teardown rather than hard-fail.
+                        // If something left a stale army reference we clean it here;
+                        // if the army is valid we disband it first so members scatter
+                        // rather than referencing a destroyed leader party.
                         if (targetParty.Army != null)
                         {
-                            onFailure($"{targetParty.Name} is part of an army — leave/disband the army first");
-                            return;
+                            var existingArmy = targetParty.Army;
+                            if (existingArmy.LeaderParty == targetParty)
+                            {
+                                // This party IS the army leader — disband the whole army
+                                PartyOrderBehavior.Current?.CancelOrdersForParty(targetParty.StringId, null, false);
+                                DisbandArmyAction.ApplyByUnknownReason(existingArmy);
+                            }
+                            else
+                            {
+                                // Member party — just remove it
+                                targetParty.Army = null;
+                                targetParty.AttachedTo = null;
+                            }
                         }
 
                         string disbandedName = targetParty.Name.ToString();
                         Hero disbandedLeader = targetParty.LeaderHero;
-
                         DestroyPartyAction.Apply(null, targetParty);
                         FallbackLeaderToSettlement(disbandedLeader, adoptedHero);
-
                         onSuccess($"Disbanded {disbandedName}");
                         break;
                     }
                 case "army":
                     {
-                        // ── Top-level guards (unchanged) ──────────────────────────────────────
                         if (!settings.ArmyEnabled) { onFailure("Army disabled"); return; }
-                        if (adoptedHero.Clan.Kingdom == null) { onFailure("Not in a kingdom"); return; }
                         if (adoptedHero.Clan.IsUnderMercenaryService) { onFailure("Mercenaries can't create armies"); return; }
                         if (adoptedHero.IsPrisoner) { onFailure("You are a prisoner!"); return; }
 
@@ -623,11 +633,7 @@ namespace BLTAdoptAHero.Actions
                             // ── STATUS ────────────────────────────────────────────────────────
                             case "status":
                                 {
-                                    if (army == null)
-                                    {
-                                        onFailure("You have no army");
-                                        return;
-                                    }
+                                    if (army == null) { onFailure("You have no army"); return; }
 
                                     var sb = new System.Text.StringBuilder();
                                     sb.Append($"Army: {army.Name} | Str: {(int)army.EstimatedStrength} | ");
@@ -636,8 +642,7 @@ namespace BLTAdoptAHero.Actions
 
                                     string behavior = party.DefaultBehavior.ToString();
                                     string targetName = party.TargetSettlement?.Name?.ToString()
-                                                     ?? party.TargetParty?.Name?.ToString()
-                                                     ?? "—";
+                                                     ?? party.TargetParty?.Name?.ToString() ?? "—";
                                     sb.Append($" | {behavior} → {targetName}");
                                     sb.Append($" | Morale: {(int)army.Morale}");
 
@@ -665,11 +670,8 @@ namespace BLTAdoptAHero.Actions
                                         onFailure("You are not leading an army");
                                         return;
                                     }
-                                    if (party.MapEvent != null)
-                                    {
-                                        onFailure("Your army is in combat");
-                                        return;
-                                    }
+                                    if (party.MapEvent != null) { onFailure("Your army is in combat"); return; }
+
                                     PartyOrderBehavior.Current?.CancelOrdersForParty(party.StringId, null, false);
                                     DisbandArmyAction.ApplyByUnknownReason(army);
                                     onSuccess("Army disbanded");
@@ -750,6 +752,8 @@ namespace BLTAdoptAHero.Actions
                                     }
 
                                     // Re-issue and register order for new leader if there was one
+                                    if (newLeaderParty.Army == null) { onFailure("Failed to transfer army leadership"); return; }
+
                                     if (curTarget != null)
                                     {
                                         PartyOrderBehavior.IssueOrder(newLeaderParty, curType, curTarget);
@@ -796,7 +800,7 @@ namespace BLTAdoptAHero.Actions
                                                 : null; // patrol can be null (patrols current position)
                                     }
 
-                                    // ── Validate order-specific requirements ────────────────────
+                                    // ── Siege-specific validation ──────────────────────────────────
                                     if (orderType == PartyOrderType.Siege)
                                     {
                                         if (adoptedHero.Clan.Kingdom.FactionsAtWarWith.Count == 0)
@@ -825,7 +829,7 @@ namespace BLTAdoptAHero.Actions
                                             onFailure($"Not at war with {target.Name}'s owner");
                                             return;
                                         }
-                                        // Reachability — fall back to patrol if target is on an island
+
                                         if (!PartyOrderBehavior.IsSettlementReachable(party, target))
                                         {
                                             var fallbackTarget = FindBestSettlementToDefend(party, adoptedHero.Clan.Kingdom);
@@ -842,7 +846,7 @@ namespace BLTAdoptAHero.Actions
                                     if (!adoptedHero.IsPartyLeader) { onFailure("You are not leading a party"); return; }
                                     if (party.MapEvent != null) { onFailure("Your party is in combat"); return; }
 
-                                    // ── REDIRECT existing army ──────────────────────────────────
+                                    // ── REDIRECT existing army ─────────────────────────────────────
                                     if (army != null && army.LeaderParty == party)
                                     {
                                         army.ArmyType = armyType;
@@ -859,13 +863,13 @@ namespace BLTAdoptAHero.Actions
                                         return;
                                     }
 
-                                    // ── CREATE new army ─────────────────────────────────────────
                                     if (army != null && army.LeaderParty != party)
                                     {
                                         onFailure("You are in someone else's army");
                                         return;
                                     }
 
+                                    // ── CREATE new army ────────────────────────────────────────────
                                     if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.ArmyPrice)
                                     {
                                         onFailure(Naming.NotEnoughGold(settings.ArmyPrice,
@@ -922,12 +926,13 @@ namespace BLTAdoptAHero.Actions
                                         adoptedHero, party, orderType, target,
                                         settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
 
-                                    onSuccess($"Gathering {armyType} army ({mergedParties.Count} parties)"
+                                    int memberCount = newArmy.Parties.Count - 1; // exclude leader
+                                    onSuccess($"Gathering {armyType} army ({memberCount} joining)"
                                         + (target != null ? $" → {target.Name}" : ""));
                                     return;
                                 }
 
-                            // ── THREAT ───────────────────────────────────────────────────────
+                            // ── THREAT ────────────────────────────────────────────────────────
                             case "threat":
                                 {
                                     if (!settings.ThreatEnabled) { onFailure("Threat scan is disabled"); return; }
@@ -949,7 +954,6 @@ namespace BLTAdoptAHero.Actions
                                         float enemyStr = other.GetTotalLandStrengthWithFollowers();
                                         if (enemyStr <= 0f) continue;
 
-                                        // Guide formula (DefaultMobilePartyAIModel lines 549-560)
                                         float adv = ourStrength / enemyStr;
                                         float attackScore = MBMath.ClampFloat(0.5f * (1f + adv), 0.05f, 3.0f);
                                         float avoidScore = adv < 1f
@@ -969,7 +973,7 @@ namespace BLTAdoptAHero.Actions
                                         .Take(settings.ThreatMaxResults)
                                         .Select(t =>
                                         {
-                                            string icon = t.flee ? "⚠ FLEE" : "→ ENGAGE";
+                                            string icon = t.flee ? "⚠ DANGER" : "→ ENGAGE";
                                             return $"[{icon}] {t.name} (Str:{t.enemyStr:0} vs {ourStrength:0})";
                                         });
 
@@ -1020,6 +1024,34 @@ namespace BLTAdoptAHero.Actions
             }
 
             return bestSettlement;
+        }
+
+        /// <summary>
+        /// Defensively removes a party from its army (if any) before the caller
+        /// calls DestroyPartyAction. Handles both leader and member cases.
+        /// </summary>
+        private static void SafeRemovePartyFromArmy(MobileParty mp)
+        {
+            try
+            {
+                if (mp?.Army == null) return;
+
+                if (mp.Army.LeaderParty == mp)
+                {
+                    PartyOrderBehavior.Current?.CancelOrdersForParty(mp.StringId, null, false);
+                    DisbandArmyAction.ApplyByUnknownReason(mp.Army);
+                }
+                else
+                {
+                    mp.Army = null;
+                    mp.AttachedTo = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] SafeRemovePartyFromArmy error: {ex}");
+                // Don't rethrow — caller will still call Destroy which is the safest path
+            }
         }
 
         private static void FallbackLeaderToSettlement(Hero leader, Hero requester)
