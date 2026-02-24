@@ -56,6 +56,11 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Cannot change formation in naval battle");
                 return;
             }
+            if (MissionHelpers.InTournament())
+            {
+                onFailure("Cannot change formation in tournament");
+                return;
+            }
             string num = "";
             if (context.Args.Length > 0)
                 num = context.Args[0].ToString();
