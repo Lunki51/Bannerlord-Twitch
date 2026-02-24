@@ -664,7 +664,7 @@ namespace BLTAdoptAHero.Actions
         }
 
         private static void ExecuteReassign(Settings settings, Hero h, MobileParty party, Army army,
-            MobileParty newLeaderParty, Action<string> onSuccess, Action<string> onFailure)
+    MobileParty newLeaderParty, Action<string> onSuccess, Action<string> onFailure)
         {
             var curOrder = PartyOrderBehavior.Current?.GetActiveOrder(party.StringId);
             var curTarget = curOrder?.TargetSettlementId != null ? Settlement.Find(curOrder.TargetSettlementId) : null;
@@ -677,10 +677,15 @@ namespace BLTAdoptAHero.Actions
             PartyOrderBehavior.Current?.CancelOrdersForParty(party.StringId, null, false);
             DisbandArmyAction.ApplyByUnknownReason(army);
 
+            float influenceBefore = h.Clan.Influence;                          // ← snapshot
+
             var gather = curTarget ?? newLeaderParty.CurrentSettlement ?? h.HomeSettlement;
             h.Clan.Kingdom.CreateArmy(newLeaderParty.LeaderHero, gather, armyType, remaining);
 
+            h.Clan.Influence = influenceBefore;                                 // ← restore
+
             if (newLeaderParty.Army == null) { onFailure("Failed to transfer army leadership"); return; }
+
             if (curTarget != null)
             {
                 PartyOrderBehavior.IssueOrder(newLeaderParty, curType, curTarget);
@@ -690,6 +695,7 @@ namespace BLTAdoptAHero.Actions
             }
             onSuccess($"Army command transferred to {newLeaderParty.LeaderHero.Name}");
         }
+
 
         // ── VIEW (king: list all kingdom armies) ──────────────────────────────
 
@@ -860,9 +866,12 @@ namespace BLTAdoptAHero.Actions
             PartyOrderBehavior.Current?.CancelOrdersForParty(oldLeader.StringId, null, false);
             DisbandArmyAction.ApplyByUnknownReason(targetArmy);
 
-            var gather = curTarget ?? oldLeader.CurrentSettlement
-                      ?? h.HomeSettlement;
+            float influenceBefore = h.Clan.Influence;                          // ← snapshot
+
+            var gather = curTarget ?? oldLeader.CurrentSettlement ?? h.HomeSettlement;
             h.Clan.Kingdom.CreateArmy(h, gather, armyType, remaining);
+
+            h.Clan.Influence = influenceBefore;                                 // ← restore
 
             if (party.Army == null) { onFailure("Failed to seize army leadership"); return; }
 
@@ -976,13 +985,14 @@ namespace BLTAdoptAHero.Actions
             }
 
             // ── Add parties to army ───────────────────────────────────────────
+            float influenceBefore = h.Clan.Influence;
+
             int added = 0;
             foreach (var p in eligible)
             {
                 try
                 {
                     p.Army = targetArmy;
-                    // Do not set AttachedTo — party will gather naturally
                     added++;
                 }
                 catch (Exception ex)
@@ -992,6 +1002,8 @@ namespace BLTAdoptAHero.Actions
             }
 
             if (added == 0) { onFailure("Failed to add any parties to the army"); return; }
+
+            h.Clan.Influence = influenceBefore;
 
             float actualCost = settings.CallBaseInfluenceCost + added * (float)settings.CallInfluenceCostPerParty;
             h.Clan.Influence -= actualCost;
