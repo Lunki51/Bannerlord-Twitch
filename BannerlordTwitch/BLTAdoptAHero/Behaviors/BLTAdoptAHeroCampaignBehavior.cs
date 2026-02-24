@@ -1175,7 +1175,7 @@ namespace BLTAdoptAHero
 
         public void ApplyAchievementPassivePowers(Hero hero)
         {
-            if (BLTAdoptAHeroModule.CommonConfig?.Achievements == null) return;
+            if (BLTAdoptAHeroModule.CommonConfig?.Achievements == null || !BLTAdoptAHeroModule.CommonConfig.Achievements.Any(a => a.GivePassivePower)) return;
 
             var achievementPowerIds = GetHeroAchievementPassivePowers(hero);
             var ach = BLTAdoptAHeroCampaignBehavior.Current
