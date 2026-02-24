@@ -17,6 +17,8 @@ namespace BLTAdoptAHero
         public static PartyOrderBehavior Current { get; private set; }
 
         private List<string> _ordersJson = new();
+        private HashSet<string> _aiArmiesBlockedKingdoms = new();
+        private HashSet<string> _bltArmiesBlockedKingdoms = new();
 
         /// <summary>
         /// StringIds of kingdoms whose king has issued '!party army allowai off'.
@@ -51,6 +53,8 @@ namespace BLTAdoptAHero
             {
                 dataStore.SyncData("BLT_PartyOrders", ref _ordersJson);
                 dataStore.SyncData("BLT_AIBlockedKingdoms", ref _aiBlockedKingdoms);
+                dataStore.SyncData("BLT_AIArmiesBlockedKingdoms", ref _aiArmiesBlockedKingdoms);
+                dataStore.SyncData("BLT_BLTArmiesBlockedKingdoms", ref _bltArmiesBlockedKingdoms);
                 _ordersJson ??= new List<string>();
                 _aiBlockedKingdoms ??= new List<string>();
 
@@ -138,34 +142,33 @@ namespace BLTAdoptAHero
         public bool HasActiveOrder(string partyId) =>
             _orders.Any(o => o.IsActive && o.PartyId == partyId);
 
-        /// <summary>
-        /// Returns true when the king of <paramref name="kingdom"/> has blocked
-        /// AI/NPC army creation via '!party army allowai off'.
-        /// </summary>
-        public bool IsAIArmiesBlocked(Kingdom kingdom) =>
-            kingdom != null && _aiBlockedKingdoms.Contains(kingdom.StringId);
+        public bool IsAIArmiesBlocked(Kingdom kingdom)
+            => kingdom != null && _aiArmiesBlockedKingdoms.Contains(kingdom.StringId);
 
-        public PartyOrderData GetActiveOrder(string partyId) =>
-            _orders.FirstOrDefault(o => o.IsActive && o.PartyId == partyId);
+        public bool IsBLTArmiesBlocked(Kingdom kingdom)
+            => kingdom != null && _bltArmiesBlockedKingdoms.Contains(kingdom.StringId);
 
-        /// <summary>
-        /// Sets the AI army block state for <paramref name="kingdom"/>.
-        /// <paramref name="blocked"/> = true  → '!party army allowai off'
-        /// <paramref name="blocked"/> = false → '!party army allowai on'  (default)
-        /// </summary>
+        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
+        {
+            if (kingdom == null) return;
+            if (blocked)
+                _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
+            else
+                _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
+        }
+
+        // Add a public setter for the existing AI set too (if not already exposed):
         public void SetAIArmiesBlocked(Kingdom kingdom, bool blocked)
         {
             if (kingdom == null) return;
             if (blocked)
-            {
-                if (!_aiBlockedKingdoms.Contains(kingdom.StringId))
-                    _aiBlockedKingdoms.Add(kingdom.StringId);
-            }
+                _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
             else
-            {
-                _aiBlockedKingdoms.Remove(kingdom.StringId);
-            }
+                _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
         }
+
+        public PartyOrderData GetActiveOrder(string partyId) =>
+            _orders.FirstOrDefault(o => o.IsActive && o.PartyId == partyId);
 
         // ─────────────────────────────────────────────
         //  HOURLY MONITORING
@@ -177,6 +180,12 @@ namespace BLTAdoptAHero
             {
                 // Skip mercenary parties — MercenaryArmyBehavior owns those
                 //if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
+
+                // If this party leads an army, keep cohesion topped up
+                if (party.LeaderHero.IsAdopted() && party.Army != null && party.Army.LeaderParty == party)
+                {
+                    party.Army.Cohesion = 100f;
+                }
 
                 var order = _orders.FirstOrDefault(o => o.IsActive && o.PartyId == party?.StringId);
                 if (order == null) return;

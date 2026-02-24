@@ -483,7 +483,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(desiredName))
             {
-                ActionManager.SendReply(context, "{=TESTING}Need aclan name".Translate());
+                ActionManager.SendReply(context, "{=}Need a clan name".Translate());
                 return;
             }
 

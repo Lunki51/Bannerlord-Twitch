@@ -396,6 +396,7 @@
     <Compile Include="Behaviors\BLTLogsBehavior.cs" />
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
+    <Compile Include="Behaviors\KingdomJoinPermissionsBehavior.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
     <Compile Include="Behaviors\PartyOrderBehavior.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />

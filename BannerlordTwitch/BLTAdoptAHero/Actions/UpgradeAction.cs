@@ -560,8 +560,8 @@ namespace BLTAdoptAHero.Actions
             switch (type)
             {
                 case "fief": ShowFiefInfo(name, hero, gc, ok, fail); break;
-                case "clan": ShowClanInfo(hero, gc, ok, fail); break;
-                case "kingdom": ShowKingdomInfo(hero, gc, ok, fail); break;
+                case "clan": ShowClanInfo(name, hero, gc, ok, fail); break;
+                case "kingdom": ShowKingdomInfo(name, hero, gc, ok, fail); break;
                 default: fail("Invalid type. Use 'fief', 'clan', or 'kingdom'"); break;
             }
         }
@@ -586,10 +586,11 @@ namespace BLTAdoptAHero.Actions
             ok(sb.ToString());
         }
 
-        private void ShowClanInfo(Hero hero, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
+        private void ShowClanInfo(string name, Hero hero, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
         {
-            var clan = hero.Clan;
-            if (clan == null) { fail($"You are not in a clan!"); return; }
+            if (string.IsNullOrEmpty(name)) { fail("Usage: info <clan> <name>"); return; }
+            var clan = FindClan(name);
+            if (clan == null) { fail($"Clan '{name}' not found"); return; }
             var ids = UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
             var sb = new StringBuilder();
             sb.AppendLine($"=== {clan.Name} Upgrades ===");
@@ -603,11 +604,11 @@ namespace BLTAdoptAHero.Actions
             ok(sb.ToString());
         }
 
-        private void ShowKingdomInfo(Hero hero, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
+        private void ShowKingdomInfo(string name, Hero hero, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
         {
-            if (hero.Clan == null) { fail("You are not in a clan!"); return; }
-            var kingdom = hero.Clan.Kingdom;
-            if (kingdom == null) { fail("You are not in a kingdom!"); return; }
+            if (string.IsNullOrEmpty(name)) { fail("Usage: info <kingdom> <name>"); return; }
+            var kingdom = FindKingdom(name);
+            if (kingdom == null) { fail($"Kingdom '{name}' not found"); return; }
             var ids = UpgradeBehavior.Current?.GetKingdomUpgrades(kingdom) ?? new List<string>();
             var sb = new StringBuilder();
             sb.AppendLine($"=== {kingdom.Name} Upgrades ===");
@@ -1104,7 +1105,7 @@ namespace BLTAdoptAHero.Actions
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        // Settlement lookup
+        // Name lookups
         // ════════════════════════════════════════════════════════════════════════
 
         private Settlement FindSettlement(string name)
@@ -1117,6 +1118,20 @@ namespace BLTAdoptAHero.Actions
                 settlement = Settlement.All.FirstOrDefault(s => s?.Name?.ToString().Equals(name, OIC) == true);
             }
             return settlement;
+        }
+
+        private Clan FindClan(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var clan = Clan.All.FirstOrDefault(c => c?.Name?.ToString().Equals(name, OIC) == true);
+            return clan;
+        }
+
+        private Kingdom FindKingdom(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return null;
+            var kingdom = Kingdom.All.FirstOrDefault(k => k?.Name?.ToString().Equals(name, OIC) == true);
+            return kingdom;
         }
 
         // ════════════════════════════════════════════════════════════════════════

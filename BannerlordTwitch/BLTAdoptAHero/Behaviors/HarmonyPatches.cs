@@ -891,15 +891,6 @@ namespace BLTAdoptAHero
 
     #endregion
 
-    #region AIArmyBlockPatch
-
-    /// <summary>
-    /// Prevents AI/NPC lords from creating armies in kingdoms where the king
-    /// has issued '!party army allowai off'.  The blocked-kingdom set is stored
-    /// in <see cref="PartyOrderBehavior"/> and persists with the save.
-    ///
-    /// BLT adopted heroes and the player are always allowed through.
-    /// </summary>
     [HarmonyPatch(typeof(Kingdom), "CreateArmy")]
     internal static class BLT_BlockAIArmyCreation
     {
@@ -912,18 +903,28 @@ namespace BLTAdoptAHero
                 if (armyLeader == Hero.MainHero)
                     return true;
 
-                // Always allow BLT adopted heroes
+                var pb = PartyOrderBehavior.Current;
+
+                // ── BLT adopted hero ─────────────────────────────────────────────
                 if (armyLeader?.IsAdopted() == true)
-                    return true;
+                {
+                    if (pb != null && pb.IsBLTArmiesBlocked(__instance))
+                    {
+#if DEBUG
+                    Log.Trace($"[BLT] Blocked BLT army creation by {armyLeader?.Name} in {__instance?.Name} (allowblt off)");
+#endif
+                        return false;
+                    }
+                    return true; // explicitly allowed (or system not ready)
+                }
 
-                // Check per-kingdom block set
-                if (PartyOrderBehavior.Current == null)
-                    return true; // behavior not loaded yet — fail-safe
+                // ── Pure AI/NPC hero ─────────────────────────────────────────────
+                if (pb == null)
+                    return true; // system not loaded — fail-safe
 
-                if (!PartyOrderBehavior.Current.IsAIArmiesBlocked(__instance))
+                if (!pb.IsAIArmiesBlocked(__instance))
                     return true; // not blocked for this kingdom
 
-                // Block this AI/NPC hero
 #if DEBUG
             Log.Trace($"[BLT] Blocked AI army creation by {armyLeader?.Name} in {__instance?.Name} (allowai off)");
 #endif
@@ -936,6 +937,4 @@ namespace BLTAdoptAHero
             }
         }
     }
-
-    #endregion
 }

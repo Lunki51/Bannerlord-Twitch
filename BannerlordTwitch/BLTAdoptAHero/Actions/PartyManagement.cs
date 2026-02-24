@@ -959,6 +959,7 @@ namespace BLTAdoptAHero.Actions
                     && p.IsLordParty
                     && p.LeaderHero != null
                     && !p.LeaderHero.IsPrisoner
+                    && p.LeaderHero != Hero.MainHero
                     && p.MemberRoster.TotalHealthyCount > 0)
                 .ToList();
 
