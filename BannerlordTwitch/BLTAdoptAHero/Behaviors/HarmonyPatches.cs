@@ -19,6 +19,7 @@ using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
 using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
 using System.Linq;
 using TaleWorlds.CampaignSystem.MapEvents;
+using System.Runtime.CompilerServices;
 
 namespace BLTAdoptAHero
 {
@@ -765,11 +766,9 @@ namespace BLTAdoptAHero
     /// <summary>
     /// Fixes the vanilla bug where retreating from a siege assault causes the ENTIRE
     /// besieging army to be captured/killed, and lords made fugitive respawning with 1 troop.
+    /// This version safely tracks mutated MapEvent instances instead of using ThreadStatic.
     /// </summary>
 
-    // -------------------------------------------------------------------------
-    // Part 1: Suppress troop capture for siege retreats with survivors
-    // -------------------------------------------------------------------------
     [HarmonyPatch(typeof(MapEvent), "CalculateAndCommitMapEventResults")]
     internal static class BLT_SiegeRetreatFix
     {
@@ -777,15 +776,14 @@ namespace BLTAdoptAHero
             typeof(MapEvent).GetProperty("RetreatingSide",
                 BindingFlags.Public | BindingFlags.Instance);
 
-        [ThreadStatic]
-        private static bool _didMutate;
+        // Tracks MapEvent instances we mutate so we can safely restore them.
+        private static readonly HashSet<MapEvent> _mutated = new();
 
         private static bool IsSiegeRelated(MapEvent e) =>
             e.IsSiegeAssault || e.IsSallyOut || e.IsSiegeOutside;
 
         static void Prefix(MapEvent __instance)
         {
-            _didMutate = false;
             try
             {
                 if (!IsSiegeRelated(__instance))
@@ -802,39 +800,35 @@ namespace BLTAdoptAHero
                     return;
 
                 int survivors = defeatedSide.GetTotalHealthyTroopCountOfSide();
-
                 if (survivors <= 0)
-                    return; // Truly wiped out — full vanilla capture is correct
+                    return; // Truly wiped out — allow vanilla full capture
 
                 RetreatingSideProp?.SetValue(__instance, __instance.DefeatedSide);
-                _didMutate = true;
+                _mutated.Add(__instance);
 
 #if DEBUG
-                Log.Trace($"[BLT] SiegeRetreatFix: {survivors} survivors on " +
-                          $"{__instance.DefeatedSide} side — temporarily suppressing troop capture.");
+            Log.Trace($"[BLT] SiegeRetreatFix: {survivors} survivors on " +
+                      $"{__instance.DefeatedSide} side — temporarily suppressing troop capture.");
 #endif
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] BLT_SiegeRetreatFix Prefix error: {ex}");
-                _didMutate = false;
             }
         }
 
         static void Postfix(MapEvent __instance)
         {
-            if (!_didMutate)
-                return;
-
-            _didMutate = false;
             try
             {
-                // Restore so FinalizeEventAux → OnMapEventEnded → AiMilitaryBehavior
-                // sees the expected state (siege defeat, not retreat).
+                if (!_mutated.Remove(__instance))
+                    return;
+
+                // Restore original state so later systems see correct battle result
                 RetreatingSideProp?.SetValue(__instance, BattleSideEnum.None);
 
 #if DEBUG
-                Log.Trace($"[BLT] SiegeRetreatFix: RetreatingSide restored to None.");
+            Log.Trace("[BLT] SiegeRetreatFix: RetreatingSide restored to None.");
 #endif
             }
             catch (Exception ex)
@@ -844,11 +838,12 @@ namespace BLTAdoptAHero
         }
     }
 
+
     // -------------------------------------------------------------------------
     // Part 2: Safety net — prevent lords from being made fugitive if they belong
-    //         to a party that is actively part of a siege besieger camp.
-    //         This catches any code path that bypasses Part 1.
+    //         to a party actively part of a siege besieger camp.
     // -------------------------------------------------------------------------
+
     [HarmonyPatch(typeof(MakeHeroFugitiveAction), nameof(MakeHeroFugitiveAction.Apply))]
     internal static class BLT_SiegeLordFugitiveFix
     {
@@ -856,34 +851,35 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Allow normally if the hero has no party or isn't in a siege
                 MobileParty party = fugitive.PartyBelongedTo;
                 if (party == null)
                     return true;
 
-                // If the party (or its army leader) is besieging a settlement,
-                // this hero is retreating from a siege — don't make them fugitive.
-                // Only land sieges — exclude naval blockades which have different finalization
                 var mapEvent = party.MapEvent ?? party.Army?.LeaderParty?.MapEvent;
+
+                // Ignore naval blockades
                 if (mapEvent != null && (mapEvent.IsBlockade || mapEvent.IsBlockadeSallyOut))
                     return true;
 
-                bool isInSiegingParty = party.BesiegedSettlement != null
-                    || (party.Army != null && party.Army.LeaderParty?.BesiegedSettlement != null);
+                bool isInSiegingParty =
+                    party.BesiegedSettlement != null ||
+                    (party.Army != null &&
+                     party.Army.LeaderParty?.BesiegedSettlement != null);
 
                 if (!isInSiegingParty)
                     return true;
 
-                // Extra guard: only suppress if there are healthy troops remaining —
-                // if the party is truly wiped out, let vanilla do its thing.
-                if (party.Party.NumberOfHealthyMembers <= 0)
+                // Only suppress if the party still has healthy troops
+                if (party.Party?.NumberOfHealthyMembers <= 0)
                     return true;
 
 #if DEBUG
-                Log.Trace($"[BLT] SiegeLordFugitiveFix: Blocked MakeHeroFugitive for " +
-                          $"{fugitive.Name} (besieging {party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
+            Log.Trace($"[BLT] SiegeLordFugitiveFix: Blocked MakeHeroFugitive for " +
+                      $"{fugitive.Name} (besieging " +
+                      $"{party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
 #endif
-                return false; // Hero stays in their party
+
+                return false; // Prevent fugitive conversion
             }
             catch (Exception ex)
             {
@@ -894,4 +890,51 @@ namespace BLTAdoptAHero
     }
 
     #endregion
+
+    [HarmonyPatch(typeof(Kingdom), "CreateArmy")]
+    internal static class BLT_BlockAIArmyCreation
+    {
+        [HarmonyPrefix]
+        private static bool Prefix(Kingdom __instance, Hero armyLeader)
+        {
+            try
+            {
+                // Always allow the player
+                if (armyLeader == Hero.MainHero)
+                    return true;
+
+                var pb = PartyOrderBehavior.Current;
+
+                // ── BLT adopted hero ─────────────────────────────────────────────
+                if (armyLeader?.IsAdopted() == true)
+                {
+                    if (pb != null && pb.IsBLTArmiesBlocked(__instance))
+                    {
+#if DEBUG
+                    Log.Trace($"[BLT] Blocked BLT army creation by {armyLeader?.Name} in {__instance?.Name} (allowblt off)");
+#endif
+                        return false;
+                    }
+                    return true; // explicitly allowed (or system not ready)
+                }
+
+                // ── Pure AI/NPC hero ─────────────────────────────────────────────
+                if (pb == null)
+                    return true; // system not loaded — fail-safe
+
+                if (!pb.IsAIArmiesBlocked(__instance))
+                    return true; // not blocked for this kingdom
+
+#if DEBUG
+            Log.Trace($"[BLT] Blocked AI army creation by {armyLeader?.Name} in {__instance?.Name} (allowai off)");
+#endif
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_BlockAIArmyCreation Prefix error: {ex}");
+                return true; // fail-safe
+            }
+        }
+    }
 }

@@ -17,6 +17,14 @@ namespace BLTAdoptAHero
         public static PartyOrderBehavior Current { get; private set; }
 
         private List<string> _ordersJson = new();
+        private HashSet<string> _aiArmiesBlockedKingdoms = new();
+        private HashSet<string> _bltArmiesBlockedKingdoms = new();
+
+        /// <summary>
+        /// StringIds of kingdoms whose king has issued '!party army allowai off'.
+        /// Presence == AI armies blocked; absence == allowed (default).
+        /// </summary>
+        private List<string> _aiBlockedKingdoms = new();
 
         // Runtime list — deserialized from _ordersJson on load
         [NonSerialized]
@@ -44,7 +52,11 @@ namespace BLTAdoptAHero
             try
             {
                 dataStore.SyncData("BLT_PartyOrders", ref _ordersJson);
+                dataStore.SyncData("BLT_AIBlockedKingdoms", ref _aiBlockedKingdoms);
+                dataStore.SyncData("BLT_AIArmiesBlockedKingdoms", ref _aiArmiesBlockedKingdoms);
+                dataStore.SyncData("BLT_BLTArmiesBlockedKingdoms", ref _bltArmiesBlockedKingdoms);
                 _ordersJson ??= new List<string>();
+                _aiBlockedKingdoms ??= new List<string>();
 
                 if (dataStore.IsLoading)
                 {
@@ -130,6 +142,31 @@ namespace BLTAdoptAHero
         public bool HasActiveOrder(string partyId) =>
             _orders.Any(o => o.IsActive && o.PartyId == partyId);
 
+        public bool IsAIArmiesBlocked(Kingdom kingdom)
+            => kingdom != null && _aiArmiesBlockedKingdoms.Contains(kingdom.StringId);
+
+        public bool IsBLTArmiesBlocked(Kingdom kingdom)
+            => kingdom != null && _bltArmiesBlockedKingdoms.Contains(kingdom.StringId);
+
+        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
+        {
+            if (kingdom == null) return;
+            if (blocked)
+                _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
+            else
+                _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
+        }
+
+        // Add a public setter for the existing AI set too (if not already exposed):
+        public void SetAIArmiesBlocked(Kingdom kingdom, bool blocked)
+        {
+            if (kingdom == null) return;
+            if (blocked)
+                _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
+            else
+                _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
+        }
+
         public PartyOrderData GetActiveOrder(string partyId) =>
             _orders.FirstOrDefault(o => o.IsActive && o.PartyId == partyId);
 
@@ -143,6 +180,12 @@ namespace BLTAdoptAHero
             {
                 // Skip mercenary parties — MercenaryArmyBehavior owns those
                 //if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
+
+                // If this party leads an army, keep cohesion topped up
+                if (party.LeaderHero.IsAdopted() && party.Army != null && party.Army.LeaderParty == party)
+                {
+                    party.Army.Cohesion = 100f;
+                }
 
                 var order = _orders.FirstOrDefault(o => o.IsActive && o.PartyId == party?.StringId);
                 if (order == null) return;
@@ -322,13 +365,32 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Force land-only navigation regardless of party capability.
-                // Using party.NavigationCapability can return a valid water-crossing
-                // path even when embarkation is blocked by a mod, causing the party
-                // to jesus-walk along the coast indefinitely.
+                // Notes from Claude:
+                // NavigationType.Default gives estimatedLandRatio hardcoded to 1f always —
+                // it never reflects the actual path. The ratio is only genuinely computed
+                // by GetLandRatioOfPathBetweenSettlements when using NavigationType.All,
+                // so we use that here for land parties.
+                if (party.IsCurrentlyAtSea)
+                {
+                    float navalDist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                        party, target, true, MobileParty.NavigationType.Naval, out _);
+                    return navalDist < float.MaxValue - 1f;
+                }
+
                 float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                    party, target, false, MobileParty.NavigationType.Default, out _);
-                return dist < float.MaxValue - 1f;
+                    party, target, false, MobileParty.NavigationType.All, out float landRatio);
+
+                if (dist >= float.MaxValue - 1f)
+                    return false;
+
+                // Notes from Claude:
+                // landRatio is genuinely path-analyzed here (via GetLandRatioOfPathBetweenSettlements).
+                // -1 means it couldn't be computed at all (same-face shortcut with unknown nav type).
+                // Below 0.5 means more than half the route is water — a land party will stall.
+                if (landRatio >= 0f && landRatio < 0.5f)
+                    return false;
+
+                return true;
             }
             catch (Exception ex)
             {
@@ -336,6 +398,9 @@ namespace BLTAdoptAHero
                 return false;
             }
         }
+
+
+
 
         // ─────────────────────────────────────────────
         //  HELPERS
@@ -407,15 +472,28 @@ namespace BLTAdoptAHero
             switch (type)
             {
                 case PartyOrderType.Siege:
-                    return target != null
-                        && target.IsFortification
-                        && !target.IsUnderSiege
-                        && party.MapFaction.IsAtWarWith(target.MapFaction)
-                        && party.BesiegedSettlement == null;
+                    {
+                        if (target == null || !target.IsFortification) return false;
+                        if (!party.MapFaction.IsAtWarWith(target.MapFaction)) return false;
+
+                        // ── already actively besieging this target → always valid ──────
+                        if (party.BesiegedSettlement == target) return true;
+
+                        // ── target is under siege: valid only if WE are the besieger ──
+                        if (target.IsUnderSiege)
+                            return target.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction
+                                   == party.MapFaction;
+
+                        // ── not yet under siege; valid if we're not besieging something else ──
+                        return party.BesiegedSettlement == null;
+                    }
+
                 case PartyOrderType.Defend:
                     return target != null && target.IsFortification;
+
                 case PartyOrderType.Patrol:
                     return true;
+
                 default:
                     return false;
             }
