@@ -8,6 +8,7 @@ namespace BannerlordTwitch
         IDocumentationGenerator Div(string css, Action content);
         IDocumentationGenerator Div(Action content);
 
+
         IDocumentationGenerator Details(string css, Action content);
         IDocumentationGenerator Details(Action content);
 
@@ -59,5 +60,8 @@ namespace BannerlordTwitch
 
         IDocumentationGenerator LinkToAnchor(string tag, Action content);
         IDocumentationGenerator LinkToAnchor(string tag, string content);
+
+        IDocumentationGenerator MapLabel(float x, float y, string name, string type, string kingdomId, Func<string, string> getKingdomColor, Func<string, string> getBorderColor);
+
     }
 }

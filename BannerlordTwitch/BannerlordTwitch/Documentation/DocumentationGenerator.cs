@@ -444,5 +444,49 @@ namespace BannerlordTwitch
         //         this._renderCallbacks[str].Actions.Add(setAction);
         //     }
         // }
+        public IDocumentationGenerator MapLabel(float x, float y, string name, string type, string kingdomId, Func<string, string> getFillColor, Func<string, string> getBorderColor)
+        {
+            // Determine shape
+            string shapeStyle = type switch
+            {
+                "Castle" => "border-radius:0%;",  // square
+                "Town" => "border-radius:50%;",   // circle
+                _ => "border-radius:25%;"         // rounded default
+            };
+
+            // Get fill and border colors
+            string fillColor = "#000080";
+            if (getFillColor != null)
+            {
+                string c = getFillColor(kingdomId);
+                if (!string.IsNullOrEmpty(c))
+                    fillColor = c.StartsWith("#") ? c : "#" + c;
+            }
+
+            string borderColor = "#000000"; // fallback border
+            if (getBorderColor != null)
+            {
+                string c = getBorderColor(kingdomId);
+                if (!string.IsNullOrEmpty(c))
+                    borderColor = c.StartsWith("#") ? c : "#" + c;
+            }
+
+            string size = "12px";
+
+            return Div(() =>
+            {
+                // Marker
+                P($"<div style=\"position:absolute; left:{x}px; top:{y}px;" +
+                  "transform:translate(-50%,-50%);" +
+                  $"width:{size}; height:{size}; background:{fillColor}; {shapeStyle};" +
+                  $"border:1px solid {borderColor}; box-shadow:1px 1px 2px rgba(0,0,0,0.5);\"></div>");
+
+                // Name label slightly below marker
+                P($"<div style=\"position:absolute; left:{x}px; top:{y + 8}px;" +
+                  "transform:translate(-50%,0); font-size:10px; font-weight:bold;" +
+                  "text-shadow:1px 1px 2px #000; white-space:nowrap;\">" +
+                  $"{name}</div>");
+            });
+        }
     }
 }
