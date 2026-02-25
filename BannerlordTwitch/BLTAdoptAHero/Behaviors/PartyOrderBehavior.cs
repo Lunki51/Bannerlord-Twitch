@@ -17,14 +17,13 @@ namespace BLTAdoptAHero
         public static PartyOrderBehavior Current { get; private set; }
 
         private List<string> _ordersJson = new();
-        private HashSet<string> _aiArmiesBlockedKingdoms = new();
-        private HashSet<string> _bltArmiesBlockedKingdoms = new();
 
         /// <summary>
-        /// StringIds of kingdoms whose king has issued '!party army allowai off'.
-        /// Presence == AI armies blocked; absence == allowed (default).
+        /// StringIds of kingdoms whose king has issued '!party army allowai off' and '!party army allowblt off'.
+        /// Presence == Armies blocked; absence == allowed (default).
         /// </summary>
-        private List<string> _aiBlockedKingdoms = new();
+        private List<string> _aiArmiesBlockedKingdoms = new();
+        private List<string> _bltArmiesBlockedKingdoms = new();
 
         // Runtime list — deserialized from _ordersJson on load
         [NonSerialized]
@@ -52,11 +51,11 @@ namespace BLTAdoptAHero
             try
             {
                 dataStore.SyncData("BLT_PartyOrders", ref _ordersJson);
-                dataStore.SyncData("BLT_AIBlockedKingdoms", ref _aiBlockedKingdoms);
                 dataStore.SyncData("BLT_AIArmiesBlockedKingdoms", ref _aiArmiesBlockedKingdoms);
                 dataStore.SyncData("BLT_BLTArmiesBlockedKingdoms", ref _bltArmiesBlockedKingdoms);
                 _ordersJson ??= new List<string>();
-                _aiBlockedKingdoms ??= new List<string>();
+                _aiArmiesBlockedKingdoms ??= new List<string>();
+                _bltArmiesBlockedKingdoms ??= new List<string>();
 
                 if (dataStore.IsLoading)
                 {
@@ -148,23 +147,39 @@ namespace BLTAdoptAHero
         public bool IsBLTArmiesBlocked(Kingdom kingdom)
             => kingdom != null && _bltArmiesBlockedKingdoms.Contains(kingdom.StringId);
 
-        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
-        {
-            if (kingdom == null) return;
-            if (blocked)
-                _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
-            else
-                _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
-        }
 
-        // Add a public setter for the existing AI set too (if not already exposed):
+        /// <summary>
+        /// Sets the AI army block state for <paramref name="kingdom"/>.
+        /// <paramref name="blocked"/> = true  → '!party army allowai off'
+        /// <paramref name="blocked"/> = false → '!party army allowai on'  (default)
+        /// </summary>
         public void SetAIArmiesBlocked(Kingdom kingdom, bool blocked)
         {
             if (kingdom == null) return;
             if (blocked)
-                _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
+            {
+                if (!_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
+            }
             else
-                _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            {
+                if (_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            }
+        }
+        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
+        {
+            if (kingdom == null) return;
+            if (blocked)
+            {
+                if (!_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
+            }
+            else
+            {
+                if (_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            }
         }
 
         public PartyOrderData GetActiveOrder(string partyId) =>

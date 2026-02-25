@@ -81,40 +81,46 @@ namespace BLTAdoptAHero.Actions
 
             [LocDisplayName("King Can Toggle AI Armies"),
              LocCategory("Army", "{=ArmyCat}Army"),
-             LocDescription("Allow a kingdom's king to block or restore AI/NPC army creation for their kingdom via '!party army allowai on/off'. Per-kingdom, persisted in the save. Defaults to on (allowed)."),
+             LocDescription("Allow a kingdom's king to block or restore AI/NPC army creation for their kingdom via '!party army allowai on/off'. Defaults to on (allowed)."),
              PropertyOrder(7), UsedImplicitly]
             public bool KingAIArmyToggleEnabled { get; set; } = true;
+
+            [LocDisplayName("King Can Toggle BLT Armies"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("Allow a kingdom's king to block or restore BLT army creation for their kingdom via '!party army allowblt on/off'. Defaults to on (allowed)."),
+             PropertyOrder(8), UsedImplicitly]
+            public bool KingBLTArmyToggleEnabled { get; set; } = true;
 
             // ── Takeover ─────────────────────────────────────────────────────
             [LocDisplayName("Takeover Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow a clan leader to seize command of an army already led by one of their own clan members."),
-             PropertyOrder(8), UsedImplicitly]
+             PropertyOrder(9), UsedImplicitly]
             public bool TakeoverEnabled { get; set; } = true;
 
             // ── Call ─────────────────────────────────────────────────────────
             [LocDisplayName("Call Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow army leaders or the king to call free lord parties to join an army."),
-             PropertyOrder(9), UsedImplicitly]
+             PropertyOrder(10), UsedImplicitly]
             public bool CallEnabled { get; set; } = true;
 
             [LocDisplayName("Call Base Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Flat influence cost paid when any call order is issued, regardless of how many parties respond."),
-             PropertyOrder(10), UsedImplicitly]
-            public int CallBaseInfluenceCost { get; set; } = 50;
+             PropertyOrder(11), UsedImplicitly]
+            public int CallBaseInfluenceCost { get; set; } = 0;
 
             [LocDisplayName("Call Per-Party Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Additional influence cost charged for each party that actually joins the army."),
-             PropertyOrder(11), UsedImplicitly]
-            public int CallInfluenceCostPerParty { get; set; } = 20;
+             PropertyOrder(12), UsedImplicitly]
+            public int CallInfluenceCostPerParty { get; set; } = 25;
 
             [LocDisplayName("Call Nearby Radius"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Map-unit radius used when scanning for parties with 'army call nearby'."),
-             PropertyOrder(12), UsedImplicitly]
+             PropertyOrder(13), UsedImplicitly]
             public float CallNearbyRadius { get; set; } = 30f;
 
             // ── Threat ───────────────────────────────────────────────────────
@@ -546,6 +552,7 @@ namespace BLTAdoptAHero.Actions
                 case "takeover": ArmyTakeover(settings, h, party, army, tgtArg, onSuccess, onFailure); break;
                 case "call": ArmyCall(settings, h, party, army, tgtArg, onSuccess, onFailure); break;
                 case "allowai": ArmyAllowAI(settings, h, tgtArg, onSuccess, onFailure); break;
+                case "allowblt": ArmyAllowBLT(settings, h, tgtArg, onSuccess, onFailure); break;
                 case "threat": ArmyThreat(settings, h, party, onSuccess, onFailure); break;
                 case "siege":
                 case "defend":
@@ -1042,6 +1049,38 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 onFailure("Usage: army allowai [on|off]");
+            }
+        }
+
+        // ── ALLOW BLT ARMIES (king per-kingdom toggle) ─────────────────────────
+
+        private static void ArmyAllowBLT(Settings settings, Hero h, string arg,
+            Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.KingBLTArmyToggleEnabled) { onFailure("BLT army toggle is disabled in config"); return; }
+            if (h.Clan.Kingdom?.Leader != h) { onFailure("You must be king to toggle BLT army creation"); return; }
+            if (PartyOrderBehavior.Current == null) { onFailure("Order system not initialized"); return; }
+
+            if (string.IsNullOrWhiteSpace(arg))
+            {
+                bool allowed = !PartyOrderBehavior.Current.IsBLTArmiesBlocked(h.Clan.Kingdom);
+                onSuccess($"{h.Clan.Kingdom.Name} BLT armies: {(allowed ? "allowed" : "blocked")} — use 'army allowblt on/off' to change");
+                return;
+            }
+
+            if (arg.Equals("on", StringComparison.OrdinalIgnoreCase))
+            {
+                PartyOrderBehavior.Current.SetBLTArmiesBlocked(h.Clan.Kingdom, false);
+                onSuccess($"BLT army creation in {h.Clan.Kingdom.Name}: allowed");
+            }
+            else if (arg.Equals("off", StringComparison.OrdinalIgnoreCase))
+            {
+                PartyOrderBehavior.Current.SetBLTArmiesBlocked(h.Clan.Kingdom, true);
+                onSuccess($"BLT army creation in {h.Clan.Kingdom.Name}: blocked");
+            }
+            else
+            {
+                onFailure("Usage: army allowblt [on|off]");
             }
         }
 

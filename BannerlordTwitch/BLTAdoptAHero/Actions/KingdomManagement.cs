@@ -40,7 +40,7 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Armies", 7),
          CategoryOrder("Release", 8),
          CategoryOrder("Expel", 9),
-         CategoryOrder("Tax", 10),]
+         CategoryOrder("Tax", 10)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -499,7 +499,7 @@ namespace BLTAdoptAHero.Actions
                     HandlePolicyCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 default:
-                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats)".Translate());
+                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats/armies/tax/policy)".Translate());
                     break;
             }
 
@@ -804,15 +804,6 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            // NOTE: context.Args has already been split in ExecuteInternal; "armies" is
-            // splitArgs[0] and desiredName (everything after "armies") is passed here as `args`.
-            // Re-expose the raw sub-args by accepting a string parameter below.
-            // IMPORTANT: change the switch-case call to:
-            //   case "armies":
-            //       HandleArmiesCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
-            //       break;
-            // and update the signature accordingly (add string args parameter).
-
             // sub-commands: allowblt on/off   allowai on/off   (anything else = status report)
             var parts = args?.Split(' ') ?? Array.Empty<string>();
             var sub = parts.Length > 0 ? parts[0].ToLower() : "";
@@ -838,7 +829,7 @@ namespace BLTAdoptAHero.Actions
                 var pb = PartyOrderBehavior.Current;
                 if (pb == null)
                 {
-                    onFailure("Army permission system is not initialised");
+                    onFailure("Party order system is not initialised");
                     return;
                 }
 
@@ -872,7 +863,7 @@ namespace BLTAdoptAHero.Actions
             {
                 foreach (Army army in adoptedHero.Clan.Kingdom.Armies.ToList())
                 {
-                    armies.Append($"\nArmy: {army.Name} | ");
+                    armies.Append($"\nArmy: {army.Name.ToString()} | ");
                     armies.Append($"{(int)army.CalculateCurrentStrength()} Strength | ");
                     armies.Append($"{army.TotalHealthyMembers} Troops | ");
                     armies.Append($"{army.LeaderPartyAndAttachedPartiesCount} Parties | ");
