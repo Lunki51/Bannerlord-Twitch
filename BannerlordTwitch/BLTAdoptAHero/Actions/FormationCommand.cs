@@ -51,6 +51,16 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=TESTING}No mission!".Translate());
                 return;
             }
+            if (Mission.Current.IsNavalBattle)
+            {
+                onFailure("Cannot change formation in naval battle");
+                return;
+            }
+            if (MissionHelpers.InTournament())
+            {
+                onFailure("Cannot change formation in tournament");
+                return;
+            }
             string num = "";
             if (context.Args.Length > 0)
                 num = context.Args[0].ToString();
@@ -87,7 +97,8 @@ namespace BLTAdoptAHero.Actions
                 foreach (var f in allFormations)
                 {
                     int troops = f.CountOfUnits;
-                    sb.Append($"{number}: {troops}, ");
+                    var order = f.GetMovementState();
+                    sb.Append($"{number}: {troops}({order}), ");
                     number++;
                 }
 
@@ -145,8 +156,9 @@ namespace BLTAdoptAHero.Actions
                         _ when q.IsRangedCavalryFormationReadOnly => "Horse archer",
                         _ => "unknown"
                     };
+                    var order = f.GetMovementState();
                     int troops = f.CountOfUnits;
-                    sb.Append($"{number}: {type}({troops}), ");
+                    sb.Append($"{number}: {type}({troops},{order}), ");
                     number++;
                 }
                 List<int> indexes = new();

@@ -383,8 +383,9 @@ namespace BLTAdoptAHero.Actions
                 grandchildName = match.Groups[1].Value;
                 index = int.Parse(match.Groups[2].Value);
             }
-            var family = parent.Children;
-            family.Insert(0, parent.Spouse);
+            var family = parent.Children.ToList();
+            if (parent.Spouse != null)
+                family.Insert(0, parent.Spouse);
 
             var matchingGrandchildren = family
                 .Where(c => CleanName(c.Name.ToString()).IndexOf(grandchildName, StringComparison.OrdinalIgnoreCase) >= 0)

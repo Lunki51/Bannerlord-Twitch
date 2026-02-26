@@ -810,8 +810,8 @@ namespace BLTAdoptAHero
                 var kingdoms = MapHub.CurrentMapData?.Kingdoms;
                 if (kingdoms == null || kingdoms.Count == 0)
                     return;
-
-                generator.H1("Map Legend".Translate());
+                generator.H1("Campaign Map");
+                generator.H2("Legend".Translate());
 
                 generator.Table("legend", () =>
                 {
@@ -842,6 +842,49 @@ namespace BLTAdoptAHero
                             generator.TD("vertical-align:middle;", names);
                         });
                     }
+                });
+
+                // Map
+                var settlements = MapHub.CurrentMapData?.Settlements;
+                if (settlements == null || settlements.Count == 0)
+                    return;
+                generator.H2("Map");
+
+                generator.Div(() =>
+                {
+                    // Outer container div with inline style
+                    generator.P("<div style=\"position:relative; width:1000px; height:1000px;" +
+                      "background:url('campaign_map.jpg'); background-size:100% 100%; border:1px solid #444;\">");
+
+                    float margin = 35f;
+                    float mapWidth = 1000f - 2 * margin;   // 1000 - 100 = 900
+                    float mapHeight = 1000f - 2 * margin;  // 1000 - 100 = 900
+
+                    float minX = settlements.Min(s => s.X);
+                    float maxX = settlements.Max(s => s.X);
+                    float minY = settlements.Min(s => s.Y);
+                    float maxY = settlements.Max(s => s.Y);
+
+                    var kingdomDict = MapHub.CurrentMapData.Kingdoms.ToDictionary(k => k.Id, k => k.Color1);
+                    var kingdomBorderDict = MapHub.CurrentMapData.Kingdoms.ToDictionary(k => k.Id, k => k.Color2);
+
+                    foreach (var s in settlements)
+                    {
+                        float scaledX = (s.X - minX) / (maxX - minX) * mapWidth + margin;
+                        float scaledY = (s.Y - minY) / (maxY - minY) * mapHeight + margin;
+
+                        generator.MapLabel(
+                            scaledX,
+                            scaledY,
+                            s.Name,
+                            s.Type,
+                            s.KingdomId,
+                            kingdomId => kingdomDict.TryGetValue(kingdomId, out var c) ? c : "#000080",
+                            kingdomId => kingdomBorderDict.TryGetValue(kingdomId, out var c) ? c : "#000000"
+                        );
+                    }
+
+                    generator.P("</div>"); // close container
                 });
             }
         }
