@@ -7,6 +7,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
+using BLTAdoptAHero.Actions;
 
 namespace BLTAdoptAHero
 {
@@ -473,6 +474,7 @@ namespace BLTAdoptAHero
             MobileParty.NavigationType nav = atSea
                 ? MobileParty.NavigationType.Naval
                 : MobileParty.NavigationType.All;
+            var pm = new PartyManagement();
 
             switch (type)
             {
@@ -488,8 +490,10 @@ namespace BLTAdoptAHero
                     if (target != null)
                         SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, atSea, false);
                     else
-                        SetPartyAiAction.GetActionForPatrollingAroundPoint(
-                            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
+                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, pm.FindBestSettlementToDefend(party, party.LeaderHero.Clan.Kingdom), nav, atSea, false);
+                //    Was crashing the game if they did this while at sea, switched to just patrolling an automatically calculated settlement
+                //    SetPartyAiAction.GetActionForPatrollingAroundPoint(
+                //            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
                     break;
             }
         }

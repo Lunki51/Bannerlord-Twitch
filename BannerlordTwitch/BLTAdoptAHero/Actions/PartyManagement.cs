@@ -1268,7 +1268,7 @@ namespace BLTAdoptAHero.Actions
             return best;
         }
 
-        private Settlement FindBestSettlementToDefend(MobileParty party, Kingdom kingdom)
+        public Settlement FindBestSettlementToDefend(MobileParty party, Kingdom kingdom)
         {
             Settlement best = null;
             float bestScore = 0f;
