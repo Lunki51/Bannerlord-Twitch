@@ -274,11 +274,12 @@ namespace BLTAdoptAHero.Actions
             private string GetUpgradeEffects(KingdomUpgrade u)
             {
                 var sb = new StringBuilder();
-                if (u.InfluenceDaily != 0 || u.MaxClansBonus != 0)
+                if (u.InfluenceDaily != 0 || u.MaxClansBonus != 0 || u.MaxMercClansBonus != 0)
                 {
                     sb.AppendLine("<strong>Kingdom Effects:</strong><br>");
                     if (u.InfluenceDaily != 0) sb.AppendLine($"Influence: {Signed(u.InfluenceDaily)}/day (ruler only)<br>");
                     if (u.MaxClansBonus != 0) sb.AppendLine($"Max Clans: {Signed(u.MaxClansBonus)}<br>");
+                    if (u.MaxMercClansBonus != 0) sb.AppendLine($"Max Merc Clans: {Signed(u.MaxMercClansBonus)}<br>");
                 }
                 if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0)
                 {

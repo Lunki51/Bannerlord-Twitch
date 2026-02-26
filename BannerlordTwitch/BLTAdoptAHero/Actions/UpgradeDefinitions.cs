@@ -536,6 +536,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(2), UsedImplicitly, DefaultValue(0)]
         public int MaxClansBonus { get; set; } = 0;
 
+        [LocDisplayName("{=BLT_MaxMercClansBonus}Max Mercenary Clans Bonus"),
+         LocCategory("Kingdom Effects", "{=BLT_KingdomEffects}Kingdom Effects"),
+         LocDescription("{=BLT_MaxMercClansBonusDesc}Additional maximum mercenary clans your kingdom can have"),
+         PropertyOrder(2), UsedImplicitly, DefaultValue(0)]
+        public int MaxMercClansBonus { get; set; } = 0;
+
         // Clan effects (applied to all kingdom clans)
         [LocDisplayName("{=BLT_RenownDaily}Renown Daily"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
@@ -699,6 +705,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             desc += "\n\nKingdom Effects:";
             if (InfluenceDaily != 0) desc += $"\n  Influence: {(InfluenceDaily > 0 ? "+" : "")}{InfluenceDaily}/day (all clans)";
             if (MaxClansBonus != 0) desc += $"\n  Max Clans: {(MaxClansBonus > 0 ? "+" : "")}{MaxClansBonus}";
+            if (MaxMercClansBonus != 0) desc += $"\n  Max Mercenary Clans: {(MaxMercClansBonus > 0 ? "+" : "")}{MaxMercClansBonus}";
 
             desc += "\n\nClan Effects (All Kingdom Clans):";
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day per clan";

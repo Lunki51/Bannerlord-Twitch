@@ -533,6 +533,8 @@ namespace BLTAdoptAHero
 
         public int GetKingdomMaxClansBonus(Kingdom k) => SumKingdomInt(k, u => u.MaxClansBonus);
         public int GetTotalKingdomMaxClansBonus(Kingdom k) => k == null ? 0 : GetKingdomMaxClansBonus(k);
+        public int GetKingdomMaxMercClansBonus(Kingdom k) => SumKingdomInt(k, u => u.MaxMercClansBonus);
+        public int GetTotalKingdomMaxMercClansBonus(Kingdom k) => k == null ? 0 : GetKingdomMaxMercClansBonus(k);
 
         public int GetFlatClanMercBonus(Clan clan) => SumClanInt(clan, c => c.MercIncomeFlat);
         public float GetPercentClanMercBonus(Clan clan) => 1f + SumClanFloat(clan, c => c.MercIncomePercent);

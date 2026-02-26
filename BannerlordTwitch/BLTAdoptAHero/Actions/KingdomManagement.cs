@@ -528,7 +528,7 @@ namespace BLTAdoptAHero.Actions
                     HandlePolicyCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 default:
-                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats/armies/tax/policy/sponsor)".Translate());
+                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats/armies/tax/sponsor/policy)".Translate());
                     break;
             }
 
@@ -991,12 +991,12 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            int maxClans = settings.GetMaxClansForKingdom(desiredKingdom); // + UpgradeBehavior.Current.GetTotalKingdomMaxClansBonus(desiredKingdom);
-            int currentClans = desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && c.IsUnderMercenaryService).Count();
+            int maxMercClans = settings.GetMaxMercClansForKingdom(desiredKingdom); // + UpgradeBehavior.Current.GetTotalKingdomMaxClansBonus(desiredKingdom);
+            int currentMercClans = desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && c.IsUnderMercenaryService).Count();
 
-            if (currentClans >= maxClans)
+            if (currentMercClans >= maxMercClans)
             {
-                onFailure("{=KFzBPUry}The kingdom {name} is full ({currentmercclans}/{maxmercclans} mercenary clans)".Translate(("name", desiredName), ("currentclans", currentClans), ("maxclans", maxClans)));
+                onFailure("{=KFzBPUry}The kingdom {name} is full ({currentmercclans}/{maxmercclans} mercenary clans)".Translate(("name", desiredName), ("currentclans", currentMercClans), ("maxclans", maxMercClans)));
                 return;
             }
             var diplomacyHelper = Campaign.Current.GetCampaignBehavior<BLTDiplomacyHelper>();
