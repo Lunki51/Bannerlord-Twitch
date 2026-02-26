@@ -1291,13 +1291,16 @@ namespace BLTAdoptAHero.Actions
 
             if (match == null)
             {
-                var partials = Settlement.All
+                match = Settlement.All
                     .Where(s => s?.Name?.ToString().IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
-                    .ToList();
-                if (partials.Count == 1) match = partials[0];
+                    .OrderBy(s => s.Name.ToString().Length)   // shortest = tightest match
+                    .ThenBy(s => s.Name.ToString())           // stable tie-break
+                    .FirstOrDefault();
             }
+
             if (match == null) return null;
 
+            // Validate for the specific order type
             switch (orderType)
             {
                 case PartyOrderType.Siege:

@@ -224,8 +224,20 @@ namespace BLTAdoptAHero
 
                 var expectedBehavior = OrderTypeToAiBehavior(order.Type);
 
-                // Order is holding — reset reissue counter
-                if (party.DefaultBehavior == expectedBehavior)
+                // Order is holding — verify both behavior type AND the actual target settlement
+                var expectedTarget = order.TargetSettlementId != null
+                    ? Settlement.Find(order.TargetSettlementId)
+                    : null;
+
+                bool behaviorMatches = party.DefaultBehavior == expectedBehavior;
+
+                // For settlement-targeted orders, also confirm the party is heading to the right place. TargetSettlement can be null mid-path (approaching) so we
+                // only flag a mismatch when it is explicitly set to something different.
+                bool targetMatches = expectedTarget == null
+                    || party.TargetSettlement == null
+                    || party.TargetSettlement == expectedTarget;
+
+                if (behaviorMatches && targetMatches)
                 {
                     order.ReissueAttempts = 0;
                     return;
@@ -452,10 +464,15 @@ namespace BLTAdoptAHero
         /// </summary>
         public static void IssueOrder(MobileParty party, PartyOrderType type, Settlement target)
         {
-            var nav = party.IsCurrentlyAtSea
-                ? MobileParty.NavigationType.Naval
-                : MobileParty.NavigationType.Default;
             bool atSea = party.IsCurrentlyAtSea;
+
+            // NavigationType.All lets the engine properly plan around mountains, water,
+            // and other obstacles, and will trigger embarking when a water crossing is
+            // needed. NavigationType.Default hardcodes landRatio=1 and causes parties
+            // to walk in a straight line toward the target regardless of terrain.
+            MobileParty.NavigationType nav = atSea
+                ? MobileParty.NavigationType.Naval
+                : MobileParty.NavigationType.All;
 
             switch (type)
             {
