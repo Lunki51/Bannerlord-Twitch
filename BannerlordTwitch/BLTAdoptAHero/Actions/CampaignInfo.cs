@@ -414,7 +414,7 @@ namespace BLTAdoptAHero
                 sb.Append($"Villages + Hearth: ");
                 foreach (Village v in villList.ToList())
                 {
-                    sb.Append($"{v.Name} ({Math.Round(v.Hearth, 2)} +{Math.Round((v.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement)), 2)}), ");
+                    sb.Append($"{v.Name} ({Math.Round(v.Hearth, 2)} {((v.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement)) >= 0 ? "+" : "")}{Math.Round((v.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement)), 2)}), ");
                 }
                 villNames.TrimEnd(' ', ',');
 
