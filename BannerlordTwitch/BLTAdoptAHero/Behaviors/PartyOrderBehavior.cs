@@ -7,6 +7,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
+using BLTAdoptAHero.Actions;
 
 namespace BLTAdoptAHero
 {
@@ -17,14 +18,13 @@ namespace BLTAdoptAHero
         public static PartyOrderBehavior Current { get; private set; }
 
         private List<string> _ordersJson = new();
-        private HashSet<string> _aiArmiesBlockedKingdoms = new();
-        private HashSet<string> _bltArmiesBlockedKingdoms = new();
 
         /// <summary>
-        /// StringIds of kingdoms whose king has issued '!party army allowai off'.
-        /// Presence == AI armies blocked; absence == allowed (default).
+        /// StringIds of kingdoms whose king has issued '!party army allowai off' and '!party army allowblt off'.
+        /// Presence == Armies blocked; absence == allowed (default).
         /// </summary>
-        private List<string> _aiBlockedKingdoms = new();
+        private List<string> _aiArmiesBlockedKingdoms = new();
+        private List<string> _bltArmiesBlockedKingdoms = new();
 
         // Runtime list — deserialized from _ordersJson on load
         [NonSerialized]
@@ -52,11 +52,11 @@ namespace BLTAdoptAHero
             try
             {
                 dataStore.SyncData("BLT_PartyOrders", ref _ordersJson);
-                dataStore.SyncData("BLT_AIBlockedKingdoms", ref _aiBlockedKingdoms);
                 dataStore.SyncData("BLT_AIArmiesBlockedKingdoms", ref _aiArmiesBlockedKingdoms);
                 dataStore.SyncData("BLT_BLTArmiesBlockedKingdoms", ref _bltArmiesBlockedKingdoms);
                 _ordersJson ??= new List<string>();
-                _aiBlockedKingdoms ??= new List<string>();
+                _aiArmiesBlockedKingdoms ??= new List<string>();
+                _bltArmiesBlockedKingdoms ??= new List<string>();
 
                 if (dataStore.IsLoading)
                 {
@@ -148,23 +148,39 @@ namespace BLTAdoptAHero
         public bool IsBLTArmiesBlocked(Kingdom kingdom)
             => kingdom != null && _bltArmiesBlockedKingdoms.Contains(kingdom.StringId);
 
-        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
-        {
-            if (kingdom == null) return;
-            if (blocked)
-                _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
-            else
-                _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
-        }
 
-        // Add a public setter for the existing AI set too (if not already exposed):
+        /// <summary>
+        /// Sets the AI army block state for <paramref name="kingdom"/>.
+        /// <paramref name="blocked"/> = true  → '!party army allowai off'
+        /// <paramref name="blocked"/> = false → '!party army allowai on'  (default)
+        /// </summary>
         public void SetAIArmiesBlocked(Kingdom kingdom, bool blocked)
         {
             if (kingdom == null) return;
             if (blocked)
-                _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
+            {
+                if (!_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
+            }
             else
-                _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            {
+                if (_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            }
+        }
+        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
+        {
+            if (kingdom == null) return;
+            if (blocked)
+            {
+                if (!_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
+            }
+            else
+            {
+                if (_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            }
         }
 
         public PartyOrderData GetActiveOrder(string partyId) =>
@@ -209,8 +225,20 @@ namespace BLTAdoptAHero
 
                 var expectedBehavior = OrderTypeToAiBehavior(order.Type);
 
-                // Order is holding — reset reissue counter
-                if (party.DefaultBehavior == expectedBehavior)
+                // Order is holding — verify both behavior type AND the actual target settlement
+                var expectedTarget = order.TargetSettlementId != null
+                    ? Settlement.Find(order.TargetSettlementId)
+                    : null;
+
+                bool behaviorMatches = party.DefaultBehavior == expectedBehavior;
+
+                // For settlement-targeted orders, also confirm the party is heading to the right place. TargetSettlement can be null mid-path (approaching) so we
+                // only flag a mismatch when it is explicitly set to something different.
+                bool targetMatches = expectedTarget == null
+                    || party.TargetSettlement == null
+                    || party.TargetSettlement == expectedTarget;
+
+                if (behaviorMatches && targetMatches)
                 {
                     order.ReissueAttempts = 0;
                     return;
@@ -437,10 +465,16 @@ namespace BLTAdoptAHero
         /// </summary>
         public static void IssueOrder(MobileParty party, PartyOrderType type, Settlement target)
         {
-            var nav = party.IsCurrentlyAtSea
-                ? MobileParty.NavigationType.Naval
-                : MobileParty.NavigationType.Default;
             bool atSea = party.IsCurrentlyAtSea;
+
+            // NavigationType.All lets the engine properly plan around mountains, water,
+            // and other obstacles, and will trigger embarking when a water crossing is
+            // needed. NavigationType.Default hardcodes landRatio=1 and causes parties
+            // to walk in a straight line toward the target regardless of terrain.
+            MobileParty.NavigationType nav = atSea
+                ? MobileParty.NavigationType.Naval
+                : MobileParty.NavigationType.All;
+            var pm = new PartyManagement();
 
             switch (type)
             {
@@ -456,8 +490,10 @@ namespace BLTAdoptAHero
                     if (target != null)
                         SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, atSea, false);
                     else
-                        SetPartyAiAction.GetActionForPatrollingAroundPoint(
-                            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
+                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, pm.FindBestSettlementToDefend(party, party.LeaderHero.Clan.Kingdom), nav, atSea, false);
+                //    Was crashing the game if they did this while at sea, switched to just patrolling an automatically calculated settlement
+                //    SetPartyAiAction.GetActionForPatrollingAroundPoint(
+                //            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
                     break;
             }
         }

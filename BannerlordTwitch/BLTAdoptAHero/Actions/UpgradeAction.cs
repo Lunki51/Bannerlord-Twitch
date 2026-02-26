@@ -106,8 +106,8 @@ namespace BLTAdoptAHero.Actions
                 if (config.ClanUpgrades != null && config.ClanUpgrades.Count > 0)
                 {
                     var std = config.ClanUpgrades.Where(u => (u.MercOnly && u.LordOnly && !u.ApplyToVassals) || (!u.MercOnly && !u.LordOnly && !u.ApplyToVassals)).ToList();
-                    var lord = config.ClanUpgrades.Where(u => u.MercOnly && !u.LordOnly && !u.ApplyToVassals).ToList();
-                    var merc = config.ClanUpgrades.Where(u => u.LordOnly && !u.MercOnly && !u.ApplyToVassals).ToList();
+                    var lord = config.ClanUpgrades.Where(u => u.LordOnly && !u.MercOnly && !u.ApplyToVassals).ToList();
+                    var merc = config.ClanUpgrades.Where(u => u.MercOnly && !u.LordOnly && !u.ApplyToVassals).ToList();
                     var vassal = config.ClanUpgrades.Where(u => u.ApplyToVassals).ToList();
                     generator.H2("Clan Upgrades");
                     if (std.Count > 0) { generator.H3("Standard Clan Upgrades"); GenerateClanUpgradeTable(generator, std); }
@@ -927,7 +927,7 @@ namespace BLTAdoptAHero.Actions
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
                 UpgradeBehavior.Current?.AddClanUpgrade(clan, id);
                 owned.Add(id);
-                results.Add(new PurchaseResult { UpgradeId = id, Success = true, Message = $"Purchased '{up.Name}'" });
+                results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = true, Message = $"Purchased '{up.Name}'" });
             }
             return results;
         }
@@ -996,7 +996,7 @@ namespace BLTAdoptAHero.Actions
                 if (up.InfluenceCost > 0) hero.Clan.Influence -= up.InfluenceCost;
                 UpgradeBehavior.Current?.AddKingdomUpgrade(kingdom, id);
                 owned.Add(id);
-                results.Add(new PurchaseResult { UpgradeId = id, Success = true, Message = $"Purchased '{up.Name}'" });
+                results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = true, Message = $"Purchased '{up.Name}'" });
             }
             return results;
         }

@@ -81,41 +81,66 @@ namespace BLTAdoptAHero.Actions
 
             [LocDisplayName("King Can Toggle AI Armies"),
              LocCategory("Army", "{=ArmyCat}Army"),
-             LocDescription("Allow a kingdom's king to block or restore AI/NPC army creation for their kingdom via '!party army allowai on/off'. Per-kingdom, persisted in the save. Defaults to on (allowed)."),
+             LocDescription("Allow a kingdom's king to block or restore AI/NPC army creation for their kingdom via '!party army allowai on/off'. Defaults to on (allowed)."),
              PropertyOrder(7), UsedImplicitly]
             public bool KingAIArmyToggleEnabled { get; set; } = true;
+
+            [LocDisplayName("King Can Toggle BLT Armies"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("Allow a kingdom's king to block or restore BLT army creation for their kingdom via '!party army allowblt on/off'. Defaults to on (allowed)."),
+             PropertyOrder(8), UsedImplicitly]
+            public bool KingBLTArmyToggleEnabled { get; set; } = true;
 
             // ── Takeover ─────────────────────────────────────────────────────
             [LocDisplayName("Takeover Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow a clan leader to seize command of an army already led by one of their own clan members."),
-             PropertyOrder(8), UsedImplicitly]
+             PropertyOrder(9), UsedImplicitly]
             public bool TakeoverEnabled { get; set; } = true;
 
             // ── Call ─────────────────────────────────────────────────────────
             [LocDisplayName("Call Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow army leaders or the king to call free lord parties to join an army."),
-             PropertyOrder(9), UsedImplicitly]
+             PropertyOrder(10), UsedImplicitly]
             public bool CallEnabled { get; set; } = true;
 
             [LocDisplayName("Call Base Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Flat influence cost paid when any call order is issued, regardless of how many parties respond."),
-             PropertyOrder(10), UsedImplicitly]
-            public int CallBaseInfluenceCost { get; set; } = 50;
+             PropertyOrder(11), UsedImplicitly]
+            public int CallBaseInfluenceCost { get; set; } = 0;
 
             [LocDisplayName("Call Per-Party Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Additional influence cost charged for each party that actually joins the army."),
-             PropertyOrder(11), UsedImplicitly]
-            public int CallInfluenceCostPerParty { get; set; } = 20;
+             PropertyOrder(12), UsedImplicitly]
+            public int CallInfluenceCostPerParty { get; set; } = 25;
 
             [LocDisplayName("Call Nearby Radius"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Map-unit radius used when scanning for parties with 'army call nearby'."),
-             PropertyOrder(12), UsedImplicitly]
+             PropertyOrder(13), UsedImplicitly]
             public float CallNearbyRadius { get; set; } = 30f;
+
+            // ── Join ─────────────────────────────────────────────────────────
+            [LocDisplayName("Join Enabled"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("Allow a hero to join any kingdom army by index, bringing all free clan parties along. Mercenary clans join for free; others pay influence."),
+             PropertyOrder(14), UsedImplicitly]
+            public bool JoinEnabled { get; set; } = true;
+
+            [LocDisplayName("Join Base Influence Cost"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("Flat influence cost paid when the hero joins an army. Free for mercenary clans."),
+             PropertyOrder(15), UsedImplicitly]
+            public int JoinBaseInfluenceCost { get; set; } = 0;
+
+            [LocDisplayName("Join Per-Party Influence Cost"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription("Additional influence cost for each clan party (including the hero's own) that joins the army. Free for mercenary clans."),
+             PropertyOrder(16), UsedImplicitly]
+            public int JoinInfluenceCostPerParty { get; set; } = 10;
 
             // ── Threat ───────────────────────────────────────────────────────
             [LocDisplayName("{=ThreatEnabled}Threat Scan"),
@@ -148,7 +173,7 @@ namespace BLTAdoptAHero.Actions
                 generator.Value("<strong>Army subcommands:</strong> !party army [subcommand]");
                 generator.Value("  siege [settlement] — besiege a named enemy settlement (or auto-pick)");
                 generator.Value("  defend [settlement] — defend a named friendly settlement (or auto-pick)");
-                generator.Value("  patrol [settlement] — patrol around a settlement or current position");
+                generator.Value("  patrol [settlement] — patrol around any named settlement (or auto-pick)");
                 generator.Value("  status — army strength, behavior, cohesion, food, active order info");
                 generator.Value("  disband [index] — disband your army; king: disband any by index");
                 generator.Value("  leave — leave someone else's army");
@@ -158,6 +183,7 @@ namespace BLTAdoptAHero.Actions
                 generator.Value("  takeover [hero|index] — (clan leader) seize command of a clan member's army");
                 generator.Value("  call nearby [army_index] — call free parties near the army to join");
                 generator.Value("  call all [army_index] — call all free kingdom parties to join the army");
+                generator.Value("  join <index> — join a kingdom army by index, bringing all free clan parties");
 
                 if (ArmyEnabled)
                 {
@@ -176,6 +202,8 @@ namespace BLTAdoptAHero.Actions
                         generator.Value("  Clan-leader takeover: enabled");
                     if (CallEnabled)
                         generator.Value($"  Call: base {CallBaseInfluenceCost} influence + {CallInfluenceCostPerParty}/party | nearby radius {CallNearbyRadius}");
+                    if (JoinEnabled)
+                        generator.Value($"  Join: base {JoinBaseInfluenceCost} influence + {JoinInfluenceCostPerParty}/party (free for mercenaries)");
                 }
                 else
                 {
@@ -531,7 +559,7 @@ namespace BLTAdoptAHero.Actions
 
             if (string.IsNullOrEmpty(sub))
             {
-                onFailure("Specify: siege / defend / patrol / status / disband / leave / reassign / view / create / takeover / call / allowai");
+                onFailure("Specify: siege / defend / patrol / status / disband / leave / reassign / view / create / takeover / call / join / threat / allowai / allowblt");
                 return;
             }
 
@@ -545,13 +573,15 @@ namespace BLTAdoptAHero.Actions
                 case "create": ArmyCreate(settings, h, party, army, tgtArg, onSuccess, onFailure); break;
                 case "takeover": ArmyTakeover(settings, h, party, army, tgtArg, onSuccess, onFailure); break;
                 case "call": ArmyCall(settings, h, party, army, tgtArg, onSuccess, onFailure); break;
+                case "join": ArmyJoin(settings, h, party, army, tgtArg, onSuccess, onFailure); break;
                 case "allowai": ArmyAllowAI(settings, h, tgtArg, onSuccess, onFailure); break;
+                case "allowblt": ArmyAllowBLT(settings, h, tgtArg, onSuccess, onFailure); break;
                 case "threat": ArmyThreat(settings, h, party, onSuccess, onFailure); break;
                 case "siege":
                 case "defend":
                 case "patrol": ArmyOrder(settings, h, party, army, sub, tgtArg, onSuccess, onFailure); break;
                 default:
-                    onFailure("Specify: siege / defend / patrol / status / disband / leave / reassign / view / create / takeover / call / threat");
+                    onFailure("Specify: siege / defend / patrol / status / disband / leave / reassign / view / create / takeover / call / join / threat / allowai / allowblt");
                     break;
             }
         }
@@ -1013,6 +1043,108 @@ namespace BLTAdoptAHero.Actions
             Log.ShowInformation($"{h.Name} called {added} parties to {targetArmy.Name}!", h.CharacterObject, Log.Sound.Horns2);
         }
 
+        // ── JOIN (join any kingdom army by index, bringing free clan parties) ──
+        // Usage: army join <index>
+        //
+        // * The hero's own party must be free (no army, no map event).
+        // * All other free lord parties belonging to the same clan are also added.
+        // * Non-mercenary clans pay: JoinBaseInfluenceCost + JoinInfluenceCostPerParty × parties_joined.
+        // * Mercenary clans (IsUnderMercenaryService) join for free.
+
+        private void ArmyJoin(Settings settings, Hero h, MobileParty party, Army army,
+            string tgtArg, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.JoinEnabled) { onFailure("Army join is disabled"); return; }
+            if (h.Clan.Kingdom == null) { onFailure("You are not in a kingdom"); return; }
+            if (!h.IsPartyLeader || party == null) { onFailure("You must be leading a party to join an army"); return; }
+            if (party.MapEvent != null) { onFailure("Your party is in combat"); return; }
+            if (army != null) { onFailure("You are already in an army — use 'army leave' first"); return; }
+
+            // ── Resolve target army by index ──────────────────────────────────
+            if (string.IsNullOrWhiteSpace(tgtArg))
+            {
+                onFailure("Specify an army index. Use 'army view' to list available armies.");
+                return;
+            }
+
+            var kArmies = h.Clan.Kingdom.Armies.ToList();
+            if (kArmies.Count == 0) { onFailure("Your kingdom has no active armies to join"); return; }
+
+            if (!int.TryParse(tgtArg, out int idx) || idx < 1 || idx > kArmies.Count)
+            {
+                onFailure($"Invalid army index '{tgtArg}'. Kingdom has {kArmies.Count} armies (use 'army view' to list them).");
+                return;
+            }
+
+            var targetArmy = kArmies[idx - 1];
+            var ldrParty = targetArmy.LeaderParty;
+
+            if (ldrParty == null) { onFailure("That army has no leader party"); return; }
+            if (ldrParty == party) { onFailure("You are already leading that army"); return; }
+            if (ldrParty.MapEvent != null) { onFailure($"{targetArmy.Name} is currently in combat"); return; }
+
+            // ── Collect free clan parties (hero's party + other clan parties) ──
+            var toJoin = new List<MobileParty> { party };
+
+            var otherClanParties = h.Clan.WarPartyComponents
+                .Select(wpc => wpc?.MobileParty)
+                .Where(mp => mp != null
+                    && mp != party
+                    && mp.LeaderHero != null
+                    && mp.IsLordParty
+                    && mp.Army == null
+                    && mp.AttachedTo == null
+                    && mp.MapEvent == null
+                    && !mp.IsDisbanding
+                    && mp.LeaderHero != Hero.MainHero
+                    && mp.MemberRoster.TotalHealthyCount > 0)
+                .ToList();
+
+            toJoin.AddRange(otherClanParties);
+
+            // ── Influence cost (free for mercenaries) ─────────────────────────
+            bool isMercenary = h.Clan.IsUnderMercenaryService;
+            float influenceCost = 0f;
+            if (!isMercenary)
+            {
+                influenceCost = settings.JoinBaseInfluenceCost
+                              + toJoin.Count * (float)settings.JoinInfluenceCostPerParty;
+
+                if (h.Clan.Influence < influenceCost)
+                {
+                    onFailure($"Not enough influence: need {influenceCost:F0} "
+                            + $"(base {settings.JoinBaseInfluenceCost} + {toJoin.Count}×{settings.JoinInfluenceCostPerParty}), "
+                            + $"have {h.Clan.Influence:F0}");
+                    return;
+                }
+            }
+
+            // ── Add parties to the army ───────────────────────────────────────
+            int added = 0;
+            foreach (var mp in toJoin)
+            {
+                try
+                {
+                    mp.Army = targetArmy;
+                    added++;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"[BLT] ArmyJoin: failed to add {mp.Name}: {ex}");
+                }
+            }
+
+            if (added == 0) { onFailure("Failed to join the army"); return; }
+
+            if (!isMercenary)
+                h.Clan.Influence -= influenceCost;
+
+            string costStr = isMercenary ? "free (mercenary)" : $"{influenceCost:F0} influence";
+            onSuccess($"Joined {targetArmy.Name} with {added} parties | Cost: {costStr}");
+            Log.ShowInformation($"{h.Name} joined {targetArmy.Name} with {added} parties!",
+                h.CharacterObject, Log.Sound.Horns2);
+        }
+
         // ── ALLOW AI ARMIES (king per-kingdom toggle) ─────────────────────────
 
         private static void ArmyAllowAI(Settings settings, Hero h, string arg,
@@ -1042,6 +1174,38 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 onFailure("Usage: army allowai [on|off]");
+            }
+        }
+
+        // ── ALLOW BLT ARMIES (king per-kingdom toggle) ─────────────────────────
+
+        private static void ArmyAllowBLT(Settings settings, Hero h, string arg,
+            Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.KingBLTArmyToggleEnabled) { onFailure("BLT army toggle is disabled in config"); return; }
+            if (h.Clan.Kingdom?.Leader != h) { onFailure("You must be king to toggle BLT army creation"); return; }
+            if (PartyOrderBehavior.Current == null) { onFailure("Order system not initialized"); return; }
+
+            if (string.IsNullOrWhiteSpace(arg))
+            {
+                bool allowed = !PartyOrderBehavior.Current.IsBLTArmiesBlocked(h.Clan.Kingdom);
+                onSuccess($"{h.Clan.Kingdom.Name} BLT armies: {(allowed ? "allowed" : "blocked")} — use 'army allowblt on/off' to change");
+                return;
+            }
+
+            if (arg.Equals("on", StringComparison.OrdinalIgnoreCase))
+            {
+                PartyOrderBehavior.Current.SetBLTArmiesBlocked(h.Clan.Kingdom, false);
+                onSuccess($"BLT army creation in {h.Clan.Kingdom.Name}: allowed");
+            }
+            else if (arg.Equals("off", StringComparison.OrdinalIgnoreCase))
+            {
+                PartyOrderBehavior.Current.SetBLTArmiesBlocked(h.Clan.Kingdom, true);
+                onSuccess($"BLT army creation in {h.Clan.Kingdom.Name}: blocked");
+            }
+            else
+            {
+                onFailure("Usage: army allowblt [on|off]");
             }
         }
 
@@ -1229,7 +1393,7 @@ namespace BLTAdoptAHero.Actions
             return best;
         }
 
-        private Settlement FindBestSettlementToDefend(MobileParty party, Kingdom kingdom)
+        public Settlement FindBestSettlementToDefend(MobileParty party, Kingdom kingdom)
         {
             Settlement best = null;
             float bestScore = 0f;
@@ -1252,13 +1416,16 @@ namespace BLTAdoptAHero.Actions
 
             if (match == null)
             {
-                var partials = Settlement.All
+                match = Settlement.All
                     .Where(s => s?.Name?.ToString().IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
-                    .ToList();
-                if (partials.Count == 1) match = partials[0];
+                    .OrderBy(s => s.Name.ToString().Length)   // shortest = tightest match
+                    .ThenBy(s => s.Name.ToString())           // stable tie-break
+                    .FirstOrDefault();
             }
+
             if (match == null) return null;
 
+            // Validate for the specific order type
             switch (orderType)
             {
                 case PartyOrderType.Siege:
