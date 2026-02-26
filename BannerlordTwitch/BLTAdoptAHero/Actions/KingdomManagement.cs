@@ -40,7 +40,8 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Armies", 7),
          CategoryOrder("Release", 8),
          CategoryOrder("Expel", 9),
-         CategoryOrder("Tax", 10)]
+         CategoryOrder("Tax", 10),
+         CategoryOrder("Sponsor", 11)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -327,6 +328,25 @@ namespace BLTAdoptAHero.Actions
              Range(0f, 100f)]
             public float MaxTaxRate { get; set; } = 50f;
 
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Sponsor", "{=TESTING}Sponsor"),
+             LocDescription("{=TESTING}Enable the sponsor command (buy influence for gold)"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool SponsorEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Gold Per Influence"),
+             LocCategory("Sponsor", "{=TESTING}Sponsor"),
+             LocDescription("{=TESTING}Gold cost per 1 influence point purchased"),
+             PropertyOrder(2), UsedImplicitly]
+            public int SponsorGoldPerInfluence { get; set; } = 1000;
+
+            [LocDisplayName("{=TESTING}King Cut %"),
+             LocCategory("Sponsor", "{=TESTING}Sponsor"),
+             LocDescription("{=TESTING}Percentage of gold spent that is forwarded to the kingdom leader (0.0 - 1.0, 0.25 = 25%)"),
+             PropertyOrder(3), UsedImplicitly,
+             Range(0f, 1f)]
+            public float SponsorKingCutPercent { get; set; } = 0.25f;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var EnabledCommands = new StringBuilder();
@@ -353,6 +373,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Expel, ");
                 if (TaxEnabled)
                     EnabledCommands.Append("Tax, ");
+                if (SponsorEnabled)
+                    EnabledCommands.Append("Sponsor, ");
 
                 if (EnabledCommands.Length > 0)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString(0, EnabledCommands.Length - 2))));
@@ -410,6 +432,10 @@ namespace BLTAdoptAHero.Actions
                 if (TaxEnabled)
                     generator.Value("<strong>Tax: </strong>" +
                                     $"Min Rate={MinTaxRate}%, Max Rate={MaxTaxRate}%");
+                if (SponsorEnabled)
+                    generator.Value("<strong>Sponsor: </strong>" +
+                                    $"Gold Per Influence={SponsorGoldPerInfluence}{Naming.Gold}, " +
+                                    $"King Cut={SponsorKingCutPercent * 100f:F0}%");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -495,11 +521,14 @@ namespace BLTAdoptAHero.Actions
                 case "tax":
                     HandleTaxCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
+                case "sponsor":
+                    HandleSponsorCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
                 case "policy":
                     HandlePolicyCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 default:
-                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats/armies/tax/policy)".Translate());
+                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats/armies/tax/policy/sponsor)".Translate());
                     break;
             }
 
@@ -1514,6 +1543,64 @@ namespace BLTAdoptAHero.Actions
 
             onSuccess($"Set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%");
             Log.ShowInformation($"{adoptedHero.Name} has set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%!", adoptedHero.CharacterObject);
+        }
+
+        private void HandleSponsorCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.SponsorEnabled)
+            {
+                onFailure("Sponsor command is disabled");
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("You must be in a kingdom to sponsor");
+                return;
+            }
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                onFailure("Mercenary clans cannot use the sponsor command");
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom.Leader == adoptedHero)
+            {
+                onFailure("Kings cannot sponsor their own kingdom — use the tax system instead");
+                return;
+            }
+            if (!int.TryParse(args, out int influenceAmount) || influenceAmount <= 0)
+            {
+                onFailure($"Usage: !kingdom sponsor <amount> — costs {settings.SponsorGoldPerInfluence}{Naming.Gold} per influence");
+                return;
+            }
+
+            int totalCost = influenceAmount * settings.SponsorGoldPerInfluence;
+            int heroGold = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero);
+
+            if (heroGold < totalCost)
+            {
+                onFailure(Naming.NotEnoughGold(totalCost, heroGold));
+                return;
+            }
+
+            // Deduct gold and grant influence
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -totalCost, true);
+            adoptedHero.Clan.Influence += influenceAmount;
+
+            // Forward king cut
+            Hero king = adoptedHero.Clan.Kingdom.Leader;
+            if (king != null && king != adoptedHero && settings.SponsorKingCutPercent > 0f)
+            {
+                int kingCut = (int)(totalCost * settings.SponsorKingCutPercent);
+                if (kingCut > 0)
+                {
+                    if (king.IsAdopted())
+                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(king, kingCut, true);
+                    else
+                        king.Gold += kingCut;
+                }
+            }
+
+            onSuccess($"Bought {influenceAmount} influence for {totalCost}{Naming.Gold} — King {king.Name} received {(int)(totalCost * settings.SponsorKingCutPercent)}{Naming.Gold}");
         }
 
         private void HandlePolicyCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
