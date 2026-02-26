@@ -42,6 +42,8 @@ namespace BLTAdoptAHero
             Team playerTeam = null;
             Team allyTeam = null;
             Team enemyTeam = null;
+            int allyTotal = 0;
+            int enemyTotal = 0;
             if (!MissionHelpers.InTournament())
             {
                 // Count alive agents by side
@@ -54,6 +56,10 @@ namespace BLTAdoptAHero
                 
                 if (playerTeam != null && playerTeam.Side == BattleSideEnum.Defender || (allyTeam != null && allyTeam.Side == BattleSideEnum.Defender))
                     isDefend = true;
+
+                // Count all healthy troops in map encounter
+                allyTotal = isDefend ? mapEvent.DefenderSide.TroopCount : mapEvent.AttackerSide.TroopCount;
+                enemyTotal = isDefend ? mapEvent.AttackerSide.TroopCount : mapEvent.DefenderSide.TroopCount;
             }
 
             var missionBehavior = BLTAdoptAHeroCommonMissionBehavior.Current;
@@ -80,7 +86,7 @@ namespace BLTAdoptAHero
             if (agent == null && !MissionHelpers.InTournament())
             {
                 string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
-                string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+                string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}({allyTotal})/{attackCount}({enemyTotal}) - " : $"{attackCount}({enemyTotal})/{defendCount}({allyTotal}) - ");
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
 
