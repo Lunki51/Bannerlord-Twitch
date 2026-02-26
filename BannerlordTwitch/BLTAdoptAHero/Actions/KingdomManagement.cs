@@ -596,12 +596,12 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (desiredKingdom == Hero.MainHero.Clan.Kingdom && !settings.JoinAllowPlayer)
+            if (desiredKingdom == Hero.MainHero.Clan?.Kingdom && Hero.MainHero.IsKingdomLeader && !settings.JoinAllowPlayer)
             {
                 onFailure("{=L4dccNIC}Joining the players kingdom is disabled".Translate());
                 return;
             }
-            else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && settings.JoinAllowPlayer)
+            else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader && settings.JoinAllowPlayer)
             {
                 joiningPlayer = true;
             }
@@ -991,7 +991,7 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            int maxMercClans = settings.GetMaxMercClansForKingdom(desiredKingdom); // + UpgradeBehavior.Current.GetTotalKingdomMaxClansBonus(desiredKingdom);
+            int maxMercClans = settings.GetMaxMercClansForKingdom(desiredKingdom) + UpgradeBehavior.Current.GetTotalKingdomMaxMercClansBonus(desiredKingdom);
             int currentMercClans = desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && c.IsUnderMercenaryService).Count();
 
             if (currentMercClans >= maxMercClans)
@@ -1014,11 +1014,6 @@ namespace BLTAdoptAHero.Actions
             {
                 mercforPlayer = true;
             }
-            //if (desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
-            //{
-            //    onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
-            //    return;
-            //}
             if (!mercforPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.MercPrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.MercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
