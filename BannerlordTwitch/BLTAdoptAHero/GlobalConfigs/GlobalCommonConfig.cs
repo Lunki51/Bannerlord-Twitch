@@ -839,7 +839,7 @@ namespace BLTAdoptAHero
 
                             var rkingdom = Kingdom.All.FirstOrDefault(f => f.StringId == kingdom.Id);
                             string names = $"{kingdom.Name} - Leader: {rkingdom?.Leader?.Name}";
-                            generator.TD("vertical-align:middle;", names);
+                            generator.TD(names);
                         });
                     }
                 });
@@ -853,12 +853,12 @@ namespace BLTAdoptAHero
                 generator.Div(() =>
                 {
                     // Outer container div with inline style
-                    generator.P("<div style=\"position:relative; width:1000px; height:1000px;" +
-                      "background:url('campaign_map.jpg'); background-size:100% 100%; border:1px solid #444;\">");
+                    generator.P("<div style=\"position:relative; width:1500px; height:1000px;" +
+                      "background-color:#1f1f1f; border:3px solid #111; left:-25%; \">");
 
                     float margin = 35f;
-                    float mapWidth = 1000f - 2 * margin;   // 1000 - 100 = 900
-                    float mapHeight = 1000f - 2 * margin;  // 1000 - 100 = 900
+                    float mapWidth = 1500f - 2 * margin;
+                    float mapHeight = 1000f - 2 * margin;
 
                     float minX = settlements.Min(s => s.X);
                     float maxX = settlements.Max(s => s.X);
