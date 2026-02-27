@@ -57,11 +57,11 @@
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', d);
-        path.setAttribute('stroke', '#2257d4');
+        path.setAttribute('stroke', '#1a6fa8');
         path.setAttribute('stroke-width', '0.5');
         path.setAttribute('stroke-linecap', 'round');
         path.setAttribute('fill', 'none');
-        path.setAttribute('opacity', '0.8');
+        path.setAttribute('opacity', '1');
         coastlineGroup.appendChild(path);
     }
 
