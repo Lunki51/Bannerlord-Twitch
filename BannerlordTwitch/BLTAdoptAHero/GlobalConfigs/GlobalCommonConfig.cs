@@ -25,16 +25,17 @@ using static BLTAdoptAHero.Actions.UpgradeAction;
 namespace BLTAdoptAHero
 {
     [CategoryOrder("General", 1),
-     CategoryOrder("Battle", 2),
-     CategoryOrder("Death", 3),
-     CategoryOrder("Income", 4),
+     CategoryOrder("Training", 2),
+     CategoryOrder("Battle", 3),
+     CategoryOrder("Death", 4),
      CategoryOrder("Income", 5),
-     CategoryOrder("XP", 6),
-     CategoryOrder("Kill Rewards", 7),
-     CategoryOrder("Battle End Rewards", 8),
-     CategoryOrder("Kill Streak Rewards", 9),
-     CategoryOrder("Achievements", 10),
-     CategoryOrder("Shouts", 11),
+     CategoryOrder("Upgrades", 6),
+     CategoryOrder("XP", 7),
+     CategoryOrder("Kill Rewards", 8),
+     CategoryOrder("Battle End Rewards", 9),
+     CategoryOrder("Kill Streak Rewards", 10),
+     CategoryOrder("Achievements", 11),
+     CategoryOrder("Shouts", 12),
      LocDisplayName("{=vDjnDtoL}Common Config")]
     internal class GlobalCommonConfig : IUpdateFromDefault, IDocumentable, INotifyPropertyChanged
     {
@@ -142,6 +143,22 @@ namespace BLTAdoptAHero
             }
         }
 
+        #endregion
+
+        #region Training
+        [LocDisplayName("Train Max Daily Spend"),
+         LocCategory("Training", "Training"),
+         LocDescription("Hard cap on gold spent on training per in-game day regardless of fund size. 0 = no cap."),
+         PropertyOrder(1), UsedImplicitly]
+        public int TrainMaxDailySpend { get; set; } = 100000;
+
+        [LocDisplayName("Train Gold Cost Multiplier"),
+         LocCategory("Training", "Training"),
+         LocDescription("Multiplies the gold cost of troop upgrades when using !party train. 1.0 = same cost as player. (This multiplies a very low value, setting this lower than 100 may ruin your game's balance.)"),
+         UIRange(0f, 1000f, 10f),
+         Editor(typeof(SliderFloatEditor), typeof(SliderFloatEditor)),
+         PropertyOrder(2), UsedImplicitly]
+        public float TrainGoldCostMultiplier { get; set; } = 500f;
         #endregion
 
         #region Battle
