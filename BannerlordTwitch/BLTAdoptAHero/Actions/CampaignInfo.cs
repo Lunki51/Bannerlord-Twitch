@@ -834,6 +834,7 @@ namespace BLTAdoptAHero
                     $"{"{=lHRDKsUT}f".Translate()}" +
                     $"{Hero.MainHero.HeroDeveloper.GetFocus(skill)}]");
 
+            result.Add($"{"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
             ActionManager.SendReply(context, result);
         }
     }   
