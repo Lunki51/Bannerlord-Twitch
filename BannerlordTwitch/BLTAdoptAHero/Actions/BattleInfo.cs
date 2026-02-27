@@ -86,7 +86,7 @@ namespace BLTAdoptAHero
             if (agent == null && !MissionHelpers.InTournament())
             {
                 string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
-                string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}({allyTotal})/{attackCount}({enemyTotal}) - " : $"{attackCount}({enemyTotal})/{defendCount}({allyTotal}) - ");
+                string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{allyTotal}({defendCount})/{enemyTotal}({attackCount}) - " : $"{allyTotal}({attackCount})/{enemyTotal}({defendCount}) - ");
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
 
