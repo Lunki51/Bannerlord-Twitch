@@ -32,8 +32,27 @@ namespace BLTAdoptAHero.Actions
 
         public override void SyncData(IDataStore dataStore)
         {
-            dataStore.SyncData("BLT_TrainingFunds", ref _funds);
-            _funds ??= new Dictionary<string, TrainingEntry>();
+            if (dataStore.IsSaving)
+            {
+                var keys = _funds?.Keys.ToList() ?? new List<string>();
+                var values = _funds?.Values.Select(e => e.Fund).ToList() ?? new List<int>();
+                dataStore.SyncData("BLT_TrainingFunds_Keys", ref keys);
+                dataStore.SyncData("BLT_TrainingFunds_Values", ref values);
+            }
+            else
+            {
+                List<string> keys = null;
+                List<int> values = null;
+                dataStore.SyncData("BLT_TrainingFunds_Keys", ref keys);
+                dataStore.SyncData("BLT_TrainingFunds_Values", ref values);
+
+                if (keys != null && values != null && keys.Count == values.Count)
+                    _funds = keys.Zip(values, (k, v) => (k, v))
+                                 .ToDictionary(p => p.k, p => new TrainingEntry { Fund = p.v });
+                else
+                    _funds = new Dictionary<string, TrainingEntry>();
+            }
+
             Current = this;
         }
 
