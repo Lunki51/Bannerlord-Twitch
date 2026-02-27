@@ -301,7 +301,7 @@ namespace BLTAdoptAHero
         {
             var garrison = settlement?.Town?.GarrisonParty;
             if (garrison == null) return false;
-            if (garrison.MemberRoster.TotalManCount >= (garrison.Party.PartySizeLimit + GetTotalGarrisonCapacityBonus(settlement))) return false;
+            if (garrison.MemberRoster.TotalManCount >= garrison.Party.PartySizeLimit) return false;
 
             var troop = GetTroopForCulture(settlement.Culture, tree, tier);
             if (troop == null) return false;
@@ -314,7 +314,7 @@ namespace BLTAdoptAHero
         private Settlement GetRandomGarrisonSettlementForClan(Clan clan)
             => clan?.Settlements
                    .Where(s => s.Town?.GarrisonParty != null &&
-                               s.Town.GarrisonParty.MemberRoster.TotalManCount < (s.Town.GarrisonParty.Party.PartySizeLimit + GetTotalGarrisonCapacityBonus(s)))
+                               s.Town.GarrisonParty.MemberRoster.TotalManCount < s.Town.GarrisonParty.Party.PartySizeLimit)
                    .SelectRandom();
 
         private void RunAccumulation(string key, float amount, Func<bool> trySpawn)
