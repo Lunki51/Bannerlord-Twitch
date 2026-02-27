@@ -454,22 +454,26 @@ namespace BannerlordTwitch
                 _ => "border-radius:25%;"         // rounded default
             };
 
-            // Get fill and border colors
             string fillColor = "#000080";
-            if (getFillColor != null)
-            {
-                string c = getFillColor(kingdomId);
-                if (!string.IsNullOrEmpty(c))
-                    fillColor = c.StartsWith("#") ? c : "#" + c;
-            }
+            string borderColor = "#000000";
 
-            string borderColor = "#000000"; // fallback border
-            if (getBorderColor != null)
+            if (!string.IsNullOrEmpty(kingdomId))
             {
-                string c = getBorderColor(kingdomId);
-                if (!string.IsNullOrEmpty(c))
-                    borderColor = c.StartsWith("#") ? c : "#" + c;
-            }
+                // Get fill and border colors
+                if (getFillColor != null)
+                {
+                    string c = getFillColor(kingdomId);
+                    if (!string.IsNullOrEmpty(c))
+                        fillColor = c.StartsWith("#") ? c : "#" + c;
+                }
+
+                if (getBorderColor != null)
+                {
+                    string c = getBorderColor(kingdomId);
+                    if (!string.IsNullOrEmpty(c))
+                        borderColor = c.StartsWith("#") ? c : "#" + c;
+                }
+            }                             
 
             string size = "12px";
 
