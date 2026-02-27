@@ -453,7 +453,7 @@ namespace BLTAdoptAHero
                                         ));
 
                         var achievements = BLTAdoptAHeroCampaignBehavior.Current
-                        .GetAchievements(adoptedHero)
+                        .GetAchievements(adoptedHero).Where(a => a.IsAchieved(adoptedHero))
                         .ToList();
                         var achPowers = achievements
                             .Select(id => id.PassivePowerReward)
