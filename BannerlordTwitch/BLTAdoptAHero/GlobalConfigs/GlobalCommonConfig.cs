@@ -505,6 +505,12 @@ namespace BLTAdoptAHero
                 ProsperityDailyFlat = 0.5f
             }
         };
+
+        [LocDisplayName("{=BLT_BlockNegativesAtFloor}Block Negative Upgrades At Minimum"),
+         LocCategory("Upgrades", "{=BLT_Upgrades}Upgrades"),
+         LocDescription("{=BLT_BlockNegativesAtFloorDesc}When enabled, upgrade effects with negative values will not be applied if the stat they affect is already at zero (or would be pushed below zero). Disable this to allow negative upgrades to always apply regardless of the current stat value."),
+         PropertyOrder(4), UsedImplicitly]
+        public bool BlockNegativesAtFloor { get; set; } = true;
         #endregion
 
         #region XP
