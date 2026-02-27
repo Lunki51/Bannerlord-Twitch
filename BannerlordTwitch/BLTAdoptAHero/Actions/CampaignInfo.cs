@@ -824,7 +824,9 @@ namespace BLTAdoptAHero
 
         private void ShowPlayerSkills(ReplyContext context)
         {
-            var result = $"{"{=fRwyY6ms}[LVL]".Translate()} {Hero.MainHero.Level}";
+            var sb = new StringBuilder();
+
+            sb.Append($"{"{=fRwyY6ms}[LVL]".Translate()} {Hero.MainHero.Level}");
 
             var skillsList = CampaignHelpers.AllSkillObjects
                 .OrderByDescending(s => Hero.MainHero.GetSkillValue(s))
@@ -834,8 +836,9 @@ namespace BLTAdoptAHero
                     $"{"{=lHRDKsUT}f".Translate()}" +
                     $"{Hero.MainHero.HeroDeveloper.GetFocus(skill)}]");
 
-            result.Add($"{"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
-            ActionManager.SendReply(context, result);
+            sb.Append($" {Naming.Sep2} {"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
+
+            ActionManager.SendReply(context, sb.ToString());
         }
     }   
 }
