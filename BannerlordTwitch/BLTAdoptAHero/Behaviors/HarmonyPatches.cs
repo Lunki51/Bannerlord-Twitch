@@ -527,7 +527,7 @@ namespace BLTAdoptAHero
             [HarmonyPrefix]
             public static bool FoodStocksUpperLimitPrefix(ref int __result)
             {
-                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
+                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 10000 : 300;
                 return false; // Skip original method
             }
         }
@@ -891,6 +891,7 @@ namespace BLTAdoptAHero
 
     #endregion
 
+    #region BlockArmies
     [HarmonyPatch(typeof(Kingdom), "CreateArmy")]
     internal static class BLT_BlockAIArmyCreation
     {
@@ -937,4 +938,5 @@ namespace BLTAdoptAHero
             }
         }
     }
+    #endregion
 }
