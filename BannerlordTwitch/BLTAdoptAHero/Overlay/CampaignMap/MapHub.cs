@@ -190,7 +190,14 @@ namespace BLTAdoptAHero.UI
 
                 // Get map bounds
                 var mapBounds = GetMapBounds();
-                if (_cachedCoastline == null)
+                var gameBounds = (
+                    minX: Campaign.MapMinimumPosition.X,
+                    maxX: Campaign.MapMaximumPosition.X,
+                    minY: Campaign.MapMinimumPosition.Y,
+                    maxY: Campaign.MapMaximumPosition.Y
+                );
+
+                if (_cachedCoastline == null || _cachedCoastline.Count == 0)
                 {
                     Log.Trace("[MapHub] Generating coastline cache...");
                     _cachedCoastline = GenerateCoastline(mapBounds);
@@ -464,73 +471,82 @@ namespace BLTAdoptAHero.UI
         }
 
         private static List<CoastlineSegment> GenerateCoastline(
-        (float minX, float maxX, float minY, float maxY) bounds)
+        (float minX, float maxX, float minY, float maxY) settlementBounds)
         {
             var map = Campaign.Current?.MapSceneWrapper;
             if (map == null) return new List<CoastlineSegment>();
 
-            // Sweet spot: reliable face hits, enough detail to smooth well
-            const int GRID_W = 50;
-            const int GRID_H = 35;
+            // Sample over real map borders for full coverage
+            map.GetMapBorders(out Vec2 minPos, out Vec2 maxPos, out float _);
+            var sampleBounds = (minX: minPos.x, maxX: maxPos.x, minY: minPos.y, maxY: maxPos.y);
 
-            float worldW = bounds.maxX - bounds.minX;
-            float worldH = bounds.maxY - bounds.minY;
+            const int GRID_W = 120;
+            const int GRID_H = 114;
+
+            float worldW = sampleBounds.maxX - sampleBounds.minX;
+            float worldH = sampleBounds.maxY - sampleBounds.minY;
             float cellW = worldW / GRID_W;
             float cellH = worldH / GRID_H;
 
-            // --- Step 1: Sample terrain ---
-            // Use a float grid (0=land, 1=water) so we can blur it
             var waterValue = new float[GRID_W * GRID_H];
+            var isLandRestriction = new bool[GRID_W * GRID_H];
+            for (int i = 0; i < waterValue.Length; i++) waterValue[i] = -1f;
             int validSamples = 0;
 
             for (int gy = 0; gy < GRID_H; gy++)
             {
-                float worldY = bounds.minY + (gy + 0.5f) * cellH;
+                float worldY = sampleBounds.minY + (gy + 0.5f) * cellH;
                 int rowBase = gy * GRID_W;
                 for (int gx = 0; gx < GRID_W; gx++)
                 {
-                    float worldX = bounds.minX + (gx + 0.5f) * cellW;
+                    float worldX = sampleBounds.minX + (gx + 0.5f) * cellW;
                     try
                     {
-                        var (isWaterCell, valid) = SampleTerrain(map, worldX, worldY, cellW, cellH);
-                        waterValue[rowBase + gx] = valid ? (isWaterCell ? 1f : 0f) : 0.5f;
+                        var (isWaterCell, terrainType, valid) = SampleTerrain(map, worldX, worldY, cellW, cellH);
+                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.RuralArea);
+                        waterValue[rowBase + gx] = isWaterCell ? 1f : 0f;
                         if (valid) validSamples++;
                     }
-                    catch
-                    {
-                        waterValue[rowBase + gx] = 0.5f;
-                    }
+                    catch { }
                 }
             }
 
-            Log.Trace($"[MapHub] Coastline sampled {validSamples}/{GRID_W * GRID_H} valid faces");
+            Log.Trace($"[MapHub] Coastline sampled {validSamples}/{GRID_W * GRID_H}");
 
-            //if (validSamples < 1)
-            //{
-            //    Log.Error("[MapHub] Too few valid faces for coastline generation - aborting");
-            //    return new List<CoastlineSegment>();
-            //}
-
-            // --- Step 2: Gaussian blur the water values ---
-            // This smooths the jagged grid boundary into a gradient we can threshold
-            var blurred = new float[GRID_W * GRID_H];
-            // 3x3 gaussian kernel weights
-            float[] kernel = { 1f, 2f, 1f, 2f, 4f, 2f, 1f, 2f, 1f };
-            float kernelSum = 16f;
-
-            for (int gy = 1; gy < GRID_H - 1; gy++)
+            // Gap fill
+            bool changed = true;
+            int passes = 0;
+            while (changed && passes < 20)
             {
+                changed = false; passes++;
+                for (int i = 0; i < waterValue.Length; i++)
+                {
+                    if (waterValue[i] >= 0f) continue;
+                    int gx = i % GRID_W, gy = i / GRID_W;
+                    float sum = 0f; int count = 0;
+                    if (gx > 0 && waterValue[i - 1] >= 0f) { sum += waterValue[i - 1]; count++; }
+                    if (gx < GRID_W - 1 && waterValue[i + 1] >= 0f) { sum += waterValue[i + 1]; count++; }
+                    if (gy > 0 && waterValue[i - GRID_W] >= 0f) { sum += waterValue[i - GRID_W]; count++; }
+                    if (gy < GRID_H - 1 && waterValue[i + GRID_W] >= 0f) { sum += waterValue[i + GRID_W]; count++; }
+                    if (count > 0) { waterValue[i] = sum / count; changed = true; }
+                }
+            }
+            for (int i = 0; i < waterValue.Length; i++)
+                if (waterValue[i] < 0f) waterValue[i] = 1f;
+
+            // Gaussian blur
+            var blurred = new float[GRID_W * GRID_H];
+            float[] kernel = { 1f, 2f, 1f, 2f, 4f, 2f, 1f, 2f, 1f };
+            const float kernelSum = 16f;
+            for (int gy = 1; gy < GRID_H - 1; gy++)
                 for (int gx = 1; gx < GRID_W - 1; gx++)
                 {
-                    float sum = 0f;
-                    int k = 0;
+                    float sum = 0f; int k = 0;
                     for (int dy = -1; dy <= 1; dy++)
                         for (int dx = -1; dx <= 1; dx++)
                             sum += waterValue[(gy + dy) * GRID_W + (gx + dx)] * kernel[k++];
                     blurred[gy * GRID_W + gx] = sum / kernelSum;
                 }
-            }
-            // Fill border with original values
             for (int gx = 0; gx < GRID_W; gx++)
             {
                 blurred[gx] = waterValue[gx];
@@ -542,31 +558,31 @@ namespace BLTAdoptAHero.UI
                 blurred[gy * GRID_W + GRID_W - 1] = waterValue[gy * GRID_W + GRID_W - 1];
             }
 
-            // --- Step 3: Threshold at 0.5 to get smoothed bool grid ---
             var isWater = new bool[GRID_W * GRID_H];
             for (int i = 0; i < isWater.Length; i++)
                 isWater[i] = blurred[i] >= 0.5f;
 
-            // --- Step 4: Edge detection and segment emission ---
+            // --- Edge detection: use NormalizeX/Y with settlementBounds so coastline
+            //     and settlements are in the same SVG coordinate space ---
             var segments = new List<CoastlineSegment>(GRID_W * GRID_H / 5);
-
-            float normXScale = 94f / GRID_W;
-            float normYScale = 85f / GRID_H;
 
             // Horizontal edges
             for (int gy = 0; gy < GRID_H - 1; gy++)
             {
-                int rowA = gy * GRID_W;
-                int rowB = (gy + 1) * GRID_W;
-                float edgeY = 90f - (gy + 1) * normYScale;
+                int rowA = gy * GRID_W, rowB = (gy + 1) * GRID_W;
+                float edgeWorldY = sampleBounds.minY + (gy + 1) * cellH;
+                float edgeSvgY = NormalizeY(edgeWorldY, settlementBounds);
 
                 for (int gx = 0; gx < GRID_W; gx++)
                 {
+                    // Skip edges bordering LandRestriction - map boundary, not coastline
+                    if (isLandRestriction[rowA + gx] || isLandRestriction[rowB + gx]) continue;
+
                     if (isWater[rowA + gx] != isWater[rowB + gx])
                     {
-                        float x1 = 3f + gx * normXScale;
-                        segments.Add(new CoastlineSegment
-                        { X1 = x1, Y1 = edgeY, X2 = x1 + normXScale, Y2 = edgeY });
+                        float svgX1 = NormalizeX(sampleBounds.minX + gx * cellW, settlementBounds);
+                        float svgX2 = NormalizeX(sampleBounds.minX + (gx + 1) * cellW, settlementBounds);
+                        segments.Add(new CoastlineSegment { X1 = svgX1, Y1 = edgeSvgY, X2 = svgX2, Y2 = edgeSvgY });
                     }
                 }
             }
@@ -574,22 +590,24 @@ namespace BLTAdoptAHero.UI
             // Vertical edges
             for (int gy = 0; gy < GRID_H; gy++)
             {
-                int rowBase2 = gy * GRID_W;
-                float y1 = 90f - gy * normYScale;
-                float y2 = y1 - normYScale;
+                int rowBase = gy * GRID_W;
+                float svgY1 = NormalizeY(sampleBounds.minY + gy * cellH, settlementBounds);
+                float svgY2 = NormalizeY(sampleBounds.minY + (gy + 1) * cellH, settlementBounds);
 
                 for (int gx = 0; gx < GRID_W - 1; gx++)
                 {
-                    if (isWater[rowBase2 + gx] != isWater[rowBase2 + gx + 1])
+                    // Skip edges bordering LandRestriction
+                    if (isLandRestriction[rowBase + gx] || isLandRestriction[rowBase + gx + 1]) continue;
+
+                    if (isWater[rowBase + gx] != isWater[rowBase + gx + 1])
                     {
-                        float edgeX = 3f + (gx + 1) * normXScale;
-                        segments.Add(new CoastlineSegment
-                        { X1 = edgeX, Y1 = y1, X2 = edgeX, Y2 = y2 });
+                        float edgeSvgX = NormalizeX(sampleBounds.minX + (gx + 1) * cellW, settlementBounds);
+                        segments.Add(new CoastlineSegment { X1 = edgeSvgX, Y1 = svgY1, X2 = edgeSvgX, Y2 = svgY2 });
                     }
                 }
             }
 
-            Log.Trace($"[MapHub] Coastline: {segments.Count} segments from {GRID_W}x{GRID_H} grid");
+            Log.Trace($"[MapHub] Coastline: {segments.Count} segments");
             return segments;
         }
 
@@ -599,9 +617,8 @@ namespace BLTAdoptAHero.UI
             switch (terrain)
             {
                 case TerrainType.Water:
-                case TerrainType.River:
-                case TerrainType.NonNavigableRiver:
-                case TerrainType.Lake:
+                case TerrainType.SeaRestriction:
+                case TerrainType.OpenSea:
                 case TerrainType.CoastalSea:
                     return true;
                 default:
@@ -609,32 +626,34 @@ namespace BLTAdoptAHero.UI
             }
         }
 
-        private static (bool isWater, bool valid) SampleTerrain(IMapScene map, float worldX, float worldY, float cellW, float cellH)
+        private static (bool isWater, TerrainType terrain, bool valid) SampleTerrain(
+    IMapScene map, float worldX, float worldY, float cellW, float cellH)
         {
-            // Try land probe first, then naval - water faces only respond to isOnLand: false
             foreach (bool isOnLand in new[] { true, false })
             {
                 var vec = new CampaignVec2(new Vec2(worldX, worldY), isOnLand);
                 var face = map.GetFaceIndex(in vec);
                 if (face.IsValid())
-                    return (IsWaterTerrain(map.GetFaceTerrainType(face)), true);
+                {
+                    var terrain = map.GetFaceTerrainType(face);
+                    return (IsWaterTerrain(terrain), terrain, true);
+                }
             }
-
-            // Try offset neighbours with both land/naval probes
             foreach (var (ox, oy) in new[] { (0.4f, 0f), (-0.4f, 0f), (0f, 0.4f), (0f, -0.4f) })
             {
-                float nx = worldX + ox * cellW;
-                float ny = worldY + oy * cellH;
+                float nx = worldX + ox * cellW, ny = worldY + oy * cellH;
                 foreach (bool isOnLand in new[] { true, false })
                 {
                     var vec = new CampaignVec2(new Vec2(nx, ny), isOnLand);
                     var face = map.GetFaceIndex(in vec);
                     if (face.IsValid())
-                        return (IsWaterTerrain(map.GetFaceTerrainType(face)), true);
+                    {
+                        var terrain = map.GetFaceTerrainType(face);
+                        return (IsWaterTerrain(terrain), terrain, true);
+                    }
                 }
             }
-
-            return (false, false);
+            return (true, TerrainType.Water, false);
         }
 
         public static void Register()

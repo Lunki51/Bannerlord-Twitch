@@ -839,7 +839,7 @@ namespace BLTAdoptAHero
 
                             var rkingdom = Kingdom.All.FirstOrDefault(f => f.StringId == kingdom.Id);
                             string names = $"{kingdom.Name} - Leader: {rkingdom?.Leader?.Name}";
-                            generator.TD("<style>vertical-align:middle;</style>", names);
+                            generator.TD(names);
                         });
                     }
                 });

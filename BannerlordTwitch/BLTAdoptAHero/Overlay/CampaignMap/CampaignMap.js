@@ -57,7 +57,7 @@
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', d);
-        path.setAttribute('stroke', '#102066');
+        path.setAttribute('stroke', '#2257d4');
         path.setAttribute('stroke-width', '0.5');
         path.setAttribute('stroke-linecap', 'round');
         path.setAttribute('fill', 'none');
