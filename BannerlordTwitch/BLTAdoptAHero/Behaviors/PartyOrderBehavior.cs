@@ -194,11 +194,10 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Skip mercenary parties — MercenaryArmyBehavior owns those
-                //if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
+                if (party == null || !party.IsActive) return;
 
-                // If this party leads an army, keep cohesion topped up
-                if (party.LeaderHero.IsAdopted() && party.Army != null && party.Army.LeaderParty == party)
+                if (party.LeaderHero != null && party.LeaderHero.IsAdopted()
+                    && party.Army != null && party.Army.LeaderParty == party)
                 {
                     party.Army.Cohesion = 100f;
                 }
