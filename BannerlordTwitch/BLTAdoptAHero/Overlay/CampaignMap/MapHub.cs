@@ -503,7 +503,7 @@ namespace BLTAdoptAHero.UI
                     try
                     {
                         var (isWaterCell, terrainType, valid) = SampleTerrain(map, worldX, worldY, cellW, cellH);
-                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.RuralArea);
+                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.RuralArea || terrainType == TerrainType.SeaRestriction);
                         waterValue[rowBase + gx] = isWaterCell ? 1f : 0f;
                         if (valid) validSamples++;
                     }
