@@ -7,6 +7,7 @@ using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
+using BLTAdoptAHero.Actions;
 
 namespace BLTAdoptAHero
 {
@@ -17,6 +18,13 @@ namespace BLTAdoptAHero
         public static PartyOrderBehavior Current { get; private set; }
 
         private List<string> _ordersJson = new();
+
+        /// <summary>
+        /// StringIds of kingdoms whose king has issued '!party army allowai off' and '!party army allowblt off'.
+        /// Presence == Armies blocked; absence == allowed (default).
+        /// </summary>
+        private List<string> _aiArmiesBlockedKingdoms = new();
+        private List<string> _bltArmiesBlockedKingdoms = new();
 
         // Runtime list — deserialized from _ordersJson on load
         [NonSerialized]
@@ -44,7 +52,11 @@ namespace BLTAdoptAHero
             try
             {
                 dataStore.SyncData("BLT_PartyOrders", ref _ordersJson);
+                dataStore.SyncData("BLT_AIArmiesBlockedKingdoms", ref _aiArmiesBlockedKingdoms);
+                dataStore.SyncData("BLT_BLTArmiesBlockedKingdoms", ref _bltArmiesBlockedKingdoms);
                 _ordersJson ??= new List<string>();
+                _aiArmiesBlockedKingdoms ??= new List<string>();
+                _bltArmiesBlockedKingdoms ??= new List<string>();
 
                 if (dataStore.IsLoading)
                 {
@@ -130,6 +142,47 @@ namespace BLTAdoptAHero
         public bool HasActiveOrder(string partyId) =>
             _orders.Any(o => o.IsActive && o.PartyId == partyId);
 
+        public bool IsAIArmiesBlocked(Kingdom kingdom)
+            => kingdom != null && _aiArmiesBlockedKingdoms.Contains(kingdom.StringId);
+
+        public bool IsBLTArmiesBlocked(Kingdom kingdom)
+            => kingdom != null && _bltArmiesBlockedKingdoms.Contains(kingdom.StringId);
+
+
+        /// <summary>
+        /// Sets the AI army block state for <paramref name="kingdom"/>.
+        /// <paramref name="blocked"/> = true  → '!party army allowai off'
+        /// <paramref name="blocked"/> = false → '!party army allowai on'  (default)
+        /// </summary>
+        public void SetAIArmiesBlocked(Kingdom kingdom, bool blocked)
+        {
+            if (kingdom == null) return;
+            if (blocked)
+            {
+                if (!_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
+            }
+            else
+            {
+                if (_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            }
+        }
+        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
+        {
+            if (kingdom == null) return;
+            if (blocked)
+            {
+                if (!_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
+            }
+            else
+            {
+                if (_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
+                    _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
+            }
+        }
+
         public PartyOrderData GetActiveOrder(string partyId) =>
             _orders.FirstOrDefault(o => o.IsActive && o.PartyId == partyId);
 
@@ -143,6 +196,12 @@ namespace BLTAdoptAHero
             {
                 // Skip mercenary parties — MercenaryArmyBehavior owns those
                 //if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
+
+                // If this party leads an army, keep cohesion topped up
+                if (party.LeaderHero.IsAdopted() && party.Army != null && party.Army.LeaderParty == party)
+                {
+                    party.Army.Cohesion = 100f;
+                }
 
                 var order = _orders.FirstOrDefault(o => o.IsActive && o.PartyId == party?.StringId);
                 if (order == null) return;
@@ -166,8 +225,20 @@ namespace BLTAdoptAHero
 
                 var expectedBehavior = OrderTypeToAiBehavior(order.Type);
 
-                // Order is holding — reset reissue counter
-                if (party.DefaultBehavior == expectedBehavior)
+                // Order is holding — verify both behavior type AND the actual target settlement
+                var expectedTarget = order.TargetSettlementId != null
+                    ? Settlement.Find(order.TargetSettlementId)
+                    : null;
+
+                bool behaviorMatches = party.DefaultBehavior == expectedBehavior;
+
+                // For settlement-targeted orders, also confirm the party is heading to the right place. TargetSettlement can be null mid-path (approaching) so we
+                // only flag a mismatch when it is explicitly set to something different.
+                bool targetMatches = expectedTarget == null
+                    || party.TargetSettlement == null
+                    || party.TargetSettlement == expectedTarget;
+
+                if (behaviorMatches && targetMatches)
                 {
                     order.ReissueAttempts = 0;
                     return;
@@ -322,13 +393,32 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Force land-only navigation regardless of party capability.
-                // Using party.NavigationCapability can return a valid water-crossing
-                // path even when embarkation is blocked by a mod, causing the party
-                // to jesus-walk along the coast indefinitely.
+                // Notes from Claude:
+                // NavigationType.Default gives estimatedLandRatio hardcoded to 1f always —
+                // it never reflects the actual path. The ratio is only genuinely computed
+                // by GetLandRatioOfPathBetweenSettlements when using NavigationType.All,
+                // so we use that here for land parties.
+                if (party.IsCurrentlyAtSea)
+                {
+                    float navalDist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                        party, target, true, MobileParty.NavigationType.Naval, out _);
+                    return navalDist < float.MaxValue - 1f;
+                }
+
                 float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                    party, target, false, MobileParty.NavigationType.Default, out _);
-                return dist < float.MaxValue - 1f;
+                    party, target, false, MobileParty.NavigationType.All, out float landRatio);
+
+                if (dist >= float.MaxValue - 1f)
+                    return false;
+
+                // Notes from Claude:
+                // landRatio is genuinely path-analyzed here (via GetLandRatioOfPathBetweenSettlements).
+                // -1 means it couldn't be computed at all (same-face shortcut with unknown nav type).
+                // Below 0.5 means more than half the route is water — a land party will stall.
+                if (landRatio >= 0f && landRatio < 0.5f)
+                    return false;
+
+                return true;
             }
             catch (Exception ex)
             {
@@ -336,6 +426,9 @@ namespace BLTAdoptAHero
                 return false;
             }
         }
+
+
+
 
         // ─────────────────────────────────────────────
         //  HELPERS
@@ -372,10 +465,16 @@ namespace BLTAdoptAHero
         /// </summary>
         public static void IssueOrder(MobileParty party, PartyOrderType type, Settlement target)
         {
-            var nav = party.IsCurrentlyAtSea
-                ? MobileParty.NavigationType.Naval
-                : MobileParty.NavigationType.Default;
             bool atSea = party.IsCurrentlyAtSea;
+
+            // NavigationType.All lets the engine properly plan around mountains, water,
+            // and other obstacles, and will trigger embarking when a water crossing is
+            // needed. NavigationType.Default hardcodes landRatio=1 and causes parties
+            // to walk in a straight line toward the target regardless of terrain.
+            MobileParty.NavigationType nav = atSea
+                ? MobileParty.NavigationType.Naval
+                : MobileParty.NavigationType.All;
+            var pm = new PartyManagement();
 
             switch (type)
             {
@@ -391,8 +490,10 @@ namespace BLTAdoptAHero
                     if (target != null)
                         SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, atSea, false);
                     else
-                        SetPartyAiAction.GetActionForPatrollingAroundPoint(
-                            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
+                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, pm.FindBestSettlementToDefend(party, party.LeaderHero.Clan.Kingdom), nav, atSea, false);
+                //    Was crashing the game if they did this while at sea, switched to just patrolling an automatically calculated settlement
+                //    SetPartyAiAction.GetActionForPatrollingAroundPoint(
+                //            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
                     break;
             }
         }
@@ -407,15 +508,28 @@ namespace BLTAdoptAHero
             switch (type)
             {
                 case PartyOrderType.Siege:
-                    return target != null
-                        && target.IsFortification
-                        && !target.IsUnderSiege
-                        && party.MapFaction.IsAtWarWith(target.MapFaction)
-                        && party.BesiegedSettlement == null;
+                    {
+                        if (target == null || !target.IsFortification) return false;
+                        if (!party.MapFaction.IsAtWarWith(target.MapFaction)) return false;
+
+                        // ── already actively besieging this target → always valid ──────
+                        if (party.BesiegedSettlement == target) return true;
+
+                        // ── target is under siege: valid only if WE are the besieger ──
+                        if (target.IsUnderSiege)
+                            return target.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction
+                                   == party.MapFaction;
+
+                        // ── not yet under siege; valid if we're not besieging something else ──
+                        return party.BesiegedSettlement == null;
+                    }
+
                 case PartyOrderType.Defend:
                     return target != null && target.IsFortification;
+
                 case PartyOrderType.Patrol:
                     return true;
+
                 default:
                     return false;
             }

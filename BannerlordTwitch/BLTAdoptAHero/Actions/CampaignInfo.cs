@@ -357,6 +357,8 @@ namespace BLTAdoptAHero
             {
                 Village vill = Village.All.FirstOrDefault(v => v.Name.ToString() == desiredFief.Name.ToString());
                 sb.Append("{=TESTING}{Name} ".Translate(("Name", vill.Name)));
+                if (desiredFief.HasPort)
+                    sb.Append("⚓");
                 if (desiredFief.IsUnderRaid)
                     sb.Append("⚔️");
                 if (desiredFief.IsRaided)
@@ -383,6 +385,8 @@ namespace BLTAdoptAHero
                     (town.GarrisonParty?.TotalWage ?? 0)
                     );
                 sb.Append("{=TESTING}{Name} ".Translate(("Name", town.Name)));
+                if (desiredFief.HasPort)
+                    sb.Append("⚓");
                 if (desiredFief.IsUnderSiege)
                     sb.Append("⚔️");
                 sb.Append(" | ");
@@ -410,7 +414,7 @@ namespace BLTAdoptAHero
                 sb.Append($"Villages + Hearth: ");
                 foreach (Village v in villList.ToList())
                 {
-                    sb.Append($"{v.Name} ({Math.Round(v.Hearth, 2)} +{Math.Round((v.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement)), 2)}), ");
+                    sb.Append($"{v.Name} ({Math.Round(v.Hearth, 2)} {((v.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement)) >= 0 ? "+" : "")}{Math.Round((v.HearthChange + UpgradeBehavior.Current.GetTotalHearthDaily(town.Settlement)), 2)}), ");
                 }
                 villNames.TrimEnd(' ', ',');
 
@@ -479,7 +483,7 @@ namespace BLTAdoptAHero
         {
             if (string.IsNullOrWhiteSpace(desiredName))
             {
-                ActionManager.SendReply(context, "{=TESTING}Need aclan name".Translate());
+                ActionManager.SendReply(context, "{=}Need a clan name".Translate());
                 return;
             }
 

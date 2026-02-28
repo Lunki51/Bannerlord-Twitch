@@ -484,19 +484,31 @@ namespace BLTAdoptAHero
             // Custom "modified" item
             if (tier > 5)
             {
+                // Try tier 5 first, fall back to 4
                 var armor = EquipHero.FindRandomTieredEquipment(5, hero,
                     heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                     EquipHero.FindFlags.IgnoreAbility,
-                    o => o.ItemType == itemType, culture);
-                return armor == null ? default : (armor, modifierDef.Generate(armor, customItemName, customItemPower), index);
+                    o => o.ItemType == itemType
+                         && (culture == null || o.Culture == culture));
+
+                // Fallback: relax culture filter if nothing found
+                armor ??= EquipHero.FindRandomTieredEquipment(5, hero,
+                    heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
+                    EquipHero.FindFlags.IgnoreAbility,
+                    o => o.ItemType == itemType);
+
+                return armor == null
+                    ? default
+                    : (armor, modifierDef.Generate(armor, customItemName, customItemPower), index);
             }
             else
             {
                 var armor = EquipHero.FindRandomTieredEquipment(tier, hero,
                     heroClass?.Mounted == true || !hero.BattleEquipment.Horse.IsEmpty,
                     EquipHero.FindFlags.IgnoreAbility | EquipHero.FindFlags.RequireExactTier,
-                    o => o.ItemType == itemType, culture);
-                // if no armor was found, or its the same tier as what we have then return null
+                    o => o.ItemType == itemType
+                         && (culture == null || o.Culture == culture));
+
                 return armor == null || hero.BattleEquipment.YieldFilledArmorSlots()
                     .Any(i2 => i2.Item.Type == armor.Type && i2.Item.Tier >= armor.Tier)
                     ? default
