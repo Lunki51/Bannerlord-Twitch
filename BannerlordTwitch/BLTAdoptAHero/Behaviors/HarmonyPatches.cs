@@ -527,7 +527,7 @@ namespace BLTAdoptAHero
             [HarmonyPrefix]
             public static bool FoodStocksUpperLimitPrefix(ref int __result)
             {
-                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
+                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 10000 : 300;
                 return false; // Skip original method
             }
         }
@@ -554,72 +554,86 @@ namespace BLTAdoptAHero
     #endregion
 
     #region DiplomacyPatches
-    /// <summary>
-    /// Harmony patches to prevent peace in certain conditions
-    /// </summary>
+
     [HarmonyPatch]
     public class BLTDiplomacyPatches
     {
         /// <summary>
-        /// Patch MakePeaceAction.Apply to prevent peace when minimum war duration not met
-        /// or when AI tries to peace with BLT kingdoms
+        /// Intercepts MakePeaceAction.ApplyInternal BEFORE any siege/stance teardown occurs.
+        /// For BLT-involved kingdoms we either block outright (min duration) or block and
+        /// route the attempt into a visible proposal (AI→BLT). No war re-declaration is ever
+        /// needed because peace never actually takes effect.
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(typeof(MakePeaceAction), "ApplyInternal")]
         public static bool Prefix_MakePeaceAction_Apply(
             IFaction faction1,
-            IFaction faction2, 
-            int dailyTributeFrom1To2, 
-            int dailyTributeDuration, 
+            IFaction faction2,
+            int dailyTributeFrom1To2,
+            int dailyTributeDuration,
             MakePeaceAction.MakePeaceDetail detail = MakePeaceAction.MakePeaceDetail.Default)
         {
-            // Allow BLT-controlled peace actions
+            // Always allow peace that BLT itself initiated
             if (AdoptedHeroFlags._allowDiplomacyAction)
                 return true;
 
-            // Only handle kingdoms
             var k1 = faction1 as Kingdom;
             var k2 = faction2 as Kingdom;
             if (k1 == null || k2 == null)
                 return true;
 
-            // Check if BLT treaty system is active
             if (BLTTreatyManager.Current == null)
                 return true;
 
-            // Check if either kingdom is BLT-controlled
             bool k1IsBLT = k1.Leader != null && k1.Leader.IsAdopted() && k1 != Hero.MainHero?.Clan?.Kingdom;
             bool k2IsBLT = k2.Leader != null && k2.Leader.IsAdopted() && k2 != Hero.MainHero?.Clan?.Kingdom;
 
             if (!k1IsBLT && !k2IsBLT)
-                return true; // No BLT kingdoms, allow peace
+                return true; // pure AI-vs-AI: let it through
 
-            // Check minimum war duration
+            // ── Case 1: minimum war duration not yet met ──────────────────────────
             if (!BLTTreatyManager.Current.CanMakePeace(k1, k2, out string reason))
             {
 #if DEBUG
-                    Log.Trace($"[BLT-Harmony] Blocked peace (min duration): {k1.Name} <-> {k2.Name} - {reason}");
+            Log.Trace($"[BLT-Harmony] Blocked peace (min duration): {k1.Name} <-> {k2.Name} - {reason}");
 #endif
-                // Block the peace entirely
-                return false;
+                if (k1IsBLT && k1.Leader != null)
+                {
+                    string n = k1.Leader.FirstName.ToString()
+                        .Replace(BLTAdoptAHeroModule.Tag, "").Replace(BLTAdoptAHeroModule.DevTag, "").Trim();
+                    Log.LogFeedResponse($"@{n} Peace with {k2.Name} rejected - {reason}");
+                }
+                if (k2IsBLT && k2.Leader != null)
+                {
+                    string n = k2.Leader.FirstName.ToString()
+                        .Replace(BLTAdoptAHeroModule.Tag, "").Replace(BLTAdoptAHeroModule.DevTag, "").Trim();
+                    Log.LogFeedResponse($"@{n} Peace with {k1.Name} rejected - {reason}");
+                }
+                Log.ShowInformation($"Peace rejected - {reason}", k1.Leader?.CharacterObject);
+                return false; // blocked — no re-declare needed, war never ended
             }
 
-            // If AI is trying to make peace with BLT kingdom, block it
-            // (we'll handle it via OnMakePeace event to create proposal)
-            if (k1IsBLT || k2IsBLT)
+            // ── Case 2: AI trying to make peace with a BLT kingdom ───────────────
+            if (k1IsBLT != k2IsBLT)
             {
+                Kingdom aiKingdom = k1IsBLT ? k2 : k1;
+                Kingdom bltKingdom = k1IsBLT ? k1 : k2;
 #if DEBUG
-                    Log.Trace($"[BLT-Harmony] Blocked AI->BLT peace: {k1.Name} <-> {k2.Name} (will create proposal)");
+            Log.Trace($"[BLT-Harmony] Blocked AI->BLT peace: {aiKingdom.Name} -> {bltKingdom.Name}. Creating proposal.");
 #endif
-                CampaignEventDispatcher.Instance.OnMakePeace(faction1, faction2, detail);
-                // Block the peace - our event handler will create a proposal instead
-                return false;
+                // Delegate proposal creation to the behavior (handles dedup + notifications)
+                BLTDiplomacyBehavior.Current?.HandleAIPeaceAttempt(aiKingdom, bltKingdom);
+                return false; // blocked — siege state untouched
             }
 
-            // Allow all other peace
-            return true;
+            // ── Case 3: Both BLT without _allowDiplomacyAction (shouldn't happen) ─
+#if DEBUG
+        Log.Trace($"[BLT-Harmony] Blocked unsanctioned BLT-BLT peace: {k1.Name} <-> {k2.Name}");
+#endif
+            return false;
         }
     }
+
     #endregion
 
     #region ArmyDispersionAndCohesionPatches
@@ -891,6 +905,7 @@ namespace BLTAdoptAHero
 
     #endregion
 
+    #region BlockArmies
     [HarmonyPatch(typeof(Kingdom), "CreateArmy")]
     internal static class BLT_BlockAIArmyCreation
     {
@@ -937,4 +952,5 @@ namespace BLTAdoptAHero
             }
         }
     }
+    #endregion
 }

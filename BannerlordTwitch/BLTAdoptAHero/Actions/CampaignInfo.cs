@@ -16,6 +16,7 @@ using TaleWorlds.Localization;
 using Helpers;
 using TaleWorlds.Core;
 using BLTAdoptAHero.Models;
+using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
 
 namespace BLTAdoptAHero
 {
@@ -73,7 +74,7 @@ namespace BLTAdoptAHero
                 case "warlist":
                     ShowWarList(context);
                     break;
-
+                case "wars":
                 case "war":
                     ShowWar(desiredName, context);
                     break;
@@ -88,6 +89,7 @@ namespace BLTAdoptAHero
                 case "fiefs":
                     ShowFiefs(desiredName, context);
                     break;
+
                 case "clan":
                     ShowClan(desiredName, context);
                     break;
@@ -97,16 +99,23 @@ namespace BLTAdoptAHero
                 case "vassals":
                     ShowVassals(desiredName, context);
                     break;
+
                 case "map":
                     ShowMap(desiredName, context);
                     break;
+
                 case "time":
                 case "date":
                     ShowTime(context);
                     break;
+
+                case "player":
+                    ShowPlayerSkills(context);
+                    break;
+
                 default:
                     ActionManager.SendReply(context,
-                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), fiefs (kingdom), clan (clan), clans (kingdom), vassals (clan))".Translate());
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war/wars (kingdom), fief (town/castle/village), fiefs (kingdom), clan (clan), clans (kingdom), vassals (clan), time/date, player)".Translate());
                     break;
             }
         }
@@ -119,8 +128,17 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            var desiredKingdom = Kingdom.All.Where(k=> !k.IsEliminated).FirstOrDefault(c =>
-                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            Kingdom desiredKingdom;
+
+            // Streamer case check
+            if (desiredName.ToLower() == "player")
+            {
+                desiredKingdom = Hero.MainHero.Clan?.Kingdom;
+            }
+            else 
+            {
+                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
 
             if (desiredKingdom == null)
             {
@@ -239,8 +257,16 @@ namespace BLTAdoptAHero
             }
             else if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
-                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                // Streamer case check
+                if (desiredName.ToLower() == "player")
+                {
+                    desiredKingdom = Hero.MainHero.Clan?.Kingdom;
+                }
+                else
+                {
+                    desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
+                        c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
             }
 
             if (desiredKingdom == null)
@@ -299,8 +325,16 @@ namespace BLTAdoptAHero
             }
             else if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
-                c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                // Streamer case check
+                if (desiredName.ToLower() == "player")
+                {
+                    desiredKingdom = Hero.MainHero.Clan?.Kingdom;
+                }
+                else
+                {
+                    desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
+                        c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
             }
 
             if (desiredKingdom == null)
@@ -408,7 +442,7 @@ namespace BLTAdoptAHero
                 sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));
                 sb.Append("{=TESTING}Militia:{mil}({change}) | ".Translate(("mil", (int)town.Militia), ("change", (town.MilitiaChange + UpgradeBehavior.Current.GetMilitiaFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.MilitiaChange + UpgradeBehavior.Current.GetMilitiaFlat(town.Settlement), 2))));
                 var garmodel = Campaign.Current.Models.PartySizeLimitModel;
-                sb.Append("{=TESTING}Garrison:{gar}/{garcap} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("garcap", (int)garmodel.CalculateGarrisonPartySizeLimit(town.Settlement, false).ResultNumber))); // + BLTUpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(town.Settlement)
+                sb.Append("{=TESTING}Garrison:{gar}/{garcap} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("garcap", (int)garmodel.CalculateGarrisonPartySizeLimit(town.Settlement, false).ResultNumber + UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(town.Settlement))));
                 var villList = town.Settlement.BoundVillages.Select(v => v).ToList();
                 string villNames = "";
                 sb.Append($"Villages + Hearth: ");
@@ -487,9 +521,18 @@ namespace BLTAdoptAHero
                 return;
             }
 
-            var desiredClan = Clan.All.FirstOrDefault(c =>
-                    c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Clan.All.FirstOrDefault(c =>
-                    c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            Clan desiredClan;
+
+            // Streamer case check
+            if (desiredName.ToLower() == "player")
+            {
+                desiredClan = Hero.MainHero.Clan;
+            }
+            else
+            {
+                desiredClan = Clan.All.FirstOrDefault(c => c.Name.ToString().ToLower() == desiredName.ToLower()) 
+                    ?? Clan.All.FirstOrDefault(c => c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
 
             if (desiredClan != null)
             {
@@ -564,9 +607,17 @@ namespace BLTAdoptAHero
             }
             else if (!string.IsNullOrWhiteSpace(desiredName))
             {
-                desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
-                    c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Kingdom.All.FirstOrDefault(c =>
-                    c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                // Streamer case check
+                if (desiredName.ToLower() == "player")
+                {
+                    desiredKingdom = Hero.MainHero.Clan?.Kingdom;
+                }
+                else
+                {
+                    desiredKingdom = Kingdom.All.Where(k => !k.IsEliminated).FirstOrDefault(c =>
+                        c.Name.ToString().ToLower() == desiredName.ToLower()) ?? Kingdom.All.FirstOrDefault(c =>
+                        c.Name.ToString().IndexOf(desiredName, StringComparison.OrdinalIgnoreCase) >= 0);
+                }
             }
 
                 
@@ -769,7 +820,25 @@ namespace BLTAdoptAHero
             string result = $"Date: {date} | {days} days since start | {years} years({yearSize} days/year)";
 
             ActionManager.SendReply(context, result);
+        }
 
+        private void ShowPlayerSkills(ReplyContext context)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append($"{"{=fRwyY6ms}[LVL]".Translate()} {Hero.MainHero.Level}");
+
+            var skillsList = CampaignHelpers.AllSkillObjects
+                .OrderByDescending(s => Hero.MainHero.GetSkillValue(s))
+                .Select(skill =>
+                    $"{SkillXP.GetShortSkillName(skill)} {Hero.MainHero.GetSkillValue(skill)} " +
+                    $"[" +
+                    $"{"{=lHRDKsUT}f".Translate()}" +
+                    $"{Hero.MainHero.HeroDeveloper.GetFocus(skill)}]");
+
+            sb.Append($" {Naming.Sep2} {"{=rTId8pBy}[SKILLS]".Translate()} {string.Join(Naming.Sep2, skillsList)}");
+
+            ActionManager.SendReply(context, sb.ToString());
         }
     }   
 }

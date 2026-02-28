@@ -8,6 +8,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
 using BLTAdoptAHero.Actions;
+using TaleWorlds.Core;
 
 namespace BLTAdoptAHero
 {
@@ -45,6 +46,7 @@ namespace BLTAdoptAHero
             CampaignEvents.MobilePartyDestroyed.AddNonSerializedListener(this, OnMobilePartyDestroyed);
             CampaignEvents.OnSettlementOwnerChangedEvent.AddNonSerializedListener(this, OnSettlementOwnerChanged);
             CampaignEvents.ArmyDispersed.AddNonSerializedListener(this, OnArmyDispersed);
+            CampaignEvents.OnMissionEndedEvent.AddNonSerializedListener(this, OnMissionEnded);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -194,11 +196,10 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Skip mercenary parties — MercenaryArmyBehavior owns those
-                //if (MercenaryArmyPatches.IsMercenaryParty(party)) return;
+                if (party == null || !party.IsActive) return;
 
-                // If this party leads an army, keep cohesion topped up
-                if (party.LeaderHero.IsAdopted() && party.Army != null && party.Army.LeaderParty == party)
+                if (party.LeaderHero != null && party.LeaderHero.IsAdopted()
+                    && party.Army != null && party.Army.LeaderParty == party)
                 {
                     party.Army.Cohesion = 100f;
                 }
@@ -384,6 +385,27 @@ namespace BLTAdoptAHero
             catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnArmyDispersed error: {ex}"); }
         }
 
+        private void OnMissionEnded(IMission mission)
+        {
+            try
+            {
+                foreach (var order in _orders.Where(o => o.IsActive).ToList())
+                {
+                    var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
+                    if (party == null || !party.IsActive) continue;
+
+                    var target = order.TargetSettlementId != null
+                        ? Settlement.Find(order.TargetSettlementId) : null;
+
+                    if (!ValidateOrder(party, order.Type, target)) continue;
+
+                    IssueOrder(party, order.Type, target);
+                    party.Ai.SetDoNotMakeNewDecisions(true);
+                }
+            }
+            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnMissionEnded error: {ex}"); }
+        }
+
         /// <summary>
         /// Returns false if the settlement cannot be reached by the party's
         /// navigation capability (e.g. island with no naval access).
@@ -467,34 +489,63 @@ namespace BLTAdoptAHero
         {
             bool atSea = party.IsCurrentlyAtSea;
 
-            // NavigationType.All lets the engine properly plan around mountains, water,
-            // and other obstacles, and will trigger embarking when a water crossing is
-            // needed. NavigationType.Default hardcodes landRatio=1 and causes parties
-            // to walk in a straight line toward the target regardless of terrain.
-            MobileParty.NavigationType nav = atSea
+            // isFromPort must be true not only when the party is at sea, but also when
+            // a land party's target requires a water crossing — otherwise NavigationType.All
+            // will attempt to walk/sail without first routing through a port, causing
+            // the party to break pathing entirely when exiting a town toward an island target.
+            bool needsWaterCrossing = !atSea && target != null && LandPartyNeedsWaterCrossing(party, target);
+            bool isFromPort = atSea || needsWaterCrossing;
+
+            MobileParty.NavigationType nav = (atSea || needsWaterCrossing)
                 ? MobileParty.NavigationType.Naval
                 : MobileParty.NavigationType.All;
+
             var pm = new PartyManagement();
 
             switch (type)
             {
                 case PartyOrderType.Siege:
                     if (target != null)
-                        SetPartyAiAction.GetActionForBesiegingSettlement(party, target, nav, atSea);
+                        SetPartyAiAction.GetActionForBesiegingSettlement(party, target, nav, isFromPort);
                     break;
                 case PartyOrderType.Defend:
                     if (target != null)
-                        SetPartyAiAction.GetActionForDefendingSettlement(party, target, nav, atSea, false);
+                        SetPartyAiAction.GetActionForDefendingSettlement(party, target, nav, isFromPort, false);
                     break;
                 case PartyOrderType.Patrol:
                     if (target != null)
-                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, atSea, false);
+                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, isFromPort, false);
                     else
-                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, pm.FindBestSettlementToDefend(party, party.LeaderHero.Clan.Kingdom), nav, atSea, false);
-                //    Was crashing the game if they did this while at sea, switched to just patrolling an automatically calculated settlement
-                //    SetPartyAiAction.GetActionForPatrollingAroundPoint(
-                //            party, new CampaignVec2(party.GetPosition2D, !atSea), nav, atSea);
+                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(
+                            party,
+                            pm.FindBestSettlementToDefend(party, party.LeaderHero.Clan.Kingdom),
+                            nav, isFromPort, false);
                     break;
+            }
+        }
+
+        /// <summary>
+        /// Returns true if a land party cannot reach <paramref name="target"/> by land alone
+        /// (landRatio below threshold), meaning it needs to embark from a port.
+        /// Reuses the same distance model logic as IsSettlementReachable.
+        /// </summary>
+        private static bool LandPartyNeedsWaterCrossing(MobileParty party, Settlement target)
+        {
+            try
+            {
+                float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                    party, target, false, MobileParty.NavigationType.All, out float landRatio);
+
+                // Unreachable entirely, or more than half the route is water
+                if (dist >= float.MaxValue - 1f) return true;
+                if (landRatio >= 0f && landRatio < 0.5f) return true;
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] LandPartyNeedsWaterCrossing error: {ex}");
+                return false;
             }
         }
 

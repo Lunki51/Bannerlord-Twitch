@@ -19,11 +19,20 @@ namespace BLTAdoptAHero
 
         private GlobalCommonConfig ConfigSafe => GlobalCommonConfig.Get();
 
+        /// <summary>
+        /// When false, any accumulation above the current integer floor is discarded the moment
+        /// a spawn attempt fails due to a full party/garrison. When true (default), the remainder
+        /// is preserved and delivered once space becomes available.
+        /// Controlled by UpgradeAction.Settings and written on each command execution.
+        /// </summary>
+        public bool AccumulateWhenFull { get; set; } = true;
+
         public UpgradeBehavior() { Current = this; }
 
         public override void RegisterEvents()
         {
             CampaignEvents.DailyTickClanEvent.AddNonSerializedListener(this, OnDailyTickClan);
+            CampaignEvents.DailyTickSettlementEvent.AddNonSerializedListener(this, OnDailyTickSettlement);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -40,42 +49,31 @@ namespace BLTAdoptAHero
         }
 
         #region Serialization helpers
-        private static List<string> ParseUpgradeString(string upgradeString)
+        private static List<string> ParseUpgradeString(string s)
         {
-            if (string.IsNullOrEmpty(upgradeString)) return new List<string>();
-            return upgradeString
-                .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => !string.IsNullOrEmpty(s))
-                .ToList();
+            if (string.IsNullOrEmpty(s)) return new List<string>();
+            return s.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim()).Where(x => !string.IsNullOrEmpty(x)).ToList();
         }
 
         private static string SerializeUpgradeList(List<string> upgrades)
-        {
-            if (upgrades == null || upgrades.Count == 0) return string.Empty;
-            return string.Join(",", upgrades);
-        }
+            => (upgrades == null || upgrades.Count == 0) ? string.Empty : string.Join(",", upgrades);
         #endregion
 
         #region Fief Get/Has/Add/Remove
         public List<string> GetFiefUpgrades(Settlement settlement)
         {
             if (settlement == null) return new List<string>();
-            if (!_fiefUpgrades.TryGetValue(settlement.StringId, out string s)) return new List<string>();
-            return ParseUpgradeString(s);
+            return _fiefUpgrades.TryGetValue(settlement.StringId, out var s) ? ParseUpgradeString(s) : new List<string>();
         }
 
         public bool HasFiefUpgrade(Settlement settlement, string upgradeId)
-        {
-            if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
-            return GetFiefUpgrades(settlement).Contains(upgradeId);
-        }
+            => settlement != null && !string.IsNullOrEmpty(upgradeId) && GetFiefUpgrades(settlement).Contains(upgradeId);
 
         public bool AddFiefUpgrade(Settlement settlement, string upgradeId)
         {
             if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
-            var upgrades = _fiefUpgrades.TryGetValue(settlement.StringId, out string s)
-                ? ParseUpgradeString(s) : new List<string>();
+            var upgrades = _fiefUpgrades.TryGetValue(settlement.StringId, out var s) ? ParseUpgradeString(s) : new List<string>();
             if (upgrades.Contains(upgradeId)) return false;
             upgrades.Add(upgradeId);
             _fiefUpgrades[settlement.StringId] = SerializeUpgradeList(upgrades);
@@ -85,7 +83,7 @@ namespace BLTAdoptAHero
         public bool RemoveFiefUpgrade(Settlement settlement, string upgradeId)
         {
             if (settlement == null || string.IsNullOrEmpty(upgradeId)) return false;
-            if (!_fiefUpgrades.TryGetValue(settlement.StringId, out string s)) return false;
+            if (!_fiefUpgrades.TryGetValue(settlement.StringId, out var s)) return false;
             var upgrades = ParseUpgradeString(s);
             if (!upgrades.Remove(upgradeId)) return false;
             if (upgrades.Count == 0) _fiefUpgrades.Remove(settlement.StringId);
@@ -98,21 +96,16 @@ namespace BLTAdoptAHero
         public List<string> GetClanUpgrades(Clan clan)
         {
             if (clan == null) return new List<string>();
-            if (!_clanUpgrades.TryGetValue(clan.StringId, out string s)) return new List<string>();
-            return ParseUpgradeString(s);
+            return _clanUpgrades.TryGetValue(clan.StringId, out var s) ? ParseUpgradeString(s) : new List<string>();
         }
 
         public bool HasClanUpgrade(Clan clan, string upgradeId)
-        {
-            if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
-            return GetClanUpgrades(clan).Contains(upgradeId);
-        }
+            => clan != null && !string.IsNullOrEmpty(upgradeId) && GetClanUpgrades(clan).Contains(upgradeId);
 
         public bool AddClanUpgrade(Clan clan, string upgradeId)
         {
             if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
-            var upgrades = _clanUpgrades.TryGetValue(clan.StringId, out string s)
-                ? ParseUpgradeString(s) : new List<string>();
+            var upgrades = _clanUpgrades.TryGetValue(clan.StringId, out var s) ? ParseUpgradeString(s) : new List<string>();
             if (upgrades.Contains(upgradeId)) return false;
             upgrades.Add(upgradeId);
             _clanUpgrades[clan.StringId] = SerializeUpgradeList(upgrades);
@@ -122,7 +115,7 @@ namespace BLTAdoptAHero
         public bool RemoveClanUpgrade(Clan clan, string upgradeId)
         {
             if (clan == null || string.IsNullOrEmpty(upgradeId)) return false;
-            if (!_clanUpgrades.TryGetValue(clan.StringId, out string s)) return false;
+            if (!_clanUpgrades.TryGetValue(clan.StringId, out var s)) return false;
             var upgrades = ParseUpgradeString(s);
             if (!upgrades.Remove(upgradeId)) return false;
             if (upgrades.Count == 0) _clanUpgrades.Remove(clan.StringId);
@@ -135,21 +128,16 @@ namespace BLTAdoptAHero
         public List<string> GetKingdomUpgrades(Kingdom kingdom)
         {
             if (kingdom == null) return new List<string>();
-            if (!_kingdomUpgrades.TryGetValue(kingdom.StringId, out string s)) return new List<string>();
-            return ParseUpgradeString(s);
+            return _kingdomUpgrades.TryGetValue(kingdom.StringId, out var s) ? ParseUpgradeString(s) : new List<string>();
         }
 
         public bool HasKingdomUpgrade(Kingdom kingdom, string upgradeId)
-        {
-            if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
-            return GetKingdomUpgrades(kingdom).Contains(upgradeId);
-        }
+            => kingdom != null && !string.IsNullOrEmpty(upgradeId) && GetKingdomUpgrades(kingdom).Contains(upgradeId);
 
         public bool AddKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
             if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
-            var upgrades = _kingdomUpgrades.TryGetValue(kingdom.StringId, out string s)
-                ? ParseUpgradeString(s) : new List<string>();
+            var upgrades = _kingdomUpgrades.TryGetValue(kingdom.StringId, out var s) ? ParseUpgradeString(s) : new List<string>();
             if (upgrades.Contains(upgradeId)) return false;
             upgrades.Add(upgradeId);
             _kingdomUpgrades[kingdom.StringId] = SerializeUpgradeList(upgrades);
@@ -159,7 +147,7 @@ namespace BLTAdoptAHero
         public bool RemoveKingdomUpgrade(Kingdom kingdom, string upgradeId)
         {
             if (kingdom == null || string.IsNullOrEmpty(upgradeId)) return false;
-            if (!_kingdomUpgrades.TryGetValue(kingdom.StringId, out string s)) return false;
+            if (!_kingdomUpgrades.TryGetValue(kingdom.StringId, out var s)) return false;
             var upgrades = ParseUpgradeString(s);
             if (!upgrades.Remove(upgradeId)) return false;
             if (upgrades.Count == 0) _kingdomUpgrades.Remove(kingdom.StringId);
@@ -168,52 +156,12 @@ namespace BLTAdoptAHero
         }
         #endregion
 
-        #region Troop Spawning
-
-        /// <summary>
-        /// Effective tier for a clan upgrade's troop spawning, buffed by other clan upgrades.
-        /// </summary>
-        private int GetEffectiveTroopTier(Clan clan, ClanUpgrade spawningUpgrade)
-        {
-            if (clan == null || spawningUpgrade == null) return 1;
-            int tierBonus = 0;
-            foreach (var upgradeId in GetClanUpgrades(clan))
-            {
-                var upgrade = ConfigSafe?.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
-                if (upgrade == null) continue;
-                if ((upgrade.LordOnly && clan.IsUnderMercenaryService) || (upgrade.MercOnly && !clan.IsUnderMercenaryService)) continue;
-                if (upgrade.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
-                    tierBonus += upgrade.TroopTierBonus;
-            }
-            return Math.Max(1, spawningUpgrade.TroopTier + tierBonus);
-        }
-
-        /// <summary>
-        /// Effective tier for a kingdom upgrade's troop spawning, buffed by other kingdom upgrades.
-        /// </summary>
-        private int GetEffectiveTroopTierFromKingdom(Clan clan, KingdomUpgrade spawningUpgrade)
-        {
-            if (clan == null || spawningUpgrade == null || clan.Kingdom == null) return 1;
-            int tierBonus = 0;
-            foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
-            {
-                var upgrade = ConfigSafe?.KingdomUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
-                if (upgrade == null) continue;
-                if (upgrade.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
-                    tierBonus += upgrade.TroopTierBonus;
-            }
-            return Math.Max(1, spawningUpgrade.TroopTier + tierBonus);
-        }
-
-        /// <summary>
-        /// Traverse the troop tree to find a troop of the given tier and tree type.
-        /// </summary>
+        #region Troop tree traversal
         private CharacterObject GetTroopForCulture(CultureObject culture, TroopTreeType treeType, int tier)
         {
             if (culture == null) return null;
             if (culture.BasicTroop == null && culture.EliteBasicTroop == null) return null;
             if (culture.BasicTroop == null) treeType = TroopTreeType.Noble;
-
             try
             {
                 if (treeType == TroopTreeType.Noble)
@@ -248,7 +196,151 @@ namespace BLTAdoptAHero
                 return culture.BasicTroop;
             }
         }
+        #endregion
 
+        #region Effective tier resolution
+        private int GetEffectiveTroopTier(Clan clan, ClanUpgrade spawningUpgrade)
+        {
+            if (clan == null || spawningUpgrade == null) return 1;
+            int bonus = 0;
+            foreach (var id in GetClanUpgrades(clan))
+            {
+                var up = ConfigSafe?.ClanUpgrades?.FirstOrDefault(u => u.ID == id);
+                if (up == null) continue;
+                if ((up.LordOnly && clan.IsUnderMercenaryService) || (up.MercOnly && !clan.IsUnderMercenaryService)) continue;
+                if (up.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
+                    bonus += up.TroopTierBonus;
+            }
+            return Math.Max(1, spawningUpgrade.TroopTier + bonus);
+        }
+
+        private int GetEffectiveTroopTierFromKingdom(Clan clan, KingdomUpgrade spawningUpgrade)
+        {
+            if (clan == null || spawningUpgrade == null || clan.Kingdom == null) return 1;
+            int bonus = 0;
+            foreach (var id in GetKingdomUpgrades(clan.Kingdom))
+            {
+                var up = ConfigSafe?.KingdomUpgrades?.FirstOrDefault(u => u.ID == id);
+                if (up == null) continue;
+                if (up.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
+                    bonus += up.TroopTierBonus;
+            }
+            return Math.Max(1, spawningUpgrade.TroopTier + bonus);
+        }
+
+        // Garrison tier: fief upgrade buffed by other fief upgrades on the same settlement
+        private int GetEffectiveGarrisonTierFief(Settlement settlement, FiefUpgrade spawningUpgrade)
+        {
+            if (settlement == null || spawningUpgrade == null) return 1;
+            int bonus = 0;
+            foreach (var id in GetFiefUpgrades(settlement))
+            {
+                var up = ConfigSafe?.FiefUpgrades?.FirstOrDefault(u => u.ID == id);
+                if (up == null) continue;
+                if (up.GarrisonBuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
+                    bonus += up.GarrisonTroopTierBonus;
+            }
+            return Math.Max(1, spawningUpgrade.GarrisonTroopTier + bonus);
+        }
+
+        // Garrison tier: clan upgrade buffed by other clan upgrades
+        private int GetEffectiveGarrisonTierClan(Clan clan, ClanUpgrade spawningUpgrade)
+        {
+            if (clan == null || spawningUpgrade == null) return 1;
+            int bonus = 0;
+            foreach (var id in GetClanUpgrades(clan))
+            {
+                var up = ConfigSafe?.ClanUpgrades?.FirstOrDefault(u => u.ID == id);
+                if (up == null) continue;
+                if ((up.LordOnly && clan.IsUnderMercenaryService) || (up.MercOnly && !clan.IsUnderMercenaryService)) continue;
+                if (up.GarrisonBuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
+                    bonus += up.GarrisonTroopTierBonus;
+            }
+            return Math.Max(1, spawningUpgrade.GarrisonTroopTier + bonus);
+        }
+
+        // Garrison tier: kingdom upgrade buffed by other kingdom upgrades
+        private int GetEffectiveGarrisonTierKingdom(Clan clan, KingdomUpgrade spawningUpgrade)
+        {
+            if (clan == null || spawningUpgrade == null || clan.Kingdom == null) return 1;
+            int bonus = 0;
+            foreach (var id in GetKingdomUpgrades(clan.Kingdom))
+            {
+                var up = ConfigSafe?.KingdomUpgrades?.FirstOrDefault(u => u.ID == id);
+                if (up == null) continue;
+                if (up.GarrisonBuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
+                    bonus += up.GarrisonTroopTierBonus;
+            }
+            return Math.Max(1, spawningUpgrade.GarrisonTroopTier + bonus);
+        }
+        #endregion
+
+        #region Spawn helpers
+        // Returns true only if a troop was actually added. Caller must only decrement
+        // accumulation on true to avoid silent troop loss.
+        private bool TrySpawnTroopToParty(Clan clan, TroopTreeType tree, int tier)
+        {
+            var party = clan.Leader?.PartyBelongedTo != null &&
+                        clan.Leader.PartyBelongedTo.Party.MemberRoster.TotalManCount < clan.Leader.PartyBelongedTo.Party.PartySizeLimit
+                ? clan.Leader.PartyBelongedTo
+                : clan.WarPartyComponents
+                      .Where(p => p.MobileParty.MemberRoster.TotalManCount < p.Party.PartySizeLimit)
+                      .SelectRandom()?.MobileParty;
+            if (party == null) return false;
+            if (party.MemberRoster.TotalManCount >= party.Party.PartySizeLimit) return false;
+
+            var troop = GetTroopForCulture(clan.Culture, tree, tier);
+            if (troop == null) return false;
+
+            party.MemberRoster.AddToCounts(troop, 1);
+            return true;
+        }
+
+        // Returns true only if a troop was actually added to the garrison.
+        private bool TrySpawnTroopToGarrison(Settlement settlement, TroopTreeType tree, int tier)
+        {
+            var garrison = settlement?.Town?.GarrisonParty;
+            if (garrison == null) return false;
+            if (garrison.MemberRoster.TotalManCount >= garrison.Party.PartySizeLimit) return false;
+
+            var troop = GetTroopForCulture(settlement.Culture, tree, tier);
+            if (troop == null) return false;
+
+            garrison.MemberRoster.AddToCounts(troop, 1);
+            return true;
+        }
+
+        // Picks a random clan settlement whose garrison has room. Returns null if none found.
+        private Settlement GetRandomGarrisonSettlementForClan(Clan clan)
+            => clan?.Settlements
+                   .Where(s => s.Town?.GarrisonParty != null &&
+                               s.Town.GarrisonParty.MemberRoster.TotalManCount < s.Town.GarrisonParty.Party.PartySizeLimit)
+                   .SelectRandom();
+
+        private void RunAccumulation(string key, float amount, Func<bool> trySpawn)
+        {
+            _troopSpawnAccumulation.TryGetValue(key, out float acc);
+            acc += amount;
+            while (acc >= 1.0f)
+            {
+                if (!trySpawn())
+                {
+                    // Spawn failed (party/garrison full, or no valid troop).
+                    // If AccumulateWhenFull is disabled, discard everything >= 1.0
+                    // so troops don't bank up while there's no room.
+                    // The sub-1.0 fractional remainder is always kept — it represents
+                    // a partially-earned troop, not a banked one.
+                    if (!AccumulateWhenFull) acc %= 1.0f;
+                    break;
+                }
+                acc -= 1.0f;
+            }
+            if (acc > 0f) _troopSpawnAccumulation[key] = acc;
+            else _troopSpawnAccumulation.Remove(key);
+        }
+        #endregion
+
+        #region Daily tick handlers
         private void OnDailyTickClan(Clan clan)
         {
             try
@@ -257,309 +349,371 @@ namespace BLTAdoptAHero
 
                 ApplyRenownDaily(clan);
 
-                // ── Clan upgrade troop spawning ──────────────────────────────────
+                // ── Clan upgrade: war-party spawning ──────────────────────────
                 foreach (var upgradeId in GetClanUpgrades(clan))
                 {
-                    var upgrade = ConfigSafe.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
-                    if (upgrade == null || upgrade.DailyTroopSpawnAmount <= 0) continue;
-                    if ((upgrade.LordOnly && clan.IsUnderMercenaryService) || (upgrade.MercOnly && !clan.IsUnderMercenaryService)) continue;
+                    var up = ConfigSafe.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
+                    if (up == null) continue;
+                    bool lordBlock = up.LordOnly && clan.IsUnderMercenaryService;
+                    bool mercBlock = up.MercOnly && !clan.IsUnderMercenaryService;
+                    if (lordBlock || mercBlock) continue;
 
-                    string key = $"{clan.StringId}:{upgradeId}";
-                    if (!_troopSpawnAccumulation.TryGetValue(key, out float accumulated)) accumulated = 0f;
-                    accumulated += upgrade.DailyTroopSpawnAmount;
-
-                    while (accumulated >= 1.0f &&
-                           clan.WarPartyComponents.Any(p => p.MobileParty.MemberRoster.TotalManCount < p.Party.PartySizeLimit))
+                    if (up.DailyTroopSpawnAmount > 0)
                     {
-                        SpawnTroopForClan(clan, upgrade);
-                        accumulated -= 1.0f;
+                        int tier = GetEffectiveTroopTier(clan, up);
+                        RunAccumulation($"{clan.StringId}:{upgradeId}",
+                            up.DailyTroopSpawnAmount,
+                            () => TrySpawnTroopToParty(clan, up.TroopTree, tier));
                     }
 
-                    if (accumulated > 0f) _troopSpawnAccumulation[key] = accumulated;
-                    else _troopSpawnAccumulation.Remove(key);
+                    if (up.GarrisonDailyTroopSpawnAmount > 0)
+                    {
+                        int gTier = GetEffectiveGarrisonTierClan(clan, up);
+                        RunAccumulation($"clan_garrison:{clan.StringId}:{upgradeId}",
+                            up.GarrisonDailyTroopSpawnAmount,
+                            () =>
+                            {
+                                var target = GetRandomGarrisonSettlementForClan(clan);
+                                return target != null && TrySpawnTroopToGarrison(target, up.GarrisonTroopTree, gTier);
+                            });
+                    }
                 }
 
-                // ── Kingdom upgrade troop spawning (fires once per clan in kingdom) ──
-                if (clan.Kingdom != null && ConfigSafe.KingdomUpgrades != null)
+                // ── Kingdom upgrade: war-party and garrison spawning per clan ──
+                if (clan.Kingdom == null || ConfigSafe.KingdomUpgrades == null) return;
+
+                foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
                 {
-                    foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
+                    var up = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+                    if (up == null) continue;
+
+                    if (up.DailyTroopSpawnAmount > 0)
                     {
-                        var upgrade = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == upgradeId);
-                        if (upgrade == null || upgrade.DailyTroopSpawnAmount <= 0) continue;
+                        int tier = GetEffectiveTroopTierFromKingdom(clan, up);
+                        RunAccumulation($"kdom:{clan.Kingdom.StringId}:{clan.StringId}:{upgradeId}",
+                            up.DailyTroopSpawnAmount,
+                            () => TrySpawnTroopToParty(clan, up.TroopTree, tier));
+                    }
 
-                        // Key is scoped per kingdom+clan+upgrade so each clan accumulates independently
-                        string key = $"kdom:{clan.Kingdom.StringId}:{clan.StringId}:{upgradeId}";
-                        if (!_troopSpawnAccumulation.TryGetValue(key, out float accumulated)) accumulated = 0f;
-                        accumulated += upgrade.DailyTroopSpawnAmount;
-
-                        while (accumulated >= 1.0f &&
-                               clan.WarPartyComponents.Any(p => p.MobileParty.MemberRoster.TotalManCount < p.Party.PartySizeLimit))
-                        {
-                            SpawnTroopForClanFromKingdomUpgrade(clan, upgrade);
-                            accumulated -= 1.0f;
-                        }
-
-                        if (accumulated > 0f) _troopSpawnAccumulation[key] = accumulated;
-                        else _troopSpawnAccumulation.Remove(key);
+                    if (up.GarrisonDailyTroopSpawnAmount > 0)
+                    {
+                        int gTier = GetEffectiveGarrisonTierKingdom(clan, up);
+                        RunAccumulation($"kdom_garrison:{clan.Kingdom.StringId}:{clan.StringId}:{upgradeId}",
+                            up.GarrisonDailyTroopSpawnAmount,
+                            () =>
+                            {
+                                var target = GetRandomGarrisonSettlementForClan(clan);
+                                return target != null && TrySpawnTroopToGarrison(target, up.GarrisonTroopTree, gTier);
+                            });
                     }
                 }
             }
             catch (Exception ex)
             {
-                TaleWorlds.Library.InformationManager.DisplayMessage(
-                    new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] Daily tick error: {ex.Message}"));
+                Log($"Daily clan tick error: {ex.Message}");
             }
         }
 
-        private void SpawnTroopForClan(Clan clan, ClanUpgrade upgrade)
+        private void OnDailyTickSettlement(Settlement settlement)
         {
             try
             {
-                if ((upgrade.LordOnly && clan.IsUnderMercenaryService) || (upgrade.MercOnly && !clan.IsUnderMercenaryService)) return;
+                // Fief garrison spawning only applies to towns/castles (which have garrison parties)
+                if (settlement?.Town == null || ConfigSafe?.FiefUpgrades == null) return;
 
-                var party = clan.Leader.PartyBelongedTo != null &&
-                            clan.Leader.PartyBelongedTo.Party.MemberRoster.TotalManCount < clan.Leader.PartyBelongedTo.Party.PartySizeLimit
-                    ? clan.Leader.PartyBelongedTo
-                    : clan.WarPartyComponents
-                          .Where(p => p.MobileParty.MemberRoster.TotalManCount < p.Party.PartySizeLimit)
-                          .SelectRandom()?.MobileParty;
-                if (party == null) return;
-                // Final guard in case counts changed mid-tick
-                if (party.MemberRoster.TotalManCount >= party.Party.PartySizeLimit) return;
+                foreach (var upgradeId in GetFiefUpgrades(settlement))
+                {
+                    var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == upgradeId);
+                    if (up == null || up.GarrisonDailyTroopSpawnAmount <= 0) continue;
+                    if (up.CoastalOnly && !settlement.HasPort) continue;
 
-                var troop = GetTroopForCulture(clan.Culture, upgrade.TroopTree, GetEffectiveTroopTier(clan, upgrade));
-                if (troop != null) party.MemberRoster.AddToCounts(troop, 1);
+                    int tier = GetEffectiveGarrisonTierFief(settlement, up);
+                    RunAccumulation($"fief_garrison:{settlement.StringId}:{upgradeId}",
+                        up.GarrisonDailyTroopSpawnAmount,
+                        () => TrySpawnTroopToGarrison(settlement, up.GarrisonTroopTree, tier));
+                }
             }
             catch (Exception ex)
             {
-                TaleWorlds.Library.InformationManager.DisplayMessage(
-                    new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] Spawn troop error: {ex.Message}"));
+                Log($"Daily settlement tick error: {ex.Message}");
             }
         }
 
-        private void SpawnTroopForClanFromKingdomUpgrade(Clan clan, KingdomUpgrade upgrade)
-        {
-            try
-            {
-                var party = clan.Leader.PartyBelongedTo != null &&
-                            clan.Leader.PartyBelongedTo.Party.MemberRoster.TotalManCount < clan.Leader.PartyBelongedTo.Party.PartySizeLimit
-                    ? clan.Leader.PartyBelongedTo
-                    : clan.WarPartyComponents
-                          .Where(p => p.MobileParty.MemberRoster.TotalManCount < p.Party.PartySizeLimit)
-                          .SelectRandom()?.MobileParty;
-                if (party == null) return;
-                // Final guard in case counts changed mid-tick
-                if (party.MemberRoster.TotalManCount >= party.Party.PartySizeLimit) return;
-
-                var troop = GetTroopForCulture(clan.Culture, upgrade.TroopTree, GetEffectiveTroopTierFromKingdom(clan, upgrade));
-                if (troop != null) party.MemberRoster.AddToCounts(troop, 1);
-            }
-            catch (Exception ex)
-            {
-                TaleWorlds.Library.InformationManager.DisplayMessage(
-                    new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] Kingdom spawn troop error: {ex.Message}"));
-            }
-        }
-
+        private static void Log(string msg)
+            => TaleWorlds.Library.InformationManager.DisplayMessage(
+                new TaleWorlds.Library.InformationMessage($"[BLT Upgrade] {msg}"));
         #endregion
 
         #region Typed aggregation helpers
-        private float SumFiefFloat(Settlement s, Func<FiefUpgrade, float> selector)
+        // ── Core rule ────────────────────────────────────────────────────────
+        // A negative upgrade value is skipped when the running total (current
+        // stat value + sum accumulated so far) would fall below zero, i.e. the
+        // stat is already at its minimum and cannot be reduced further.
+        // ─────────────────────────────────────────────────────────────────────
+
+        // Cached once per Sum call so every loop iteration doesn't re-read the config.
+        private bool FloorGuardEnabled => ConfigSafe?.BlockNegativesAtFloor ?? true;
+
+        private float SumFiefFloat(Settlement s, Func<FiefUpgrade, float> sel, float currentValue = float.MaxValue)
         {
             if (s == null || ConfigSafe == null) return 0f;
+            bool guard = FloorGuardEnabled;
             float sum = 0f;
             foreach (var id in GetFiefUpgrades(s))
             {
                 var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null && (!up.CoastalOnly || s.HasPort)) sum += selector(up);
+                if (up == null) continue;
+                if (up.CoastalOnly && !s.HasPort) continue;
+                float v = sel(up);
+                if (guard && v < 0f && currentValue + sum + v < 0f) continue; // floor guard
+                sum += v;
             }
             return sum;
         }
 
-        private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> selector, bool applyToVassalsOnly = false)
+        private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> sel, bool vassalOnly = false, float currentValue = float.MaxValue)
         {
             if (clan == null || ConfigSafe == null) return 0f;
+            bool guard = FloorGuardEnabled;
             float sum = 0f;
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                bool lordAllow = !up.LordOnly || !clan.IsUnderMercenaryService;
-                bool mercAllow = !up.MercOnly || clan.IsUnderMercenaryService;
-                bool vassalAllow = !up.ApplyToVassals || applyToVassalsOnly;
-                if (lordAllow && mercAllow && vassalAllow) sum += selector(up);
+                if (up.LordOnly && clan.IsUnderMercenaryService) continue;
+                if (up.MercOnly && !clan.IsUnderMercenaryService) continue;
+                if (up.ApplyToVassals && !vassalOnly) continue;
+                float v = sel(up);
+                if (guard && v < 0f && currentValue + sum + v < 0f) continue; // floor guard
+                sum += v;
             }
             return sum;
         }
 
-        private float SumKingdomFloat(Kingdom kingdom, Func<KingdomUpgrade, float> selector)
+        private float SumKingdomFloat(Kingdom kingdom, Func<KingdomUpgrade, float> sel, float currentValue = float.MaxValue)
         {
             if (kingdom == null || ConfigSafe == null) return 0f;
+            bool guard = FloorGuardEnabled;
             float sum = 0f;
             foreach (var id in GetKingdomUpgrades(kingdom))
             {
                 var up = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += selector(up);
+                if (up == null) continue;
+                float v = sel(up);
+                if (guard && v < 0f && currentValue + sum + v < 0f) continue; // floor guard
+                sum += v;
             }
             return sum;
         }
 
-        private float SumSettlementFloatTyped(Settlement s,
-            Func<FiefUpgrade, float> fiefSel, Func<ClanUpgrade, float> clanSel, Func<KingdomUpgrade, float> kingSel)
+        /// <summary>
+        /// Aggregates float values across fief, clan, and kingdom upgrades for a settlement,
+        /// respecting the zero floor: a negative contribution is skipped if the stat would
+        /// drop below zero given everything accumulated so far.
+        /// </summary>
+        private float SumSettlementFloat(Settlement s,
+            Func<FiefUpgrade, float> fiefSel,
+            Func<ClanUpgrade, float> clanSel,
+            Func<KingdomUpgrade, float> kingSel,
+            float currentValue = float.MaxValue)
         {
             if (s == null) return 0f;
-            float sum = SumFiefFloat(s, fiefSel);
+
+            // Each layer sees the running total so the floor check is cumulative.
+            float fiefSum = SumFiefFloat(s, fiefSel, currentValue);
+            float runningTotal = currentValue + fiefSum;
+
             var clan = s.OwnerClan;
+            float clanSum = 0f, kingSum = 0f;
             if (clan != null)
             {
-                sum += SumClanFloat(clan, clanSel);
-                if (clan.Kingdom != null) sum += SumKingdomFloat(clan.Kingdom, kingSel);
+                clanSum = SumClanFloat(clan, clanSel, currentValue: runningTotal);
+                runningTotal += clanSum;
+                if (clan.Kingdom != null)
+                    kingSum = SumKingdomFloat(clan.Kingdom, kingSel, runningTotal);
             }
-            return sum;
+            return fiefSum + clanSum + kingSum;
         }
 
-        private int SumFiefInt(Settlement s, Func<FiefUpgrade, int> selector)
+        private int SumFiefInt(Settlement s, Func<FiefUpgrade, int> sel, float currentValue = float.MaxValue)
         {
             if (s == null || ConfigSafe == null) return 0;
-            int sum = 0;
+            bool guard = FloorGuardEnabled;
+            float sum = 0f;
             foreach (var id in GetFiefUpgrades(s))
             {
                 var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += selector(up);
+                if (up == null) continue;
+                if (up.CoastalOnly && !s.HasPort) continue;
+                int v = sel(up);
+                if (guard && v < 0 && currentValue + sum + v < 0f) continue; // floor guard
+                sum += v;
             }
-            return sum;
+            return (int)sum;
         }
 
-        private int SumClanInt(Clan clan, Func<ClanUpgrade, int> selector, bool applyToVassalsOnly = false)
+        private int SumClanInt(Clan clan, Func<ClanUpgrade, int> sel, bool vassalOnly = false, float currentValue = float.MaxValue)
         {
             if (clan == null || ConfigSafe == null) return 0;
-            int sum = 0;
+            bool guard = FloorGuardEnabled;
+            float sum = 0f;
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                bool lordAllow = !up.LordOnly || !clan.IsUnderMercenaryService;
-                bool mercAllow = !up.MercOnly || clan.IsUnderMercenaryService;
-                bool vassalAllow = !up.ApplyToVassals || applyToVassalsOnly;
-                if (lordAllow && mercAllow && vassalAllow) sum += selector(up);
+                if (up.LordOnly && clan.IsUnderMercenaryService) continue;
+                if (up.MercOnly && !clan.IsUnderMercenaryService) continue;
+                if (up.ApplyToVassals && !vassalOnly) continue;
+                int v = sel(up);
+                if (guard && v < 0 && currentValue + sum + v < 0f) continue; // floor guard
+                sum += v;
             }
-            return sum;
+            return (int)sum;
         }
 
-        private int SumKingdomInt(Kingdom kingdom, Func<KingdomUpgrade, int> selector)
+        private int SumKingdomInt(Kingdom kingdom, Func<KingdomUpgrade, int> sel, float currentValue = float.MaxValue)
         {
             if (kingdom == null || ConfigSafe == null) return 0;
-            int sum = 0;
+            bool guard = FloorGuardEnabled;
+            float sum = 0f;
             foreach (var id in GetKingdomUpgrades(kingdom))
             {
                 var up = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
-                if (up != null) sum += selector(up);
+                if (up == null) continue;
+                int v = sel(up);
+                if (guard && v < 0 && currentValue + sum + v < 0f) continue; // floor guard
+                sum += v;
             }
-            return sum;
+            return (int)sum;
         }
 
-        private int SumSettlementIntTyped(Settlement s,
-            Func<FiefUpgrade, int> fiefSel, Func<ClanUpgrade, int> clanSel, Func<KingdomUpgrade, int> kingSel)
+        private int SumSettlementInt(Settlement s,
+            Func<FiefUpgrade, int> fiefSel,
+            Func<ClanUpgrade, int> clanSel,
+            Func<KingdomUpgrade, int> kingSel,
+            float currentValue = float.MaxValue)
         {
             if (s == null) return 0;
-            int sum = SumFiefInt(s, fiefSel);
+
+            int fiefSum = SumFiefInt(s, fiefSel, currentValue);
+            float runningTotal = currentValue + fiefSum;
+
             var clan = s.OwnerClan;
+            int clanSum = 0, kingSum = 0;
             if (clan != null)
             {
-                sum += SumClanInt(clan, clanSel);
-                if (clan.Kingdom != null) sum += SumKingdomInt(clan.Kingdom, kingSel);
+                clanSum = SumClanInt(clan, clanSel, currentValue: runningTotal);
+                runningTotal += clanSum;
+                if (clan.Kingdom != null)
+                    kingSum = SumKingdomInt(clan.Kingdom, kingSel, runningTotal);
             }
-            return sum;
+            return fiefSum + clanSum + kingSum;
         }
         #endregion
 
         #region Aggregated getters
-        public int GetTotalTaxBonus(Settlement s)
-            => SumSettlementIntTyped(s, f => f.TaxIncomeFlat, c => c.TaxIncomeFlat, k => k.TaxIncomeFlat);
+        // Pass the real current stat value so the floor guard can fire correctly.
+        // Callers that don't have access to the current value can omit it (defaults
+        // to float.MaxValue, which disables the guard — same as the old behaviour).
 
-        public float GetTotalHearthDaily(Settlement s)
-            => SumSettlementFloatTyped(s, f => f.HearthDaily, c => c.HearthDaily, k => k.HearthDaily);
+        public int GetTotalTaxBonus(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementInt(s, f => f.TaxIncomeFlat, c => c.TaxIncomeFlat, k => k.TaxIncomeFlat, currentValue);
 
-        public int GetTotalGarrisonCapacityBonus(Settlement s)
-            => SumSettlementIntTyped(s, f => f.GarrisonCapacityBonus, c => c.GarrisonCapacityBonus, k => k.GarrisonCapacityBonus);
+        public float GetTotalHearthDaily(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.HearthDaily, c => c.HearthDaily, k => k.HearthDaily, currentValue);
 
-        public int GetClanPartySizeBonus(Clan clan) => SumClanInt(clan, c => c.PartySizeBonus);
-        public int GetKingdomPartySizeBonus(Kingdom k) => SumKingdomInt(k, u => u.PartySizeBonus);
-        public int GetTotalPartySizeBonus(Hero hero)
+        public int GetTotalGarrisonCapacityBonus(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementInt(s, f => f.GarrisonCapacityBonus, c => c.GarrisonCapacityBonus, k => k.GarrisonCapacityBonus, currentValue);
+
+        public int GetClanPartySizeBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartySizeBonus, currentValue: currentValue);
+        public int GetKingdomPartySizeBonus(Kingdom k, float currentValue = float.MaxValue) => SumKingdomInt(k, u => u.PartySizeBonus, currentValue);
+        public int GetTotalPartySizeBonus(Hero hero, float currentValue = float.MaxValue)
         {
             if (hero?.Clan == null) return 0;
-            int b = GetClanPartySizeBonus(hero.Clan);
-            if (hero.Clan.Kingdom != null) b += GetKingdomPartySizeBonus(hero.Clan.Kingdom);
+            int b = GetClanPartySizeBonus(hero.Clan, currentValue);
+            float running = currentValue + b;
+            if (hero.Clan.Kingdom != null) b += GetKingdomPartySizeBonus(hero.Clan.Kingdom, running);
             return b;
         }
 
-        public float GetClanPartySpeedBonus(Clan clan) => SumClanFloat(clan, c => c.PartySpeedBonus);
-        public float GetKingdomPartySpeedBonus(Kingdom k) => SumKingdomFloat(k, u => u.PartySpeedBonus);
-        public float GetTotalPartySpeedBonus(Hero hero)
+        public float GetClanPartySpeedBonus(Clan clan, float currentValue = float.MaxValue) => SumClanFloat(clan, c => c.PartySpeedBonus, currentValue: currentValue);
+        public float GetKingdomPartySpeedBonus(Kingdom k, float currentValue = float.MaxValue) => SumKingdomFloat(k, u => u.PartySpeedBonus, currentValue);
+        public float GetTotalPartySpeedBonus(Hero hero, float currentValue = float.MaxValue)
         {
             if (hero?.Clan == null) return 0f;
-            float b = GetClanPartySpeedBonus(hero.Clan);
-            if (hero.Clan.Kingdom != null) b += GetKingdomPartySpeedBonus(hero.Clan.Kingdom);
+            float b = GetClanPartySpeedBonus(hero.Clan, currentValue);
+            if (hero.Clan.Kingdom != null) b += GetKingdomPartySpeedBonus(hero.Clan.Kingdom, currentValue + b);
             return b;
         }
 
-        public int GetClanPartyAmountBonus(Clan clan) => SumClanInt(clan, c => c.PartyAmountBonus);
-        public int GetTotalPartyAmountBonus(Clan clan) => clan == null ? 0 : GetClanPartyAmountBonus(clan);
+        public int GetClanPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartyAmountBonus, currentValue: currentValue);
+        public int GetTotalPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => clan == null ? 0 : GetClanPartyAmountBonus(clan, currentValue);
 
-        public int GetClanMaxVassalsBonus(Clan clan) => SumClanInt(clan, c => c.MaxVassalsBonus);
-        public int GetTotalMaxVassalsBonus(Clan clan) => clan == null ? 0 : GetClanMaxVassalsBonus(clan);
+        public int GetClanMaxVassalsBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.MaxVassalsBonus, currentValue: currentValue);
+        public int GetTotalMaxVassalsBonus(Clan clan, float currentValue = float.MaxValue) => clan == null ? 0 : GetClanMaxVassalsBonus(clan, currentValue);
 
-        public float GetClanRenownDaily(Clan clan) => SumClanFloat(clan, c => c.RenownDaily);
-        public float GetKingdomRenownDaily(Kingdom k) => SumKingdomFloat(k, u => u.RenownDaily);
-        public float GetTotalRenownDaily(Hero hero)
+        public float GetClanRenownDaily(Clan clan, float currentValue = float.MaxValue) => SumClanFloat(clan, c => c.RenownDaily, currentValue: currentValue);
+        public float GetKingdomRenownDaily(Kingdom k, float currentValue = float.MaxValue) => SumKingdomFloat(k, u => u.RenownDaily, currentValue);
+        public float GetTotalRenownDaily(Hero hero, float currentValue = float.MaxValue)
         {
             if (hero?.Clan == null) return 0f;
-            float b = GetClanRenownDaily(hero.Clan);
-            if (hero.Clan.Kingdom != null) b += GetKingdomRenownDaily(hero.Clan.Kingdom);
+            float b = GetClanRenownDaily(hero.Clan, currentValue);
+            if (hero.Clan.Kingdom != null) b += GetKingdomRenownDaily(hero.Clan.Kingdom, currentValue + b);
             return b;
         }
 
-        public float GetClanInfluenceDaily(Clan clan) => SumClanFloat(clan, c => c.InfluenceDaily);
-        public float GetKingdomInfluenceDaily(Kingdom kingdom) => SumKingdomFloat(kingdom, k => k.InfluenceDaily);
+        public float GetClanInfluenceDaily(Clan clan, float currentValue = float.MaxValue) => SumClanFloat(clan, c => c.InfluenceDaily, currentValue: currentValue);
+        public float GetKingdomInfluenceDaily(Kingdom kingdom, float currentValue = float.MaxValue) => SumKingdomFloat(kingdom, k => k.InfluenceDaily, currentValue);
 
         public void ApplyRenownDaily(Clan clan)
         {
-            clan.AddRenown(GetTotalRenownDaily(clan.Leader), false);
-
-            float influenceBonus = GetClanInfluenceDaily(clan);
-            if (clan.Kingdom != null) influenceBonus += GetKingdomInfluenceDaily(clan.Kingdom);
-            if (influenceBonus != 0f) clan.Influence += influenceBonus;
+            clan.AddRenown(GetTotalRenownDaily(clan.Leader, clan.Renown), false);
+            float influence = GetClanInfluenceDaily(clan, clan.Influence);
+            if (clan.Kingdom != null) influence += GetKingdomInfluenceDaily(clan.Kingdom, clan.Influence + influence);
+            if (influence != 0f) clan.Influence += influence;
         }
 
-        public int GetKingdomMaxClansBonus(Kingdom k) => SumKingdomInt(k, u => u.MaxClansBonus);
-        public int GetTotalKingdomMaxClansBonus(Kingdom k) => k == null ? 0 : GetKingdomMaxClansBonus(k);
+        public int GetKingdomMaxClansBonus(Kingdom k, float currentValue = float.MaxValue) => SumKingdomInt(k, u => u.MaxClansBonus, currentValue);
+        public int GetTotalKingdomMaxClansBonus(Kingdom k, float currentValue = float.MaxValue) => k == null ? 0 : GetKingdomMaxClansBonus(k, currentValue);
+        public int GetKingdomMaxMercClansBonus(Kingdom k, float currentValue = float.MaxValue) => SumKingdomInt(k, u => u.MaxMercClansBonus, currentValue);
+        public int GetTotalKingdomMaxMercClansBonus(Kingdom k, float currentValue = float.MaxValue) => k == null ? 0 : GetKingdomMaxMercClansBonus(k, currentValue);
 
-        public int GetFlatClanMercBonus(Clan clan) => SumClanInt(clan, c => c.MercIncomeFlat);
+        public int GetFlatClanMercBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.MercIncomeFlat, currentValue: currentValue);
         public float GetPercentClanMercBonus(Clan clan) => 1f + SumClanFloat(clan, c => c.MercIncomePercent);
-        public int GetFlatMercBonus(Hero hero) => hero?.Clan == null ? 0 : GetFlatClanMercBonus(hero.Clan);
+        public int GetFlatMercBonus(Hero hero, float currentValue = float.MaxValue) => hero?.Clan == null ? 0 : GetFlatClanMercBonus(hero.Clan, currentValue);
 
-        public float GetTotalLoyaltyDailyFlat(Settlement s) => SumSettlementFloatTyped(s, f => f.LoyaltyDailyFlat, c => c.LoyaltyDailyFlat, k => k.LoyaltyDailyFlat);
-        public float GetTotalLoyaltyDailyPercent(Settlement s) => SumSettlementFloatTyped(s, f => f.LoyaltyDailyPercent, c => c.LoyaltyDailyPercent, k => k.LoyaltyDailyPercent);
-        public float GetTotalProsperityDailyFlat(Settlement s) => SumSettlementFloatTyped(s, f => f.ProsperityDailyFlat, c => c.ProsperityDailyFlat, k => k.ProsperityDailyFlat);
-        public float GetTotalProsperityDailyPercent(Settlement s) => SumSettlementFloatTyped(s, f => f.ProsperityDailyPercent, c => c.ProsperityDailyPercent, k => k.ProsperityDailyPercent);
-        public float GetTotalSecurityDailyFlat(Settlement s) => SumSettlementFloatTyped(s, f => f.SecurityDailyFlat, c => c.SecurityDailyFlat, k => k.SecurityDailyFlat);
-        public float GetTotalSecurityDailyPercent(Settlement s) => SumSettlementFloatTyped(s, f => f.SecurityDailyPercent, c => c.SecurityDailyPercent, k => k.SecurityDailyPercent);
-        public float GetTotalMilitiaDailyFlat(Settlement s) => SumSettlementFloatTyped(s, f => f.MilitiaDailyFlat, c => c.MilitiaDailyFlat, k => k.MilitiaDailyFlat);
-        public float GetTotalMilitiaDailyPercent(Settlement s) => SumSettlementFloatTyped(s, f => f.MilitiaDailyPercent, c => c.MilitiaDailyPercent, k => k.MilitiaDailyPercent);
-        public float GetTotalFoodDailyFlat(Settlement s) => SumSettlementFloatTyped(s, f => f.FoodDailyFlat, c => c.FoodDailyFlat, k => k.FoodDailyFlat);
-        public float GetTotalFoodDailyPercent(Settlement s) => SumSettlementFloatTyped(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent);
+        public float GetTotalLoyaltyDailyFlat(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.LoyaltyDailyFlat, c => c.LoyaltyDailyFlat, k => k.LoyaltyDailyFlat, currentValue);
+        public float GetTotalLoyaltyDailyPercent(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.LoyaltyDailyPercent, c => c.LoyaltyDailyPercent, k => k.LoyaltyDailyPercent, currentValue);
+        public float GetTotalProsperityDailyFlat(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.ProsperityDailyFlat, c => c.ProsperityDailyFlat, k => k.ProsperityDailyFlat, currentValue);
+        public float GetTotalProsperityDailyPercent(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.ProsperityDailyPercent, c => c.ProsperityDailyPercent, k => k.ProsperityDailyPercent, currentValue);
+        public float GetTotalSecurityDailyFlat(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.SecurityDailyFlat, c => c.SecurityDailyFlat, k => k.SecurityDailyFlat, currentValue);
+        public float GetTotalSecurityDailyPercent(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.SecurityDailyPercent, c => c.SecurityDailyPercent, k => k.SecurityDailyPercent, currentValue);
+        public float GetTotalMilitiaDailyFlat(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.MilitiaDailyFlat, c => c.MilitiaDailyFlat, k => k.MilitiaDailyFlat, currentValue);
+        public float GetTotalMilitiaDailyPercent(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.MilitiaDailyPercent, c => c.MilitiaDailyPercent, k => k.MilitiaDailyPercent, currentValue);
+        public float GetTotalFoodDailyFlat(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.FoodDailyFlat, c => c.FoodDailyFlat, k => k.FoodDailyFlat, currentValue);
+        public float GetTotalFoodDailyPercent(Settlement s, float currentValue = float.MaxValue)
+            => SumSettlementFloat(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent, currentValue);
 
         // Backward-compatible short names
-        public float GetLoyaltyFlat(Settlement s) => GetTotalLoyaltyDailyFlat(s);
-        public float GetLoyaltyPercent(Settlement s) => GetTotalLoyaltyDailyPercent(s);
-        public float GetProsperityFlat(Settlement s) => GetTotalProsperityDailyFlat(s);
-        public float GetProsperityPercent(Settlement s) => GetTotalProsperityDailyPercent(s);
-        public float GetSecurityFlat(Settlement s) => GetTotalSecurityDailyFlat(s);
-        public float GetSecurityPercent(Settlement s) => GetTotalSecurityDailyPercent(s);
-        public float GetMilitiaFlat(Settlement s) => GetTotalMilitiaDailyFlat(s);
-        public float GetMilitiaPercent(Settlement s) => GetTotalMilitiaDailyPercent(s);
-        public float GetFoodFlat(Settlement s) => GetTotalFoodDailyFlat(s);
-        public float GetFoodPercent(Settlement s) => GetTotalFoodDailyPercent(s);
+        public float GetLoyaltyFlat(Settlement s, float cv = float.MaxValue) => GetTotalLoyaltyDailyFlat(s, cv);
+        public float GetLoyaltyPercent(Settlement s, float cv = float.MaxValue) => GetTotalLoyaltyDailyPercent(s, cv);
+        public float GetProsperityFlat(Settlement s, float cv = float.MaxValue) => GetTotalProsperityDailyFlat(s, cv);
+        public float GetProsperityPercent(Settlement s, float cv = float.MaxValue) => GetTotalProsperityDailyPercent(s, cv);
+        public float GetSecurityFlat(Settlement s, float cv = float.MaxValue) => GetTotalSecurityDailyFlat(s, cv);
+        public float GetSecurityPercent(Settlement s, float cv = float.MaxValue) => GetTotalSecurityDailyPercent(s, cv);
+        public float GetMilitiaFlat(Settlement s, float cv = float.MaxValue) => GetTotalMilitiaDailyFlat(s, cv);
+        public float GetMilitiaPercent(Settlement s, float cv = float.MaxValue) => GetTotalMilitiaDailyPercent(s, cv);
+        public float GetFoodFlat(Settlement s, float cv = float.MaxValue) => GetTotalFoodDailyFlat(s, cv);
+        public float GetFoodPercent(Settlement s, float cv = float.MaxValue) => GetTotalFoodDailyPercent(s, cv);
         #endregion
     }
 }
