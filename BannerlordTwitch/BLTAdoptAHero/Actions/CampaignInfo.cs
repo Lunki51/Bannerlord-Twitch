@@ -115,7 +115,7 @@ namespace BLTAdoptAHero
 
                 default:
                     ActionManager.SendReply(context,
-                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war (kingdom), fief (town/castle/village), fiefs (kingdom), clan (clan), clans (kingdom), vassals (clan))".Translate());
+                        "{=tk7R3uwg}invalid mode (use kingdomlist, culturelist, warlist, kingdom (kingdom), war/wars (kingdom), fief (town/castle/village), fiefs (kingdom), clan (clan), clans (kingdom), vassals (clan), time/date, player)".Translate());
                     break;
             }
         }
@@ -442,7 +442,7 @@ namespace BLTAdoptAHero
                 sb.Append("{=TESTING}💰Daily income:{profit} | ".Translate(("profit", profit)));
                 sb.Append("{=TESTING}Militia:{mil}({change}) | ".Translate(("mil", (int)town.Militia), ("change", (town.MilitiaChange + UpgradeBehavior.Current.GetMilitiaFlat(town.Settlement) > 0 ? "+" : "") + Math.Round(town.MilitiaChange + UpgradeBehavior.Current.GetMilitiaFlat(town.Settlement), 2))));
                 var garmodel = Campaign.Current.Models.PartySizeLimitModel;
-                sb.Append("{=TESTING}Garrison:{gar}/{garcap} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("garcap", (int)garmodel.CalculateGarrisonPartySizeLimit(town.Settlement, false).ResultNumber))); // + BLTUpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(town.Settlement)
+                sb.Append("{=TESTING}Garrison:{gar}/{garcap} | ".Translate(("gar", (int)town.GarrisonParty.MemberRoster.TotalHealthyCount), ("garcap", (int)garmodel.CalculateGarrisonPartySizeLimit(town.Settlement, false).ResultNumber + UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(town.Settlement))));
                 var villList = town.Settlement.BoundVillages.Select(v => v).ToList();
                 string villNames = "";
                 sb.Append($"Villages + Hearth: ");
