@@ -7,6 +7,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.Core;
 using BannerlordTwitch.Util;
 using BannerlordTwitch.Localization;
+using BannerlordTwitch.Rewards;
 
 namespace BLTAdoptAHero
 {
@@ -187,10 +188,18 @@ namespace BLTAdoptAHero
 #if DEBUG
                     Log.Trace($"[BLT] War already tracked: {k1.Name} vs {k2.Name}");
 #endif
+                    var AttackerK = BLTTreatyManager.Current.GetWar(k1, k2).GetAttacker();
+                    var DefenderK = BLTTreatyManager.Current.GetWar(k1, k2).GetDefender();
+                    if (DefenderK?.Leader.IsAdopted() == true)
+                        ActionManager.SendChat($"@{DefenderK.Leader.ToString().TrimEnd(']', 'T', 'L', 'B', '[', ' ')} {AttackerK} has declared war on {DefenderK}!");
                     return;
                 }
 
                 BLTTreatyManager.Current.CreateWar(k1, k2);
+                var AttackerKingdom = BLTTreatyManager.Current.GetWar(k1, k2).GetAttacker();
+                var DefenderKingdom = BLTTreatyManager.Current.GetWar(k1, k2).GetDefender();
+                if (DefenderKingdom?.Leader.IsAdopted() == true)
+                    ActionManager.SendChat($"@{DefenderKingdom.Leader.ToString().TrimEnd(']', 'T', 'L', 'B', '[', ' ')} {AttackerKingdom} has declared war on {DefenderKingdom}!");
 #if DEBUG
                 Log.Trace($"[BLT] War tracked: {k1.Name} vs {k2.Name} (Detail: {detail})");
 #endif
