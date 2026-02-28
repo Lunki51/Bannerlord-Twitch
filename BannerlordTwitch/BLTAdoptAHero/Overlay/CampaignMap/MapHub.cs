@@ -196,28 +196,12 @@ namespace BLTAdoptAHero.UI
                     minY: Campaign.MapMinimumPosition.Y,
                     maxY: Campaign.MapMaximumPosition.Y
                 );
-
-                if (_cachedCoastline == null || _cachedCoastline.Count == 0)
-                {
-                    Log.Trace("[MapHub] Generating coastline cache...");
-                    _cachedCoastline = GenerateCoastline(mapBounds);
-                    Log.Trace($"[MapHub] Coastline cache built: {_cachedCoastline.Count} segments");
-                }
-                mapData.Coastline = _cachedCoastline;
-                //float worldWidth = mapBounds.maxX - mapBounds.minX;
-                //float worldHeight = mapBounds.maxY - mapBounds.minY;
-
-                //Log.Trace($"[MapHub] World bounds: X({mapBounds.minX:F1} to {mapBounds.maxX:F1}) Width:{worldWidth:F1}, Y({mapBounds.minY:F1} to {mapBounds.maxY:F1}) Height:{worldHeight:F1}");
-
-                // Get all settlements (only towns and castles, no villages)
+             
                 var rawSettlements = Campaign.Current.Settlements
                     .Where(s => (s.IsTown || s.IsCastle) && (s.Position.X != 0 || s.Position.Y != 0))
                     .ToList();
 
-                // Normalize settlements
                 var settlements = new List<SettlementData>();
-                float minNormX = 98f, maxNormX = 2f;
-                float minNormY = 96f, maxNormY = 2f;
 
                 foreach (var s in rawSettlements)
                 {
@@ -234,22 +218,16 @@ namespace BLTAdoptAHero.UI
                     settlements.Add(settlement);
                 }
 
-                //float normWidth = maxNormX - minNormX;
-                //float normHeight = maxNormY - minNormY;
-
-                //Log.Trace($"[MapHub] Normalized BEFORE spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
-
-                //// Track AFTER spreading
-                //minNormX = settlements.Min(s => s.X);
-                //maxNormX = settlements.Max(s => s.X);
-                //minNormY = settlements.Min(s => s.Y);
-                //maxNormY = settlements.Max(s => s.Y);
-                //normWidth = maxNormX - minNormX;
-                //normHeight = maxNormY - minNormY;
-
-                //Log.Trace($"[MapHub] Normalized AFTER spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
                 SpreadSettlements(settlements);
                 mapData.Settlements = settlements;
+
+                if (_cachedCoastline == null || _cachedCoastline.Count == 0)
+                {
+                    Log.Trace("[MapHub] Generating coastline cache...");
+                    _cachedCoastline = GenerateCoastline(mapBounds, settlements);
+                    Log.Trace($"[MapHub] Coastline cache built: {_cachedCoastline.Count} segments");
+                }
+                mapData.Coastline = _cachedCoastline;
 
                 currentMapData = mapData;
                 lastUpdate = DateTime.Now;
@@ -471,7 +449,7 @@ namespace BLTAdoptAHero.UI
         }
 
         private static List<CoastlineSegment> GenerateCoastline(
-        (float minX, float maxX, float minY, float maxY) settlementBounds)
+        (float minX, float maxX, float minY, float maxY) settlementBounds, List<SettlementData> normalizedSettlements)
         {
             var map = Campaign.Current?.MapSceneWrapper;
             if (map == null) return new List<CoastlineSegment>();
@@ -503,7 +481,7 @@ namespace BLTAdoptAHero.UI
                     try
                     {
                         var (isWaterCell, terrainType, valid) = SampleTerrain(map, worldX, worldY, cellW, cellH);
-                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.RuralArea);
+                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.RuralArea || terrainType == TerrainType.SeaRestriction);
                         waterValue[rowBase + gx] = isWaterCell ? 1f : 0f;
                         if (valid) validSamples++;
                     }
@@ -607,8 +585,83 @@ namespace BLTAdoptAHero.UI
                 }
             }
 
-            Log.Trace($"[MapHub] Coastline: {segments.Count} segments");
+            segments = FilterCoastlineSegments(segments, normalizedSettlements);
+            Log.Trace($"[MapHub] Coastline after proximity filter: {segments.Count} segments");
             return segments;
+        }
+
+        private static List<CoastlineSegment> FilterCoastlineSegments(
+        List<CoastlineSegment> segments,
+        List<SettlementData> settlements,
+        float maxDistFromSettlement = 15f,
+        int maxConnectedHops = 5)
+        {
+            if (settlements.Count == 0) return segments;
+
+            int n = segments.Count;
+            if (n == 0) return segments;
+
+            var positions = settlements.Select(s => (s.X, s.Y)).ToList();
+            const float ENDPOINT_EPSILON = 0.01f;
+
+            // --- Step 1: Build adjacency ---
+            var adjacency = new List<int>[n];
+            for (int i = 0; i < n; i++) adjacency[i] = new List<int>();
+
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++)
+                {
+                    var a = segments[i]; var b = segments[j];
+                    bool shared =
+                        Near(a.X1, a.Y1, b.X1, b.Y1) || Near(a.X1, a.Y1, b.X2, b.Y2) ||
+                        Near(a.X2, a.Y2, b.X1, b.Y1) || Near(a.X2, a.Y2, b.X2, b.Y2);
+                    if (shared) { adjacency[i].Add(j); adjacency[j].Add(i); }
+                }
+
+            // --- Step 2: Mark segments close to a settlement ---
+            var closeToSettlement = new bool[n];
+            for (int i = 0; i < n; i++)
+            {
+                float midX = (segments[i].X1 + segments[i].X2) * 0.5f;
+                float midY = (segments[i].Y1 + segments[i].Y2) * 0.5f;
+                foreach (var (sx, sy) in positions)
+                {
+                    float dx = midX - sx, dy = midY - sy;
+                    if (dx * dx + dy * dy <= maxDistFromSettlement * maxDistFromSettlement)
+                    {
+                        closeToSettlement[i] = true;
+                        break;
+                    }
+                }
+            }
+
+            // --- Step 3: BFS up to maxConnectedHops from close segments ---
+            var keep = new bool[n];
+            var queue = new Queue<(int index, int hopsLeft)>();
+
+            for (int i = 0; i < n; i++)
+                if (closeToSettlement[i]) { keep[i] = true; queue.Enqueue((i, maxConnectedHops)); }
+
+            while (queue.Count > 0)
+            {
+                var (idx, hopsLeft) = queue.Dequeue();
+                if (hopsLeft <= 0) continue;
+                foreach (int neighbour in adjacency[idx])
+                    if (!keep[neighbour]) { keep[neighbour] = true; queue.Enqueue((neighbour, hopsLeft - 1)); }
+            }
+
+            var result = new List<CoastlineSegment>(n);
+            for (int i = 0; i < n; i++)
+                if (keep[i]) result.Add(segments[i]);
+
+            Log.Trace($"[MapHub] Coastline filter: {n} -> {result.Count} segments (maxHops={maxConnectedHops}, maxDist={maxDistFromSettlement})");
+            return result;
+
+            bool Near(float x1, float y1, float x2, float y2)
+            {
+                float dx = x1 - x2, dy = y1 - y2;
+                return dx * dx + dy * dy <= ENDPOINT_EPSILON * ENDPOINT_EPSILON;
+            }
         }
 
         private static bool IsWaterTerrain(TerrainType terrain)
