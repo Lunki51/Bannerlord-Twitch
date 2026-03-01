@@ -62,6 +62,7 @@ namespace BannerlordTwitch
         IDocumentationGenerator LinkToAnchor(string tag, string content);
 
         IDocumentationGenerator MapLabel(float x, float y, string name, string type, string kingdomId, Func<string, string> getKingdomColor, Func<string, string> getBorderColor);
+        IDocumentationGenerator MapSegment(float minX, float maxX, float minY, float MaxY);
 
     }
 }
