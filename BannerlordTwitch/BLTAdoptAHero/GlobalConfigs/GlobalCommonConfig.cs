@@ -25,16 +25,17 @@ using static BLTAdoptAHero.Actions.UpgradeAction;
 namespace BLTAdoptAHero
 {
     [CategoryOrder("General", 1),
-     CategoryOrder("Battle", 2),
-     CategoryOrder("Death", 3),
-     CategoryOrder("Income", 4),
+     CategoryOrder("Training", 2),
+     CategoryOrder("Battle", 3),
+     CategoryOrder("Death", 4),
      CategoryOrder("Income", 5),
-     CategoryOrder("XP", 6),
-     CategoryOrder("Kill Rewards", 7),
-     CategoryOrder("Battle End Rewards", 8),
-     CategoryOrder("Kill Streak Rewards", 9),
-     CategoryOrder("Achievements", 10),
-     CategoryOrder("Shouts", 11),
+     CategoryOrder("Upgrades", 6),
+     CategoryOrder("XP", 7),
+     CategoryOrder("Kill Rewards", 8),
+     CategoryOrder("Battle End Rewards", 9),
+     CategoryOrder("Kill Streak Rewards", 10),
+     CategoryOrder("Achievements", 11),
+     CategoryOrder("Shouts", 12),
      LocDisplayName("{=vDjnDtoL}Common Config")]
     internal class GlobalCommonConfig : IUpdateFromDefault, IDocumentable, INotifyPropertyChanged
     {
@@ -95,7 +96,7 @@ namespace BLTAdoptAHero
          LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Min centre-to-centre space between settlements"),
         LocCategory("General", "{=C5T6nnix}General"),
          PropertyOrder(8)]
-        public float MapOverlayMinSpacing { get; set; } = 1.5f;
+        public float MapOverlayMinSpacing { get; set; } = 3.5f;
 
         [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
          LocCategory("General", "{=C5T6nnix}General"),
@@ -142,6 +143,22 @@ namespace BLTAdoptAHero
             }
         }
 
+        #endregion
+
+        #region Training
+        [LocDisplayName("Train Max Daily Spend"),
+         LocCategory("Training", "Training"),
+         LocDescription("Hard cap on gold spent on training per in-game day regardless of fund size. 0 = no cap."),
+         PropertyOrder(1), UsedImplicitly]
+        public int TrainMaxDailySpend { get; set; } = 100000;
+
+        [LocDisplayName("Train Gold Cost Multiplier"),
+         LocCategory("Training", "Training"),
+         LocDescription("Multiplies the gold cost of troop upgrades when using !party train. 1.0 = same cost as player. (This multiplies a very low value, setting this lower than 100 may ruin your game's balance.)"),
+         UIRange(0f, 1000f, 10f),
+         Editor(typeof(SliderFloatEditor), typeof(SliderFloatEditor)),
+         PropertyOrder(2), UsedImplicitly]
+        public float TrainGoldCostMultiplier { get; set; } = 500f;
         #endregion
 
         #region Battle
@@ -488,6 +505,12 @@ namespace BLTAdoptAHero
                 ProsperityDailyFlat = 0.5f
             }
         };
+
+        [LocDisplayName("{=BLT_BlockNegativesAtFloor}Block Negative Upgrades At Minimum"),
+         LocCategory("Upgrades", "{=BLT_Upgrades}Upgrades"),
+         LocDescription("{=BLT_BlockNegativesAtFloorDesc}When enabled, upgrade effects with negative values will not be applied if the stat they affect is already at zero (or would be pushed below zero). Disable this to allow negative upgrades to always apply regardless of the current stat value."),
+         PropertyOrder(4), UsedImplicitly]
+        public bool BlockNegativesAtFloor { get; set; } = true;
         #endregion
 
         #region XP
@@ -848,6 +871,8 @@ namespace BLTAdoptAHero
                 var settlements = MapHub.CurrentMapData?.Settlements;
                 if (settlements == null || settlements.Count == 0)
                     return;
+                generator.H2("Map");
+
                 var segments = MapHub.CurrentMapData.Coastline;
                 generator.H2("Map");
 

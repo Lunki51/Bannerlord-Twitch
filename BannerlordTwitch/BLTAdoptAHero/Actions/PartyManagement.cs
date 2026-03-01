@@ -29,6 +29,9 @@ using TaleWorlds.MountAndBlade;
 using NavalDLC.CharacterDevelopment;
 using NavalDLC.CampaignBehaviors;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
+using BannerlordTwitch.UI;
 
 namespace BLTAdoptAHero.Actions
 {
@@ -38,7 +41,8 @@ namespace BLTAdoptAHero.Actions
     public class PartyManagement : HeroCommandHandlerBase
     {
         [CategoryOrder("Army", 0),
-         CategoryOrder("Threat", 1)]
+         CategoryOrder("Threat", 1),
+         CategoryOrder("Training", 2)]
         private class Settings : IDocumentable
         {
             // ── Army ────────────────────────────────────────────────────────────
@@ -159,7 +163,14 @@ namespace BLTAdoptAHero.Actions
              LocCategory("Threat", "{=ThreatCat}Threat"),
              LocDescription("{=ThreatRadiusDesc}Map-unit radius to scan for nearby hostile parties."),
              PropertyOrder(3), UsedImplicitly]
-            public float ThreatScanRadius { get; set; } = 12f;
+            public float ThreatScanRadius { get; set; } = 15f;
+
+            // ── Training ─────────────────────────────────────────────────────────
+            [LocDisplayName("Train Enabled"),
+             LocCategory("Training", "Training"),
+             LocDescription("Enable the !party train command, which lets heroes invest gold to gradually upgrade party troops."),
+             PropertyOrder(1), UsedImplicitly]
+            public bool TrainEnabled { get; set; } = true;
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
@@ -169,6 +180,9 @@ namespace BLTAdoptAHero.Actions
                 generator.Value("!party govern [fief] — become governor of a clan fief");
                 generator.Value("!party stats — detailed party stats");
                 generator.Value("!party disband [index|all] — disband own party/parties");
+                generator.Value("!party train <gold> — invest gold in troop training");
+                generator.Value("!party train status — show current fund and daily rate");
+                generator.Value("!party train cancel — cancel training and refund remaining gold");
                 generator.Value("");
                 generator.Value("<strong>Army subcommands:</strong> !party army [subcommand]");
                 generator.Value("  siege [settlement] — besiege a named enemy settlement (or auto-pick)");
@@ -256,6 +270,7 @@ namespace BLTAdoptAHero.Actions
                 case "create": HandleCreate(adoptedHero, party, onSuccess, onFailure); break;
                 case "stats": HandleStats(adoptedHero, party, onSuccess, onFailure); break;
                 case "disband": HandlePartyDisband(adoptedHero, party, desiredName, onSuccess, onFailure); break;
+                case "train": HandleTrain(settings, adoptedHero, party, desiredName, onSuccess, onFailure); break;
                 case "army": HandleArmy(settings, adoptedHero, party, army, desiredName, onSuccess, onFailure); break;
             }
         }
@@ -541,6 +556,98 @@ namespace BLTAdoptAHero.Actions
             DestroyPartyAction.Apply(null, target);
             FallbackLeaderToSettlement(ldr, h);
             onSuccess($"Disbanded {name}");
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        //  TRAIN
+        // ─────────────────────────────────────────────────────────────────────
+        // Usage:
+        //   !party train <gold>   — invest gold; deducted immediately, spent gradually
+        //   !party train status   — show fund, daily rate, estimated days remaining
+        //   !party train cancel   — cancel and refund the remaining fund
+
+        private static void HandleTrain(Settings settings, Hero h, MobileParty party, string arg,
+    Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.TrainEnabled)
+            {
+                onFailure("Training is disabled");
+                return;
+            }
+
+            if (party == null || party.LeaderHero != h)
+            {
+                onFailure("You must be leading a party to invest in training");
+                return;
+            }
+
+            if (TrainingBehavior.Current == null)
+            {
+                onFailure("Training system not initialized");
+                return;
+            }
+
+            // ───── STATUS ─────
+            if (arg.Equals("status", StringComparison.OrdinalIgnoreCase))
+            {
+                var entry = TrainingBehavior.Current.GetEntry(h);
+
+                if (entry == null || entry.Fund <= 0)
+                {
+                    onSuccess("No training fund active");
+                    return;
+                }
+
+                int daily = TrainingBehavior.ComputeDailyBudget(entry);
+                int daysEst = daily > 0
+                    ? (int)Math.Ceiling(entry.Fund / (double)daily)
+                    : 0;
+
+                onSuccess($"Training fund: {entry.Fund}{Naming.Gold} | {daily}{Naming.Gold}/day | ~{daysEst} days remaining");
+                return;
+            }
+
+            // ───── CANCEL ─────
+            if (arg.Equals("cancel", StringComparison.OrdinalIgnoreCase))
+            {
+                int refund = TrainingBehavior.Current.CancelFund(h);
+
+                if (refund <= 0)
+                {
+                    onFailure("No training fund to cancel");
+                    return;
+                }
+
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(h, refund, false);
+                onSuccess($"Training cancelled - refunded {refund}{Naming.Gold}");
+                return;
+            }
+
+            // ───── INVEST ─────
+            if (!int.TryParse(arg, out int gold) || gold <= 0)
+            {
+                onFailure("Usage: !party train <gold> | !party train status | !party train cancel");
+                return;
+            }
+
+            int have = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(h);
+            if (have < gold)
+            {
+                onFailure(Naming.NotEnoughGold(gold, have));
+                return;
+            }
+
+            // Default daily cap: 10% of investment per day minimum 100
+            int maxDaily = GlobalCommonConfig.Get().TrainMaxDailySpend;
+
+            TrainingBehavior.Current.AddFund(h, gold);
+
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(h, -gold, true);
+
+            var entry2 = TrainingBehavior.Current.GetEntry(h);
+            int daily2 = TrainingBehavior.ComputeDailyBudget(entry2);
+
+            onSuccess($"Invested {gold}{Naming.Gold} in training | Total fund: {entry2.Fund}{Naming.Gold} | {daily2}{Naming.Gold}/day");
         }
 
         // ─────────────────────────────────────────────────────────────────────
@@ -1222,18 +1329,29 @@ namespace BLTAdoptAHero.Actions
             var ourPos = party.GetPosition2D;
 
             var threats = new List<(string name, float eStr, float atkScore, float avoidScore, bool flee)>();
-            foreach (var other in MobileParty.All)
+            foreach (MobileParty other in MobileParty.All.Where(m => m.GetPosition2D.Distance(ourPos) > radius && m.MapFaction.IsAtWarWith(party.MapFaction)))
             {
+                bool original = true;
                 if (other == party || !other.IsActive || other.IsMainParty) continue;
                 if (other.MapEvent != null) continue;
-                if (!other.MapFaction.IsAtWarWith(party.MapFaction)) continue;
-                if (other.GetPosition2D.Distance(ourPos) > radius) continue;
+                if (other?.Army != null)
+                {
+                    if (threats.Any(t => t.name == other.Name.ToString() || t.name == other.Army.Name.ToString()))
+                        continue;
+                    else
+                        original = false;
+                }
+                else
+                {
+                    if (threats.Any(t => t.name == other.Name.ToString()))
+                        continue;
+                }
                 float eStr = other.GetTotalLandStrengthWithFollowers();
                 if (eStr <= 0f) continue;
                 float adv = ourStr / eStr;
                 float atk = MBMath.ClampFloat(0.5f * (1f + adv), 0.05f, 3f);
                 float avd = adv < 1f ? MBMath.ClampFloat(1f / adv, 0.05f, 3f) : 0f;
-                threats.Add((other.Name?.ToString() ?? "Unknown", eStr, atk, avd, flee: avd > atk));
+                threats.Add(((original ? other.Name?.ToString() : other.Army.Name.ToString()) ?? "Unknown", eStr, atk, avd, flee: avd > atk));
             }
 
             if (threats.Count == 0) { onSuccess("No hostile forces detected nearby"); return; }

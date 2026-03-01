@@ -103,7 +103,7 @@ namespace BLTAdoptAHero.Behaviors
 
                         string enemyPartyName = enemySide.LeaderParty?.Name?.ToString() ?? "unknown party";
                         string enemyFactionName = enemySide.LeaderParty?.MapFaction?.Name?.ToString() ?? "unknown faction";
-                        
+
                         string battleLog = $"[{date}]{eventType} against {enemyPartyName} ({enemyFactionName})({heroSide.HealthyTroopCountAtMapEventStart} vs {enemySide.HealthyTroopCountAtMapEventStart}) - {(won ? "Victory" : "Defeat")}";
 
                         if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
@@ -115,7 +115,7 @@ namespace BLTAdoptAHero.Behaviors
                             logs.RemoveAt(0);
                         logs.Add(battleLog);
                     }
-                    
+
                 });
 
                 // Imprison
@@ -175,7 +175,7 @@ namespace BLTAdoptAHero.Behaviors
                     if (!army.Parties.Any(p => p.LeaderHero != null && p.LeaderHero.IsAdopted())) return;
 
                     var date = CampaignTime.Now;
-                    foreach (var p in army.Parties.Where(p=> p.LeaderHero != null && p.LeaderHero.IsAdopted()))
+                    foreach (var p in army.Parties.Where(p => p.LeaderHero != null && p.LeaderHero.IsAdopted()))
                     {
                         var hero = p.LeaderHero;
                         if (army.LeaderParty == p)
@@ -204,7 +204,7 @@ namespace BLTAdoptAHero.Behaviors
                                 logs.RemoveAt(0);
                             logs.Add(armyLog2);
                         }
-                    }                   
+                    }
                 });
                 CampaignEvents.OnPartyJoinedArmyEvent.AddNonSerializedListener(this, party =>
                 {
@@ -241,7 +241,7 @@ namespace BLTAdoptAHero.Behaviors
             {
                 if (maxLogs == 0) return;
                 // Births
-                CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, (mother, newborns, dead) => 
+                CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, (mother, newborns, dead) =>
                 {
                     if (newborns.Count == 0) return;
 
@@ -277,7 +277,7 @@ namespace BLTAdoptAHero.Behaviors
                 });
 
                 // Marriages
-                CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, (hero1, hero2, notif) => 
+                CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, (hero1, hero2, notif) =>
                 {
                     if (hero1.Clan == null || hero2.Clan == null) return;
                     if (isBLTClan(hero1.Clan) && isBLTClan(hero2.Clan)) return;
@@ -313,7 +313,7 @@ namespace BLTAdoptAHero.Behaviors
                 });
 
                 // Deaths
-                CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, DetachmentData, notif) => 
+                CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, DetachmentData, notif) =>
                 {
                     if (victim.Clan == null) return;
                     if (!isBLTClan(victim.Clan)) return;
@@ -419,7 +419,7 @@ namespace BLTAdoptAHero.Behaviors
             {
                 if (maxLogs == 0) return;
                 // War
-                CampaignEvents.WarDeclared.AddNonSerializedListener(this, (faction1, faction2, detail) => 
+                CampaignEvents.WarDeclared.AddNonSerializedListener(this, (faction1, faction2, detail) =>
                 {
                     if (!faction1.IsKingdomFaction && !faction2.IsKingdomFaction) return;
                     var date = CampaignTime.Now;
@@ -450,7 +450,7 @@ namespace BLTAdoptAHero.Behaviors
                         if (logs.Count >= maxLogs)
                             logs.RemoveAt(0);
                         logs.Add(warLog2);
-                    }                            
+                    }
                 });
 
                 // Peace
@@ -504,7 +504,7 @@ namespace BLTAdoptAHero.Behaviors
                     if (logs1.Count >= maxLogs)
                         logs1.RemoveAt(0);
                     logs1.Add(allyLog1);
-                
+
                     string allyLog2 = $"[{date}]Allied with {kingdom1.Name}";
 
                     if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs2))
