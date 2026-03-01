@@ -492,29 +492,5 @@ namespace BannerlordTwitch
                   $"{name}</div>");
             });
         }
-
-        public IDocumentationGenerator MapSegment(float x1, float y1, float x2, float y2)
-        {
-            string color = "#2b5d87"; float thickness = 2f;
-            float dx = x2 - x1;
-            float dy = y2 - y1;
-
-            float length = (float)Math.Sqrt(dx * dx + dy * dy);
-            float angle = (float)(Math.Atan2(dy, dx) * 180.0 / Math.PI);
-
-            return Div(() =>
-            {
-                P($"<div style=\"position:absolute;" +
-                  $"left:{x1}px;" +
-                  $"top:{y1}px;" +
-                  $"width:{length}px;" +
-                  $"height:{thickness}px;" +
-                  $"background:{color};" +
-                  "transform-origin:0 50%;" +
-                  $"transform:rotate({angle}deg);" +
-                  "box-shadow:0 0 2px rgba(0,0,0,0.4);" +
-                  "\"></div>");
-            });
-        }
     }
 }

@@ -176,7 +176,6 @@ namespace BLTAdoptAHero.UI
                     .ToList();
 
                 var mapBounds = GetMapBounds();
-             
 
                 var rawSettlements = Campaign.Current.Settlements
                     .Where(s => (s.IsTown || s.IsCastle) && (s.Position.X != 0 || s.Position.Y != 0))
@@ -249,22 +248,6 @@ namespace BLTAdoptAHero.UI
             var minY = settlements.Min(s => s.Position.Y);
             var maxY = settlements.Max(s => s.Position.Y);
 
-            float width = maxX - minX;
-            float height = maxY - minY;
-
-            if (width == 0) width = 1;
-            if (height == 0) height = 1;
-
-            float marginPercent = 0.05f; // 5% margin on all sides
-
-            float marginX = width * marginPercent;
-            float marginY = height * marginPercent;
-
-            minX -= marginX;
-            maxX += marginX;
-            minY -= marginY;
-            maxY += marginY;
-
             return (minX, maxX, minY, maxY);
         }
 
@@ -273,8 +256,7 @@ namespace BLTAdoptAHero.UI
             float width = bounds.maxX - bounds.minX;
             if (width == 0) return 50f;
             float normalized = (x - bounds.minX) / width;
-
-            return normalized * 100f;
+            return 3f + (normalized * 94f);
         }
 
         private static float NormalizeY(float y, (float minX, float maxX, float minY, float maxY) bounds)
@@ -282,8 +264,7 @@ namespace BLTAdoptAHero.UI
             float height = bounds.maxY - bounds.minY;
             if (height == 0) return 47.5f;
             float normalized = (y - bounds.minY) / height;
-
-            return (1f - normalized) * 100f;
+            return 5f + ((1f - normalized) * 85f);
         }
 
         private static void SpreadSettlements(List<SettlementData> settlements)
@@ -459,33 +440,22 @@ namespace BLTAdoptAHero.UI
             {
                 float worldY = sampleBounds.minY + (gy + 0.5f) * cellH;
                 int rowBase = gy * GRID_W;
-
                 for (int gx = 0; gx < GRID_W; gx++)
                 {
                     float worldX = sampleBounds.minX + (gx + 0.5f) * cellW;
-
-                    // Skip if cell is entirely outside settlement bounds - leave as -1f (unknown, not ocean)
-                    if (worldX + cellW * 0.5f < settlementBounds.minX || worldX - cellW * 0.5f > settlementBounds.maxX ||
-                        worldY + cellH * 0.5f < settlementBounds.minY || worldY - cellH * 0.5f > settlementBounds.maxY)
-                    {
-                        // leave as -1f
-                        continue;
-                    }
-
                     try
                     {
                         var (isWaterCell, terrainType, valid) = SampleTerrain(map, worldX, worldY, cellW, cellH);
-                        isLandRestriction[rowBase + gx] = terrainType == TerrainType.LandRestriction || terrainType == TerrainType.SeaRestriction;
+                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.RuralArea || terrainType == TerrainType.SeaRestriction);
                         waterValue[rowBase + gx] = isWaterCell ? 1f : 0f;
                         if (valid) validSamples++;
                     }
-                    catch { waterValue[rowBase + gx] = 1f; }
+                    catch { }
                 }
             }
 
             Log.Trace($"[MapHub] Coastline sampled {validSamples}/{GRID_W * GRID_H}");
 
-            // Gap fill - only fill cells that were sampled (-1f stays -1f if no valid neighbour)
             bool changed = true;
             int passes = 0;
             while (changed && passes < 20)
@@ -503,7 +473,8 @@ namespace BLTAdoptAHero.UI
                     if (count > 0) { waterValue[i] = sum / count; changed = true; }
                 }
             }
-            // Do NOT fill remaining -1f cells with 1f - leave as unknown so edge detection skips them
+            for (int i = 0; i < waterValue.Length; i++)
+                if (waterValue[i] < 0f) waterValue[i] = 1f;
 
             var blurred = new float[GRID_W * GRID_H];
             float[] kernel = { 1f, 2f, 1f, 2f, 4f, 2f, 1f, 2f, 1f };
@@ -528,10 +499,9 @@ namespace BLTAdoptAHero.UI
                 blurred[gy * GRID_W + GRID_W - 1] = waterValue[gy * GRID_W + GRID_W - 1];
             }
 
-            // Threshold - -1f treated as land (false), only true positives count
             var isWater = new bool[GRID_W * GRID_H];
             for (int i = 0; i < isWater.Length; i++)
-                isWater[i] = blurred[i] > 0.5f;
+                isWater[i] = blurred[i] >= 0.5f;
 
             var segments = new List<CoastlineSegment>(GRID_W * GRID_H / 5);
 
@@ -543,8 +513,6 @@ namespace BLTAdoptAHero.UI
 
                 for (int gx = 0; gx < GRID_W; gx++)
                 {
-                    // Skip if either cell is unsampled or LandRestriction
-                    if (waterValue[rowA + gx] < 0f || waterValue[rowB + gx] < 0f) continue;
                     if (isLandRestriction[rowA + gx] || isLandRestriction[rowB + gx]) continue;
                     if (isWater[rowA + gx] != isWater[rowB + gx])
                     {
@@ -563,7 +531,6 @@ namespace BLTAdoptAHero.UI
 
                 for (int gx = 0; gx < GRID_W - 1; gx++)
                 {
-                    if (waterValue[rowBase + gx] < 0f || waterValue[rowBase + gx + 1] < 0f) continue;
                     if (isLandRestriction[rowBase + gx] || isLandRestriction[rowBase + gx + 1]) continue;
                     if (isWater[rowBase + gx] != isWater[rowBase + gx + 1])
                     {
@@ -579,10 +546,10 @@ namespace BLTAdoptAHero.UI
         }
 
         private static List<CoastlineSegment> FilterCoastlineSegments(
-        List<CoastlineSegment> segments,
-        List<SettlementData> settlements,
-        float maxDistFromSettlement = 12f,
-        float maxChainDistance = 15f)  // SVG units of connected coastline away from a qualifying segment
+            List<CoastlineSegment> segments,
+            List<SettlementData> settlements,
+            float maxDistFromSettlement = 15f,
+            int maxConnectedHops = 5)
         {
             if (settlements.Count == 0) return segments;
 
@@ -591,9 +558,9 @@ namespace BLTAdoptAHero.UI
 
             var positions = settlements.Select(s => (s.X, s.Y)).ToList();
 
-            // --- Step 1: Build adjacency with edge lengths ---
-            var adjacency = new List<(int index, float length)>[n];
-            for (int i = 0; i < n; i++) adjacency[i] = new List<(int, float)>();
+            // Round float coords to a stable integer key (0.01 unit precision)
+            (int, int) Key(float x, float y) =>
+                ((int)Math.Round(x * 100), (int)Math.Round(y * 100));
 
             // --- Step 1: Build endpoint -> segment index map (O(n)) ---
             var epMap = new Dictionary<(int, int), List<int>>(n * 2);
@@ -617,17 +584,12 @@ namespace BLTAdoptAHero.UI
                 var seg = segments[i];
                 foreach (var k in new[] { Key(seg.X1, seg.Y1), Key(seg.X2, seg.Y2) })
                 {
-                    var a = segments[i]; var b = segments[j];
-                    bool shared =
-                        Near(a.X1, a.Y1, b.X1, b.Y1) || Near(a.X1, a.Y1, b.X2, b.Y2) ||
-                        Near(a.X2, a.Y2, b.X1, b.Y1) || Near(a.X2, a.Y2, b.X2, b.Y2);
-                    if (shared)
+                    if (!epMap.TryGetValue(k, out var neighbors)) continue;
+                    foreach (int j in neighbors)
                     {
-                        // Length of segment j = cost to traverse it
-                        float dx = b.X2 - b.X1, dy = b.Y2 - b.Y1;
-                        float len = (float)Math.Sqrt(dx * dx + dy * dy);
-                        adjacency[i].Add((j, len));
-                        adjacency[j].Add((i, len));
+                        if (j == i) continue;
+                        adjacency[i].Add(j);
+                        adjacency[j].Add(i);
                     }
                 }
             }
@@ -649,44 +611,26 @@ namespace BLTAdoptAHero.UI
                 }
             }
 
-            // --- Step 3: Dijkstra from close segments, propagate up to maxChainDistance ---
-            var bestDist = new float[n];
-            for (int i = 0; i < n; i++) bestDist[i] = float.MaxValue;
-
-            // Priority queue: (distanceSoFar, segmentIndex)
-            var pq = new SortedSet<(float dist, int idx)>(Comparer<(float, int)>.Create(
-                (a, b) => a.Item1 != b.Item1 ? a.Item1.CompareTo(b.Item1) : a.Item2.CompareTo(b.Item2)));
             // --- Step 4: BFS up to maxConnectedHops from close segments ---
             var keep = new bool[n];
             var queue = new Queue<(int index, int hopsLeft)>();
 
             for (int i = 0; i < n; i++)
-                if (closeToSettlement[i]) { bestDist[i] = 0f; pq.Add((0f, i)); }
+                if (closeToSettlement[i]) { keep[i] = true; queue.Enqueue((i, maxConnectedHops)); }
 
-            while (pq.Count > 0)
+            while (queue.Count > 0)
             {
-                var (dist, idx) = pq.Min;
-                pq.Remove(pq.Min);
-
-                if (dist > bestDist[idx]) continue;
-                if (dist >= maxChainDistance) continue;
-
-                foreach (var (neighbour, len) in adjacency[idx])
-                {
-                    float newDist = dist + len;
-                    if (newDist < bestDist[neighbour] && newDist <= maxChainDistance)
-                    {
-                        bestDist[neighbour] = newDist;
-                        pq.Add((newDist, neighbour));
-                    }
-                }
+                var (idx, hopsLeft) = queue.Dequeue();
+                if (hopsLeft <= 0) continue;
+                foreach (int neighbour in adjacency[idx])
+                    if (!keep[neighbour]) { keep[neighbour] = true; queue.Enqueue((neighbour, hopsLeft - 1)); }
             }
 
             var result = new List<CoastlineSegment>(n);
             for (int i = 0; i < n; i++)
-                if (bestDist[i] <= maxChainDistance) result.Add(segments[i]);
+                if (keep[i]) result.Add(segments[i]);
 
-            Log.Trace($"[MapHub] Coastline filter: {n} -> {result.Count} segments (maxDist={maxDistFromSettlement}, maxChain={maxChainDistance})");
+            Log.Trace($"[MapHub] Coastline filter: {n} -> {result.Count} segments (maxHops={maxConnectedHops}, maxDist={maxDistFromSettlement})");
             return result;
         }
 
@@ -705,7 +649,7 @@ namespace BLTAdoptAHero.UI
         }
 
         private static (bool isWater, TerrainType terrain, bool valid) SampleTerrain(
-        IMapScene map, float worldX, float worldY, float cellW, float cellH)
+            IMapScene map, float worldX, float worldY, float cellW, float cellH)
         {
             foreach (bool isOnLand in new[] { true, false })
             {
