@@ -81,13 +81,13 @@
                 shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 shape.setAttribute('cx', 0);
                 shape.setAttribute('cy', 0);
-                shape.setAttribute('r', 2.65);
+                shape.setAttribute('r', 2.15);
             } else {
                 shape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 shape.setAttribute('x', -2);
                 shape.setAttribute('y', -2);
-                shape.setAttribute('width', 3.5);
-                shape.setAttribute('height', 3.5);
+                shape.setAttribute('width', 2.5);
+                shape.setAttribute('height', 2.5);
             }
             shape.setAttribute('fill', fillColor);
             shape.setAttribute('stroke', borderColor);

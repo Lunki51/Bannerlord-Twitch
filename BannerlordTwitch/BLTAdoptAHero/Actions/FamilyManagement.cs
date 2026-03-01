@@ -88,9 +88,10 @@ namespace BLTAdoptAHero.Actions
             int spouseCount = (adoptedHero.Spouse != null ? 1 : 0) + adoptedHero.ExSpouses.Count(h=> !h.IsDead);
             int childrenCount = adoptedHero.Children.Count(h => !h.IsDead);
             int grandchildrenCount = adoptedHero.Children.Sum(c => c.Children.Count(h => !h.IsDead));
+            int greatCount = adoptedHero.Children.Sum(c => c.Children.Sum(g => g.Children.Count(h => !h.IsDead)));
             int parentCount = ((adoptedHero.Father != null && !adoptedHero.Father.IsDead) ? 1 : 0) + ((adoptedHero.Mother != null && !adoptedHero.Mother.IsDead) ? 1 : 0);
             int siblingCount = adoptedHero.Siblings.Count(h => !h.IsDead);
-            int totalFamily = spouseCount + childrenCount + grandchildrenCount + parentCount + siblingCount;
+            int totalFamily = spouseCount + childrenCount + grandchildrenCount + greatCount + parentCount + siblingCount;
 
             var sb = new StringBuilder();
             sb.Append("{=FamilyOverview}Family Overview: ".Translate());
@@ -98,6 +99,8 @@ namespace BLTAdoptAHero.Actions
             sb.Append("{=ChildCount}Children: {count} | ".Translate(("count", childrenCount)));
             if (grandchildrenCount > 0)
                 sb.Append("{=GrandchildCount}Grandchildren: {count} | ".Translate(("count", grandchildrenCount)));
+            if (greatCount > 0)
+                sb.Append("{=GrandchildCount}Great grandchildren: {count} | ".Translate(("count", greatCount)));
             if (parentCount > 0)
                 sb.Append("{=GrandchildCount}Parents: {count} | ".Translate(("count", parentCount)));
             if (siblingCount > 0)
@@ -452,8 +455,27 @@ namespace BLTAdoptAHero.Actions
             {
                 sb.Append(" | ");
                 sb.Append("{=Children}Children: ".Translate());
-                var childNames = child.Children.Select(c => CleanName(c.Name.ToString())).ToList();
-                sb.Append(string.Join(", ", childNames));
+                var children = child.Children.OrderByDescending(c => c.Age).ToList();
+
+                for (int i = 0; i < children.Count; i++)
+                {
+                    var grandchild = children[i];
+                    sb.Append(CleanName(grandchild.FirstName.ToString()));
+                    sb.Append($" ({(int)grandchild.Age}, ");
+                    sb.Append(grandchild.IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
+                    if (grandchild.Spouse != null)
+                        sb.Append(", 💍");
+                    if (grandchild.IsDead)
+                        sb.Append(", 💀");
+                    if (grandchild.Children.Count > 0)
+                        sb.Append($", 👪:{child.Children.Count}");
+                    sb.Append(")");
+
+                    if (i < children.Count - 1)
+                    {
+                        sb.Append(", ");
+                    }
+                }
             }
 
             onSuccess(sb.ToString());
