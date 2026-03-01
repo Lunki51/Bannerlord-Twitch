@@ -43,6 +43,12 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public bool AllowListCommand { get; set; } = true;
 
+            [LocDisplayName("{=BLT_AccumulateWhenFull}Accumulate Troops When Full"),
+             LocCategory("General", "{=GeneralCat}General"),
+             LocDescription("{=BLT_AccumulateWhenFullDesc}When enabled, troop spawn upgrades will reserve troops if all war parties/garrisons are full, releasing them all once space becomes available. If this is off, troops will simply be lost if all parties/garrisons are full."),
+             PropertyOrder(3), UsedImplicitly, DefaultValue(true)]
+            public bool AccumulateWhenFull { get; set; } = true;
+
             // Permissions
             [LocDisplayName("{=BLT_KingdomLeaderFiefs}Kingdom Leaders Can Upgrade Fiefs"),
              LocCategory("Permissions", "{=BLT_Permissions}Permissions"),
@@ -63,6 +69,7 @@ namespace BLTAdoptAHero.Actions
                 generator.P($"<strong>Allow List Command:</strong> {(AllowListCommand ? "Yes" : "No")}");
                 generator.P($"<strong>Kingdom Leaders Can Upgrade Fiefs:</strong> {(AllowKingdomLeadersForFiefs ? "Yes" : "No")}");
                 generator.P($"<strong>Any Clan Member Can Upgrade Clan:</strong> {(AllowAnyClanMemberForClanUpgrades ? "Yes" : "No")}");
+                generator.P($"<strong>Reserve Troops When Full:</strong> {(AccumulateWhenFull ? "Yes" : "No")}");
             }
         }
 
@@ -274,11 +281,12 @@ namespace BLTAdoptAHero.Actions
             private string GetUpgradeEffects(KingdomUpgrade u)
             {
                 var sb = new StringBuilder();
-                if (u.InfluenceDaily != 0 || u.MaxClansBonus != 0)
+                if (u.InfluenceDaily != 0 || u.MaxClansBonus != 0 || u.MaxMercClansBonus != 0)
                 {
                     sb.AppendLine("<strong>Kingdom Effects:</strong><br>");
                     if (u.InfluenceDaily != 0) sb.AppendLine($"Influence: {Signed(u.InfluenceDaily)}/day (ruler only)<br>");
                     if (u.MaxClansBonus != 0) sb.AppendLine($"Max Clans: {Signed(u.MaxClansBonus)}<br>");
+                    if (u.MaxMercClansBonus != 0) sb.AppendLine($"Max Merc Clans: {Signed(u.MaxMercClansBonus)}<br>");
                 }
                 if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0)
                 {
@@ -350,6 +358,10 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Usage:  [auto|bulk] <fief|clan|kingdom> [all|allk] <name> <upgrade>  |  info <fief|clan|kingdom> <name>  |  list [fief|clan|kingdom]  |  remove <fief|clan|kingdom> <name> <upgrade>");
                 return;
             }
+
+            // Push the accumulation setting to the behavior so daily ticks respect it immediately.
+            if (UpgradeBehavior.Current != null)
+                UpgradeBehavior.Current.AccumulateWhenFull = settings.AccumulateWhenFull;
 
             var globalConfig = GlobalCommonConfig.Get();
             if (globalConfig == null) { onFailure("Configuration not available"); return; }

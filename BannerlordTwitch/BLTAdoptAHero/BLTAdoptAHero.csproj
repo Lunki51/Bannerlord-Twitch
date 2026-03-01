@@ -400,6 +400,7 @@
     <Compile Include="Behaviors\PartyOrderBehavior.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="Behaviors\ReinforcementBehavior.cs" />
+    <Compile Include="Behaviors\TrainingBehavior.cs" />
     <Compile Include="Behaviors\UpgradeBehavior.cs" />
     <Compile Include="Behaviors\VassalBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
