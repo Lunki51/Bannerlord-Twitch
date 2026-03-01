@@ -871,7 +871,6 @@ namespace BLTAdoptAHero
                 var settlements = MapHub.CurrentMapData?.Settlements;
                 if (settlements == null || settlements.Count == 0)
                     return;
-                generator.H2("Map");
 
                 var segments = MapHub.CurrentMapData.Coastline;
                 generator.H2("Map");
