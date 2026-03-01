@@ -443,14 +443,20 @@ namespace BLTAdoptAHero.UI
                 for (int gx = 0; gx < GRID_W; gx++)
                 {
                     float worldX = sampleBounds.minX + (gx + 0.5f) * cellW;
+                    if (worldX + cellW * 0.5f < settlementBounds.minX || worldX - cellW * 0.5f > settlementBounds.maxX ||
+                        worldY + cellH * 0.5f < settlementBounds.minY || worldY - cellH * 0.5f > settlementBounds.maxY)
+                    {
+                        // leave as -1f
+                        continue;
+                    }
                     try
                     {
                         var (isWaterCell, terrainType, valid) = SampleTerrain(map, worldX, worldY, cellW, cellH);
-                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.RuralArea || terrainType == TerrainType.SeaRestriction);
+                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.SeaRestriction);
                         waterValue[rowBase + gx] = isWaterCell ? 1f : 0f;
                         if (valid) validSamples++;
                     }
-                    catch { }
+                    catch { waterValue[rowBase + gx] = 1f; }
                 }
             }
 
@@ -513,6 +519,7 @@ namespace BLTAdoptAHero.UI
 
                 for (int gx = 0; gx < GRID_W; gx++)
                 {
+                    if (waterValue[rowA + gx] < 0f || waterValue[rowB + gx] < 0f) continue;
                     if (isLandRestriction[rowA + gx] || isLandRestriction[rowB + gx]) continue;
                     if (isWater[rowA + gx] != isWater[rowB + gx])
                     {
@@ -531,6 +538,7 @@ namespace BLTAdoptAHero.UI
 
                 for (int gx = 0; gx < GRID_W - 1; gx++)
                 {
+                    if (waterValue[rowBase + gx] < 0f || waterValue[rowBase + gx + 1] < 0f) continue;
                     if (isLandRestriction[rowBase + gx] || isLandRestriction[rowBase + gx + 1]) continue;
                     if (isWater[rowBase + gx] != isWater[rowBase + gx + 1])
                     {
