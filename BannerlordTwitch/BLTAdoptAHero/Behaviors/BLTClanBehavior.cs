@@ -195,15 +195,15 @@ namespace BLTAdoptAHero
                         if (child.Age < Campaign.Current.Models.AgeModel.HeroComesOfAge)
                             child.SetBirthDay(child.BirthDay - CampaignTime.Days(growthRatePerDay));
 
-                        foreach (var grandchild in child.Children)
-                        {
-                            if (grandchild == null || grandchild.IsDead || grandchild.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
-                                continue;
+                        //foreach (var grandchild in child.Children)
+                        //{
+                        //    if (grandchild == null || grandchild.IsDead || grandchild.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge)
+                        //        continue;
 
-                            // Apply growth rate
-                            grandchild.SetBirthDay(grandchild.BirthDay - CampaignTime.Days(growthRatePerDay));
+                        //    // Apply growth rate
+                        //    grandchild.SetBirthDay(grandchild.BirthDay - CampaignTime.Days(growthRatePerDay));
 
-                        }
+                        //}
                     }
                 }
             }

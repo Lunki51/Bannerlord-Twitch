@@ -167,6 +167,67 @@ namespace BLTAdoptAHero.Behaviors
                         logs.Add(releaseLog);
                     }
                 });
+
+                // Armies
+                CampaignEvents.ArmyCreated.AddNonSerializedListener(this, army =>
+                {
+                    if (army == null) return;
+                    if (!army.Parties.Any(p => p.LeaderHero != null && p.LeaderHero.IsAdopted())) return;
+
+                    var date = CampaignTime.Now;
+                    foreach (var p in army.Parties.Where(p=> p.LeaderHero != null && p.LeaderHero.IsAdopted()))
+                    {
+                        var hero = p.LeaderHero;
+                        if (army.LeaderParty == p)
+                        {
+                            string armyLog1 = $"[{date}]Joined {(army.LeaderParty != null ? $"{army.LeaderParty.Name} " : "")}army({army.Parties.Sum(p => p.MemberRoster.TotalManCount)}troops)";
+
+                            if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
+                            {
+                                logs = new List<string>();
+                                _heroLogs[hero.StringId] = logs;
+                            }
+                            if (logs.Count >= maxLogs)
+                                logs.RemoveAt(0);
+                            logs.Add(armyLog1);
+                        }
+                        else
+                        {
+                            string armyLog2 = $"[{date}]Created army({army.Parties.Sum(p => p.MemberRoster.TotalManCount)}troops)";
+
+                            if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
+                            {
+                                logs = new List<string>();
+                                _heroLogs[hero.StringId] = logs;
+                            }
+                            if (logs.Count >= maxLogs)
+                                logs.RemoveAt(0);
+                            logs.Add(armyLog2);
+                        }
+                    }                   
+                });
+                CampaignEvents.OnPartyJoinedArmyEvent.AddNonSerializedListener(this, party =>
+                {
+                    if (party == null) return;
+                    if (party.LeaderHero == null) return;
+                    if (!party.LeaderHero.IsAdopted()) return;
+                    if (party.Army == null) return;
+
+                    var date = CampaignTime.Now;
+                    var hero = party.LeaderHero;
+                    var army = party.Army;
+
+                    string armyLog = $"[{date}]Joined {(army.LeaderParty != null ? $"{army.LeaderParty.Name} " : "")}army({army.Parties.Sum(p => p.MemberRoster.TotalManCount)}troops)";
+
+                    if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
+                    {
+                        logs = new List<string>();
+                        _heroLogs[hero.StringId] = logs;
+                    }
+                    if (logs.Count >= maxLogs)
+                        logs.RemoveAt(0);
+                    logs.Add(armyLog);
+                });
             }
         }
         #endregion
@@ -317,6 +378,28 @@ namespace BLTAdoptAHero.Behaviors
                     if (logs.Count >= maxLogs)
                         logs.RemoveAt(0);
                     logs.Add(partyLog);
+                });
+
+                // Grow up
+                CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, hero =>
+                {
+                    if (hero == null) return;
+                    if (hero.Clan == null) return;
+                    if (hero.Clan.Leader == null) return;
+                    if (!hero.Clan.Leader.IsAdopted()) return;
+
+                    var date = CampaignTime.Now;
+
+                    string growLog = $"[{date}]{hero.Name} has become an adult";
+
+                    if (!_clanLogs.TryGetValue(hero.Clan.StringId, out var logs))
+                    {
+                        logs = new List<string>();
+                        _clanLogs[hero.Clan.StringId] = logs;
+                    }
+                    if (logs.Count >= maxLogs)
+                        logs.RemoveAt(0);
+                    logs.Add(growLog);
                 });
             }
 
