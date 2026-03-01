@@ -248,6 +248,22 @@ namespace BLTAdoptAHero.UI
             var minY = settlements.Min(s => s.Position.Y);
             var maxY = settlements.Max(s => s.Position.Y);
 
+            float width = maxX - minX;
+            float height = maxY - minY;
+
+            if (width == 0) width = 1;
+            if (height == 0) height = 1;
+
+            float marginPercent = 0.05f; // 5% margin on all sides
+
+            float marginX = width * marginPercent;
+            float marginY = height * marginPercent;
+
+            minX -= marginX;
+            maxX += marginX;
+            minY -= marginY;
+            maxY += marginY;
+
             return (minX, maxX, minY, maxY);
         }
 
@@ -256,7 +272,7 @@ namespace BLTAdoptAHero.UI
             float width = bounds.maxX - bounds.minX;
             if (width == 0) return 50f;
             float normalized = (x - bounds.minX) / width;
-            return 3f + (normalized * 94f);
+            return normalized * 100f;
         }
 
         private static float NormalizeY(float y, (float minX, float maxX, float minY, float maxY) bounds)
@@ -264,7 +280,7 @@ namespace BLTAdoptAHero.UI
             float height = bounds.maxY - bounds.minY;
             if (height == 0) return 47.5f;
             float normalized = (y - bounds.minY) / height;
-            return 5f + ((1f - normalized) * 85f);
+            return (1f - normalized) * 100f;
         }
 
         private static void SpreadSettlements(List<SettlementData> settlements)
@@ -479,8 +495,6 @@ namespace BLTAdoptAHero.UI
                     if (count > 0) { waterValue[i] = sum / count; changed = true; }
                 }
             }
-            for (int i = 0; i < waterValue.Length; i++)
-                if (waterValue[i] < 0f) waterValue[i] = 1f;
 
             var blurred = new float[GRID_W * GRID_H];
             float[] kernel = { 1f, 2f, 1f, 2f, 4f, 2f, 1f, 2f, 1f };
