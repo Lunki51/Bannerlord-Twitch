@@ -873,11 +873,14 @@ namespace BLTAdoptAHero
                     return;
                 generator.H2("Map");
 
+                var segments = MapHub.CurrentMapData.Coastline;
+                generator.H2("Map");
+
                 generator.Div(() =>
                 {
                     // Outer container div with inline style
                     generator.P("<div style=\"position:relative; width:1500px; height:1000px;" +
-                      "background-color:#1f1f1f; border:3px solid #111; left:-25%; \">");
+                      "background-color:#1f1f1f; border:3px solid #111; overflow:hidden; left:-25%; \">");
 
                     float margin = 35f;
                     float mapWidth = 1500f - 2 * margin;
@@ -890,6 +893,31 @@ namespace BLTAdoptAHero
 
                     var kingdomDict = MapHub.CurrentMapData.Kingdoms.ToDictionary(k => k.Id, k => k.Color1);
                     var kingdomBorderDict = MapHub.CurrentMapData.Kingdoms.ToDictionary(k => k.Id, k => k.Color2);
+
+                    if (segments != null || segments.Count > 0)
+                    {
+                        float worldWidth = maxX - minX;
+                        float worldHeight = maxY - minY;
+
+                        if (worldWidth == 0) worldWidth = 1;
+                        if (worldHeight == 0) worldHeight = 1;
+
+                        foreach (var seg in segments)
+                        {
+                            float scaledX1 = (seg.X1 - minX) / worldWidth * mapWidth + margin;
+                            float scaledY1 = (seg.Y1 - minY) / worldHeight * mapHeight + margin;
+
+                            float scaledX2 = (seg.X2 - minX) / worldWidth * mapWidth + margin;
+                            float scaledY2 = (seg.Y2 - minY) / worldHeight * mapHeight + margin;
+
+                            generator.MapSegment(
+                                scaledX1,
+                                scaledY1,
+                                scaledX2,
+                                scaledY2
+                            );
+                        }
+                    }
 
                     foreach (var s in settlements)
                     {

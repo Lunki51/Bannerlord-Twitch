@@ -197,7 +197,7 @@ namespace BLTAdoptAHero.UI
                             Y = NormalizeY(s.Position.Y, mapBounds)
                         });
                     }
-                    SpreadSettlements(settlements);
+                    //SpreadSettlements(settlements);
                     _cachedSettlements = settlements;
                     Log.Trace($"[MapHub] Settlement positions cached: {_cachedSettlements.Count}");
                 }
@@ -546,10 +546,10 @@ namespace BLTAdoptAHero.UI
         }
 
         private static List<CoastlineSegment> FilterCoastlineSegments(
-            List<CoastlineSegment> segments,
-            List<SettlementData> settlements,
-            float maxDistFromSettlement = 15f,
-            int maxConnectedHops = 5)
+        List<CoastlineSegment> segments,
+        List<SettlementData> settlements,
+        float maxDistFromSettlement = 12f,
+        float maxChainDistance = 15f)  // SVG units of connected coastline away from a qualifying segment
         {
             if (settlements.Count == 0) return segments;
 
@@ -557,44 +557,30 @@ namespace BLTAdoptAHero.UI
             if (n == 0) return segments;
 
             var positions = settlements.Select(s => (s.X, s.Y)).ToList();
+            const float ENDPOINT_EPSILON = 0.01f;
 
-            // Round float coords to a stable integer key (0.01 unit precision)
-            (int, int) Key(float x, float y) =>
-                ((int)Math.Round(x * 100), (int)Math.Round(y * 100));
-
-            // --- Step 1: Build endpoint -> segment index map (O(n)) ---
-            var epMap = new Dictionary<(int, int), List<int>>(n * 2);
-            for (int i = 0; i < n; i++)
-            {
-                foreach (var k in new[] { Key(segments[i].X1, segments[i].Y1),
-                                           Key(segments[i].X2, segments[i].Y2) })
-                {
-                    if (!epMap.TryGetValue(k, out var lst))
-                        epMap[k] = lst = new List<int>(2);
-                    lst.Add(i);
-                }
-            }
-
-            // --- Step 2: Build adjacency via lookup, using HashSet to avoid duplicates (O(n)) ---
-            var adjacency = new HashSet<int>[n];
-            for (int i = 0; i < n; i++) adjacency[i] = new HashSet<int>();
+            // --- Step 1: Build adjacency with edge lengths ---
+            var adjacency = new List<(int index, float length)>[n];
+            for (int i = 0; i < n; i++) adjacency[i] = new List<(int, float)>();
 
             for (int i = 0; i < n; i++)
-            {
-                var seg = segments[i];
-                foreach (var k in new[] { Key(seg.X1, seg.Y1), Key(seg.X2, seg.Y2) })
+                for (int j = i + 1; j < n; j++)
                 {
-                    if (!epMap.TryGetValue(k, out var neighbors)) continue;
-                    foreach (int j in neighbors)
+                    var a = segments[i]; var b = segments[j];
+                    bool shared =
+                        Near(a.X1, a.Y1, b.X1, b.Y1) || Near(a.X1, a.Y1, b.X2, b.Y2) ||
+                        Near(a.X2, a.Y2, b.X1, b.Y1) || Near(a.X2, a.Y2, b.X2, b.Y2);
+                    if (shared)
                     {
-                        if (j == i) continue;
-                        adjacency[i].Add(j);
-                        adjacency[j].Add(i);
+                        // Length of segment j = cost to traverse it
+                        float dx = b.X2 - b.X1, dy = b.Y2 - b.Y1;
+                        float len = (float)Math.Sqrt(dx * dx + dy * dy);
+                        adjacency[i].Add((j, len));
+                        adjacency[j].Add((i, len));
                     }
                 }
-            }
 
-            // --- Step 3: Mark segments close to a settlement ---
+            // --- Step 2: Mark segments close to a settlement ---
             var closeToSettlement = new bool[n];
             for (int i = 0; i < n; i++)
             {
@@ -611,27 +597,48 @@ namespace BLTAdoptAHero.UI
                 }
             }
 
-            // --- Step 4: BFS up to maxConnectedHops from close segments ---
-            var keep = new bool[n];
-            var queue = new Queue<(int index, int hopsLeft)>();
+            // --- Step 3: Dijkstra from close segments, propagate up to maxChainDistance ---
+            var bestDist = new float[n];
+            for (int i = 0; i < n; i++) bestDist[i] = float.MaxValue;
+
+            // Priority queue: (distanceSoFar, segmentIndex)
+            var pq = new SortedSet<(float dist, int idx)>(Comparer<(float, int)>.Create(
+                (a, b) => a.Item1 != b.Item1 ? a.Item1.CompareTo(b.Item1) : a.Item2.CompareTo(b.Item2)));
 
             for (int i = 0; i < n; i++)
-                if (closeToSettlement[i]) { keep[i] = true; queue.Enqueue((i, maxConnectedHops)); }
+                if (closeToSettlement[i]) { bestDist[i] = 0f; pq.Add((0f, i)); }
 
-            while (queue.Count > 0)
+            while (pq.Count > 0)
             {
-                var (idx, hopsLeft) = queue.Dequeue();
-                if (hopsLeft <= 0) continue;
-                foreach (int neighbour in adjacency[idx])
-                    if (!keep[neighbour]) { keep[neighbour] = true; queue.Enqueue((neighbour, hopsLeft - 1)); }
+                var (dist, idx) = pq.Min;
+                pq.Remove(pq.Min);
+
+                if (dist > bestDist[idx]) continue;
+                if (dist >= maxChainDistance) continue;
+
+                foreach (var (neighbour, len) in adjacency[idx])
+                {
+                    float newDist = dist + len;
+                    if (newDist < bestDist[neighbour] && newDist <= maxChainDistance)
+                    {
+                        bestDist[neighbour] = newDist;
+                        pq.Add((newDist, neighbour));
+                    }
+                }
             }
 
             var result = new List<CoastlineSegment>(n);
             for (int i = 0; i < n; i++)
-                if (keep[i]) result.Add(segments[i]);
+                if (bestDist[i] <= maxChainDistance) result.Add(segments[i]);
 
-            Log.Trace($"[MapHub] Coastline filter: {n} -> {result.Count} segments (maxHops={maxConnectedHops}, maxDist={maxDistFromSettlement})");
+            Log.Trace($"[MapHub] Coastline filter: {n} -> {result.Count} segments (maxDist={maxDistFromSettlement}, maxChain={maxChainDistance})");
             return result;
+
+            bool Near(float x1, float y1, float x2, float y2)
+            {
+                float dx = x1 - x2, dy = y1 - y2;
+                return dx * dx + dy * dy <= ENDPOINT_EPSILON * ENDPOINT_EPSILON;
+            }
         }
 
         private static bool IsWaterTerrain(TerrainType terrain)
