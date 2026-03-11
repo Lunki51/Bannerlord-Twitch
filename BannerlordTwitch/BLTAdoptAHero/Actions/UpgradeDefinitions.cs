@@ -100,10 +100,21 @@ namespace BLTAdoptAHero.Actions.Upgrades
             set { if (_coastalOnly != value) { _coastalOnly = value; OnPropertyChanged(nameof(CoastalOnly)); } }
         }
 
+        private bool _capitalOnly = false;
+        [LocDisplayName("{=BLT_CapitalOnly}Capital Only"),
+         LocCategory("General", "{=GeneralCat}General"),
+         LocDescription("{=BLT_CapitalOnlyDesc}If true, this upgrade applies only to the clan's capital settlement and is stored at clan level (follows the capital if moved, never applies to non-capital settlements)."),
+         PropertyOrder(8), UsedImplicitly, DefaultValue(false)]
+        public bool CapitalOnly
+        {
+            get => _capitalOnly;
+            set { if (_capitalOnly != value) { _capitalOnly = value; OnPropertyChanged(nameof(CapitalOnly)); } }
+        }
+
         private bool _canBeRemoved = false;
         [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
          LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
-         PropertyOrder(8), UsedImplicitly]
+         PropertyOrder(9), UsedImplicitly]
         public bool CanBeRemoved
         {
             get => _canBeRemoved;

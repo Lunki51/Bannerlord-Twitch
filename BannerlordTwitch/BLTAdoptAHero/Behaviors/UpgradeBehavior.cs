@@ -464,6 +464,7 @@ namespace BLTAdoptAHero
                 var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
                 if (up.CoastalOnly && !s.HasPort) continue;
+                if (up.CapitalOnly) continue;
                 float v = sel(up);
                 if (guard && v < 0f && currentValue + sum + v < 0f) continue; // floor guard
                 sum += v;
@@ -545,6 +546,7 @@ namespace BLTAdoptAHero
                 var up = ConfigSafe.FiefUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
                 if (up.CoastalOnly && !s.HasPort) continue;
+                if (up.CapitalOnly) continue;
                 int v = sel(up);
                 if (guard && v < 0 && currentValue + sum + v < 0f) continue; // floor guard
                 sum += v;
@@ -617,13 +619,26 @@ namespace BLTAdoptAHero
         // to float.MaxValue, which disables the guard — same as the old behaviour).
 
         public int GetTotalTaxBonus(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementInt(s, f => f.TaxIncomeFlat, c => c.TaxIncomeFlat, k => k.TaxIncomeFlat, currentValue);
-
+        {
+            int sum = SumSettlementInt(s, f => f.TaxIncomeFlat, c => c.TaxIncomeFlat, k => k.TaxIncomeFlat, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapTaxFlat(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalHearthDaily(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.HearthDaily, c => c.HearthDaily, k => k.HearthDaily, currentValue);
-
+        {
+            float sum = SumSettlementFloat(s, f => f.HearthDaily, c => c.HearthDaily, k => k.HearthDaily, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapHearth(s, currentValue + sum);
+            return sum;
+        }
         public int GetTotalGarrisonCapacityBonus(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementInt(s, f => f.GarrisonCapacityBonus, c => c.GarrisonCapacityBonus, k => k.GarrisonCapacityBonus, currentValue);
+        {
+            int sum = SumSettlementInt(s, f => f.GarrisonCapacityBonus, c => c.GarrisonCapacityBonus, k => k.GarrisonCapacityBonus, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapGarrisonCap(s, currentValue + sum);
+            return sum;
+        }
 
         public int GetClanPartySizeBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartySizeBonus, currentValue: currentValue);
         public int GetKingdomPartySizeBonus(Kingdom k, float currentValue = float.MaxValue) => SumKingdomInt(k, u => u.PartySizeBonus, currentValue);
@@ -633,6 +648,7 @@ namespace BLTAdoptAHero
             int b = GetClanPartySizeBonus(hero.Clan, currentValue);
             float running = currentValue + b;
             if (hero.Clan.Kingdom != null) b += GetKingdomPartySizeBonus(hero.Clan.Kingdom, running);
+            if (CapitalBehavior.Current != null) b += CapitalBehavior.Current.GetCapPartySizeBonus(hero.Clan);
             return b;
         }
 
@@ -643,6 +659,7 @@ namespace BLTAdoptAHero
             if (hero?.Clan == null) return 0f;
             float b = GetClanPartySpeedBonus(hero.Clan, currentValue);
             if (hero.Clan.Kingdom != null) b += GetKingdomPartySpeedBonus(hero.Clan.Kingdom, currentValue + b);
+            if (CapitalBehavior.Current != null) b += CapitalBehavior.Current.GetCapPartySpeedBonus(hero.Clan);
             return b;
         }
 
@@ -683,25 +700,75 @@ namespace BLTAdoptAHero
         public int GetFlatMercBonus(Hero hero, float currentValue = float.MaxValue) => hero?.Clan == null ? 0 : GetFlatClanMercBonus(hero.Clan, currentValue);
 
         public float GetTotalLoyaltyDailyFlat(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.LoyaltyDailyFlat, c => c.LoyaltyDailyFlat, k => k.LoyaltyDailyFlat, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.LoyaltyDailyFlat, c => c.LoyaltyDailyFlat, k => k.LoyaltyDailyFlat, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalLoyaltyDailyPercent(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.LoyaltyDailyPercent, c => c.LoyaltyDailyPercent, k => k.LoyaltyDailyPercent, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.LoyaltyDailyPercent, c => c.LoyaltyDailyPercent, k => k.LoyaltyDailyPercent, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalProsperityDailyFlat(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.ProsperityDailyFlat, c => c.ProsperityDailyFlat, k => k.ProsperityDailyFlat, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.ProsperityDailyFlat, c => c.ProsperityDailyFlat, k => k.ProsperityDailyFlat, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalProsperityDailyPercent(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.ProsperityDailyPercent, c => c.ProsperityDailyPercent, k => k.ProsperityDailyPercent, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.ProsperityDailyPercent, c => c.ProsperityDailyPercent, k => k.ProsperityDailyPercent, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalSecurityDailyFlat(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.SecurityDailyFlat, c => c.SecurityDailyFlat, k => k.SecurityDailyFlat, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.SecurityDailyFlat, c => c.SecurityDailyFlat, k => k.SecurityDailyFlat, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalSecurityDailyPercent(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.SecurityDailyPercent, c => c.SecurityDailyPercent, k => k.SecurityDailyPercent, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.SecurityDailyPercent, c => c.SecurityDailyPercent, k => k.SecurityDailyPercent, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalMilitiaDailyFlat(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.MilitiaDailyFlat, c => c.MilitiaDailyFlat, k => k.MilitiaDailyFlat, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.MilitiaDailyFlat, c => c.MilitiaDailyFlat, k => k.MilitiaDailyFlat, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalMilitiaDailyPercent(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.MilitiaDailyPercent, c => c.MilitiaDailyPercent, k => k.MilitiaDailyPercent, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.MilitiaDailyPercent, c => c.MilitiaDailyPercent, k => k.MilitiaDailyPercent, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalFoodDailyFlat(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.FoodDailyFlat, c => c.FoodDailyFlat, k => k.FoodDailyFlat, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.FoodDailyFlat, c => c.FoodDailyFlat, k => k.FoodDailyFlat, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalFoodDailyPercent(Settlement s, float currentValue = float.MaxValue)
-            => SumSettlementFloat(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent, currentValue);
+        {
+            float sum = SumSettlementFloat(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            return sum;
+        }
 
         // Backward-compatible short names
         public float GetLoyaltyFlat(Settlement s, float cv = float.MaxValue) => GetTotalLoyaltyDailyFlat(s, cv);

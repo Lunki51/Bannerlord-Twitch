@@ -404,6 +404,9 @@
     <Compile Include="Behaviors\UpgradeBehavior.cs" />
     <Compile Include="Behaviors\VassalBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
+    <Compile Include="Capital\CapitalAction.cs" />
+    <Compile Include="Capital\CapitalBehavior.cs" />
+    <Compile Include="Capital\CapitalDefinitions.cs" />
     <Compile Include="Diplomacy\BLTAllianceBehavior.cs" />
     <Compile Include="Diplomacy\BLTPlayerOffersBehavior.cs" />
     <Compile Include="Diplomacy\BLTDiplomacyBehavior.cs" />

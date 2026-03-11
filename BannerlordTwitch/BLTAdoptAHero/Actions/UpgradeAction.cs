@@ -716,6 +716,9 @@ namespace BLTAdoptAHero.Actions
             // Build purchase chain (includes prerequisites when autoBuy is true)
             var owned = new HashSet<string>(UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
 
+            if (CapitalBehavior.Current != null)
+                owned.UnionWith(CapitalBehavior.Current.GetCapitalUpgrades(hero.Clan));
+
             if (owned.Contains(upgradeId)) { fail($"{settlement.Name} already has this upgrade"); return; }
 
             List<string> chain;
@@ -794,6 +797,8 @@ namespace BLTAdoptAHero.Actions
                 if (targetUpgrade.CoastalOnly && !settlement.HasPort) { settlementsSkipped++; continue; }
 
                 var owned = new HashSet<string>(UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+
+                if (targetUpgrade.CapitalOnly) { fail($"'{upgradeId}' is a capital-only upgrade; purchase it for your capital settlement directly"); return; }
 
                 // Already fully upgraded — skip silently
                 if (owned.Contains(upgradeId)) { settlementsSkipped++; continue; }
@@ -874,6 +879,27 @@ namespace BLTAdoptAHero.Actions
                 { results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = false, Message = Naming.NotEnoughGold(up.GoldCost, gold) }); return results; }
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
                 UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
+                if (up.CapitalOnly)
+                {
+                    // Capital-only upgrades are stored at clan level and always follow the capital
+                    if (CapitalBehavior.Current?.IsCapital(settlement, hero.Clan) != true)
+                    {
+                        results.Add(new PurchaseResult
+                        {
+                            UpgradeId = id,
+                            UpgradeName = up.Name,
+                            Success = false,
+                            Message = $"'{up.Name}' is a capital-only upgrade — {settlement.Name} must be your active capital"
+                        });
+                        return results;
+                    }
+                    CapitalBehavior.Current.AddCapitalUpgrade(hero.Clan, id);
+                }
+                else
+                {
+                    UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
+                }
                 alreadyOwned.Add(id);
                 results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = true });
             }
@@ -1175,7 +1201,23 @@ namespace BLTAdoptAHero.Actions
             var up = gc.FiefUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
             if (up == null) { fail($"Upgrade '{upgradeId}' not found"); return; }
             if (!up.CanBeRemoved) { fail($"'{up.Name}' cannot be removed"); return; }
-            if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) != true) { fail($"{settlement.Name} doesn't have this upgrade"); return; }
+
+            if (up.CapitalOnly)
+            {
+                if (CapitalBehavior.Current?.HasCapitalUpgrade(hero.Clan, upgradeId) != true)
+                { fail($"{hero.Clan.Name} doesn't have capital upgrade '{upgradeId}'"); return; }
+                CapitalBehavior.Current.RemoveCapitalUpgrade(hero.Clan, upgradeId);
+                ok($"Removed capital upgrade '{up.Name}' from {hero.Clan.Name}!");
+                Log.ShowInformation($"{hero.Name} removed capital upgrade {up.Name}", hero.CharacterObject, Log.Sound.Notification1);
+            }
+            else
+            {
+                if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) != true)
+                { fail($"{settlement.Name} doesn't have this upgrade"); return; }
+                UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
+                ok($"Removed '{up.Name}' from {settlement.Name}!");
+                Log.ShowInformation($"{hero.Name} removed {up.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
+            }
 
             UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
             ok($"Removed '{up.Name}' from {settlement.Name}!");
