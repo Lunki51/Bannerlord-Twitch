@@ -8,6 +8,7 @@ using BLTAdoptAHero.Achievements;
 using TaleWorlds.Core;
 using TaleWorlds.CampaignSystem;
 using JetBrains.Annotations;
+using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
 namespace BLTAdoptAHero
 {
@@ -16,6 +17,14 @@ namespace BLTAdoptAHero
      UsedImplicitly]
     public class Leaderboard : HeroCommandHandlerBase
     {
+        public class Settings : IDocumentable
+        {
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.Value($"Usage: !leaderboard hero (kills|deaths|battles|summons|attacks|tournaments|1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|family) or !leaderboard clan (power|renown|members|dead|fiefs|gold)");
+            }
+        }
+        public override Type HandlerConfigType => typeof(Settings);
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
             Action<string> onSuccess, Action<string> onFailure)
         {
@@ -50,7 +59,7 @@ namespace BLTAdoptAHero
         {
             if (filter.Length == 0)
             {
-                return "kills|deaths|battles|tournaments|family";
+                return "kills|deaths|battles|summons|attacks|tournaments|1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|family";
             }
             var adoptedHeroes = BLTAdoptAHeroCampaignBehavior.GetAllAdoptedHeroes();
 
@@ -100,7 +109,26 @@ namespace BLTAdoptAHero
                 { "KILLS", () => BuildStatLine("KILLS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalKills)) },
                 { "DEATHS", () => BuildStatLine("DEATHS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalDeaths)) },
                 { "BATTLES", () => BuildStatLine("BATTLES", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Battles)) },
+                { "SUMMONS", () => BuildStatLine("SUMMONS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Summons)) },
+                { "ATTACKS", () => BuildStatLine("ATTACKS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Attacks)) },
                 { "TOURNAMENTS", () => BuildStatLine("TOURNAMENTS", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalTournamentFinalWins)) },
+                { "1H-AXE", () => BuildStatLine("1H-AXE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total1HAxeKills)) },
+                { "1H-MACE", () => BuildStatLine("1H-MACE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total1HMaceKills)) },
+                { "1H-POLE", () => BuildStatLine("1H-POLE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total1HPoleKills)) },
+                { "1H-SWORD", () => BuildStatLine("1H-SWORD", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total1HSwordKills)) },
+                { "2H-AXE", () => BuildStatLine("2H-AXE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total2HAxeKills)) },
+                { "2H-MACE", () => BuildStatLine("2H-MACE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total2HMaceKills)) },
+                { "2H-POLE", () => BuildStatLine("2H-POLE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total2HPoleKills)) },
+                { "2H-SWORD", () => BuildStatLine("2H-SWORD", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.Total2HSwordKills)) },
+                { "BOW", () => BuildStatLine("BOW", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalBowKills)) },
+                { "DAGGER", () => BuildStatLine("DAGGER", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalDaggerKills)) },
+                { "JAVELIN", () => BuildStatLine("JAVELIN", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalJavelinKills)) },
+                { "PICK", () => BuildStatLine("PICK", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalPickKills)) },
+                { "SLING", () => BuildStatLine("SLING", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalSlingKills)) },
+                { "STONE", () => BuildStatLine("STONE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalStoneKills)) },
+                { "THROW-AXE", () => BuildStatLine("THROW-AXE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalThrowAxeKills)) },
+                { "THROW-KNIFE", () => BuildStatLine("THROW-KNIFE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalThrowKnifeKills)) },
+                { "XBOW", () => BuildStatLine("XBOW", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalXBowKills)) },
                 { "FAMILY", () => BuildFamilyLine() }
             };
 
@@ -120,7 +148,7 @@ namespace BLTAdoptAHero
         {
             if (filter.Length == 0)
             {
-                return "power|renown|members|fiefs|gold";
+                return "power|renown|members|dead|fiefs|gold";
             }
             if (userHero.Clan == null || !userHero.Clan.Leader.IsAdopted())
                 return "You have no clan.";
@@ -164,7 +192,8 @@ namespace BLTAdoptAHero
             {
                 { "POWER", () => BuildClanStatLine("POWER", c => (int)c.CurrentTotalStrength) },
                 { "RENOWN", () => BuildClanStatLine("RENOWN", c => (int)c.Renown) },
-                { "MEMBERS", () => BuildClanStatLine("MEMBERS", c => c.Heroes.Count) },
+                { "MEMBERS", () => BuildClanStatLine("MEMBERS", c => c.Heroes.Where(h => h.IsAlive).ToList().Count) },
+                { "DEAD", () => BuildClanStatLine("DEAD", c => c.Heroes.Where(h => h.IsDead).ToList().Count) },
                 { "FIEFS", () => BuildClanStatLine("FIEFS", c => c.Fiefs.Count) },
                 { "GOLD", () => BuildClanStatLine("GOLD", c => c.Gold) }
             };

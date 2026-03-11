@@ -103,7 +103,7 @@ namespace BLTAdoptAHero.Behaviors
 
                         string enemyPartyName = enemySide.LeaderParty?.Name?.ToString() ?? "unknown party";
                         string enemyFactionName = enemySide.LeaderParty?.MapFaction?.Name?.ToString() ?? "unknown faction";
-                        
+
                         string battleLog = $"[{date}]{eventType} against {enemyPartyName} ({enemyFactionName})({heroSide.HealthyTroopCountAtMapEventStart} vs {enemySide.HealthyTroopCountAtMapEventStart}) - {(won ? "Victory" : "Defeat")}";
 
                         if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
@@ -115,7 +115,7 @@ namespace BLTAdoptAHero.Behaviors
                             logs.RemoveAt(0);
                         logs.Add(battleLog);
                     }
-                    
+
                 });
 
                 // Imprison
@@ -167,6 +167,67 @@ namespace BLTAdoptAHero.Behaviors
                         logs.Add(releaseLog);
                     }
                 });
+
+                // Armies
+                CampaignEvents.ArmyCreated.AddNonSerializedListener(this, army =>
+                {
+                    if (army == null) return;
+                    if (!army.Parties.Any(p => p.LeaderHero != null && p.LeaderHero.IsAdopted())) return;
+
+                    var date = CampaignTime.Now;
+                    foreach (var p in army.Parties.Where(p => p.LeaderHero != null && p.LeaderHero.IsAdopted()))
+                    {
+                        var hero = p.LeaderHero;
+                        if (army.LeaderParty == p)
+                        {
+                            string armyLog1 = $"[{date}]Joined {(army.LeaderParty != null ? $"{army.LeaderParty.Name} " : "")}army({army.Parties.Sum(p => p.MemberRoster.TotalManCount)}troops)";
+
+                            if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
+                            {
+                                logs = new List<string>();
+                                _heroLogs[hero.StringId] = logs;
+                            }
+                            if (logs.Count >= maxLogs)
+                                logs.RemoveAt(0);
+                            logs.Add(armyLog1);
+                        }
+                        else
+                        {
+                            string armyLog2 = $"[{date}]Created army({army.Parties.Sum(p => p.MemberRoster.TotalManCount)}troops)";
+
+                            if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
+                            {
+                                logs = new List<string>();
+                                _heroLogs[hero.StringId] = logs;
+                            }
+                            if (logs.Count >= maxLogs)
+                                logs.RemoveAt(0);
+                            logs.Add(armyLog2);
+                        }
+                    }
+                });
+                CampaignEvents.OnPartyJoinedArmyEvent.AddNonSerializedListener(this, party =>
+                {
+                    if (party == null) return;
+                    if (party.LeaderHero == null) return;
+                    if (!party.LeaderHero.IsAdopted()) return;
+                    if (party.Army == null) return;
+
+                    var date = CampaignTime.Now;
+                    var hero = party.LeaderHero;
+                    var army = party.Army;
+
+                    string armyLog = $"[{date}]Joined {(army.LeaderParty != null ? $"{army.LeaderParty.Name} " : "")}army({army.Parties.Sum(p => p.MemberRoster.TotalManCount)}troops)";
+
+                    if (!_heroLogs.TryGetValue(hero.StringId, out var logs))
+                    {
+                        logs = new List<string>();
+                        _heroLogs[hero.StringId] = logs;
+                    }
+                    if (logs.Count >= maxLogs)
+                        logs.RemoveAt(0);
+                    logs.Add(armyLog);
+                });
             }
         }
         #endregion
@@ -180,7 +241,7 @@ namespace BLTAdoptAHero.Behaviors
             {
                 if (maxLogs == 0) return;
                 // Births
-                CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, (mother, newborns, dead) => 
+                CampaignEvents.OnGivenBirthEvent.AddNonSerializedListener(this, (mother, newborns, dead) =>
                 {
                     if (newborns.Count == 0) return;
 
@@ -216,7 +277,7 @@ namespace BLTAdoptAHero.Behaviors
                 });
 
                 // Marriages
-                CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, (hero1, hero2, notif) => 
+                CampaignEvents.BeforeHeroesMarried.AddNonSerializedListener(this, (hero1, hero2, notif) =>
                 {
                     if (hero1.Clan == null || hero2.Clan == null) return;
                     if (isBLTClan(hero1.Clan) && isBLTClan(hero2.Clan)) return;
@@ -252,7 +313,7 @@ namespace BLTAdoptAHero.Behaviors
                 });
 
                 // Deaths
-                CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, DetachmentData, notif) => 
+                CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, DetachmentData, notif) =>
                 {
                     if (victim.Clan == null) return;
                     if (!isBLTClan(victim.Clan)) return;
@@ -318,6 +379,28 @@ namespace BLTAdoptAHero.Behaviors
                         logs.RemoveAt(0);
                     logs.Add(partyLog);
                 });
+
+                // Grow up
+                CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, hero =>
+                {
+                    if (hero == null) return;
+                    if (hero.Clan == null) return;
+                    if (hero.Clan.Leader == null) return;
+                    if (!hero.Clan.Leader.IsAdopted()) return;
+
+                    var date = CampaignTime.Now;
+
+                    string growLog = $"[{date}]{hero.Name} has become an adult";
+
+                    if (!_clanLogs.TryGetValue(hero.Clan.StringId, out var logs))
+                    {
+                        logs = new List<string>();
+                        _clanLogs[hero.Clan.StringId] = logs;
+                    }
+                    if (logs.Count >= maxLogs)
+                        logs.RemoveAt(0);
+                    logs.Add(growLog);
+                });
             }
 
             public bool isBLTClan(Clan clan)
@@ -336,38 +419,37 @@ namespace BLTAdoptAHero.Behaviors
             {
                 if (maxLogs == 0) return;
                 // War
-                CampaignEvents.WarDeclared.AddNonSerializedListener(this, (faction1, faction2, detail) => 
+                CampaignEvents.WarDeclared.AddNonSerializedListener(this, (faction1, faction2, detail) =>
                 {
                     if (!faction1.IsKingdomFaction && !faction2.IsKingdomFaction) return;
                     var date = CampaignTime.Now;
-                    if (faction1.IsKingdomFaction)
+                    Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
+                    Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
+                    if (kingdom1 != null && kingdom2 != null)
                     {
-                        Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
-                        string warLog1 = $"[{date}]Declared war on {faction2.Name}";
+                        
+                        string warLog1 = $"[{date}]Declared war on {kingdom2.Name}";
 
-                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs))
+                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs1))
                         {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom1.StringId] = logs;
+                            logs1 = new List<string>();
+                            _kingdomLogs[kingdom1.StringId] = logs1;
                         }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(warLog1);
+                        if (logs1.Count >= maxLogs)
+                            logs1.RemoveAt(0);
+                        logs1.Add(warLog1);
+                        
+                        string warLog2 = $"[{date}]{kingdom1.Name} has declared war on your kingdom";
+
+                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs2))
+                        {
+                            logs2 = new List<string>();
+                            _kingdomLogs[kingdom2.StringId] = logs2;
+                        }
+                        if (logs2.Count >= maxLogs)
+                            logs2.RemoveAt(0);
+                        logs2.Add(warLog2);
                     }
-                    if (faction2.IsKingdomFaction)
-                    {
-                        Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
-                        string warLog2 = $"[{date}]{faction1.Name} has declared war on your kingdom";
-
-                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs))
-                        {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom2.StringId] = logs;
-                        }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(warLog2);
-                    }                            
                 });
 
                 // Peace
@@ -375,33 +457,31 @@ namespace BLTAdoptAHero.Behaviors
                 {
                     if (!faction1.IsKingdomFaction && !faction2.IsKingdomFaction) return;
                     var date = CampaignTime.Now;
-                    if (faction1.IsKingdomFaction)
+                    Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
+                    Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
+                    if (kingdom1 != null && kingdom2 != null)
                     {
-                        Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
-                        string peaceLog1 = $"[{date}]Made peace with {faction2.Name}";
+                        string peaceLog1 = $"[{date}]Made peace with {kingdom2.Name}";
 
-                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs))
+                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs1))
                         {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom1.StringId] = logs;
+                            logs1 = new List<string>();
+                            _kingdomLogs[kingdom1.StringId] = logs1;
                         }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(peaceLog1);
-                    }
-                    if (faction2.IsKingdomFaction)
-                    {
-                        Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
-                        string peaceLog2 = $"[{date}]Made peace with {faction1.Name}";
+                        if (logs1.Count >= maxLogs)
+                            logs1.RemoveAt(0);
+                        logs1.Add(peaceLog1);
 
-                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs))
+                        string peaceLog2 = $"[{date}]Made peace with {kingdom1.Name}";
+
+                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs2))
                         {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom2.StringId] = logs;
+                            logs2 = new List<string>();
+                            _kingdomLogs[kingdom2.StringId] = logs2;
                         }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(peaceLog2);
+                        if (logs2.Count >= maxLogs)
+                            logs2.RemoveAt(0);
+                        logs2.Add(peaceLog2);
                     }
                 });
 
@@ -421,7 +501,7 @@ namespace BLTAdoptAHero.Behaviors
                     if (logs1.Count >= maxLogs)
                         logs1.RemoveAt(0);
                     logs1.Add(allyLog1);
-                
+
                     string allyLog2 = $"[{date}]Allied with {kingdom1.Name}";
 
                     if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs2))

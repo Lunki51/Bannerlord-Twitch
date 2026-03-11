@@ -11,6 +11,7 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
 using BLTAdoptAHero.Annotations;
+using BLTAdoptAHero.Behaviors;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Actions;
@@ -32,20 +33,7 @@ namespace BLTAdoptAHero.Actions
      UsedImplicitly]
     public class ClanManagement : HeroCommandHandlerBase
     {
-        //private static Harmony harmonyInstance = null;
-        //static ClanManagement()
-        //{
-        //    InitializeHarmony();
-        //}
 
-        //private static void InitializeHarmony()
-        //{
-        //    if (harmonyInstance == null)
-        //    {
-        //        harmonyInstance = new Harmony("BLTClanManagement");
-        //        harmonyInstance.PatchAll();
-        //    }
-        //}
         [CategoryOrder("Join", 0),
          CategoryOrder("Create", 1),
          CategoryOrder("Lead", 2),
@@ -55,7 +43,8 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Leave", 6),
          //CategoryOrder("Disband", 6),
          CategoryOrder("Buy Noble Title", 7),
-         CategoryOrder("Edit Banner", 8)]
+         CategoryOrder("Edit Banner", 8),
+         CategoryOrder("Alliance", 9)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -171,6 +160,18 @@ namespace BLTAdoptAHero.Actions
              LocDescription("Edit your banner with a code. Make your banner at https://bannerlord.party/banner"),
              PropertyOrder(1), UsedImplicitly]
             public bool EditBannerEnabled { get; set; } = true;
+
+            [LocDisplayName("{=d5WMYSvO}Clan Alliance"),
+             LocCategory("Alliance", "{=moApZJvC}Alliance"),
+             LocDescription("Clan alliance system"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool AllianceEnabled { get; set; } = true;
+
+            [LocDisplayName("{=d5WMYSvO}Clan Alliance members"),
+             LocCategory("Alliance", "{=moApZJvC}Alliance"),
+             LocDescription("Clan alliance max members(not counting vassals)"),
+             PropertyOrder(2), UsedImplicitly]
+            public int AllianceMax { get; set; } = 5;
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
@@ -306,6 +307,10 @@ namespace BLTAdoptAHero.Actions
             //string disbandCommand = "{=TESTING}disband".Translate();
             string buytitleCommand = "{=jk3WfmjK}buy title".Translate();
             string bannerCommand = "{=15vWZKaM}banner".Translate();
+            string createAlliance = "alliance";
+            string joinAlliance = "alliancejoin";
+            string leaveAlliance = "allianceleave";
+            string infoAlliance = "allianceinfo";
 
             switch (command.ToLower())
             {
@@ -359,6 +364,60 @@ namespace BLTAdoptAHero.Actions
                         //}
 
                         HandleBannerCommand(settings, adoptedHero, bannerCode, onSuccess, onFailure);
+                        break;
+                    }
+                case var _ when command.ToLower() == createAlliance:
+                    {
+                        if (!settings.AllianceEnabled)
+                            onFailure("Clan alliances are disabled");
+
+                        if (adoptedHero.Clan == null)
+                            onFailure("You are not in a clan");
+
+                        if (string.IsNullOrEmpty(desiredName))
+                            onFailure("Specify a name");
+
+                        string result = BLTClanAllianceBehavior.RegisterAlliance(adoptedHero.Clan, desiredName);
+                        onSuccess(result);
+                        break;
+                    }
+                case var _ when command.ToLower() == joinAlliance:
+                    {
+                        if (!settings.AllianceEnabled)
+                            onFailure("Clan alliances are disabled");
+
+                        if (adoptedHero.Clan == null)
+                            onFailure("You are not in a clan");
+
+                        if (string.IsNullOrEmpty(desiredName))
+                            onFailure("Specify a name");
+
+                        string result = BLTClanAllianceBehavior.JoinAlliance(adoptedHero.Clan, desiredName);
+                        onSuccess(result);
+                        break;
+                    }
+                case var _ when command.ToLower() == leaveAlliance:
+                    {
+                        if (!settings.AllianceEnabled)
+                            onFailure("Clan alliances are disabled");
+
+                        if (adoptedHero.Clan == null)
+                            onFailure("You are not in a clan");
+
+                        string result = BLTClanAllianceBehavior.LeaveAlliance(adoptedHero.Clan);
+                        onSuccess(result);
+                        break;
+                    }
+                case var _ when command.ToLower() == infoAlliance:
+                    {
+                        if (!settings.AllianceEnabled)
+                            onFailure("Clan alliances are disabled");
+
+                        if (adoptedHero.Clan == null)
+                            onFailure("You are not in a clan");
+
+                        string result = BLTClanAllianceBehavior.LeaveAlliance(adoptedHero.Clan);
+                        onSuccess(result);
                         break;
                     }
                 default:
