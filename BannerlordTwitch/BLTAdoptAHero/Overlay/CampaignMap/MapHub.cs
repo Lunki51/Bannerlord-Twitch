@@ -33,6 +33,9 @@ namespace BLTAdoptAHero.UI
             public List<KingdomData> Kingdoms { get; set; } = new();
             public List<SettlementData> Settlements { get; set; } = new();
             public List<CoastlineSegment> Coastline { get; set; } = new();
+
+            public float MapTownRadius { get; set; } = 2.15f;
+            public float MapCastleLength { get; set; } = 2.5f;
         }
 
         public class KingdomData
@@ -164,6 +167,10 @@ namespace BLTAdoptAHero.UI
 
                 var mapData = new MapData();
 
+                mapData.MapTownRadius = GlobalCommonConfig.Get().MapTownRadius;
+                mapData.MapCastleLength = GlobalCommonConfig.Get().MapCastleLength;
+
+
                 mapData.Kingdoms = Campaign.Current.Kingdoms
                     .Where(k => !k.IsEliminated && k.StringId != null)
                     .Select(k => new KingdomData
@@ -288,7 +295,7 @@ namespace BLTAdoptAHero.UI
             if (settlements.Count == 0) return;
 
             const float clumpRadius = 8.0f;
-            float minSpacing = GlobalCommonConfig.Get().MapOverlayMinSpacing;
+            float minSpacing = 2.5f;//GlobalCommonConfig.Get().MapOverlayMinSpacing;
             const float spreadBias = 1.4f;
             const float clumpRepelRadius = 10.0f;
             const float clumpRepelStrength = 0.5f;

@@ -423,33 +423,32 @@ namespace BLTAdoptAHero.Behaviors
                 {
                     if (!faction1.IsKingdomFaction && !faction2.IsKingdomFaction) return;
                     var date = CampaignTime.Now;
-                    if (faction1.IsKingdomFaction)
+                    Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
+                    Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
+                    if (kingdom1 != null && kingdom2 != null)
                     {
-                        Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
-                        string warLog1 = $"[{date}]Declared war on {faction2.Name}";
+                        
+                        string warLog1 = $"[{date}]Declared war on {kingdom2.Name}";
 
-                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs))
+                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs1))
                         {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom1.StringId] = logs;
+                            logs1 = new List<string>();
+                            _kingdomLogs[kingdom1.StringId] = logs1;
                         }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(warLog1);
-                    }
-                    if (faction2.IsKingdomFaction)
-                    {
-                        Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
-                        string warLog2 = $"[{date}]{faction1.Name} has declared war on your kingdom";
+                        if (logs1.Count >= maxLogs)
+                            logs1.RemoveAt(0);
+                        logs1.Add(warLog1);
+                        
+                        string warLog2 = $"[{date}]{kingdom1.Name} has declared war on your kingdom";
 
-                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs))
+                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs2))
                         {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom2.StringId] = logs;
+                            logs2 = new List<string>();
+                            _kingdomLogs[kingdom2.StringId] = logs2;
                         }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(warLog2);
+                        if (logs2.Count >= maxLogs)
+                            logs2.RemoveAt(0);
+                        logs2.Add(warLog2);
                     }
                 });
 
@@ -458,33 +457,31 @@ namespace BLTAdoptAHero.Behaviors
                 {
                     if (!faction1.IsKingdomFaction && !faction2.IsKingdomFaction) return;
                     var date = CampaignTime.Now;
-                    if (faction1.IsKingdomFaction)
+                    Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
+                    Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
+                    if (kingdom1 != null && kingdom2 != null)
                     {
-                        Kingdom kingdom1 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction1);
-                        string peaceLog1 = $"[{date}]Made peace with {faction2.Name}";
+                        string peaceLog1 = $"[{date}]Made peace with {kingdom2.Name}";
 
-                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs))
+                        if (!_kingdomLogs.TryGetValue(kingdom1.StringId, out var logs1))
                         {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom1.StringId] = logs;
+                            logs1 = new List<string>();
+                            _kingdomLogs[kingdom1.StringId] = logs1;
                         }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(peaceLog1);
-                    }
-                    if (faction2.IsKingdomFaction)
-                    {
-                        Kingdom kingdom2 = Kingdom.All.FirstOrDefault(k => k.MapFaction == faction2);
-                        string peaceLog2 = $"[{date}]Made peace with {faction1.Name}";
+                        if (logs1.Count >= maxLogs)
+                            logs1.RemoveAt(0);
+                        logs1.Add(peaceLog1);
 
-                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs))
+                        string peaceLog2 = $"[{date}]Made peace with {kingdom1.Name}";
+
+                        if (!_kingdomLogs.TryGetValue(kingdom2.StringId, out var logs2))
                         {
-                            logs = new List<string>();
-                            _kingdomLogs[kingdom2.StringId] = logs;
+                            logs2 = new List<string>();
+                            _kingdomLogs[kingdom2.StringId] = logs2;
                         }
-                        if (logs.Count >= maxLogs)
-                            logs.RemoveAt(0);
-                        logs.Add(peaceLog2);
+                        if (logs2.Count >= maxLogs)
+                            logs2.RemoveAt(0);
+                        logs2.Add(peaceLog2);
                     }
                 });
 

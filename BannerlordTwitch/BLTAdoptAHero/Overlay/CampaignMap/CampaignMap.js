@@ -37,6 +37,10 @@
 
     function renderMap(data) {
         kingdomColors.clear();
+
+        townRadius = data.MapTownRadius ?? 2.15;
+        castleLength = data.MapCastleLength ?? 2.5;
+
         if (data.Kingdoms) {
             data.Kingdoms.forEach(k => kingdomColors.set(k.Id, { fill: k.Color1, border: k.Color2 }));
         }
@@ -81,13 +85,13 @@
                 shape = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 shape.setAttribute('cx', 0);
                 shape.setAttribute('cy', 0);
-                shape.setAttribute('r', 2.15);
+                shape.setAttribute('r', townRadius);
             } else {
                 shape = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                shape.setAttribute('x', -2);
-                shape.setAttribute('y', -2);
-                shape.setAttribute('width', 2.5);
-                shape.setAttribute('height', 2.5);
+                shape.setAttribute('x', -castleLength / 2);
+                shape.setAttribute('y', -castleLength / 2);
+                shape.setAttribute('width', castleLength);
+                shape.setAttribute('height', castleLength);
             }
             shape.setAttribute('fill', fillColor);
             shape.setAttribute('stroke', borderColor);

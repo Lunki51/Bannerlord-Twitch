@@ -92,40 +92,46 @@ namespace BLTAdoptAHero
          PropertyOrder(7)]
         public bool ShowCampaignMapOverlay { get; set; } = true;
 
-        [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Overlay Map Settlement spacing"),
-         LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Min centre-to-centre space between settlements"),
+        [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Overlay Map Settlement town radius"),
+         LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Overlay Map Settlement town radius"),
         LocCategory("General", "{=C5T6nnix}General"),
          PropertyOrder(8)]
-        public float MapOverlayMinSpacing { get; set; } = 3.5f;
+        public float MapTownRadius { get; set; } = 2.15f;
+
+        [LocDisplayName("{=BLTAdoptAHero_ShowCampaignMap}Overlay Map Settlement castle length"),
+         LocDescription("{=BLTAdoptAHero_ShowCampaignMap_Desc}Overlay Map Settlement castle length"),
+        LocCategory("General", "{=C5T6nnix}General"),
+         PropertyOrder(9)]
+        public float MapCastleLength { get; set; } = 2.5f;
 
         [LocDisplayName("{=}Uncap Maximum Foodstocks in Settlements"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Enable or disable the vanilla maximum of 300 foodstocks in towns and castles for all settlements."),
-         PropertyOrder(9)]
+         PropertyOrder(10)]
         public bool UncapFoodStocks { get; set; } = false;
 
         [LocDisplayName("{=}Hearth Per Village Tier"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}How much hearth is required per village prosperity level (affects food and goods production)."),
-         PropertyOrder(10)]
+         PropertyOrder(11)]
         public float HearthPerVillageTier { get; set; } = 200f;
 
         [LocDisplayName("{=}Minimum BLT-Led Army Lifetime"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Minimum days a BLT-Led army will persist before being allowed to disband."),
-         PropertyOrder(11)]
+         PropertyOrder(12)]
         public float BLTArmyMinLifetimeDays { get; set; } = 30f;
 
         [LocDisplayName("{=}Lock BLT Army Cohesion"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}When enabled, (standard) armies led by adopted heroes also have their cohesion locked at 100 and are exempt from automatic dispersion checks. 'Mercenary' armies always have this applied regardless."),
-         PropertyOrder(12), UsedImplicitly]
+         PropertyOrder(13), UsedImplicitly]
         public bool LockBLTArmyCohesion { get; set; } = true;
 
         [LocDisplayName("{=}Allow ai clans to join BLT kingdoms"),
          LocCategory("General", "{=C5T6nnix}General"),
          LocDescription("{=}Ai clans allowed to join BLT kingdoms"),
-         PropertyOrder(13)]
+         PropertyOrder(14)]
         public bool AllowAIJoinBLT { get; set; } = true;
 
         [YamlIgnore, Browsable(false)]
