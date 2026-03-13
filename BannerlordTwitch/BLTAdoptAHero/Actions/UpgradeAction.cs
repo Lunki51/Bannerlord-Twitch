@@ -62,6 +62,18 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public bool AllowAnyClanMemberForClanUpgrades { get; set; } = false;
 
+            [LocDisplayName("{=BLT_IndependentLord}Independent Clans Count as Lords"),
+             LocCategory("Permissions", "{=BLT_Permissions}Permissions"),
+             LocDescription("{=BLT_IndependentLordDesc}If enabled, clans that own fiefs but belong to no kingdom benefit from Lord Only upgrades. Default: true (preserves existing behaviour)."),
+             PropertyOrder(3), UsedImplicitly, DefaultValue(true)]
+            public bool IndependentClansCountAsLords { get; set; } = true;
+
+            [LocDisplayName("{=BLT_IndependentMerc}Independent Clans Count as Mercenaries"),
+             LocCategory("Permissions", "{=BLT_Permissions}Permissions"),
+             LocDescription("{=BLT_IndependentMercDesc}If enabled, clans that own fiefs but belong to no kingdom also benefit from Mercenary Only upgrades."),
+             PropertyOrder(4), UsedImplicitly, DefaultValue(false)]
+            public bool IndependentClansCountAsMercs { get; set; } = false;
+
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
@@ -70,6 +82,8 @@ namespace BLTAdoptAHero.Actions
                 generator.P($"<strong>Kingdom Leaders Can Upgrade Fiefs:</strong> {(AllowKingdomLeadersForFiefs ? "Yes" : "No")}");
                 generator.P($"<strong>Any Clan Member Can Upgrade Clan:</strong> {(AllowAnyClanMemberForClanUpgrades ? "Yes" : "No")}");
                 generator.P($"<strong>Reserve Troops When Full:</strong> {(AccumulateWhenFull ? "Yes" : "No")}");
+                generator.P($"<strong>Independent Clans Count as Lords:</strong> {(IndependentClansCountAsLords ? "Yes" : "No")}");
+                generator.P($"<strong>Independent Clans Count as Mercenaries:</strong> {(IndependentClansCountAsMercs ? "Yes" : "No")}");
             }
         }
 
@@ -230,7 +244,7 @@ namespace BLTAdoptAHero.Actions
             private string GetUpgradeEffects(ClanUpgrade u)
             {
                 var sb = new StringBuilder();
-                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.PartyAmountBonus != 0 || u.MaxVassalsBonus != 0 || u.MercIncomeFlat != 0 || u.MercIncomePercent != 0)
+                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.PartyAmountBonus != 0 || u.MaxVassalsBonus != 0 || u.RetinueSizeBonus != 0 || u.MercIncomeFlat != 0 || u.MercIncomePercent != 0)
                 {
                     sb.AppendLine("<strong>Clan Effects:</strong><br>");
                     if (u.RenownDaily != 0) sb.AppendLine($"Renown: {Signed(u.RenownDaily)}/day<br>");
@@ -239,6 +253,7 @@ namespace BLTAdoptAHero.Actions
                     if (u.PartySpeedBonus != 0) sb.AppendLine($"Party Speed: {Signed(u.PartySpeedBonus)}<br>");
                     if (u.PartyAmountBonus != 0) sb.AppendLine($"Party Limit: {Signed(u.PartyAmountBonus)}<br>");
                     if (u.MaxVassalsBonus != 0) sb.AppendLine($"Vassal Limit: {Signed(u.MaxVassalsBonus)}<br>");
+                    if (u.RetinueSizeBonus != 0) sb.AppendLine($"Retinue Size: {Signed(u.RetinueSizeBonus)}<br>");
                     if (u.MercIncomeFlat != 0) sb.AppendLine($"Merc Income (Flat): {Signed(u.MercIncomeFlat)}/day<br>");
                     if (u.MercIncomePercent != 0) sb.AppendLine($"Merc Income (%): {Signed(u.MercIncomePercent)}%/day<br>");
                 }
@@ -288,13 +303,14 @@ namespace BLTAdoptAHero.Actions
                     if (u.MaxClansBonus != 0) sb.AppendLine($"Max Clans: {Signed(u.MaxClansBonus)}<br>");
                     if (u.MaxMercClansBonus != 0) sb.AppendLine($"Max Merc Clans: {Signed(u.MaxMercClansBonus)}<br>");
                 }
-                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0)
+                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.InfluenceDaily != 0 || u.RetinueSizeBonus != 0)
                 {
                     sb.AppendLine("<br><strong>Clan Effects (All Kingdom Clans):</strong><br>");
                     if (u.RenownDaily != 0) sb.AppendLine($"Renown: {Signed(u.RenownDaily)}/day<br>");
                     if (u.PartySizeBonus != 0) sb.AppendLine($"Party Size: {Signed(u.PartySizeBonus)}<br>");
                     if (u.PartySpeedBonus != 0) sb.AppendLine($"Party Speed: {Signed(u.PartySpeedBonus)}<br>");
                     if (u.InfluenceDaily != 0) sb.AppendLine($"Influence: {Signed(u.InfluenceDaily)}/day (all clans)<br>");
+                    if (u.RetinueSizeBonus != 0) sb.AppendLine($"Retinue Size: {Signed(u.RetinueSizeBonus)} per clan<br>");
                 }
                 if (u.LoyaltyDailyFlat != 0 || u.LoyaltyDailyPercent != 0 || u.ProsperityDailyFlat != 0 || u.ProsperityDailyPercent != 0 ||
                     u.SecurityDailyFlat != 0 || u.SecurityDailyPercent != 0 || u.MilitiaDailyFlat != 0 || u.MilitiaDailyPercent != 0 ||
@@ -362,6 +378,8 @@ namespace BLTAdoptAHero.Actions
             // Push the accumulation setting to the behavior so daily ticks respect it immediately.
             if (UpgradeBehavior.Current != null)
                 UpgradeBehavior.Current.AccumulateWhenFull = settings.AccumulateWhenFull;
+                UpgradeBehavior.Current.IndependentClansCountAsLords = settings.IndependentClansCountAsLords;  // ← add
+                UpgradeBehavior.Current.IndependentClansCountAsMercs = settings.IndependentClansCountAsMercs;  // ← add
 
             var globalConfig = GlobalCommonConfig.Get();
             if (globalConfig == null) { onFailure("Configuration not available"); return; }

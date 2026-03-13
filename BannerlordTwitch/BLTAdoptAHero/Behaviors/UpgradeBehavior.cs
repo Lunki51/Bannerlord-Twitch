@@ -27,6 +27,20 @@ namespace BLTAdoptAHero
         /// </summary>
         public bool AccumulateWhenFull { get; set; } = true;
 
+        /// <summary>
+        /// When true (default), clans that own fiefs but belong to no kingdom are treated as
+        /// lords for the purpose of LordOnly upgrade eligibility.
+        /// Set by UpgradeAction.Settings on each command execution.
+        /// </summary>
+        public bool IndependentClansCountAsLords { get; set; } = true;
+
+        /// <summary>
+        /// When true, clans that own fiefs but belong to no kingdom are treated as mercenaries
+        /// for the purpose of MercOnly upgrade eligibility. Default false.
+        /// Set by UpgradeAction.Settings on each command execution.
+        /// </summary>
+        public bool IndependentClansCountAsMercs { get; set; } = false;
+
         public UpgradeBehavior() { Current = this; }
 
         public override void RegisterEvents()
@@ -156,6 +170,32 @@ namespace BLTAdoptAHero
         }
         #endregion
 
+        // ── Clan upgrade eligibility ──────────────────────────────────────────
+        /// <summary>
+        /// Central filter for LordOnly / MercOnly / independent-clan logic.
+        /// A clan is "independent" if it has no kingdom and is not under mercenary service.
+        /// The two IndependentClans* toggles control whether such clans qualify.
+        /// </summary>
+        private bool IsClanUpgradeActive(ClanUpgrade up, Clan clan)
+        {
+            bool isIndependent = clan.Kingdom == null && !clan.IsUnderMercenaryService;
+
+            if (up.LordOnly)
+            {
+                if (clan.IsUnderMercenaryService) return false;                          // mercs are never lords
+                if (isIndependent && !IndependentClansCountAsLords) return false;        // block independents unless opted-in
+            }
+
+            if (up.MercOnly)
+            {
+                bool qualifies = clan.IsUnderMercenaryService
+                              || (isIndependent && IndependentClansCountAsMercs);
+                if (!qualifies) return false;
+            }
+
+            return true;
+        }
+
         #region Troop tree traversal
         private CharacterObject GetTroopForCulture(CultureObject culture, TroopTreeType treeType, int tier)
         {
@@ -207,7 +247,7 @@ namespace BLTAdoptAHero
             {
                 var up = ConfigSafe?.ClanUpgrades?.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                if ((up.LordOnly && clan.IsUnderMercenaryService) || (up.MercOnly && !clan.IsUnderMercenaryService)) continue;
+                if (!IsClanUpgradeActive(up, clan)) continue;           // ← unified filter
                 if (up.BuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
                     bonus += up.TroopTierBonus;
             }
@@ -228,7 +268,6 @@ namespace BLTAdoptAHero
             return Math.Max(1, spawningUpgrade.TroopTier + bonus);
         }
 
-        // Garrison tier: fief upgrade buffed by other fief upgrades on the same settlement
         private int GetEffectiveGarrisonTierFief(Settlement settlement, FiefUpgrade spawningUpgrade)
         {
             if (settlement == null || spawningUpgrade == null) return 1;
@@ -243,7 +282,6 @@ namespace BLTAdoptAHero
             return Math.Max(1, spawningUpgrade.GarrisonTroopTier + bonus);
         }
 
-        // Garrison tier: clan upgrade buffed by other clan upgrades
         private int GetEffectiveGarrisonTierClan(Clan clan, ClanUpgrade spawningUpgrade)
         {
             if (clan == null || spawningUpgrade == null) return 1;
@@ -252,14 +290,13 @@ namespace BLTAdoptAHero
             {
                 var up = ConfigSafe?.ClanUpgrades?.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                if ((up.LordOnly && clan.IsUnderMercenaryService) || (up.MercOnly && !clan.IsUnderMercenaryService)) continue;
+                if (!IsClanUpgradeActive(up, clan)) continue;           // ← unified filter
                 if (up.GarrisonBuffsTroopTierOfIDs.Contains(spawningUpgrade.ID, StringComparer.OrdinalIgnoreCase))
                     bonus += up.GarrisonTroopTierBonus;
             }
             return Math.Max(1, spawningUpgrade.GarrisonTroopTier + bonus);
         }
 
-        // Garrison tier: kingdom upgrade buffed by other kingdom upgrades
         private int GetEffectiveGarrisonTierKingdom(Clan clan, KingdomUpgrade spawningUpgrade)
         {
             if (clan == null || spawningUpgrade == null || clan.Kingdom == null) return 1;
@@ -276,8 +313,6 @@ namespace BLTAdoptAHero
         #endregion
 
         #region Spawn helpers
-        // Returns true only if a troop was actually added. Caller must only decrement
-        // accumulation on true to avoid silent troop loss.
         private bool TrySpawnTroopToParty(Clan clan, TroopTreeType tree, int tier)
         {
             var party = clan.Leader?.PartyBelongedTo != null &&
@@ -296,7 +331,6 @@ namespace BLTAdoptAHero
             return true;
         }
 
-        // Returns true only if a troop was actually added to the garrison.
         private bool TrySpawnTroopToGarrison(Settlement settlement, TroopTreeType tree, int tier)
         {
             var garrison = settlement?.Town?.GarrisonParty;
@@ -310,7 +344,6 @@ namespace BLTAdoptAHero
             return true;
         }
 
-        // Picks a random clan settlement whose garrison has room. Returns null if none found.
         private Settlement GetRandomGarrisonSettlementForClan(Clan clan)
             => clan?.Settlements
                    .Where(s => s.Town?.GarrisonParty != null &&
@@ -325,11 +358,6 @@ namespace BLTAdoptAHero
             {
                 if (!trySpawn())
                 {
-                    // Spawn failed (party/garrison full, or no valid troop).
-                    // If AccumulateWhenFull is disabled, discard everything >= 1.0
-                    // so troops don't bank up while there's no room.
-                    // The sub-1.0 fractional remainder is always kept — it represents
-                    // a partially-earned troop, not a banked one.
                     if (!AccumulateWhenFull) acc %= 1.0f;
                     break;
                 }
@@ -349,14 +377,11 @@ namespace BLTAdoptAHero
 
                 ApplyRenownDaily(clan);
 
-                // ── Clan upgrade: war-party spawning ──────────────────────────
                 foreach (var upgradeId in GetClanUpgrades(clan))
                 {
                     var up = ConfigSafe.ClanUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
                     if (up == null) continue;
-                    bool lordBlock = up.LordOnly && clan.IsUnderMercenaryService;
-                    bool mercBlock = up.MercOnly && !clan.IsUnderMercenaryService;
-                    if (lordBlock || mercBlock) continue;
+                    if (!IsClanUpgradeActive(up, clan)) continue;       // ← unified filter
 
                     if (up.DailyTroopSpawnAmount > 0)
                     {
@@ -379,7 +404,6 @@ namespace BLTAdoptAHero
                     }
                 }
 
-                // ── Kingdom upgrade: war-party and garrison spawning per clan ──
                 if (clan.Kingdom == null || ConfigSafe.KingdomUpgrades == null) return;
 
                 foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
@@ -418,7 +442,6 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Fief garrison spawning only applies to towns/castles (which have garrison parties)
                 if (settlement?.Town == null || ConfigSafe?.FiefUpgrades == null) return;
 
                 foreach (var upgradeId in GetFiefUpgrades(settlement))
@@ -445,13 +468,6 @@ namespace BLTAdoptAHero
         #endregion
 
         #region Typed aggregation helpers
-        // ── Core rule ────────────────────────────────────────────────────────
-        // A negative upgrade value is skipped when the running total (current
-        // stat value + sum accumulated so far) would fall below zero, i.e. the
-        // stat is already at its minimum and cannot be reduced further.
-        // ─────────────────────────────────────────────────────────────────────
-
-        // Cached once per Sum call so every loop iteration doesn't re-read the config.
         private bool FloorGuardEnabled => ConfigSafe?.BlockNegativesAtFloor ?? true;
 
         private float SumFiefFloat(Settlement s, Func<FiefUpgrade, float> sel, float currentValue = float.MaxValue)
@@ -466,7 +482,7 @@ namespace BLTAdoptAHero
                 if (up.CoastalOnly && !s.HasPort) continue;
                 if (up.CapitalOnly) continue;
                 float v = sel(up);
-                if (guard && v < 0f && currentValue + sum + v < 0f) continue; // floor guard
+                if (guard && v < 0f && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
             return sum;
@@ -481,11 +497,10 @@ namespace BLTAdoptAHero
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                if (up.LordOnly && clan.IsUnderMercenaryService) continue;
-                if (up.MercOnly && !clan.IsUnderMercenaryService) continue;
+                if (!IsClanUpgradeActive(up, clan)) continue;           // ← unified filter
                 if (up.ApplyToVassals && !vassalOnly) continue;
                 float v = sel(up);
-                if (guard && v < 0f && currentValue + sum + v < 0f) continue; // floor guard
+                if (guard && v < 0f && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
             return sum;
@@ -501,17 +516,12 @@ namespace BLTAdoptAHero
                 var up = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
                 float v = sel(up);
-                if (guard && v < 0f && currentValue + sum + v < 0f) continue; // floor guard
+                if (guard && v < 0f && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
             return sum;
         }
 
-        /// <summary>
-        /// Aggregates float values across fief, clan, and kingdom upgrades for a settlement,
-        /// respecting the zero floor: a negative contribution is skipped if the stat would
-        /// drop below zero given everything accumulated so far.
-        /// </summary>
         private float SumSettlementFloat(Settlement s,
             Func<FiefUpgrade, float> fiefSel,
             Func<ClanUpgrade, float> clanSel,
@@ -519,11 +529,8 @@ namespace BLTAdoptAHero
             float currentValue = float.MaxValue)
         {
             if (s == null) return 0f;
-
-            // Each layer sees the running total so the floor check is cumulative.
             float fiefSum = SumFiefFloat(s, fiefSel, currentValue);
             float runningTotal = currentValue + fiefSum;
-
             var clan = s.OwnerClan;
             float clanSum = 0f, kingSum = 0f;
             if (clan != null)
@@ -548,7 +555,7 @@ namespace BLTAdoptAHero
                 if (up.CoastalOnly && !s.HasPort) continue;
                 if (up.CapitalOnly) continue;
                 int v = sel(up);
-                if (guard && v < 0 && currentValue + sum + v < 0f) continue; // floor guard
+                if (guard && v < 0 && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
             return (int)sum;
@@ -563,11 +570,10 @@ namespace BLTAdoptAHero
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                if (up.LordOnly && clan.IsUnderMercenaryService) continue;
-                if (up.MercOnly && !clan.IsUnderMercenaryService) continue;
+                if (!IsClanUpgradeActive(up, clan)) continue;           // ← unified filter
                 if (up.ApplyToVassals && !vassalOnly) continue;
                 int v = sel(up);
-                if (guard && v < 0 && currentValue + sum + v < 0f) continue; // floor guard
+                if (guard && v < 0 && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
             return (int)sum;
@@ -583,7 +589,7 @@ namespace BLTAdoptAHero
                 var up = ConfigSafe.KingdomUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
                 int v = sel(up);
-                if (guard && v < 0 && currentValue + sum + v < 0f) continue; // floor guard
+                if (guard && v < 0 && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
             return (int)sum;
@@ -596,10 +602,8 @@ namespace BLTAdoptAHero
             float currentValue = float.MaxValue)
         {
             if (s == null) return 0;
-
             int fiefSum = SumFiefInt(s, fiefSel, currentValue);
             float runningTotal = currentValue + fiefSum;
-
             var clan = s.OwnerClan;
             int clanSum = 0, kingSum = 0;
             if (clan != null)
@@ -614,10 +618,6 @@ namespace BLTAdoptAHero
         #endregion
 
         #region Aggregated getters
-        // Pass the real current stat value so the floor guard can fire correctly.
-        // Callers that don't have access to the current value can omit it (defaults
-        // to float.MaxValue, which disables the guard — same as the old behaviour).
-
         public int GetTotalTaxBonus(Settlement s, float currentValue = float.MaxValue)
         {
             int sum = SumSettlementInt(s, f => f.TaxIncomeFlat, c => c.TaxIncomeFlat, k => k.TaxIncomeFlat, currentValue);
@@ -638,6 +638,17 @@ namespace BLTAdoptAHero
             if (CapitalBehavior.Current != null)
                 sum += CapitalBehavior.Current.GetCapGarrisonCap(s, currentValue + sum);
             return sum;
+        }
+
+        public int GetClanRetinueSizeBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.RetinueSizeBonus, currentValue: currentValue);
+        public int GetKingdomRetinueSizeBonus(Kingdom kingdom, float currentValue = float.MaxValue) => SumKingdomInt(kingdom, k => k.RetinueSizeBonus, currentValue);
+        public int GetTotalRetinueSizeBonus(Hero hero, float currentValue = float.MaxValue)
+        {
+            if (hero?.Clan == null) return 0;
+            int bonus = GetClanRetinueSizeBonus(hero.Clan, currentValue);
+            if (hero.Clan.Kingdom != null)
+                bonus += GetKingdomRetinueSizeBonus(hero.Clan.Kingdom, currentValue + bonus);
+            return bonus;
         }
 
         public int GetClanPartySizeBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartySizeBonus, currentValue: currentValue);
@@ -702,71 +713,61 @@ namespace BLTAdoptAHero
         public float GetTotalLoyaltyDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.LoyaltyDailyFlat, c => c.LoyaltyDailyFlat, k => k.LoyaltyDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalLoyaltyDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.LoyaltyDailyPercent, c => c.LoyaltyDailyPercent, k => k.LoyaltyDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
             return sum;
         }
         public float GetTotalProsperityDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.ProsperityDailyFlat, c => c.ProsperityDailyFlat, k => k.ProsperityDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalProsperityDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.ProsperityDailyPercent, c => c.ProsperityDailyPercent, k => k.ProsperityDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
             return sum;
         }
         public float GetTotalSecurityDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.SecurityDailyFlat, c => c.SecurityDailyFlat, k => k.SecurityDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalSecurityDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.SecurityDailyPercent, c => c.SecurityDailyPercent, k => k.SecurityDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
             return sum;
         }
         public float GetTotalMilitiaDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.MilitiaDailyFlat, c => c.MilitiaDailyFlat, k => k.MilitiaDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalMilitiaDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.MilitiaDailyPercent, c => c.MilitiaDailyPercent, k => k.MilitiaDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
             return sum;
         }
         public float GetTotalFoodDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.FoodDailyFlat, c => c.FoodDailyFlat, k => k.FoodDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalFoodDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null)
-                sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
             return sum;
         }
 
