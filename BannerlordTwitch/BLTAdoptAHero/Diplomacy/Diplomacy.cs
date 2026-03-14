@@ -339,7 +339,12 @@ namespace BLTAdoptAHero
 
             if (adoptedHero.Clan == null)
             {
-                // Clan commands work for independent heroes — intercept before kingdom guard.
+                onFailure("{=}You are not in a Clan!".Translate());
+                return;
+            }
+
+            if (adoptedHero.Clan.Kingdom == null)
+            {
                 var earlyArgs = context.Args.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
                 if (earlyArgs.Length > 0 && earlyArgs[0].Equals("clan", StringComparison.OrdinalIgnoreCase))
                 {
@@ -348,12 +353,6 @@ namespace BLTAdoptAHero
                         onSuccess, onFailure);
                     return;
                 }
-            }
-
-            if (adoptedHero.Clan.Kingdom == null)
-            {
-                onFailure("{=EJ4Pd2Lg}Your clan is not in a Kingdom".Translate());
-                return;
             }
 
             if (!adoptedHero.IsKingdomLeader)
