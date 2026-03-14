@@ -208,8 +208,9 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new VassalBehavior());
                     campaignStarter.AddBehavior(new KingdomTaxBehavior());
                     campaignStarter.AddBehavior(new BLTLogsBehavior());
-                    campaignStarter.AddBehavior(new BLTClanAllianceBehavior());
-                    //campaignStarter.AddBehavior(new MercenaryArmyBehavior());
+                    //campaignStarter.AddBehavior(new BLTClanAllianceBehavior());
+                    campaignStarter.AddBehavior(new BLTClanDiplomacyBehavior());
+                    campaignStarter.AddBehavior(new BLTClanArmyBehavior());
                     campaignStarter.AddBehavior(new PartyOrderBehavior());
                     campaignStarter.AddBehavior(new TrainingBehavior());
                     // Diplomacy

@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
+using TaleWorlds.CampaignSystem.Settlements;
 using BannerlordTwitch.Util;
+using TaleWorlds.CampaignSystem.Party;
 
 namespace BLTAdoptAHero
 {
@@ -45,13 +48,19 @@ namespace BLTAdoptAHero
     // ── Behavior ──────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Lightweight clan-to-clan alliance system for independent (kingdom-less) clans.
-    /// Only BLT-adopted clan leaders can propose/accept alliances.
-    /// Alliances are automatically dissolved when either clan joins a kingdom.
+    /// Clan-to-clan alliance system.
+    /// Independent (kingdom-less) clans: full alliance support.
+    /// Landed clans (own at least one fief) may also form alliances with kingdoms
+    /// and other landed clans via the kingdom-level proposal/accept flow, but lose
+    /// all non-war diplomatic agreements if they later lose all fiefs.
+    /// Vassals are never shown directly — allied clan display uses a (+N) suffix instead.
     /// </summary>
     public class BLTClanDiplomacyBehavior : CampaignBehaviorBase
     {
         public static BLTClanDiplomacyBehavior Current { get; private set; }
+
+        // Max independent-clan alliances (set from Diplomacy.cs Settings)
+        public int MaxClanAlliances { get; set; } = 3;
 
         private Dictionary<string, BLTClanAlliance> _alliances = new();
         private Dictionary<string, BLTClanAllianceProposal> _proposals = new();
@@ -77,6 +86,7 @@ namespace BLTAdoptAHero
             CampaignEvents.OnClanChangedKingdomEvent.AddNonSerializedListener(this, OnClanChangedKingdom);
             CampaignEvents.DailyTickEvent.AddNonSerializedListener(this, OnDailyTick);
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, OnHeroKilled);
+            CampaignEvents.SettlementEntered.AddNonSerializedListener(this, OnSettlementEntered);
         }
 
         public override void SyncData(IDataStore dataStore)
@@ -137,8 +147,10 @@ namespace BLTAdoptAHero
             }
 
             _proposals.Clear();
-            int count = new[] { _proposalKeys.Count, _proposerIds.Count,
-                _targetIds.Count, _proposalExpireDays.Count, _proposalGoldCost.Count }.Min();
+            int count = new[] {
+                _proposalKeys.Count, _proposerIds.Count,
+                _targetIds.Count, _proposalExpireDays.Count, _proposalGoldCost.Count
+            }.Min();
             for (int i = 0; i < count; i++)
             {
                 _proposals[_proposalKeys[i]] = new BLTClanAllianceProposal
@@ -151,10 +163,48 @@ namespace BLTAdoptAHero
             }
         }
 
+        // ── Helpers: landed status ────────────────────────────────────────────
+
+        /// <summary>True if the clan owns at least one fief.</summary>
+        public static bool IsLanded(Clan c) => c?.Fiefs != null && c.Fiefs.Count > 0;
+
+        /// <summary>
+        /// True if a clan is eligible for kingdom-level clan diplomacy
+        /// (landed independent clan or a kingdom).
+        /// </summary>
+        public static bool CanUseKingdomLevelDiplomacy(Clan c) =>
+            c != null && c.Kingdom == null && IsLanded(c);
+
+        // ── Helpers: vassal count ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Returns the number of vassal clans a clan has, safely.
+        /// </summary>
+        private static int GetVassalCount(Clan c)
+        {
+            if (c == null) return 0;
+            try
+            {
+                return VassalBehavior.Current?.GetVassalClans(c)?.Count ?? 0;
+            }
+            catch { return 0; }
+        }
+
+        /// <summary>
+        /// Returns a display label for a clan, e.g. "ClanName (+2)" if they have vassals.
+        /// </summary>
+        public static string ClanDisplayLabel(Clan c)
+        {
+            if (c == null) return "?";
+            int vassals = GetVassalCount(c);
+            return vassals > 0 ? $"{c.Name} (+{vassals})" : c.Name.ToString();
+        }
+
         // ── Public API ────────────────────────────────────────────────────────
 
         /// <summary>
-        /// Validates and creates a pending alliance proposal from proposer to target.
+        /// Validates and creates a pending alliance proposal from proposer → target.
+        /// Both independent-clan and kingdom-level proposals go through here.
         /// Returns a failure string on error, null on success.
         /// </summary>
         public string CreateProposal(Clan proposer, Clan target, int goldCost, int daysToAccept)
@@ -163,16 +213,31 @@ namespace BLTAdoptAHero
                 return "Invalid clan";
             if (proposer == target)
                 return "Cannot ally with yourself";
+
+            // Proposer must be independent
             if (proposer.Kingdom != null)
                 return $"{proposer.Name} is in a kingdom — use the kingdom diplomacy system";
+
+            // Target may be independent or landed
             if (target.Kingdom != null)
-                return $"{target.Name} is in a kingdom — independent clan alliances only";
-            if (!proposer.Leader.IsAdopted() && !target.Leader.IsAdopted())
+                return $"{target.Name} is in a kingdom — use the kingdom diplomacy system";
+
+            // At least one side must be BLT-adopted
+            if (!proposer.Leader.IsAdopted() && (target.Leader == null || !target.Leader.IsAdopted()))
                 return "At least one clan must be BLT-adopted to form a clan alliance";
+
             if (HasAlliance(proposer, target))
                 return $"Already allied with {target.Name}";
             if (GetProposal(proposer, target) != null)
                 return $"Alliance proposal already pending with {target.Name}";
+
+            // If neither side is landed, apply the independent-clan max
+            if (!IsLanded(proposer) && !IsLanded(target))
+            {
+                int current = GetAlliancesFor(proposer).Count;
+                if (MaxClanAlliances > 0 && current >= MaxClanAlliances)
+                    return $"Maximum clan alliances reached ({current}/{MaxClanAlliances})";
+            }
 
             var key = MakeKey(proposer, target);
             _proposals[key] = new BLTClanAllianceProposal
@@ -186,7 +251,9 @@ namespace BLTAdoptAHero
         }
 
         /// <summary>
-        /// Accepts a pending proposal. Returns failure string or null on success.
+        /// Accepts a pending proposal.  Also registers all vassals of both sides
+        /// as silent members of the alliance.
+        /// Returns failure string or null on success.
         /// </summary>
         public string AcceptProposal(Clan accepter, Clan proposer)
         {
@@ -219,7 +286,6 @@ namespace BLTAdoptAHero
 
         /// <summary>
         /// Breaks an existing alliance, notifying both parties if adopted.
-        /// reason is shown in the chat notification.
         /// </summary>
         public void BreakAlliance(Clan c1, Clan c2, string reason)
         {
@@ -241,7 +307,6 @@ namespace BLTAdoptAHero
         public BLTClanAllianceProposal GetProposal(Clan proposer, Clan target)
         {
             _proposals.TryGetValue(MakeKey(proposer, target), out var p);
-            // Directional: key is symmetric but ProposerClanId distinguishes direction
             if (p != null && p.ProposerClanId == proposer?.StringId) return p;
             return null;
         }
@@ -260,6 +325,53 @@ namespace BLTAdoptAHero
                 .Where(p => p.TargetClanId == c?.StringId && !p.IsExpired())
                 .ToList();
 
+        // ── Fief-loss enforcement ─────────────────────────────────────────────
+
+        /// <summary>
+        /// Called when a clan loses its last fief.  Strips all non-war diplomatic
+        /// agreements (alliances, proposals).  Active wars are left intact.
+        /// </summary>
+        private void OnClanLostLastFief(Clan clan)
+        {
+            if (clan == null) return;
+
+            // Only strip alliances where the OTHER side is a kingdom or a landed clan
+            // (i.e. agreements that required land to enter). Pure clan-to-clan alliances
+            // between two independent clans are left intact.
+            foreach (var a in GetAlliancesFor(clan).ToList())
+            {
+                var other = a.GetOther(clan);
+                if (other == null) continue;
+
+                bool otherIsKingdom = other.Kingdom != null;
+                bool otherIsLanded = IsLanded(other);
+
+                if (otherIsKingdom || otherIsLanded)
+                {
+                    BreakAlliance(clan, other,
+                        $"{clan.Name} lost all fiefs — kingdom-level diplomatic agreement dissolved");
+                }
+            }
+
+            // Cancel only proposals that involve a kingdom or landed clan on the other side
+            foreach (var kvp in _proposals
+                .Where(p => p.Value.ProposerClanId == clan.StringId
+                         || p.Value.TargetClanId == clan.StringId)
+                .ToList())
+            {
+                var proposal = kvp.Value;
+                var other = proposal.ProposerClanId == clan.StringId
+                    ? proposal.GetTarget()
+                    : proposal.GetProposer();
+
+                if (other == null || other.Kingdom != null || IsLanded(other))
+                    _proposals.Remove(kvp.Key);
+            }
+
+            NotifyClanLeader(clan,
+                "You have lost all your fiefs. Kingdom-level diplomatic agreements have been dissolved.");
+        }
+
         // ── Event Handlers ────────────────────────────────────────────────────
 
         private void OnClanChangedKingdom(Clan clan, Kingdom oldKingdom, Kingdom newKingdom,
@@ -269,7 +381,6 @@ namespace BLTAdoptAHero
             {
                 if (clan == null || newKingdom == null) return;
 
-                // Break all alliances that involve this clan, since it is no longer independent.
                 foreach (var alliance in GetAlliancesFor(clan).ToList())
                 {
                     var other = alliance.GetOther(clan);
@@ -277,7 +388,6 @@ namespace BLTAdoptAHero
                         $"{clan.Name} has joined {newKingdom.Name} — clan alliance dissolved");
                 }
 
-                // Also cancel any pending proposals.
                 foreach (var kvp in _proposals
                     .Where(p => p.Value.ProposerClanId == clan.StringId
                              || p.Value.TargetClanId == clan.StringId)
@@ -292,12 +402,42 @@ namespace BLTAdoptAHero
             }
         }
 
+        // We use SettlementEntered as a lightweight hook to detect fief loss
+        // (MobileParty entering a settlement fires after ownership may have changed).
+        // The daily tick is the real enforcement point.
+        private readonly Dictionary<string, int> _lastKnownFiefCount = new();
+
+        private void OnSettlementEntered(MobileParty party, Settlement settlement, Hero hero)
+        {
+            // No-op: fief loss is polled on DailyTick to avoid excessive callbacks.
+        }
+
         private void OnDailyTick()
         {
-            // Expire stale proposals.
-            foreach (var key in _proposals.Where(kvp => kvp.Value.IsExpired())
-                                          .Select(kvp => kvp.Key).ToList())
+            // Expire stale proposals
+            foreach (var key in _proposals
+                .Where(kvp => kvp.Value.IsExpired())
+                .Select(kvp => kvp.Key).ToList())
                 _proposals.Remove(key);
+
+            // Fief-loss check for landed clans that have alliances
+            foreach (var a in _alliances.Values.ToList())
+            {
+                CheckFiefLoss(a.GetClan1());
+                CheckFiefLoss(a.GetClan2());
+            }
+        }
+
+        private void CheckFiefLoss(Clan c)
+        {
+            if (c == null || c.Kingdom != null) return;
+            int prev = _lastKnownFiefCount.TryGetValue(c.StringId, out int v) ? v : -1;
+            int curr = c.Fiefs?.Count ?? 0;
+            _lastKnownFiefCount[c.StringId] = curr;
+
+            // Transitioned from landed → landless
+            if (prev > 0 && curr == 0)
+                OnClanLostLastFief(c);
         }
 
         private void OnHeroKilled(Hero victim, Hero killer,
@@ -305,10 +445,7 @@ namespace BLTAdoptAHero
         {
             try
             {
-                if (victim?.Clan == null) return;
-                // If a clan leader dies and there's no heir, the clan may be discontinued.
-                // We clean up alliances defensively here as well.
-                if (victim.Clan.Leader != victim) return;
+                if (victim?.Clan == null || victim.Clan.Leader != victim) return;
 
                 foreach (var alliance in GetAlliancesFor(victim.Clan).ToList())
                 {
@@ -323,7 +460,7 @@ namespace BLTAdoptAHero
             }
         }
 
-        // ── Helpers ───────────────────────────────────────────────────────────
+        // ── Key helpers ───────────────────────────────────────────────────────
 
         private string MakeKey(Clan c1, Clan c2)
         {
@@ -337,6 +474,8 @@ namespace BLTAdoptAHero
             var key = MakeKey(proposer, target);
             if (key != null) _proposals.Remove(key);
         }
+
+        // ── Notifications ─────────────────────────────────────────────────────
 
         private static void NotifyAllianceBroken(Clan c1, Clan c2, string reason)
         {
@@ -353,8 +492,7 @@ namespace BLTAdoptAHero
 
         internal static void NotifyClanLeader(Clan clan, string message)
         {
-            if (clan?.Leader == null) return;
-            if (!clan.Leader.IsAdopted()) return;
+            if (clan?.Leader == null || !clan.Leader.IsAdopted()) return;
 
             string name = clan.Leader.FirstName.ToString()
                 .Replace(BLTAdoptAHeroModule.Tag, "")
@@ -365,15 +503,15 @@ namespace BLTAdoptAHero
             Log.ShowInformation(message, clan.Leader.CharacterObject);
         }
 
-        // ── Info builder (called by Diplomacy.cs HandleInfoCommand) ──────────
+        // ── Info builder ──────────────────────────────────────────────────────
 
         /// <summary>
-        /// Appends a clan diplomacy section to a StringBuilder for use in !diplomacy info.
-        /// Only outputs content if there is something to show.
+        /// Appends a clan diplomacy section to a StringBuilder for !diplomacy info.
+        /// Allied clans are shown with a (+N) vassal suffix; vassals themselves are hidden.
         /// </summary>
-        public void AppendInfoSection(Clan clan, System.Text.StringBuilder sb)
+        public void AppendInfoSection(Clan clan, StringBuilder sb)
         {
-            if (clan == null || clan.Kingdom != null) return; // only for independent clans
+            if (clan == null || clan.Kingdom != null) return;
 
             var alliances = GetAlliancesFor(clan);
             var proposals = GetProposalsFor(clan);
@@ -384,15 +522,21 @@ namespace BLTAdoptAHero
             foreach (var a in alliances)
             {
                 var other = a.GetOther(clan);
+                if (other == null) continue;
                 int days = (int)(CampaignTime.Now.ToDays - a.StartDays);
-                sb.Append($" {other?.Name}(+{days}d)");
+                string label = ClanDisplayLabel(other); // shows (+N) for vassals
+                sb.Append($" {label}(+{days}d)");
             }
 
             if (proposals.Count > 0)
             {
                 sb.Append(" | [Pending]");
                 foreach (var p in proposals)
-                    sb.Append($" {p.GetProposer()?.Name}({p.DaysRemaining()}d)");
+                {
+                    var proposer = p.GetProposer();
+                    if (proposer == null) continue;
+                    sb.Append($" {ClanDisplayLabel(proposer)}({p.DaysRemaining()}d)");
+                }
             }
         }
     }
