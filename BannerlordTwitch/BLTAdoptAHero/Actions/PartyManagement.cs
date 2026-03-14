@@ -1085,6 +1085,12 @@ namespace BLTAdoptAHero.Actions
             if (party.MapEvent != null) { onFailure("Your army is fighting"); return; }
 
             var old = army;
+
+            // FIX 3a: cancel any BLT order and release the AI lock before detaching.
+            PartyOrderBehavior.Current?.CancelOrdersForParty(party.StringId, null, false);
+            try { party.Ai.SetDoNotMakeNewDecisions(false); }
+            catch (Exception ex) { Log.Error($"[BLT] ArmyLeave: AI unlock failed: {ex}"); }
+
             party.Army = null;
             party.AttachedTo = null;
             onSuccess($"Left {old.Name}");
@@ -1197,6 +1203,12 @@ namespace BLTAdoptAHero.Actions
             foreach (var p in kickable)
             {
                 string pName = p.LeaderHero?.Name?.ToString() ?? p.Name.ToString();
+
+                // FIX 3b: cancel any BLT order and release the AI lock before detaching.
+                PartyOrderBehavior.Current?.CancelOrdersForParty(p.StringId, null, false);
+                try { p.Ai.SetDoNotMakeNewDecisions(false); }
+                catch (Exception ex) { Log.Error($"[BLT] ArmyKick: AI unlock failed for {pName}: {ex}"); }
+
                 p.Army = null;
                 p.AttachedTo = null;
                 kicked.Add($"{pName}({(int)p.Party.EstimatedStrength}str)");
