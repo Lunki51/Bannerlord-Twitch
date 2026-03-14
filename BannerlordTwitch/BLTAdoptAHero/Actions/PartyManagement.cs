@@ -179,6 +179,17 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool TrainEnabled { get; set; } = true;
 
+            [LocDisplayName("Train Max Tier"),
+             LocCategory("Training", "Training"),
+             LocDescription(
+                 "Training will only upgrade troops in the leader's party up to this tier. " +
+                 "Once all troops in the leader's party are at or above this tier, " +
+                 "daily training budget spills over to a randomly chosen free clan party " +
+                 "and upgrades its troops to the same tier cap. " +
+                 "0 = no cap (original behaviour, only affects the leader's party)."),
+             PropertyOrder(2), UsedImplicitly] // long ass description, I know, but people have been complaining about not enough information
+            public int TrainMaxTier { get; set; } = 0;
+
             // ── Party Orders ─────────────────────────────────────────────────
             [LocDisplayName("Clan Orders Enabled"),
              LocCategory("Party Orders", "Party Orders"),
@@ -600,7 +611,7 @@ namespace BLTAdoptAHero.Actions
         }
 
         private static void HandleTrain(Settings settings, Hero h, MobileParty party, string arg,
-            Action<string> onSuccess, Action<string> onFailure)
+    Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.TrainEnabled) { onFailure("Training is disabled"); return; }
             if (party == null || party.LeaderHero != h) { onFailure("You must be leading a party to invest in training"); return; }
@@ -612,7 +623,8 @@ namespace BLTAdoptAHero.Actions
                 if (entry == null || entry.Fund <= 0) { onSuccess("No training fund active"); return; }
                 int daily = TrainingBehavior.ComputeDailyBudget(entry);
                 int daysEst = daily > 0 ? (int)Math.Ceiling(entry.Fund / (double)daily) : 0;
-                onSuccess($"Training fund: {entry.Fund}{Naming.Gold} | {daily}{Naming.Gold}/day | ~{daysEst} days remaining");
+                string tierStr = entry.MaxTier > 0 ? $" | Tier cap: {entry.MaxTier}" : "";
+                onSuccess($"Training fund: {entry.Fund}{Naming.Gold} | {daily}{Naming.Gold}/day | ~{daysEst} days remaining{tierStr}");
                 return;
             }
 
@@ -631,12 +643,14 @@ namespace BLTAdoptAHero.Actions
             int have = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(h);
             if (have < gold) { onFailure(Naming.NotEnoughGold(gold, have)); return; }
 
-            TrainingBehavior.Current.AddFund(h, gold);
+            // Pass the configured max tier through to the behavior
+            TrainingBehavior.Current.AddFund(h, gold, settings.TrainMaxTier);
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(h, -gold, true);
 
             var entry2 = TrainingBehavior.Current.GetEntry(h);
             int daily2 = TrainingBehavior.ComputeDailyBudget(entry2);
-            onSuccess($"Invested {gold}{Naming.Gold} in training | Total fund: {entry2.Fund}{Naming.Gold} | {daily2}{Naming.Gold}/day");
+            string tierStr2 = settings.TrainMaxTier > 0 ? $" | Tier cap: {settings.TrainMaxTier}" : "";
+            onSuccess($"Invested {gold}{Naming.Gold} in training | Total fund: {entry2.Fund}{Naming.Gold} | {daily2}{Naming.Gold}/day{tierStr2}");
         }
 
         // ─────────────────────────────────────────────────────────────────────
