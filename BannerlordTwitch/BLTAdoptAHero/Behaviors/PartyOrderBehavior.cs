@@ -105,7 +105,7 @@ namespace BLTAdoptAHero
         // ─────────────────────────────────────────────
 
         public void RegisterOrder(Hero hero, MobileParty party, PartyOrderType type,
-            Settlement targetSettlement, int maxReissueAttempts, int expiryHours = 0)
+            Settlement targetSettlement, int maxReissueAttempts, float expiryDays = 0f)
         {
             if (hero == null || party == null) return;
             CancelOrdersForParty(party.StringId, null, false);
@@ -117,7 +117,10 @@ namespace BLTAdoptAHero
                 Type = type,
                 TargetSettlementId = targetSettlement?.StringId,
                 IssuedAtDays = CampaignTime.Now.ToDays,
-                ExpiresAtDays = expiryHours > 0 ? CampaignTime.Now.ToDays + expiryHours / 24.0 : 0,
+                // expiryDays == 0 means no expiry; otherwise store the absolute day.
+                ExpiresAtDays = expiryDays > 0f
+                                         ? CampaignTime.Now.ToDays + (double)expiryDays
+                                         : 0,
                 MaxReissueAttempts = maxReissueAttempts,
                 ReissueAttempts = 0,
                 IsActive = true

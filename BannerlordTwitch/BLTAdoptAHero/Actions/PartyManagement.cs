@@ -62,95 +62,106 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(3), UsedImplicitly]
             public int ArmyMaxReissueAttempts { get; set; } = 5;
 
-            [LocDisplayName("{=ArmyOrderExpiry}Order Expiry (Hours)"),
+            [LocDisplayName("Party Order Expiry (Days)"),
              LocCategory("Army", "{=ArmyCat}Army"),
-             LocDescription("{=ArmyOrderExpiryDesc}In-game hours before an army order auto-expires. 0 = no expiry."),
+             LocDescription(
+                 "In-game days before a clan party order auto-expires. Fractional values are supported (e.g. 0.5 = 12 hours). " +
+                 "0 = no expiry."),
              PropertyOrder(4), UsedImplicitly]
-            public int ArmyOrderExpiryHours { get; set; } = 0;
+            public float PartyOrderExpiryDays { get; set; } = 0f;
+
+            [LocDisplayName("Army Order Expiry (Days)"),
+             LocCategory("Army", "{=ArmyCat}Army"),
+             LocDescription(
+                 "In-game days before an army order (siege/defend/patrol/garrison) " +
+                 "auto-expires. Fractional values are supported (e.g. 0.5 = 12 hours). " +
+                 "0 = no expiry."),
+             PropertyOrder(5), UsedImplicitly]
+            public float ArmyOrderExpiryDays { get; set; } = 0f;
 
             // ── King army management ─────────────────────────────────────────
             [LocDisplayName("King Army Management"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow kings to view, create (NPC-led), and disband any kingdom army by index."),
-             PropertyOrder(5), UsedImplicitly]
+             PropertyOrder(6), UsedImplicitly]
             public bool KingArmyManageEnabled { get; set; } = true;
 
             [LocDisplayName("Create Army Gold Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Gold cost for a king to commission an NPC-led army."),
-             PropertyOrder(6), UsedImplicitly]
+             PropertyOrder(7), UsedImplicitly]
             public int CreateArmyPrice { get; set; } = 100000;
 
             [LocDisplayName("King Can Toggle AI Armies"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow a kingdom's king to block or restore AI/NPC army creation via '!party army allowai on/off'."),
-             PropertyOrder(7), UsedImplicitly]
+             PropertyOrder(8), UsedImplicitly]
             public bool KingAIArmyToggleEnabled { get; set; } = true;
 
             [LocDisplayName("King Can Toggle BLT Armies"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow a kingdom's king to block or restore BLT army creation via '!party army allowblt on/off'."),
-             PropertyOrder(8), UsedImplicitly]
+             PropertyOrder(9), UsedImplicitly]
             public bool KingBLTArmyToggleEnabled { get; set; } = true;
 
             [LocDisplayName("Takeover Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow a clan leader to seize command of an army already led by one of their own clan members."),
-             PropertyOrder(9), UsedImplicitly]
+             PropertyOrder(10), UsedImplicitly]
             public bool TakeoverEnabled { get; set; } = true;
 
             [LocDisplayName("Call Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow army leaders or the king to call free lord parties to join an army."),
-             PropertyOrder(10), UsedImplicitly]
+             PropertyOrder(11), UsedImplicitly]
             public bool CallEnabled { get; set; } = true;
 
             [LocDisplayName("Call Base Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Flat influence cost paid when any call order is issued."),
-             PropertyOrder(11), UsedImplicitly]
+             PropertyOrder(12), UsedImplicitly]
             public int CallBaseInfluenceCost { get; set; } = 0;
 
             [LocDisplayName("Call Per-Party Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Additional influence cost charged for each party that actually joins."),
-             PropertyOrder(12), UsedImplicitly]
+             PropertyOrder(13), UsedImplicitly]
             public int CallInfluenceCostPerParty { get; set; } = 25;
 
             [LocDisplayName("Call Nearby Radius"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Map-unit radius used when scanning for parties with 'army call nearby'."),
-             PropertyOrder(13), UsedImplicitly]
+             PropertyOrder(14), UsedImplicitly]
             public float CallNearbyRadius { get; set; } = 30f;
 
             [LocDisplayName("Join Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Allow a hero to join any kingdom army by index, bringing all free clan parties."),
-             PropertyOrder(14), UsedImplicitly]
+             PropertyOrder(15), UsedImplicitly]
             public bool JoinEnabled { get; set; } = true;
 
             [LocDisplayName("Join Base Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Flat influence cost paid when the hero joins an army. Free for mercenaries."),
-             PropertyOrder(15), UsedImplicitly]
+             PropertyOrder(16), UsedImplicitly]
             public int JoinBaseInfluenceCost { get; set; } = 0;
 
             [LocDisplayName("Join Per-Party Influence Cost"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Additional influence cost for each clan party that joins the army. Free for mercenaries."),
-             PropertyOrder(16), UsedImplicitly]
+             PropertyOrder(17), UsedImplicitly]
             public int JoinInfluenceCostPerParty { get; set; } = 10;
 
             [LocDisplayName("Army Kick Enabled"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("Enable '!party army kick [n]' to remove the n weakest parties from an army."),
-             PropertyOrder(17), UsedImplicitly]
+             PropertyOrder(18), UsedImplicitly]
             public bool ArmyKickEnabled { get; set; } = true;
 
             [LocDisplayName("Auto Call Parties on Create"),
              LocCategory("Army", "{=ArmyCat}Army"),
              LocDescription("When creating an army, automatically call eligible nearby parties to join. Disable to spawn army with leader party only."),
-             PropertyOrder(18), UsedImplicitly]
+             PropertyOrder(19), UsedImplicitly]
             public bool AutoCallPartiesOnCreate { get; set; } = true;
 
             // ── Threat ───────────────────────────────────────────────────────
@@ -252,8 +263,10 @@ namespace BLTAdoptAHero.Actions
                     generator.Value("<strong>Army config:</strong>");
                     generator.Value($"  Creation cost: {ArmyPrice}{Naming.Gold}");
                     generator.Value($"  Max re-issue attempts: {ArmyMaxReissueAttempts}");
-                    generator.Value(ArmyOrderExpiryHours > 0
-                        ? $"  Order expiry: {ArmyOrderExpiryHours}h" : "  Order expiry: none");
+                    generator.Value(PartyOrderExpiryDays > 0f
+                        ? $"  Party order expiry: {PartyOrderExpiryDays}d" : "  Party order expiry: none");
+                    generator.Value(ArmyOrderExpiryDays > 0f
+                        ? $"  Army order expiry: {ArmyOrderExpiryDays}d" : "  Army order expiry: none");
                     if (KingArmyManageEnabled)
                         generator.Value($"  King management: create cost {CreateArmyPrice}{Naming.Gold}");
                     if (TakeoverEnabled)
@@ -949,7 +962,7 @@ namespace BLTAdoptAHero.Actions
             PartyOrderBehavior.IssueOrder(mp, orderType, target);
             mp.Ai.SetDoNotMakeNewDecisions(true);
             PartyOrderBehavior.Current?.RegisterOrder(h, mp, orderType, target,
-                settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                settings.ArmyMaxReissueAttempts, settings.PartyOrderExpiryDays);
 
             onSuccess?.Invoke($"{mp.LeaderHero?.Name ?? mp.Name} → {orderType} {target?.Name?.ToString() ?? "auto"}");
         }
@@ -1142,7 +1155,7 @@ namespace BLTAdoptAHero.Actions
                 PartyOrderBehavior.IssueOrder(newLeaderParty, curType, curTarget);
                 newLeaderParty.Ai.SetDoNotMakeNewDecisions(true);
                 PartyOrderBehavior.Current?.RegisterOrder(h, newLeaderParty, curType, curTarget,
-                    settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                    settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryDays);
             }
             onSuccess($"Army command transferred to {newLeaderParty.LeaderHero.Name}");
         }
@@ -1247,7 +1260,7 @@ namespace BLTAdoptAHero.Actions
             PartyOrderBehavior.IssueOrder(party, PartyOrderType.Garrison, target);
             party.Ai.SetDoNotMakeNewDecisions(true);
             PartyOrderBehavior.Current?.RegisterOrder(h, party, PartyOrderType.Garrison, target,
-                settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryDays);
 
             onSuccess($"Army garrisoning at {target.Name}");
         }
@@ -1440,7 +1453,7 @@ namespace BLTAdoptAHero.Actions
                 PartyOrderBehavior.IssueOrder(party, curType, curTarget);
                 party.Ai.SetDoNotMakeNewDecisions(true);
                 PartyOrderBehavior.Current?.RegisterOrder(h, party, curType, curTarget,
-                    settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                    settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryDays);
             }
 
             onSuccess($"Took over {oldLeader.LeaderHero?.Name}'s army — {remaining.Count} parties gathering");
@@ -1889,7 +1902,7 @@ namespace BLTAdoptAHero.Actions
                     PartyOrderBehavior.IssueOrder(party, PartyOrderType.SmartGuard, fallback);
                     party.Ai.SetDoNotMakeNewDecisions(true);
                     PartyOrderBehavior.Current?.RegisterOrder(h, party, PartyOrderType.SmartGuard, fallback,
-                        settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                        settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryDays);
                     onFailure($"{target.Name} is not reachable by land — army set to patrol instead");
                     return;
                 }
@@ -1906,7 +1919,7 @@ namespace BLTAdoptAHero.Actions
                 PartyOrderBehavior.IssueOrder(party, orderType, target);
                 party.Ai.SetDoNotMakeNewDecisions(true);
                 PartyOrderBehavior.Current?.RegisterOrder(h, party, orderType, target,
-                    settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                    settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryDays);
                 onSuccess($"Army redirected: {subCmd}" + (target != null ? $" → {target.Name}" : ""));
                 return;
             }
@@ -2033,7 +2046,7 @@ namespace BLTAdoptAHero.Actions
             PartyOrderBehavior.IssueOrder(party, orderType, target);
             party.Ai.SetDoNotMakeNewDecisions(true);
             PartyOrderBehavior.Current?.RegisterOrder(h, party, orderType, target,
-                settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryHours);
+                settings.ArmyMaxReissueAttempts, settings.ArmyOrderExpiryDays);
         }
 
         // ─────────────────────────────────────────────────────────────────────
