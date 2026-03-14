@@ -591,6 +591,7 @@ namespace BLTAdoptAHero.Actions
                         }
 
                         adoptedHero.Culture = cult;
+                        adoptedHero.Clan.Culture = cult;
                         onSuccess($"Changed culture to {cult.Name}");
 
                         break;

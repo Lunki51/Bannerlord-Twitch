@@ -62,6 +62,18 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public bool AllowAnyClanMemberForClanUpgrades { get; set; } = false;
 
+            [LocDisplayName("{=BLT_IndependentLord}Independent Clans Count as Lords"),
+             LocCategory("Permissions", "{=BLT_Permissions}Permissions"),
+             LocDescription("{=BLT_IndependentLordDesc}If enabled, clans that own fiefs but belong to no kingdom benefit from Lord Only upgrades. Default: true (preserves existing behaviour)."),
+             PropertyOrder(3), UsedImplicitly, DefaultValue(true)]
+            public bool IndependentClansCountAsLords { get; set; } = true;
+
+            [LocDisplayName("{=BLT_IndependentMerc}Independent Clans Count as Mercenaries"),
+             LocCategory("Permissions", "{=BLT_Permissions}Permissions"),
+             LocDescription("{=BLT_IndependentMercDesc}If enabled, clans that own fiefs but belong to no kingdom also benefit from Mercenary Only upgrades."),
+             PropertyOrder(4), UsedImplicitly, DefaultValue(false)]
+            public bool IndependentClansCountAsMercs { get; set; } = false;
+
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
@@ -70,6 +82,8 @@ namespace BLTAdoptAHero.Actions
                 generator.P($"<strong>Kingdom Leaders Can Upgrade Fiefs:</strong> {(AllowKingdomLeadersForFiefs ? "Yes" : "No")}");
                 generator.P($"<strong>Any Clan Member Can Upgrade Clan:</strong> {(AllowAnyClanMemberForClanUpgrades ? "Yes" : "No")}");
                 generator.P($"<strong>Reserve Troops When Full:</strong> {(AccumulateWhenFull ? "Yes" : "No")}");
+                generator.P($"<strong>Independent Clans Count as Lords:</strong> {(IndependentClansCountAsLords ? "Yes" : "No")}");
+                generator.P($"<strong>Independent Clans Count as Mercenaries:</strong> {(IndependentClansCountAsMercs ? "Yes" : "No")}");
             }
         }
 
@@ -230,7 +244,7 @@ namespace BLTAdoptAHero.Actions
             private string GetUpgradeEffects(ClanUpgrade u)
             {
                 var sb = new StringBuilder();
-                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.PartyAmountBonus != 0 || u.MaxVassalsBonus != 0 || u.MercIncomeFlat != 0 || u.MercIncomePercent != 0)
+                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.PartyAmountBonus != 0 || u.MaxVassalsBonus != 0 || u.RetinueSizeBonus != 0 || u.MercIncomeFlat != 0 || u.MercIncomePercent != 0)
                 {
                     sb.AppendLine("<strong>Clan Effects:</strong><br>");
                     if (u.RenownDaily != 0) sb.AppendLine($"Renown: {Signed(u.RenownDaily)}/day<br>");
@@ -239,6 +253,7 @@ namespace BLTAdoptAHero.Actions
                     if (u.PartySpeedBonus != 0) sb.AppendLine($"Party Speed: {Signed(u.PartySpeedBonus)}<br>");
                     if (u.PartyAmountBonus != 0) sb.AppendLine($"Party Limit: {Signed(u.PartyAmountBonus)}<br>");
                     if (u.MaxVassalsBonus != 0) sb.AppendLine($"Vassal Limit: {Signed(u.MaxVassalsBonus)}<br>");
+                    if (u.RetinueSizeBonus != 0) sb.AppendLine($"Retinue Size: {Signed(u.RetinueSizeBonus)}<br>");
                     if (u.MercIncomeFlat != 0) sb.AppendLine($"Merc Income (Flat): {Signed(u.MercIncomeFlat)}/day<br>");
                     if (u.MercIncomePercent != 0) sb.AppendLine($"Merc Income (%): {Signed(u.MercIncomePercent)}%/day<br>");
                 }
@@ -288,13 +303,14 @@ namespace BLTAdoptAHero.Actions
                     if (u.MaxClansBonus != 0) sb.AppendLine($"Max Clans: {Signed(u.MaxClansBonus)}<br>");
                     if (u.MaxMercClansBonus != 0) sb.AppendLine($"Max Merc Clans: {Signed(u.MaxMercClansBonus)}<br>");
                 }
-                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0)
+                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.InfluenceDaily != 0 || u.RetinueSizeBonus != 0)
                 {
                     sb.AppendLine("<br><strong>Clan Effects (All Kingdom Clans):</strong><br>");
                     if (u.RenownDaily != 0) sb.AppendLine($"Renown: {Signed(u.RenownDaily)}/day<br>");
                     if (u.PartySizeBonus != 0) sb.AppendLine($"Party Size: {Signed(u.PartySizeBonus)}<br>");
                     if (u.PartySpeedBonus != 0) sb.AppendLine($"Party Speed: {Signed(u.PartySpeedBonus)}<br>");
                     if (u.InfluenceDaily != 0) sb.AppendLine($"Influence: {Signed(u.InfluenceDaily)}/day (all clans)<br>");
+                    if (u.RetinueSizeBonus != 0) sb.AppendLine($"Retinue Size: {Signed(u.RetinueSizeBonus)} per clan<br>");
                 }
                 if (u.LoyaltyDailyFlat != 0 || u.LoyaltyDailyPercent != 0 || u.ProsperityDailyFlat != 0 || u.ProsperityDailyPercent != 0 ||
                     u.SecurityDailyFlat != 0 || u.SecurityDailyPercent != 0 || u.MilitiaDailyFlat != 0 || u.MilitiaDailyPercent != 0 ||
@@ -362,6 +378,8 @@ namespace BLTAdoptAHero.Actions
             // Push the accumulation setting to the behavior so daily ticks respect it immediately.
             if (UpgradeBehavior.Current != null)
                 UpgradeBehavior.Current.AccumulateWhenFull = settings.AccumulateWhenFull;
+                UpgradeBehavior.Current.IndependentClansCountAsLords = settings.IndependentClansCountAsLords;  // ← add
+                UpgradeBehavior.Current.IndependentClansCountAsMercs = settings.IndependentClansCountAsMercs;  // ← add
 
             var globalConfig = GlobalCommonConfig.Get();
             if (globalConfig == null) { onFailure("Configuration not available"); return; }
@@ -716,6 +734,9 @@ namespace BLTAdoptAHero.Actions
             // Build purchase chain (includes prerequisites when autoBuy is true)
             var owned = new HashSet<string>(UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
 
+            if (CapitalBehavior.Current != null)
+                owned.UnionWith(CapitalBehavior.Current.GetCapitalUpgrades(hero.Clan));
+
             if (owned.Contains(upgradeId)) { fail($"{settlement.Name} already has this upgrade"); return; }
 
             List<string> chain;
@@ -794,6 +815,8 @@ namespace BLTAdoptAHero.Actions
                 if (targetUpgrade.CoastalOnly && !settlement.HasPort) { settlementsSkipped++; continue; }
 
                 var owned = new HashSet<string>(UpgradeBehavior.Current?.GetFiefUpgrades(settlement) ?? new List<string>(), StringComparer.OrdinalIgnoreCase);
+
+                if (targetUpgrade.CapitalOnly) { fail($"'{upgradeId}' is a capital-only upgrade; purchase it for your capital settlement directly"); return; }
 
                 // Already fully upgraded — skip silently
                 if (owned.Contains(upgradeId)) { settlementsSkipped++; continue; }
@@ -874,6 +897,27 @@ namespace BLTAdoptAHero.Actions
                 { results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = false, Message = Naming.NotEnoughGold(up.GoldCost, gold) }); return results; }
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
                 UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
+                if (up.CapitalOnly)
+                {
+                    // Capital-only upgrades are stored at clan level and always follow the capital
+                    if (CapitalBehavior.Current?.IsCapital(settlement, hero.Clan) != true)
+                    {
+                        results.Add(new PurchaseResult
+                        {
+                            UpgradeId = id,
+                            UpgradeName = up.Name,
+                            Success = false,
+                            Message = $"'{up.Name}' is a capital-only upgrade — {settlement.Name} must be your active capital"
+                        });
+                        return results;
+                    }
+                    CapitalBehavior.Current.AddCapitalUpgrade(hero.Clan, id);
+                }
+                else
+                {
+                    UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
+                }
                 alreadyOwned.Add(id);
                 results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = true });
             }
@@ -1175,7 +1219,23 @@ namespace BLTAdoptAHero.Actions
             var up = gc.FiefUpgrades?.FirstOrDefault(u => u.ID == upgradeId);
             if (up == null) { fail($"Upgrade '{upgradeId}' not found"); return; }
             if (!up.CanBeRemoved) { fail($"'{up.Name}' cannot be removed"); return; }
-            if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) != true) { fail($"{settlement.Name} doesn't have this upgrade"); return; }
+
+            if (up.CapitalOnly)
+            {
+                if (CapitalBehavior.Current?.HasCapitalUpgrade(hero.Clan, upgradeId) != true)
+                { fail($"{hero.Clan.Name} doesn't have capital upgrade '{upgradeId}'"); return; }
+                CapitalBehavior.Current.RemoveCapitalUpgrade(hero.Clan, upgradeId);
+                ok($"Removed capital upgrade '{up.Name}' from {hero.Clan.Name}!");
+                Log.ShowInformation($"{hero.Name} removed capital upgrade {up.Name}", hero.CharacterObject, Log.Sound.Notification1);
+            }
+            else
+            {
+                if (UpgradeBehavior.Current?.HasFiefUpgrade(settlement, upgradeId) != true)
+                { fail($"{settlement.Name} doesn't have this upgrade"); return; }
+                UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
+                ok($"Removed '{up.Name}' from {settlement.Name}!");
+                Log.ShowInformation($"{hero.Name} removed {up.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
+            }
 
             UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
             ok($"Removed '{up.Name}' from {settlement.Name}!");

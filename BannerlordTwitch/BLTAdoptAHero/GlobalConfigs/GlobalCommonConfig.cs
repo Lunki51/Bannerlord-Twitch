@@ -45,6 +45,8 @@ namespace BLTAdoptAHero
         internal static void Register() => ActionManager.RegisterGlobalConfigType(ID, typeof(GlobalCommonConfig));
         internal static GlobalCommonConfig Get() => ActionManager.GetGlobalConfig<GlobalCommonConfig>(ID);
         internal static GlobalCommonConfig Get(BannerlordTwitch.Settings fromSettings) => fromSettings.GetGlobalConfig<GlobalCommonConfig>(ID);
+
+        public CapitalConfig CapitalConfig { get; set; } = new CapitalConfig();
         #endregion
 
         #region User Editable

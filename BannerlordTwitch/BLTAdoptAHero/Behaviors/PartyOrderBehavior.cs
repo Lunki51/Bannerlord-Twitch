@@ -12,24 +12,26 @@ using TaleWorlds.Core;
 
 namespace BLTAdoptAHero
 {
-    public enum PartyOrderType { Siege, Defend, Patrol }
+    // ── Order types ──────────────────────────────────────────────────────────
+    public enum PartyOrderType
+    {
+        Siege = 0,  // Besiege an enemy fortification
+        Defend = 1,  // Defend a settlement (raw AI action)
+        Patrol = 2,  // Patrol around a settlement
+        Garrison = 3,  // Travel to and stay inside a friendly fortification
+        Raid = 4,  // Raid an enemy village
+        SmartGuard = 5,  // Dynamic: defend > village-patrol > patrol based on live conditions
+    }
 
     public class PartyOrderBehavior : CampaignBehaviorBase
     {
         public static PartyOrderBehavior Current { get; private set; }
 
         private List<string> _ordersJson = new();
-
-        /// <summary>
-        /// StringIds of kingdoms whose king has issued '!party army allowai off' and '!party army allowblt off'.
-        /// Presence == Armies blocked; absence == allowed (default).
-        /// </summary>
         private List<string> _aiArmiesBlockedKingdoms = new();
         private List<string> _bltArmiesBlockedKingdoms = new();
 
-        // Runtime list — deserialized from _ordersJson on load
-        [NonSerialized]
-        private List<PartyOrderData> _orders = new();
+        [NonSerialized] private List<PartyOrderData> _orders = new();
 
         public PartyOrderBehavior() { Current = this; }
 
@@ -73,9 +75,9 @@ namespace BLTAdoptAHero
 
                     foreach (var order in _orders.Where(o => o.IsActive))
                     {
-                        var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
-                        if (party == null || !party.IsActive) { order.IsActive = false; continue; }
-                        party.Ai.SetDoNotMakeNewDecisions(true);
+                        var p = MobileParty.All.FirstOrDefault(x => x.StringId == order.PartyId);
+                        if (p == null || !p.IsActive) { order.IsActive = false; continue; }
+                        p.Ai.SetDoNotMakeNewDecisions(true);
                     }
                 }
                 else
@@ -102,21 +104,10 @@ namespace BLTAdoptAHero
         //  PUBLIC API
         // ─────────────────────────────────────────────
 
-        /// <summary>
-        /// Register a new order. Cancels any existing active order for the same party first.
-        /// Caller is responsible for issuing the SetPartyAiAction before calling this.
-        /// </summary>
-        public void RegisterOrder(
-            Hero hero,
-            MobileParty party,
-            PartyOrderType type,
-            Settlement targetSettlement,
-            int maxReissueAttempts,
-            int expiryHours = 0)
+        public void RegisterOrder(Hero hero, MobileParty party, PartyOrderType type,
+            Settlement targetSettlement, int maxReissueAttempts, int expiryHours = 0)
         {
             if (hero == null || party == null) return;
-
-            // Cancel existing order silently — new order supersedes it
             CancelOrdersForParty(party.StringId, null, false);
 
             _orders.Add(new PartyOrderData
@@ -126,9 +117,7 @@ namespace BLTAdoptAHero
                 Type = type,
                 TargetSettlementId = targetSettlement?.StringId,
                 IssuedAtDays = CampaignTime.Now.ToDays,
-                ExpiresAtDays = expiryHours > 0
-                                      ? CampaignTime.Now.ToDays + expiryHours / 24.0
-                                      : 0,
+                ExpiresAtDays = expiryHours > 0 ? CampaignTime.Now.ToDays + expiryHours / 24.0 : 0,
                 MaxReissueAttempts = maxReissueAttempts,
                 ReissueAttempts = 0,
                 IsActive = true
@@ -144,49 +133,24 @@ namespace BLTAdoptAHero
         public bool HasActiveOrder(string partyId) =>
             _orders.Any(o => o.IsActive && o.PartyId == partyId);
 
-        public bool IsAIArmiesBlocked(Kingdom kingdom)
-            => kingdom != null && _aiArmiesBlockedKingdoms.Contains(kingdom.StringId);
-
-        public bool IsBLTArmiesBlocked(Kingdom kingdom)
-            => kingdom != null && _bltArmiesBlockedKingdoms.Contains(kingdom.StringId);
-
-
-        /// <summary>
-        /// Sets the AI army block state for <paramref name="kingdom"/>.
-        /// <paramref name="blocked"/> = true  → '!party army allowai off'
-        /// <paramref name="blocked"/> = false → '!party army allowai on'  (default)
-        /// </summary>
-        public void SetAIArmiesBlocked(Kingdom kingdom, bool blocked)
-        {
-            if (kingdom == null) return;
-            if (blocked)
-            {
-                if (!_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
-                    _aiArmiesBlockedKingdoms.Add(kingdom.StringId);
-            }
-            else
-            {
-                if (_aiArmiesBlockedKingdoms.Contains(kingdom.StringId))
-                    _aiArmiesBlockedKingdoms.Remove(kingdom.StringId);
-            }
-        }
-        public void SetBLTArmiesBlocked(Kingdom kingdom, bool blocked)
-        {
-            if (kingdom == null) return;
-            if (blocked)
-            {
-                if (!_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
-                    _bltArmiesBlockedKingdoms.Add(kingdom.StringId);
-            }
-            else
-            {
-                if (_bltArmiesBlockedKingdoms.Contains(kingdom.StringId))
-                    _bltArmiesBlockedKingdoms.Remove(kingdom.StringId);
-            }
-        }
-
         public PartyOrderData GetActiveOrder(string partyId) =>
             _orders.FirstOrDefault(o => o.IsActive && o.PartyId == partyId);
+
+        public bool IsAIArmiesBlocked(Kingdom k) => k != null && _aiArmiesBlockedKingdoms.Contains(k.StringId);
+        public bool IsBLTArmiesBlocked(Kingdom k) => k != null && _bltArmiesBlockedKingdoms.Contains(k.StringId);
+
+        public void SetAIArmiesBlocked(Kingdom k, bool blocked)
+        {
+            if (k == null) return;
+            if (blocked) { if (!_aiArmiesBlockedKingdoms.Contains(k.StringId)) _aiArmiesBlockedKingdoms.Add(k.StringId); }
+            else { _aiArmiesBlockedKingdoms.Remove(k.StringId); }
+        }
+        public void SetBLTArmiesBlocked(Kingdom k, bool blocked)
+        {
+            if (k == null) return;
+            if (blocked) { if (!_bltArmiesBlockedKingdoms.Contains(k.StringId)) _bltArmiesBlockedKingdoms.Add(k.StringId); }
+            else { _bltArmiesBlockedKingdoms.Remove(k.StringId); }
+        }
 
         // ─────────────────────────────────────────────
         //  HOURLY MONITORING
@@ -198,43 +162,70 @@ namespace BLTAdoptAHero
             {
                 if (party == null || !party.IsActive) return;
 
-                if (party.LeaderHero != null && party.LeaderHero.IsAdopted()
+                // Keep BLT army cohesion topped up
+                if (party.LeaderHero?.IsAdopted() == true
                     && party.Army != null && party.Army.LeaderParty == party)
                 {
                     party.Army.Cohesion = 100f;
                 }
 
-                var order = _orders.FirstOrDefault(o => o.IsActive && o.PartyId == party?.StringId);
+                var order = _orders.FirstOrDefault(o => o.IsActive && o.PartyId == party.StringId);
                 if (order == null) return;
 
-                if (!party.IsActive)
-                {
-                    ExpireOrder(order, null, false);
-                    return;
-                }
+                if (!party.IsActive) { ExpireOrder(order, null, false); return; }
 
-                // Expiry check
+                // Expiry
                 if (order.ExpiresAtDays > 0 && CampaignTime.Now.ToDays >= order.ExpiresAtDays)
                 {
-                    NotifyHero(order, $"Army order expired.");
+                    NotifyHero(order, "Army order expired.");
                     ExpireOrder(order, "Expired", false);
                     return;
                 }
 
-                // Don't interfere while party is in combat
                 if (party.MapEvent != null) return;
 
-                var expectedBehavior = OrderTypeToAiBehavior(order.Type);
+                // ── SmartGuard: re-evaluate conditions every tick, no drift counter ──
+                if (order.Type == PartyOrderType.SmartGuard)
+                {
+                    var sgTarget = order.TargetSettlementId != null
+                        ? Settlement.Find(order.TargetSettlementId) : null;
+                    if (sgTarget == null || !sgTarget.IsFortification)
+                    {
+                        NotifyHero(order, "Smart guard target is no longer valid.");
+                        ExpireOrder(order, "Invalid target", false);
+                        return;
+                    }
+                    IssueSmartGuardOrder(party, sgTarget);
+                    party.Ai.SetDoNotMakeNewDecisions(true);
+                    order.ReissueAttempts = 0;   // never count dynamic re-evals as drift
+                    return;
+                }
 
-                // Order is holding — verify both behavior type AND the actual target settlement
+                // ── Garrison: satisfied if party is inside the settlement ──
+                if (order.Type == PartyOrderType.Garrison)
+                {
+                    bool inside = party.CurrentSettlement?.StringId == order.TargetSettlementId;
+                    bool enRoute = party.DefaultBehavior == AiBehavior.GoToSettlement;
+                    if (inside)
+                    {
+                        order.ReissueAttempts = 0;
+                        party.Ai.SetDoNotMakeNewDecisions(true);
+                        return;
+                    }
+                    if (enRoute)
+                    {
+                        order.ReissueAttempts = 0;
+                        return;
+                    }
+                    // Fell through → treat as drift below
+                }
+
+                // ── Standard drift detection ──────────────────────────────────
+                var expectedBehavior = OrderTypeToAiBehavior(order.Type);
                 var expectedTarget = order.TargetSettlementId != null
-                    ? Settlement.Find(order.TargetSettlementId)
-                    : null;
+                    ? Settlement.Find(order.TargetSettlementId) : null;
 
                 bool behaviorMatches = party.DefaultBehavior == expectedBehavior;
-
-                // For settlement-targeted orders, also confirm the party is heading to the right place. TargetSettlement can be null mid-path (approaching) so we
-                // only flag a mismatch when it is explicitly set to something different.
                 bool targetMatches = expectedTarget == null
                     || party.TargetSettlement == null
                     || party.TargetSettlement == expectedTarget;
@@ -245,10 +236,9 @@ namespace BLTAdoptAHero
                     return;
                 }
 
-                // Behavior drifted — attempt re-issue
                 if (order.ReissueAttempts >= order.MaxReissueAttempts)
                 {
-                    NotifyHero(order, $"Army order could not be maintained and has been released.");
+                    NotifyHero(order, "Army order could not be maintained and has been released.");
                     ExpireOrder(order, "Max reissues reached", false);
                     return;
                 }
@@ -258,12 +248,11 @@ namespace BLTAdoptAHero
 
                 if (!ValidateOrder(party, order.Type, target))
                 {
-                    NotifyHero(order, $"Army order cancelled — conditions no longer valid.");
+                    NotifyHero(order, "Army order cancelled — conditions no longer valid.");
                     ExpireOrder(order, "Validation failed", false);
                     return;
                 }
 
-                // Silent re-issue
                 IssueOrder(party, order.Type, target);
                 party.Ai.SetDoNotMakeNewDecisions(true);
                 order.ReissueAttempts++;
@@ -275,38 +264,31 @@ namespace BLTAdoptAHero
         }
 
         // ─────────────────────────────────────────────
-        //  EVENT HANDLERS
+        //  EVENT HANDLERS  (unchanged from original)
         // ─────────────────────────────────────────────
 
         private void OnMakePeace(IFaction f1, IFaction f2, MakePeaceAction.MakePeaceDetail detail)
         {
             try
             {
-                foreach (var order in _orders.Where(o => o.IsActive).ToList())
+                foreach (var order in _orders.Where(o => o.IsActive && o.Type == PartyOrderType.Siege).ToList())
                 {
-                    if (order.Type != PartyOrderType.Siege) continue;
-
-                    var target = order.TargetSettlementId != null
-                        ? Settlement.Find(order.TargetSettlementId) : null;
+                    var target = order.TargetSettlementId != null ? Settlement.Find(order.TargetSettlementId) : null;
                     if (target == null) continue;
-
                     var hero = Hero.FindFirst(h => h.StringId == order.HeroId);
                     if (hero?.Clan?.Kingdom == null) continue;
-
-                    var targetFaction = target.OwnerClan?.Kingdom ?? target.OwnerClan?.MapFaction;
-                    if (targetFaction == null) continue;
-
-                    bool peace = (f1 == hero.Clan.Kingdom && f2 == targetFaction)
-                              || (f2 == hero.Clan.Kingdom && f1 == targetFaction);
-
+                    var tgtFaction = target.OwnerClan?.Kingdom ?? target.OwnerClan?.MapFaction;
+                    if (tgtFaction == null) continue;
+                    bool peace = (f1 == hero.Clan.Kingdom && f2 == tgtFaction)
+                              || (f2 == hero.Clan.Kingdom && f1 == tgtFaction);
                     if (peace)
                     {
-                        NotifyHero(order, $"Peace declared with {targetFaction.Name} — siege order cancelled.");
+                        NotifyHero(order, $"Peace declared with {tgtFaction.Name} — siege order cancelled.");
                         ExpireOrder(order, "Peace", false);
                     }
                 }
             }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnMakePeace error: {ex}"); }
+            catch (Exception ex) { Log.Error($"[BLT] OnMakePeace error: {ex}"); }
         }
 
         private void OnHeroKilled(Hero victim, Hero killer,
@@ -318,7 +300,7 @@ namespace BLTAdoptAHero
                 foreach (var o in _orders.Where(x => x.IsActive && x.HeroId == victim.StringId).ToList())
                     ExpireOrder(o, "Hero killed", false);
             }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnHeroKilled error: {ex}"); }
+            catch (Exception ex) { Log.Error($"[BLT] OnHeroKilled error: {ex}"); }
         }
 
         private void OnHeroPrisonerTaken(PartyBase capturer, Hero prisoner)
@@ -328,11 +310,11 @@ namespace BLTAdoptAHero
                 if (prisoner == null) return;
                 foreach (var o in _orders.Where(x => x.IsActive && x.HeroId == prisoner.StringId).ToList())
                 {
-                    NotifyHero(o, $"You were captured — army order released.");
+                    NotifyHero(o, "You were captured — order released.");
                     ExpireOrder(o, "Hero captured", false);
                 }
             }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnHeroPrisonerTaken error: {ex}"); }
+            catch (Exception ex) { Log.Error($"[BLT] OnHeroPrisonerTaken error: {ex}"); }
         }
 
         private void OnMobilePartyDestroyed(MobileParty party, PartyBase destroyer)
@@ -343,11 +325,10 @@ namespace BLTAdoptAHero
                 foreach (var o in _orders.Where(x => x.IsActive && x.PartyId == party.StringId).ToList())
                     ExpireOrder(o, "Party destroyed", false);
             }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnMobilePartyDestroyed error: {ex}"); }
+            catch (Exception ex) { Log.Error($"[BLT] OnMobilePartyDestroyed error: {ex}"); }
         }
 
-        private void OnSettlementOwnerChanged(
-            Settlement settlement, bool openToClaim,
+        private void OnSettlementOwnerChanged(Settlement settlement, bool openToClaim,
             Hero newOwner, Hero oldOwner, Hero capturer,
             ChangeOwnerOfSettlementAction.ChangeOwnerOfSettlementDetail detail)
         {
@@ -355,21 +336,18 @@ namespace BLTAdoptAHero
             {
                 if (settlement == null) return;
                 foreach (var o in _orders
-                    .Where(x => x.IsActive
-                             && x.Type == PartyOrderType.Siege
+                    .Where(x => x.IsActive && x.Type == PartyOrderType.Siege
                              && x.TargetSettlementId == settlement.StringId).ToList())
                 {
                     var hero = Hero.FindFirst(h => h.StringId == o.HeroId);
-                    bool ours = hero?.Clan?.Kingdom != null
-                                && newOwner?.Clan?.Kingdom == hero.Clan.Kingdom;
-
+                    bool ours = hero?.Clan?.Kingdom != null && newOwner?.Clan?.Kingdom == hero.Clan.Kingdom;
                     NotifyHero(o, ours
-                        ? $"Your army captured {settlement.Name}!"
+                        ? $"Your forces captured {settlement.Name}!"
                         : $"{settlement.Name} was taken by {newOwner?.Name.ToString() ?? "another faction"} — siege order released.");
                     ExpireOrder(o, "Settlement owner changed", false);
                 }
             }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnSettlementOwnerChanged error: {ex}"); }
+            catch (Exception ex) { Log.Error($"[BLT] OnSettlementOwnerChanged error: {ex}"); }
         }
 
         private void OnArmyDispersed(Army army, Army.ArmyDispersionReason reason, bool isPlayerArmy)
@@ -377,12 +355,11 @@ namespace BLTAdoptAHero
             try
             {
                 if (army?.LeaderParty == null) return;
-                // If the army was disbanded externally, release our order so we don't try to re-issue
                 foreach (var o in _orders
                     .Where(x => x.IsActive && x.PartyId == army.LeaderParty.StringId).ToList())
                     ExpireOrder(o, $"Army disbanded ({reason})", false);
             }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnArmyDispersed error: {ex}"); }
+            catch (Exception ex) { Log.Error($"[BLT] OnArmyDispersed error: {ex}"); }
         }
 
         private void OnMissionEnded(IMission mission)
@@ -391,114 +368,32 @@ namespace BLTAdoptAHero
             {
                 foreach (var order in _orders.Where(o => o.IsActive).ToList())
                 {
-                    var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
-                    if (party == null || !party.IsActive) continue;
-
-                    var target = order.TargetSettlementId != null
-                        ? Settlement.Find(order.TargetSettlementId) : null;
-
-                    if (!ValidateOrder(party, order.Type, target)) continue;
-
-                    IssueOrder(party, order.Type, target);
-                    party.Ai.SetDoNotMakeNewDecisions(true);
+                    var p = MobileParty.All.FirstOrDefault(x => x.StringId == order.PartyId);
+                    if (p == null || !p.IsActive) continue;
+                    var target = order.TargetSettlementId != null ? Settlement.Find(order.TargetSettlementId) : null;
+                    if (!ValidateOrder(p, order.Type, target)) continue;
+                    IssueOrder(p, order.Type, target);
+                    p.Ai.SetDoNotMakeNewDecisions(true);
                 }
             }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.OnMissionEnded error: {ex}"); }
+            catch (Exception ex) { Log.Error($"[BLT] OnMissionEnded error: {ex}"); }
         }
-
-        /// <summary>
-        /// Returns false if the settlement cannot be reached by the party's
-        /// navigation capability (e.g. island with no naval access).
-        /// MapDistanceModel returns float.MaxValue for unreachable paths.
-        /// </summary>
-        public static bool IsSettlementReachable(MobileParty party, Settlement target)
-        {
-            try
-            {
-                // Notes from Claude:
-                // NavigationType.Default gives estimatedLandRatio hardcoded to 1f always —
-                // it never reflects the actual path. The ratio is only genuinely computed
-                // by GetLandRatioOfPathBetweenSettlements when using NavigationType.All,
-                // so we use that here for land parties.
-                if (party.IsCurrentlyAtSea)
-                {
-                    float navalDist = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                        party, target, true, MobileParty.NavigationType.Naval, out _);
-                    return navalDist < float.MaxValue - 1f;
-                }
-
-                float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                    party, target, false, MobileParty.NavigationType.All, out float landRatio);
-
-                if (dist >= float.MaxValue - 1f)
-                    return false;
-
-                // Notes from Claude:
-                // landRatio is genuinely path-analyzed here (via GetLandRatioOfPathBetweenSettlements).
-                // -1 means it couldn't be computed at all (same-face shortcut with unknown nav type).
-                // Below 0.5 means more than half the route is water — a land party will stall.
-                if (landRatio >= 0f && landRatio < 0.5f)
-                    return false;
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[BLT] IsSettlementReachable error: {ex}");
-                return false;
-            }
-        }
-
-
-
 
         // ─────────────────────────────────────────────
-        //  HELPERS
+        //  ORDER ISSUANCE
         // ─────────────────────────────────────────────
 
-        private void ExpireOrder(PartyOrderData order, string reason, bool notify)
-        {
-            if (!order.IsActive) return;
-            order.IsActive = false;
-
-            var party = MobileParty.All.FirstOrDefault(p => p.StringId == order.PartyId);
-            party?.Ai.SetDoNotMakeNewDecisions(false);
-
-            if (notify && reason != null)
-                NotifyHero(order, reason);
-
-            _orders.Remove(order);
-        }
-
-        private static void NotifyHero(PartyOrderData order, string message)
-        {
-            try
-            {
-                var hero = Hero.FindFirst(h => h.StringId == order.HeroId);
-                if (hero != null)
-                    Log.ShowInformation(message, hero.CharacterObject, Log.Sound.Notification1);
-            }
-            catch (Exception ex) { Log.Error($"[BLT] PartyOrderBehavior.NotifyHero error: {ex}"); }
-        }
-
         /// <summary>
-        /// Issue the appropriate SetPartyAiAction for a given order type.
+        /// Issue the appropriate SetPartyAiAction for an order type.
         /// Called both at order creation and on silent re-issue.
+        /// SmartGuard delegates to IssueSmartGuardOrder.
         /// </summary>
         public static void IssueOrder(MobileParty party, PartyOrderType type, Settlement target)
         {
             bool atSea = party.IsCurrentlyAtSea;
-
-            // isFromPort must be true not only when the party is at sea, but also when
-            // a land party's target requires a water crossing — otherwise NavigationType.All
-            // will attempt to walk/sail without first routing through a port, causing
-            // the party to break pathing entirely when exiting a town toward an island target.
             bool needsWaterCrossing = !atSea && target != null && LandPartyNeedsWaterCrossing(party, target);
             bool isFromPort = atSea || needsWaterCrossing;
-
-            MobileParty.NavigationType nav = (atSea || needsWaterCrossing)
-                ? MobileParty.NavigationType.Naval
-                : MobileParty.NavigationType.All;
+            var nav = isFromPort ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.All;
 
             var pm = new PartyManagement();
 
@@ -508,38 +403,133 @@ namespace BLTAdoptAHero
                     if (target != null)
                         SetPartyAiAction.GetActionForBesiegingSettlement(party, target, nav, isFromPort);
                     break;
+
                 case PartyOrderType.Defend:
                     if (target != null)
                         SetPartyAiAction.GetActionForDefendingSettlement(party, target, nav, isFromPort, false);
                     break;
+
                 case PartyOrderType.Patrol:
                     if (target != null)
                         SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, target, nav, isFromPort, false);
                     else
                         SetPartyAiAction.GetActionForPatrollingAroundSettlement(
                             party,
-                            pm.FindBestSettlementToDefend(party, party.LeaderHero.Clan.Kingdom),
+                            pm.FindBestSettlementToDefend(party, party.LeaderHero?.Clan?.Kingdom),
+                            nav, isFromPort, false);
+                    break;
+
+                case PartyOrderType.Garrison:
+                    // GoToSettlement causes the party to travel to and enter the settlement
+                    if (target != null)
+                        SetPartyAiAction.GetActionForVisitingSettlement(party, target, nav, isFromPort, isFromPort);
+                    break;
+
+                case PartyOrderType.Raid:
+                    if (target != null)
+                        SetPartyAiAction.GetActionForRaidingSettlement(party, target, nav, isFromPort);
+                    break;
+
+                case PartyOrderType.SmartGuard:
+                    if (target != null)
+                        IssueSmartGuardOrder(party, target);
+                    else
+                        SetPartyAiAction.GetActionForPatrollingAroundSettlement(
+                            party,
+                            pm.FindBestSettlementToDefend(party, party.LeaderHero?.Clan?.Kingdom),
                             nav, isFromPort, false);
                     break;
             }
         }
 
         /// <summary>
-        /// Returns true if a land party cannot reach <paramref name="target"/> by land alone
-        /// (landRatio below threshold), meaning it needs to embark from a port.
-        /// Reuses the same distance model logic as IsSettlementReachable.
+        /// Dynamic defend/patrol logic for a fortification.
+        /// Priority: (1) defend if enemy is besieging; (2) patrol to village under enemy raid;
+        /// (3) patrol the fortification.
+        /// Does NOT count as a re-issue attempt — called every tick for SmartGuard orders.
         /// </summary>
+        public static void IssueSmartGuardOrder(MobileParty party, Settlement fortification)
+        {
+            if (party == null || fortification == null || !fortification.IsFortification) return;
+
+            bool atSea = party.IsCurrentlyAtSea;
+
+            // ── 1. Defend if fortification is under attack by an enemy ───────
+            if (fortification.IsUnderSiege && fortification.SiegeEvent?.BesiegerCamp != null)
+            {
+                var besiegerFaction = fortification.SiegeEvent.BesiegerCamp.LeaderParty?.MapFaction;
+                if (besiegerFaction != null && party.MapFaction.IsAtWarWith(besiegerFaction))
+                {
+                    bool w = !atSea && LandPartyNeedsWaterCrossing(party, fortification);
+                    bool fp = atSea || w;
+                    var nav = fp ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.All;
+                    SetPartyAiAction.GetActionForDefendingSettlement(party, fortification, nav, fp, false);
+                    return;
+                }
+                // Besieger is non-hostile (e.g. allied siege or civil war) → fall through to patrol
+            }
+
+            // ── 2. Patrol to defend a bound village under enemy raid ─────────
+            if (fortification.BoundVillages != null)
+            {
+                foreach (var village in fortification.BoundVillages.OrderByDescending(v => v.Hearth))
+                {
+                    if (village.Settlement?.IsUnderRaid != true || village.Settlement == null) continue;
+                    var raider = village.Settlement.LastAttackerParty;
+                    if (raider == null || !party.MapFaction.IsAtWarWith(raider.MapFaction)) continue;
+
+                    bool w = !atSea && LandPartyNeedsWaterCrossing(party, village.Settlement);
+                    bool fp = atSea || w;
+                    var nav = fp ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.All;
+                    SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, village.Settlement, nav, fp, false);
+                    return;
+                }
+            }
+
+            // ── 3. Default: patrol the fortification ─────────────────────────
+            {
+                bool w = !atSea && LandPartyNeedsWaterCrossing(party, fortification);
+                bool fp = atSea || w;
+                var nav = fp ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.All;
+                SetPartyAiAction.GetActionForPatrollingAroundSettlement(party, fortification, nav, fp, false);
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        //  REACHABILITY HELPERS  (unchanged)
+        // ─────────────────────────────────────────────
+
+        public static bool IsSettlementReachable(MobileParty party, Settlement target)
+        {
+            try
+            {
+                if (party.IsCurrentlyAtSea)
+                {
+                    float navalDist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                        party, target, true, MobileParty.NavigationType.Naval, out _);
+                    return navalDist < float.MaxValue - 1f;
+                }
+                float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                    party, target, false, MobileParty.NavigationType.All, out float landRatio);
+                if (dist >= float.MaxValue - 1f) return false;
+                if (landRatio >= 0f && landRatio < 0.5f) return false;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] IsSettlementReachable error: {ex}");
+                return false;
+            }
+        }
+
         private static bool LandPartyNeedsWaterCrossing(MobileParty party, Settlement target)
         {
             try
             {
                 float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
                     party, target, false, MobileParty.NavigationType.All, out float landRatio);
-
-                // Unreachable entirely, or more than half the route is water
                 if (dist >= float.MaxValue - 1f) return true;
                 if (landRatio >= 0f && landRatio < 0.5f) return true;
-
                 return false;
             }
             catch (Exception ex)
@@ -549,8 +539,13 @@ namespace BLTAdoptAHero
             }
         }
 
+        // ─────────────────────────────────────────────
+        //  ORDER VALIDATION
+        // ─────────────────────────────────────────────
+
         /// <summary>
-        /// Validate that the prerequisites for re-issuing an order are still met.
+        /// Validate that the prerequisites for (re-)issuing an order are still met.
+        /// Allied siege joining is supported via BLTTreatyManager.
         /// </summary>
         public static bool ValidateOrder(MobileParty party, PartyOrderType type, Settlement target)
         {
@@ -562,16 +557,19 @@ namespace BLTAdoptAHero
                     {
                         if (target == null || !target.IsFortification) return false;
                         if (!party.MapFaction.IsAtWarWith(target.MapFaction)) return false;
-
-                        // ── already actively besieging this target → always valid ──────
                         if (party.BesiegedSettlement == target) return true;
-
-                        // ── target is under siege: valid only if WE are the besieger ──
                         if (target.IsUnderSiege)
-                            return target.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction
-                                   == party.MapFaction;
-
-                        // ── not yet under siege; valid if we're not besieging something else ──
+                        {
+                            var besiegerFaction = target.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction;
+                            if (besiegerFaction == party.MapFaction) return true;
+                            // Allow if allied with the besieger and both at war with the target
+                            var besiegerK = besiegerFaction as Kingdom;
+                            var partyK = party.MapFaction as Kingdom;
+                            bool allied = besiegerK != null && partyK != null
+                                && BLTTreatyManager.Current?.GetAlliance(partyK, besiegerK) != null
+                                && besiegerK.IsAtWarWith(target.MapFaction);
+                            return allied;
+                        }
                         return party.BesiegedSettlement == null;
                     }
 
@@ -581,32 +579,74 @@ namespace BLTAdoptAHero
                 case PartyOrderType.Patrol:
                     return true;
 
+                case PartyOrderType.Garrison:
+                    // Valid as long as the fortification exists and we're not at war with its owners
+                    return target != null && target.IsFortification
+                        && (party.MapFaction == null || !party.MapFaction.IsAtWarWith(target.MapFaction));
+
+                case PartyOrderType.Raid:
+                    // Valid while village exists, we're at war, and it isn't already raided by others
+                    return target != null && target.IsVillage
+                        && party.MapFaction.IsAtWarWith(target.MapFaction)
+                        && (target.Village?.Settlement.IsUnderRaid == false && target.Village?.Settlement.IsRaided == false
+                            || target.Village.Settlement?.LastAttackerParty?.MapFaction == party.MapFaction);
+
+                case PartyOrderType.SmartGuard:
+                    // Valid as long as the target fortification exists (conditions handled dynamically)
+                    return target != null && target.IsFortification;
+
                 default:
                     return false;
             }
         }
+
+        // ─────────────────────────────────────────────
+        //  HELPERS
+        // ─────────────────────────────────────────────
 
         private static AiBehavior OrderTypeToAiBehavior(PartyOrderType type) => type switch
         {
             PartyOrderType.Siege => AiBehavior.BesiegeSettlement,
             PartyOrderType.Defend => AiBehavior.DefendSettlement,
             PartyOrderType.Patrol => AiBehavior.PatrolAroundPoint,
+            PartyOrderType.Garrison => AiBehavior.GoToSettlement,
+            PartyOrderType.Raid => AiBehavior.RaidSettlement,
+            PartyOrderType.SmartGuard => AiBehavior.PatrolAroundPoint, // base; actual varies
             _ => AiBehavior.None
         };
 
+        private void ExpireOrder(PartyOrderData order, string reason, bool notify)
+        {
+            if (!order.IsActive) return;
+            order.IsActive = false;
+
+            var p = MobileParty.All.FirstOrDefault(x => x.StringId == order.PartyId);
+            p?.Ai.SetDoNotMakeNewDecisions(false);
+
+            if (notify && reason != null) NotifyHero(order, reason);
+            _orders.Remove(order);
+        }
+
+        private static void NotifyHero(PartyOrderData order, string message)
+        {
+            try
+            {
+                var hero = Hero.FindFirst(h => h.StringId == order.HeroId);
+                if (hero != null)
+                    Log.ShowInformation(message, hero.CharacterObject, Log.Sound.Notification1);
+            }
+            catch (Exception ex) { Log.Error($"[BLT] NotifyHero error: {ex}"); }
+        }
     }
 }
 
-// Top-level class — NOT nested inside PartyOrderBehavior.
-// Bannerlord's save system scans registered behavior types at save time;
-// nested classes produce mangled names that cause save failure even when
-// SyncData does nothing.
+// ── Persisted order data (top-level class for save-system compatibility) ──────
 [Serializable]
 public class PartyOrderData
 {
     public string HeroId { get; set; }
     public string PartyId { get; set; }
-    public int TypeRaw { get; set; } // PartyOrderType as int — custom enums are safer this way
+    public int TypeRaw { get; set; } // PartyOrderType as int
     public string TargetSettlementId { get; set; }
     public double IssuedAtDays { get; set; }
     public double ExpiresAtDays { get; set; }
@@ -614,7 +654,6 @@ public class PartyOrderData
     public int ReissueAttempts { get; set; }
     public bool IsActive { get; set; }
 
-    // Convenience accessor — not serialized, just casts TypeRaw
     public PartyOrderType Type
     {
         get => (PartyOrderType)TypeRaw;
