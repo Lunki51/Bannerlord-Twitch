@@ -465,6 +465,41 @@ namespace BLTAdoptAHero
                                 : "{=ktM8kF1Q}(none)".Translate()
                             )
                         );
+                        float finalMultiplier = 1f;
+                        float finalFlat = 0f;
+
+                        var sequentialPowerGroups = new List<IEnumerable<AddDamagePower>>
+                        {
+                            passivePowers.OfType<AddDamagePower>(),
+                            achPowers.OfType<AddDamagePower>(),
+                            activePowers.OfType<AddDamagePower>()
+                        };
+
+                        foreach (var group in sequentialPowerGroups)
+                        {
+                            foreach (var p in group)
+                            {
+                                // 1. Current flat damage gets multiplied by the new power's multiplier
+                                finalFlat *= (p.DamageModifierPercent / 100f);
+
+                                // 2. The global multiplier compounds
+                                finalMultiplier *= (p.DamageModifierPercent / 100f);
+
+                                // 3. The new flat damage is added at the end (per the internal logic of AddDamagePower)
+                                finalFlat += p.DamageToAdd;
+                            }
+                        }
+
+                        // Append the final calculated modifier to the UI
+                        if (finalMultiplier != 1f || finalFlat != 0)
+                        {
+                            string multiplierStr = finalMultiplier != 1f ? $"{finalMultiplier:0.##}x" : "";
+                            string flatStr = finalFlat != 0 ? $"{(finalFlat > 0 ? "+" : "")}{finalFlat:0.#}" : "";
+
+                            // Join with a space or separator if both exist
+                            string combined = string.Join(" ", new[] { multiplierStr, flatStr }.Where(s => !string.IsNullOrEmpty(s)));
+                            infoStrings.Add("{=DMG_MOD}[DMG]".Translate() + " " + combined);
+                        }
                     }
                 }
                 if (settings.ShowFamily)
