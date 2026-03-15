@@ -23,8 +23,8 @@ namespace BLTAdoptAHero.Behaviors
 
         public override void SyncData(IDataStore dataStore) 
         {
-            dataStore.SyncData("BLT_ClanAlliances", ref _alliances);
-            dataStore.SyncData("BLT_AllianceIds", ref _alliances);
+            //dataStore.SyncData("BLT_ClanAlliances", ref _alliances);
+            //dataStore.SyncData("BLT_AllianceIds", ref _alliances);
         }
 
         // Main list of alliances
@@ -282,21 +282,21 @@ namespace BLTAdoptAHero.Behaviors
                 
             }
         }
-        public class BLTAlliancesSaveDefiner : SaveableTypeDefiner
-        {
-            public BLTAlliancesSaveDefiner() : base(918273646) { } // Unique ID for this definer
+        //public class BLTAlliancesSaveDefiner : SaveableTypeDefiner
+        //{
+        //    public BLTAlliancesSaveDefiner() : base(918273646) { } // Unique ID for this definer
 
-            protected override void DefineContainerDefinitions()
-            {
-                // Save the list of alliances
-                ConstructContainerDefinition(typeof(List<BLTClanAllianceBehavior.ClanAlliance>));
+        //    protected override void DefineContainerDefinitions()
+        //    {
+        //        // Save the list of alliances
+        //        ConstructContainerDefinition(typeof(List<BLTClanAllianceBehavior.ClanAlliance>));
 
-                // Save the helper list of all clan IDs
-                ConstructContainerDefinition(typeof(List<string>));
+        //        // Save the helper list of all clan IDs
+        //        ConstructContainerDefinition(typeof(List<string>));
 
-                // Save inner lists in ClanAlliance if necessary
-                ConstructContainerDefinition(typeof(List<Clan>));
-            }
-        }
+        //        // Save inner lists in ClanAlliance if necessary
+        //        ConstructContainerDefinition(typeof(List<Clan>));
+        //    }
+        //}
     }
 }
