@@ -1206,15 +1206,6 @@ namespace BLTAdoptAHero.Actions
             newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
             newClan.Culture = vassal.Culture;
             newClan.Banner = Banner.CreateOneColoredBannerWithOneIcon(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetFirstIconColor(), -1);
-            if (adoptedHero.Clan.Kingdom != null)
-            {
-            AdoptedHeroFlags._allowKingdomMove = true;
-            if (adoptedHero.Clan.IsUnderMercenaryService)
-                ChangeKingdomAction.ApplyByJoinFactionAsMercenary(newClan, adoptedHero.Clan.Kingdom);
-            else
-                ChangeKingdomAction.ApplyByJoinToKingdom(newClan, adoptedHero.Clan.Kingdom);
-            AdoptedHeroFlags._allowKingdomMove = false;
-            }
             newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
             vassal.Clan = newClan;
             if (vassal.Spouse != null)
@@ -1259,6 +1250,15 @@ namespace BLTAdoptAHero.Actions
             newClan.SetLeader(vassal);
             newClan.IsNoble = true;
             vassal.Gold += 50000;
+            if (adoptedHero.Clan.Kingdom != null)
+            {
+                AdoptedHeroFlags._allowKingdomMove = true;
+                if (adoptedHero.Clan.IsUnderMercenaryService)
+                    ChangeKingdomAction.ApplyByJoinFactionAsMercenary(newClan, adoptedHero.Clan.Kingdom);
+                else
+                    ChangeKingdomAction.ApplyByJoinToKingdom(newClan, adoptedHero.Clan.Kingdom);
+                AdoptedHeroFlags._allowKingdomMove = false;
+            }
             CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
             ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
 

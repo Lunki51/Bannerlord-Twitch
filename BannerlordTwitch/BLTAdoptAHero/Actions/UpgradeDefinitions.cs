@@ -100,10 +100,21 @@ namespace BLTAdoptAHero.Actions.Upgrades
             set { if (_coastalOnly != value) { _coastalOnly = value; OnPropertyChanged(nameof(CoastalOnly)); } }
         }
 
+        private bool _capitalOnly = false;
+        [LocDisplayName("{=BLT_CapitalOnly}Capital Only"),
+         LocCategory("General", "{=GeneralCat}General"),
+         LocDescription("{=BLT_CapitalOnlyDesc}If true, this upgrade applies only to the clan's capital settlement and is stored at clan level (follows the capital if moved, never applies to non-capital settlements)."),
+         PropertyOrder(8), UsedImplicitly, DefaultValue(false)]
+        public bool CapitalOnly
+        {
+            get => _capitalOnly;
+            set { if (_capitalOnly != value) { _capitalOnly = value; OnPropertyChanged(nameof(CapitalOnly)); } }
+        }
+
         private bool _canBeRemoved = false;
         [LocDisplayName("{=BLT_CanBeRemoved}Can Be Removed"),
          LocDescription("{=BLT_CanBeRemovedDesc}Whether this upgrade can be removed after purchase (no refund)"),
-         PropertyOrder(8), UsedImplicitly]
+         PropertyOrder(9), UsedImplicitly]
         public bool CanBeRemoved
         {
             get => _canBeRemoved;
@@ -382,6 +393,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(11), UsedImplicitly, DefaultValue(false)]
         public bool ApplyToVassals { get; set; } = false;
 
+        [LocDisplayName("{=BLT_RetinueSizeBonus}Retinue Size Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription("{=BLT_RetinueSizeBonusDesc}Increases the maximum retinue size for all adopted heroes in this clan."),
+         PropertyOrder(12), UsedImplicitly, DefaultValue(0)]
+        public int RetinueSizeBonus { get; set; } = 0;
+
         // ── Settlement Effects ────────────────────────────────────────────────
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
@@ -570,6 +587,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
             if (PartyAmountBonus != 0) desc += $"\n  Party Limit: {(PartyAmountBonus > 0 ? "+" : "")}{PartyAmountBonus}";
             if (MaxVassalsBonus != 0) desc += $"\n  Vassal Limit: {(MaxVassalsBonus > 0 ? "+" : "")}{MaxVassalsBonus}";
+            if (RetinueSizeBonus != 0) desc += $"\n  Retinue Size: {(RetinueSizeBonus > 0 ? "+" : "")}{RetinueSizeBonus}";
             if (MercIncomeFlat != 0) desc += $"\n  Flat Income Bonus: {(MercIncomeFlat > 0 ? "+" : "")}{MercIncomeFlat}/day";
             if (MercIncomePercent != 0) desc += $"\n  Percent Income Bonus: {(MercIncomePercent > 0 ? "+" : "")}{MercIncomePercent}%/day";
 
@@ -675,6 +693,12 @@ namespace BLTAdoptAHero.Actions.Upgrades
          LocDescription("{=BLT_PartySpeedDesc}Additional flat party speed for all kingdom parties"),
          PropertyOrder(3), UsedImplicitly]
         public float PartySpeedBonus { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_RetinueSizeBonus}Retinue Size Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
+         LocDescription("{=BLT_RetinueSizeBonusDesc}Increases the maximum retinue size for all adopted heroes across all clans in the kingdom."),
+         PropertyOrder(4), UsedImplicitly, DefaultValue(0)]
+        public int RetinueSizeBonus { get; set; } = 0;
 
         // ── Settlement Effects ────────────────────────────────────────────────
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
@@ -871,6 +895,7 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (RenownDaily != 0) desc += $"\n  Renown: {(RenownDaily > 0 ? "+" : "")}{RenownDaily}/day per clan";
             if (PartySizeBonus != 0) desc += $"\n  Party Size: {(PartySizeBonus > 0 ? "+" : "")}{PartySizeBonus}";
             if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
+            if (RetinueSizeBonus != 0) desc += $"\n  Retinue Size: {(RetinueSizeBonus > 0 ? "+" : "")}{RetinueSizeBonus} per clan";
 
             desc += "\n\nSettlement Effects (All Kingdom Settlements):";
             if (LoyaltyDailyFlat != 0) desc += $"\n  Loyalty: {(LoyaltyDailyFlat > 0 ? "+" : "")}{LoyaltyDailyFlat}/day";

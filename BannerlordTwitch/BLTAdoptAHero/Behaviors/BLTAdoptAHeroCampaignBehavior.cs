@@ -1345,11 +1345,12 @@ namespace BLTAdoptAHero
             int totalCost = 0;
 
             var results = new List<string>();
+            int effectiveMaxRetinue = settings.MaxRetinueSize + (UpgradeBehavior.Current?.GetTotalRetinueSizeBonus(hero) ?? 0);
 
             while (maxToUpgrade-- > 0)
             {
                 // first fill in any missing ones
-                if (heroRetinue.Count < settings.MaxRetinueSize)
+                if (heroRetinue.Count < effectiveMaxRetinue)
                 {
                     var troopType = availableTroops
                         .Shuffle()
@@ -1636,10 +1637,12 @@ namespace BLTAdoptAHero
 
             var results = new List<string>();
 
+            int effectiveMaxRetinue2 = settings.MaxRetinue2Size + (UpgradeBehavior.Current?.GetTotalRetinueSizeBonus(hero) ?? 0);
+
             while (maxToUpgrade-- > 0)
             {
                 // first fill in any missing ones
-                if (heroretinue2.Count < settings.MaxRetinue2Size)
+                if (heroretinue2.Count < effectiveMaxRetinue2)
                 {
                     var troopType = availableTroops
                         .Shuffle()

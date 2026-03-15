@@ -953,4 +953,69 @@ namespace BLTAdoptAHero
         }
     }
     #endregion
+
+    #region ClanArmyPatches
+
+    /// <summary>
+    /// Patches Army.FindBestGatheringSettlementAndMoveTheLeader for clan armies
+    /// (Army.Kingdom == null).  The vanilla method unconditionally iterates
+    /// this.Kingdom.Settlements, which would throw a NullReferenceException.
+    ///
+    /// When Kingdom is non-null the prefix returns true and vanilla runs unchanged.
+    /// When Kingdom is null (clan army) the prefix:
+    ///   • Calls BLTClanArmyBehavior.FindClanGatherSettlement to pick a friendly settlement.
+    ///   • Sets AiBehaviorObject to that settlement.
+    ///   • Moves the leader party toward it (replicating SendLeaderPartyToReachablePointAroundPosition).
+    ///   • Returns false to skip the vanilla body entirely.
+    /// </summary>
+    [HarmonyPatch(typeof(Army), "FindBestGatheringSettlementAndMoveTheLeader")]
+    internal static class BLT_ClanArmyFindGatheringPatch
+    {
+        [HarmonyPrefix]
+        static bool Prefix(Army __instance, Settlement focusSettlement)
+        {
+            try
+            {
+                // Let vanilla handle all kingdom armies — we only care about null-kingdom clan armies.
+                if (__instance.Kingdom != null) return true;
+
+                // Pick a friendly gathering point for the clan.
+                // Fall back to focusSettlement (the order target) as a last resort so the
+                // army at least moves somewhere even if it finds nothing friendly.
+                var gather = BLTClanArmyBehavior.FindClanGatherSettlement(__instance)
+                             ?? focusSettlement;
+
+                if (gather == null)
+                {
+                    // Truly nothing to gather at — hold position.
+                    __instance.LeaderParty.SetMoveModeHold();
+                    return false;
+                }
+
+                // Set the army's AI target to the gathering settlement so the
+                // gathering state machine works correctly.
+                __instance.AiBehaviorObject = gather;
+
+                // Replicate SendLeaderPartyToReachablePointAroundPosition (private in Army).
+                // Vanilla always uses GatePosition here, matching our replication exactly.
+                __instance.LeaderParty.SetMoveGoToPoint(
+                    NavigationHelper.FindReachablePointAroundPosition(
+                        gather.GatePosition,
+                        MobileParty.NavigationType.Default,
+                        __instance.GatheringPositionMaxDistanceToTheSettlement,
+                        __instance.GatheringPositionMinDistanceToTheSettlement,
+                        false),
+                    __instance.LeaderParty.NavigationCapability);
+
+                return false; // skip vanilla body
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_ClanArmyFindGatheringPatch error: {ex}");
+                return true; // fail-safe: let vanilla run
+            }
+        }
+    }
+
+    #endregion
 }
