@@ -13,6 +13,7 @@ using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 using System.ComponentModel;
+using TaleWorlds.Core;
 
 namespace BLTAdoptAHero.Actions
 {

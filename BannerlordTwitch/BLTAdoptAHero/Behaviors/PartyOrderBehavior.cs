@@ -105,7 +105,7 @@ namespace BLTAdoptAHero
         // ─────────────────────────────────────────────
 
         public void RegisterOrder(Hero hero, MobileParty party, PartyOrderType type,
-            Settlement targetSettlement, int maxReissueAttempts, int expiryHours = 0)
+            Settlement targetSettlement, int maxReissueAttempts, float expiryDays = 0f)
         {
             if (hero == null || party == null) return;
             CancelOrdersForParty(party.StringId, null, false);
@@ -117,7 +117,10 @@ namespace BLTAdoptAHero
                 Type = type,
                 TargetSettlementId = targetSettlement?.StringId,
                 IssuedAtDays = CampaignTime.Now.ToDays,
-                ExpiresAtDays = expiryHours > 0 ? CampaignTime.Now.ToDays + expiryHours / 24.0 : 0,
+                // expiryDays == 0 means no expiry; otherwise store the absolute day.
+                ExpiresAtDays = expiryDays > 0f
+                                         ? CampaignTime.Now.ToDays + (double)expiryDays
+                                         : 0,
                 MaxReissueAttempts = maxReissueAttempts,
                 ReissueAttempts = 0,
                 IsActive = true
@@ -173,6 +176,12 @@ namespace BLTAdoptAHero
                 if (order == null) return;
 
                 if (!party.IsActive) { ExpireOrder(order, null, false); return; }
+
+                // ── FIX 1: never re-issue while the party is inside a settlement. ──────
+                // GetDistance from inside a settlement has no valid gate-origin, so
+                // LandPartyNeedsWaterCrossing returns garbage and stamps a land party
+                // with naval AI. Let the engine move the party out of the gate first.
+                if (party.CurrentSettlement != null) return;
 
                 // Expiry
                 if (order.ExpiresAtDays > 0 && CampaignTime.Now.ToDays >= order.ExpiresAtDays)
@@ -620,12 +629,27 @@ namespace BLTAdoptAHero
             if (!order.IsActive) return;
             order.IsActive = false;
 
-            var p = MobileParty.All.FirstOrDefault(x => x.StringId == order.PartyId);
-            p?.Ai.SetDoNotMakeNewDecisions(false);
+            // MobileParty.All may not contain a party that is currently being
+            // destroyed by DisbandArmyAction (it is removed from the list before
+            // the ArmyDispersed event fires). Search the broader collection and
+            // guard the AI call so a partially-destroyed party doesn't throw.
+            MobileParty p = null;
+            try
+            {
+                p = Campaign.Current.MobileParties
+                        .FirstOrDefault(x => x?.StringId == order.PartyId && x.IsActive);
+                if (p != null)
+                    p.Ai.SetDoNotMakeNewDecisions(false);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] ExpireOrder: could not release AI lock for {order.PartyId}: {ex}");
+            }
 
             if (notify && reason != null) NotifyHero(order, reason);
             _orders.Remove(order);
         }
+
 
         private static void NotifyHero(PartyOrderData order, string message)
         {
