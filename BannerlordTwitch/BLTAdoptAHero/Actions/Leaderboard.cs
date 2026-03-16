@@ -21,7 +21,7 @@ namespace BLTAdoptAHero
         {
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value($"Usage: !leaderboard hero (kills|deaths|battles|summons|attacks|tournaments|1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|family) or !leaderboard clan (power|renown|members|dead|fiefs|gold)");
+                generator.Value($"Usage: !leaderboard hero (kills|deaths|battles|summons|attacks|tournaments|1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|family) or !leaderboard clan (power|renown|members|dead|fiefs|gold|party)");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -102,6 +102,8 @@ namespace BLTAdoptAHero
             }
 
             var sb = new StringBuilder();
+            var userClass = userHero?.GetClass() ?? null;
+            var userClassId = userClass?.ID ?? Guid.Empty;
 
             // Map filter strings to functions
             var statLines = new Dictionary<string, Func<string>>(StringComparer.OrdinalIgnoreCase)
@@ -129,7 +131,8 @@ namespace BLTAdoptAHero
                 { "THROW-AXE", () => BuildStatLine("THROW-AXE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalThrowAxeKills)) },
                 { "THROW-KNIFE", () => BuildStatLine("THROW-KNIFE", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalThrowKnifeKills)) },
                 { "XBOW", () => BuildStatLine("XBOW", h => BLTAdoptAHeroCampaignBehavior.Current.GetAchievementTotalStat(h, AchievementStatsData.Statistic.TotalXBowKills)) },
-                { "FAMILY", () => BuildFamilyLine() }
+                { "FAMILY", () => BuildFamilyLine() },
+                { "CLASS", () => (userClass == null ? "Your hero is classless" : BuildStatLine($"{userClass.Name}", h => BLTAdoptAHeroCampaignBehavior.Current?.GetAchievementClassStat(h, userClassId, AchievementStatsData.Statistic.TotalKills) ?? 0)) }
             };
 
             // Append only the lines requested in filter, preserving order
@@ -168,6 +171,7 @@ namespace BLTAdoptAHero
             {
                 var sorted = bltClans
                     .Select(c => new { Clan = c, Value = statFunc(c) })
+                    .Where(x => x.Value >= 0)
                     .OrderByDescending(x => x.Value)
                     .ToList();
 
@@ -175,11 +179,15 @@ namespace BLTAdoptAHero
                     .Select((x, i) => $"{i + 1}-{x.Clan.Name}({(label == "GOLD" ? FormatGold(x.Value) : x.Value.ToString())})")
                     .ToList();
 
-                int userRank = sorted.FindIndex(x => x.Clan == userHero.Clan) + 1;
-                if (userRank > 3)
+                int userRank = sorted.FindIndex(x => x.Clan == userHero.Clan);
+                if (userRank >= 0)
                 {
-                    var userValue = sorted[userRank - 1].Value;
-                    top3.Add($"{userRank}-{userHero.Clan.Name}({(label == "GOLD" ? FormatGold(userValue) : userValue.ToString())})");
+                    userRank += 1;
+                    if (userRank > 3)
+                    {
+                        var userValue = sorted[userRank - 1].Value;
+                        top3.Add($"{userRank}-{userHero.Clan.Name}({(label == "GOLD" ? FormatGold(userValue) : userValue.ToString())})");
+                    }
                 }
 
                 return $"{label}: {string.Join(" ", top3)}";
@@ -195,7 +203,9 @@ namespace BLTAdoptAHero
                 { "MEMBERS", () => BuildClanStatLine("MEMBERS", c => c.Heroes.Where(h => h.IsAlive).ToList().Count) },
                 { "DEAD", () => BuildClanStatLine("DEAD", c => c.Heroes.Where(h => h.IsDead).ToList().Count) },
                 { "FIEFS", () => BuildClanStatLine("FIEFS", c => c.Fiefs.Count) },
-                { "GOLD", () => BuildClanStatLine("GOLD", c => c.Gold) }
+                { "GOLD", () => BuildClanStatLine("GOLD", c => c.Gold) },
+                { "PARTY", () => BuildClanStatLine("PARTY", c => c.WarPartyComponents.Where(p => p != null && p.Party != null).Select(p => (int)p.Party.MemberRoster.TotalManCount).DefaultIfEmpty(0).Max()) },
+                { "MERC", () =>  (bltClans.Any(c => c.IsUnderMercenaryService) ? BuildClanStatLine("MERC", c => (c.IsUnderMercenaryService ? (int)c.CurrentTotalStrength : -1)) : "MERC: No clans currently under mercenary service")  }
             };
 
             var linesToAppend = filter
