@@ -549,7 +549,7 @@ namespace BLTAdoptAHero.Actions
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        // List / Info helpers (unchanged)
+        // List / Info helpers
         // ════════════════════════════════════════════════════════════════════════
 
         private void HandleListCommand(string type, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
@@ -561,7 +561,12 @@ namespace BLTAdoptAHero.Actions
             {
                 sb.AppendLine("\n[Fief Upgrades]");
                 if (gc.FiefUpgrades?.Count > 0)
-                    foreach (var u in gc.FiefUpgrades) { sb.AppendLine($"  {u.ID}: {u.Name} - {u.GetCostString()}"); sb.AppendLine($"    {u.Description}"); }
+                    foreach (var u in gc.FiefUpgrades)
+                    {
+                        string tag = u.CapitalOnly ? " [CAPITAL ONLY — use: capital list]" : "";
+                        sb.AppendLine($"  {u.ID}: {u.Name} - {u.GetCostString()}{tag}");
+                        sb.AppendLine($"    {u.Description}");
+                    }
                 else sb.AppendLine("  No fief upgrades configured");
             }
             if (type == "all" || type == "clan")
@@ -892,15 +897,13 @@ namespace BLTAdoptAHero.Actions
                 var up = gc.FiefUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null)
                 { results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = id, Success = false, Message = $"Upgrade '{id}' not found in config" }); return results; }
+
                 int gold = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero);
                 if (gold < up.GoldCost)
                 { results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = false, Message = Naming.NotEnoughGold(up.GoldCost, gold) }); return results; }
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
-                UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
+
                 if (up.CapitalOnly)
                 {
-                    // Capital-only upgrades are stored at clan level and always follow the capital
                     if (CapitalBehavior.Current?.IsCapital(settlement, hero.Clan) != true)
                     {
                         results.Add(new PurchaseResult
@@ -912,17 +915,21 @@ namespace BLTAdoptAHero.Actions
                         });
                         return results;
                     }
+                    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
                     CapitalBehavior.Current.AddCapitalUpgrade(hero.Clan, id);
                 }
                 else
                 {
+                    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
                     UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
                 }
+
                 alreadyOwned.Add(id);
                 results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = true });
             }
             return results;
         }
+
 
         // ════════════════════════════════════════════════════════════════════════
         // Clan purchase
@@ -1236,11 +1243,8 @@ namespace BLTAdoptAHero.Actions
                 ok($"Removed '{up.Name}' from {settlement.Name}!");
                 Log.ShowInformation($"{hero.Name} removed {up.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
             }
-
-            UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
-            ok($"Removed '{up.Name}' from {settlement.Name}!");
-            Log.ShowInformation($"{hero.Name} removed {up.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
         }
+
 
         private void RemoveClanUpgrade(string upgradeId, Hero hero, Settings settings, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
         {

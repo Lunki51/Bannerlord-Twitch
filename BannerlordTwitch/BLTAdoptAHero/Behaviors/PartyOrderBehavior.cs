@@ -177,11 +177,23 @@ namespace BLTAdoptAHero
 
                 if (!party.IsActive) { ExpireOrder(order, null, false); return; }
 
-                // ── FIX 1: never re-issue while the party is inside a settlement. ──────
-                // GetDistance from inside a settlement has no valid gate-origin, so
-                // LandPartyNeedsWaterCrossing returns garbage and stamps a land party
-                // with naval AI. Let the engine move the party out of the gate first.
-                if (party.CurrentSettlement != null) return;
+                // ── Settlement handling ─────────────────────────────────────────────────
+                if (party.CurrentSettlement != null)
+                {
+                    // Garrison at the correct fort: satisfied — stay locked
+                    if (order.Type == PartyOrderType.Garrison &&
+                        party.CurrentSettlement.StringId == order.TargetSettlementId)
+                    {
+                        order.ReissueAttempts = 0;
+                        party.Ai.SetDoNotMakeNewDecisions(true);
+                        return;
+                    }
+                    // Every other order type (including SmartGuard): unlock so the
+                    // party can leave. The order will be re-applied next tick.
+                    try { party.Ai.SetDoNotMakeNewDecisions(false); }
+                    catch (Exception ex) { Log.Error($"[BLT] AI unlock in settlement error: {ex}"); }
+                    return;
+                }
 
                 // Expiry
                 if (order.ExpiresAtDays > 0 && CampaignTime.Now.ToDays >= order.ExpiresAtDays)
@@ -193,7 +205,7 @@ namespace BLTAdoptAHero
 
                 if (party.MapEvent != null) return;
 
-                // ── SmartGuard: re-evaluate conditions every tick, no drift counter ──
+                // ── SmartGuard: re-evaluate conditions; only re-issue on state change ──
                 if (order.Type == PartyOrderType.SmartGuard)
                 {
                     var sgTarget = order.TargetSettlementId != null
@@ -204,9 +216,42 @@ namespace BLTAdoptAHero
                         ExpireOrder(order, "Invalid target", false);
                         return;
                     }
-                    IssueSmartGuardOrder(party, sgTarget);
+
+                    // Determine desired state from current world conditions
+                    var besiegerFaction = sgTarget.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction;
+                    bool enemySieging = sgTarget.IsUnderSiege
+                        && besiegerFaction != null
+                        && party.MapFaction.IsAtWarWith(besiegerFaction);
+
+                    Settlement raidedVillage = null;
+                    if (!enemySieging && sgTarget.BoundVillages != null)
+                    {
+                        foreach (var v in sgTarget.BoundVillages)
+                        {
+                            var vs = v?.Settlement;
+                            if (vs?.IsUnderRaid != true) continue;
+                            var rf = vs.LastAttackerParty?.MapFaction;
+                            if (rf != null && party.MapFaction.IsAtWarWith(rf))
+                            { raidedVillage = vs; break; }
+                        }
+                    }
+
+                    AiBehavior wantedBehavior = enemySieging
+                        ? AiBehavior.DefendSettlement
+                        : AiBehavior.PatrolAroundPoint;
+                    Settlement wantedTarget = enemySieging ? sgTarget
+                        : (raidedVillage ?? sgTarget);
+
+                    bool behaviorOk = party.DefaultBehavior == wantedBehavior;
+                    bool targetOk = party.TargetSettlement != null
+                                      && party.TargetSettlement.StringId == wantedTarget.StringId;
+
+                    // Only call IssueSmartGuardOrder when the desired state actually changed
+                    if (!behaviorOk || !targetOk)
+                        IssueSmartGuardOrder(party, sgTarget);
+
                     party.Ai.SetDoNotMakeNewDecisions(true);
-                    order.ReissueAttempts = 0;   // never count dynamic re-evals as drift
+                    order.ReissueAttempts = 0;
                     return;
                 }
 
@@ -535,16 +580,29 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Already at sea — handled by the caller via IsCurrentlyAtSea
+                if (party.IsCurrentlyAtSea) return false;
+
+                // Distance calculation is unreliable from inside a settlement gate;
+                // returning false here prevents the naval-stamp bug entirely.
+                if (party.CurrentSettlement != null) return false;
+
                 float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
                     party, target, false, MobileParty.NavigationType.All, out float landRatio);
-                if (dist >= float.MaxValue - 1f) return true;
+
+                // Unreachable by land nav: do NOT assume naval — default to land.
+                // The old "return true" here was the root cause of the sailing bug.
+                if (dist >= float.MaxValue - 1f) return false;
+
+                // landRatio < 0.5 means the majority of the route crosses water
                 if (landRatio >= 0f && landRatio < 0.5f) return true;
+
                 return false;
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] LandPartyNeedsWaterCrossing error: {ex}");
-                return false;
+                return false;   // safe default: land routing
             }
         }
 

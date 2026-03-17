@@ -326,6 +326,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
      CategoryOrder("Garrison Troop Spawning", 4)]
     public class ClanUpgrade : UpgradeBase
     {
+        [Browsable(false)]
+        public new bool CapitalOnly { get => false; set { } }
         // ── Clan Effects ──────────────────────────────────────────────────────
         [LocDisplayName("{=BLT_RenownDaily}Renown Daily"),
          LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
@@ -650,6 +652,9 @@ namespace BLTAdoptAHero.Actions.Upgrades
      CategoryOrder("Garrison Troop Spawning", 5)]
     public class KingdomUpgrade : UpgradeBase
     {
+        [Browsable(false)]
+        public new bool CapitalOnly { get => false; set { } }
+
         [LocDisplayName("{=BLT_InfluenceCost}Influence Cost"),
          LocCategory("General", "{=BLT_General}General"),
          LocDescription("{=BLT_InfluenceCostDesc}Cost in influence to purchase this upgrade (in addition to gold)"),

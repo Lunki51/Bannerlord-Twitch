@@ -11,7 +11,7 @@ namespace BannerlordTwitch.Twitch
     public static class ExtensionService
     {
         private static readonly AuthSettings authSettings;
-        private static readonly string BackendUrl = $"http://localhost:{authSettings.ExtensionPort}";
+        //private static readonly string BackendUrl = $"http://localhost:{authSettings.ExtensionPort}";
         private static readonly string BltSecret = "BLT123";
         private static readonly HttpClient http = new();
 
@@ -45,10 +45,10 @@ namespace BannerlordTwitch.Twitch
             try
             {
                 var json = JsonConvert.SerializeObject(new { userId, username = userName });
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{BackendUrl}/register-by-id");
-                request.Headers.Add("x-blt-secret", BltSecret);
-                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                await http.SendAsync(request);
+                //var request = new HttpRequestMessage(HttpMethod.Post, $"{BackendUrl}/register-by-id");
+                //request.Headers.Add("x-blt-secret", BltSecret);
+                //request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                //await http.SendAsync(request);
             }
             catch (Exception e)
             {
@@ -61,14 +61,14 @@ namespace BannerlordTwitch.Twitch
             try
             {
                 var json = JsonConvert.SerializeObject(payload);
-                var request = new HttpRequestMessage(HttpMethod.Post, $"{BackendUrl}/message");
-                request.Headers.Add("x-blt-secret", BltSecret);
-                request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                var response = await http.SendAsync(request);
-                if (!response.IsSuccessStatusCode)
-                {
-                    Log.Trace($"[ExtensionService] Backend returned {response.StatusCode}");
-                }
+                //var request = new HttpRequestMessage(HttpMethod.Post, $"{BackendUrl}/message");
+                //request.Headers.Add("x-blt-secret", BltSecret);
+                //request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                //var response = await http.SendAsync(request);
+                //if (!response.IsSuccessStatusCode)
+                //{
+                //    Log.Trace($"[ExtensionService] Backend returned {response.StatusCode}");
+                //}
             }
             catch (Exception e)
             {

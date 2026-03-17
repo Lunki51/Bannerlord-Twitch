@@ -920,30 +920,13 @@ namespace BLTAdoptAHero
 
                 var pb = PartyOrderBehavior.Current;
 
-                // ── BLT adopted hero ─────────────────────────────────────────────
-                if (armyLeader?.IsAdopted() == true)
-                {
-                    if (pb != null && pb.IsBLTArmiesBlocked(__instance))
-                    {
-#if DEBUG
-                    Log.Trace($"[BLT] Blocked BLT army creation by {armyLeader?.Name} in {__instance?.Name} (allowblt off)");
-#endif
-                        return false;
-                    }
-                    return true; // explicitly allowed (or system not ready)
-                }
+                // ── Both adopted and AI heroes ───────────────────────────────────
+                if (pb == null) return true;
 
-                // ── Pure AI/NPC hero ─────────────────────────────────────────────
-                if (pb == null)
-                    return true; // system not loaded — fail-safe
-
-                if (!pb.IsAIArmiesBlocked(__instance))
-                    return true; // not blocked for this kingdom
-
-#if DEBUG
-            Log.Trace($"[BLT] Blocked AI army creation by {armyLeader?.Name} in {__instance?.Name} (allowai off)");
-#endif
-                return false;
+                bool isBLT = armyLeader?.IsAdopted() == true;
+                bool blocked = isBLT ? pb.IsBLTArmiesBlocked(__instance)
+                                     : pb.IsAIArmiesBlocked(__instance);
+                return !blocked;
             }
             catch (Exception ex)
             {

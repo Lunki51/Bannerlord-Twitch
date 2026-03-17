@@ -543,7 +543,7 @@ namespace BLTAdoptAHero.Actions
             var roster = party.MemberRoster.GetTroopRoster();
             double tier = roster.Sum(r => r.Character.Tier * r.Number) / (double)Math.Max(1, roster.Sum(r => r.Number));
             var nav = party.IsCurrentlyAtSea ? MobileParty.NavigationType.Naval : MobileParty.NavigationType.Default;
-            var near = SettlementHelper.FindNearestSettlementToMobileParty(party, nav);
+            var near = SettlementHelper.FindNearestFortificationToMobileParty(party, nav);
 
             var sb = new StringBuilder();
             sb.Append($"Troops: {comp}(avg Tier {Math.Round(tier, 1)}) | ");
@@ -1270,27 +1270,60 @@ namespace BLTAdoptAHero.Actions
         private static void ArmyView(Settings settings, Hero h,
             Action<string> onSuccess, Action<string> onFailure)
         {
-            // Independent clan — show their own clan armies
             if (h.Clan.Kingdom == null)
             {
-                var clanArmies = BLTClanArmyBehavior.Current?.GetClanArmies(h.Clan)
-                                 ?? new List<Army>();
-                if (clanArmies.Count == 0)
-                { onSuccess($"{h.Clan.Name} has no active clan armies"); return; }
+                var ownArmies = BLTClanArmyBehavior.Current?.GetClanArmies(h.Clan) ?? new List<Army>();
 
-                var sb = new StringBuilder($"{h.Clan.Name} Clan Armies: ");
-                for (int i = 0; i < clanArmies.Count; i++)
+                // Allied armies, keyed by owning clan for display
+                var alliedArmies = new List<(Clan owner, Army army)>();
+                if (BLTClanDiplomacyBehavior.Current != null)
                 {
-                    var a = clanArmies[i];
-                    var ldr = a.LeaderParty?.LeaderHero;
-                    string behavior = a.LeaderParty?.GetBehaviorText()?.ToString() ?? "—";
-                    string tgt = a.LeaderParty?.TargetSettlement?.Name?.ToString()
-                                      ?? a.LeaderParty?.TargetParty?.Name?.ToString() ?? "—";
-                    string orderTag = PartyOrderBehavior.Current?.HasActiveOrder(a.LeaderParty?.StringId ?? "") == true
-                        ? "[order]" : "";
-                    sb.Append($"[{i + 1}] {a.Name} (Leader:{ldr?.Name.ToString() ?? "?"}, Str:{(int)a.EstimatedStrength}, " +
-                              $"Parties:{a.LeaderPartyAndAttachedPartiesCount}, {behavior}→{tgt}{orderTag}) | ");
+                    foreach (var allied in BLTClanDiplomacyBehavior.Current.GetAlliedClans(h.Clan))
+                    {
+                        foreach (var a in BLTClanArmyBehavior.Current?.GetClanArmies(allied) ?? new List<Army>())
+                            alliedArmies.Add((allied, a));
+                    }
                 }
+
+                if (ownArmies.Count == 0 && alliedArmies.Count == 0)
+                { onSuccess($"{h.Clan.Name} has no active clan armies or allied armies"); return; }
+
+                var sb = new StringBuilder();
+
+                if (ownArmies.Count > 0)
+                {
+                    sb.Append($"{h.Clan.Name} Armies: ");
+                    foreach (var a in ownArmies)
+                    {
+                        var ldr = a.LeaderParty?.LeaderHero;
+                        string behavior = a.LeaderParty?.GetBehaviorText()?.ToString() ?? "—";
+                        string tgt = a.LeaderParty?.TargetSettlement?.Name?.ToString()
+                                      ?? a.LeaderParty?.TargetParty?.Name?.ToString() ?? "—";
+                        sb.Append($"[own] {a.Name} (Leader:{ldr?.Name.ToString() ?? "?"}, " +
+                                  $"Str:{(int)a.EstimatedStrength}, " +
+                                  $"Parties:{a.LeaderPartyAndAttachedPartiesCount}, {behavior}→{tgt}) | ");
+                    }
+                }
+
+                if (alliedArmies.Count > 0)
+                {
+                    sb.Append("Allied Armies (!party army join [n]): ");
+                    int idx = 1;
+                    foreach (var (owner, a) in alliedArmies)
+                    {
+                        var ldr = a.LeaderParty?.LeaderHero;
+                        string behavior = a.LeaderParty?.GetBehaviorText()?.ToString() ?? "—";
+                        string tgt = a.LeaderParty?.TargetSettlement?.Name?.ToString()
+                                      ?? a.LeaderParty?.TargetParty?.Name?.ToString() ?? "—";
+                        bool inCombat = a.LeaderParty?.MapEvent != null;
+                        sb.Append($"[{idx}] {a.Name} ({owner.Name}, Leader:{ldr?.Name.ToString() ?? "?"}, " +
+                                  $"Str:{(int)a.EstimatedStrength}, " +
+                                  $"Parties:{a.LeaderPartyAndAttachedPartiesCount}, " +
+                                  $"{behavior}→{tgt}{(inCombat ? " [COMBAT]" : "")}) | ");
+                        idx++;
+                    }
+                }
+
                 onSuccess(sb.ToString().TrimEnd(' ', '|'));
                 return;
             }
@@ -1464,7 +1497,7 @@ namespace BLTAdoptAHero.Actions
         // ── CALL ──────────────────────────────────────────────────────────────
 
         private void ArmyCall(Settings settings, Hero h, MobileParty party, Army army,
-    string tgtArg, Action<string> onSuccess, Action<string> onFailure)
+            string tgtArg, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.CallEnabled) { onFailure("Call is disabled"); return; }
             if (h.Clan.IsUnderMercenaryService) { onFailure("Mercenaries cannot call armies"); return; }
@@ -1630,7 +1663,7 @@ namespace BLTAdoptAHero.Actions
         // ── JOIN ──────────────────────────────────────────────────────────────
 
         private void ArmyJoin(Settings settings, Hero h, MobileParty party, Army army,
-    string tgtArg, Action<string> onSuccess, Action<string> onFailure)
+            string tgtArg, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.JoinEnabled) { onFailure("Army join is disabled"); return; }
             if (!h.IsPartyLeader || party == null) { onFailure("You must be leading a party to join an army"); return; }
@@ -1638,25 +1671,26 @@ namespace BLTAdoptAHero.Actions
             if (army != null) { onFailure("You are already in an army — use 'army leave' first"); return; }
 
             // ── Independent clan joining a clan army ───────────────────────────────
+            // Independent clan joining a clan army
             if (h.Clan.Kingdom == null)
             {
-                // Parse the target: can be a clan name (find their army) or an index
-                // among visible allied clan armies.
                 if (string.IsNullOrWhiteSpace(tgtArg))
-                { onFailure("Specify a clan name or army index to join. Use 'army view' to list visible armies."); return; }
+                { onFailure("Specify an allied army index. Use 'army view' to list joinable armies."); return; }
 
-                // Gather joinable clan armies: own allied clans only
                 var clanDiplomacy = BLTClanDiplomacyBehavior.Current;
                 if (clanDiplomacy == null) { onFailure("Clan diplomacy system not available"); return; }
 
-                var alliedClans = clanDiplomacy.GetAlliedClans(h.Clan);
-                var joinable = alliedClans
-                    .Select(c => BLTClanArmyBehavior.Current?.GetClanArmy(c))
-                    .Where(a => a != null && a.LeaderParty != null && a.LeaderParty.MapEvent == null)
-                    .ToList();
+                // Build the same ordered list as ArmyView: all allied armies, 1-based
+                var joinable = new List<Army>();
+                foreach (var allied in clanDiplomacy.GetAlliedClans(h.Clan))
+                {
+                    foreach (var a in BLTClanArmyBehavior.Current?.GetClanArmies(allied) ?? new List<Army>())
+                        if (a?.LeaderParty != null)
+                            joinable.Add(a);
+                }
 
                 if (joinable.Count == 0)
-                { onFailure("No allied clan armies are available to join"); return; }
+                { onFailure("No allied clan armies are available to join. Use 'army view' to check."); return; }
 
                 Army targetArmy = null;
                 if (int.TryParse(tgtArg, out int idx) && idx >= 1 && idx <= joinable.Count)
@@ -1673,7 +1707,10 @@ namespace BLTAdoptAHero.Actions
                 }
 
                 if (targetArmy == null)
-                { onFailure($"No allied clan army found matching '{tgtArg}'"); return; }
+                { onFailure($"No allied clan army found matching '{tgtArg}'. Use 'army view' to see indices."); return; }
+
+                if (targetArmy.LeaderParty?.MapEvent != null)
+                { onFailure($"{targetArmy.Name} is currently in combat"); return; }
 
                 // Bring all free own-clan parties
                 var toJoin = new List<MobileParty> { party };
@@ -1691,6 +1728,7 @@ namespace BLTAdoptAHero.Actions
                 }
 
                 if (added == 0) { onFailure("Failed to join the army"); return; }
+
                 onSuccess($"Joined {targetArmy.Name} with {added} parties (no influence cost — clan alliance)");
                 Log.ShowInformation($"{h.Name} joined {targetArmy.Name}!", h.CharacterObject, Log.Sound.Horns2);
                 return;
