@@ -27,7 +27,7 @@ namespace BLTAdoptAHero
     {
         public static bool _allowKingdomMove = false;
         public static bool _allowDiplomacyAction = false;
-        //public static bool _allowMarriage = false;
+        public static bool _allowBLTArmyCreation = false;
         public static bool _allowAIjoinBLT = GlobalCommonConfig.Get().AllowAIJoinBLT;
     }
 
@@ -920,13 +920,23 @@ namespace BLTAdoptAHero
 
                 var pb = PartyOrderBehavior.Current;
 
-                // ── Both adopted and AI heroes ───────────────────────────────────
-                if (pb == null) return true;
+                if (armyLeader?.IsAdopted() == true)
+                {
+                    // Block all BLT army creation unless a BLT command explicitly allowed it
+                    if (!AdoptedHeroFlags._allowBLTArmyCreation)
+                    {
+#if DEBUG
+                    Log.Trace($"[BLT] Blocked unsanctioned BLT army creation by {armyLeader?.Name} in {__instance?.Name}");
+#endif
+                        return false;
+                    }
+                    // Sanctioned creation: still respect the per-kingdom block flag
+                    return pb == null || !pb.IsBLTArmiesBlocked(__instance);
+                }
 
-                bool isBLT = armyLeader?.IsAdopted() == true;
-                bool blocked = isBLT ? pb.IsBLTArmiesBlocked(__instance)
-                                     : pb.IsAIArmiesBlocked(__instance);
-                return !blocked;
+                // AI hero
+                if (pb == null) return true;
+                return !pb.IsAIArmiesBlocked(__instance);
             }
             catch (Exception ex)
             {

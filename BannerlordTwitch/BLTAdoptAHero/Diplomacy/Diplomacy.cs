@@ -1409,7 +1409,7 @@ namespace BLTAdoptAHero
                     sb.AppendLine("\n[Wars]");
                     foreach (var war in wars)
                     {
-                        var enemies = war.GetEnemies(kingdom);
+                        var enemies = war.GetEnemies(kingdom).Where(e => !e.IsBanditFaction);
                         string enemyList = string.Join(", ", enemies.Select(e => e.Name.ToString()));
                         sb.AppendLine($"  • {enemyList}");
                     }

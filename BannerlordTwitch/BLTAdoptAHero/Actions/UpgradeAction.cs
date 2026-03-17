@@ -625,6 +625,7 @@ namespace BLTAdoptAHero.Actions
         {
             if (string.IsNullOrEmpty(name)) { fail("Usage: info <clan> <name>"); return; }
             var clan = FindClan(name);
+            if (clan == null) { clan = FindClan(name.TrimStart('[', 'B', 'L', 'T', ' ', 'C', 'l', 'a', 'n', ']', ' ')); }
             if (clan == null) { fail($"Clan '{name}' not found"); return; }
             var ids = UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
             var sb = new StringBuilder();
