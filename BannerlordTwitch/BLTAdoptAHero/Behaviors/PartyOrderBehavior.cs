@@ -287,6 +287,8 @@ namespace BLTAdoptAHero
                 if (behaviorMatches && targetMatches)
                 {
                     order.ReissueAttempts = 0;
+                    if (order.Type == PartyOrderType.Siege && party.BesiegedSettlement != null)
+                        party.Ai.SetDoNotMakeNewDecisions(false);
                     return;
                 }
 

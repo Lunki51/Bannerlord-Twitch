@@ -681,6 +681,59 @@ namespace BLTAdoptAHero
             return b;
         }
 
+        public float GetTotalArmySpeedBonus(Army army)
+        {
+            if (army == null || ConfigSafe == null) return 0f;
+
+            float total = 0f;
+            // Tracks keys already added so we can enforce the OncePerClan cap.
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var armyParty in army.Parties)
+            {
+                var clan = armyParty?.ActualClan;
+                if (clan == null) continue;
+
+                // ── Clan upgrades ──────────────────────────────────────────
+                foreach (var upgradeId in GetClanUpgrades(clan))
+                {
+                    var up = ConfigSafe.ClanUpgrades?
+                        .FirstOrDefault(u => u.ID == upgradeId);
+                    if (up == null || up.ArmySpeedBonus == 0f) continue;
+                    if (!IsClanUpgradeActive(up, clan)) continue;
+
+                    // OncePerClan → deduplicate by clan+upgrade;
+                    // otherwise deduplicate by party+upgrade (each party counts).
+                    string key = up.ArmySpeedOncePerClan
+                        ? $"clan:{clan.StringId}:{upgradeId}"
+                        : $"party:{armyParty.StringId}:{upgradeId}";
+
+                    if (!seen.Add(key)) continue;
+                    total += up.ArmySpeedBonus;
+                }
+
+                // ── Kingdom upgrades ───────────────────────────────────────
+                if (clan.Kingdom == null) continue;
+                foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
+                {
+                    var up = ConfigSafe.KingdomUpgrades?
+                        .FirstOrDefault(u => u.ID == upgradeId);
+                    if (up == null || up.ArmySpeedBonus == 0f) continue;
+
+                    // OncePerClan → one contribution per clan in the army;
+                    // otherwise one contribution per party.
+                    string key = up.ArmySpeedOncePerClan
+                        ? $"kdom_clan:{clan.StringId}:{upgradeId}"
+                        : $"kdom_party:{armyParty.StringId}:{upgradeId}";
+
+                    if (!seen.Add(key)) continue;
+                    total += up.ArmySpeedBonus;
+                }
+            }
+
+            return total;
+        }
+
         public int GetClanPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartyAmountBonus, currentValue: currentValue);
         public int GetTotalPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => clan == null ? 0 : GetClanPartyAmountBonus(clan, currentValue);
 

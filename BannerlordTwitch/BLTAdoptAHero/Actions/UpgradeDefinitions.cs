@@ -401,6 +401,24 @@ namespace BLTAdoptAHero.Actions.Upgrades
          PropertyOrder(12), UsedImplicitly, DefaultValue(0)]
         public int RetinueSizeBonus { get; set; } = 0;
 
+        [LocDisplayName("{=BLT_ArmySpeedBonus}Army Speed Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription(
+            "{=BLT_ArmySpeedBonusDesc}Flat movement-speed bonus contributed to any army this clan's parties participate in. " +
+            "Bonuses from all parties in the army are summed. " +
+            "This bonus is ONLY active while in an army; the regular Party Speed Bonus does not apply in armies."),
+         PropertyOrder(13), UsedImplicitly, DefaultValue(0f)]
+        public float ArmySpeedBonus { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_ArmySpeedOncePerClan}Army Speed Once Per Clan"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects"),
+         LocDescription(
+            "{=BLT_ArmySpeedOncePerClanDesc}When ON (recommended), this upgrade's army speed bonus is counted at most once per clan " +
+            "even if that clan has multiple parties in the army. " +
+            "When OFF, every individual party from this clan adds the bonus independently."),
+         PropertyOrder(14), UsedImplicitly, DefaultValue(false)]
+        public bool ArmySpeedOncePerClan { get; set; } = false;
+
         // ── Settlement Effects ────────────────────────────────────────────────
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
          LocCategory("Settlement Effects", "{=BLT_SettlementEffects}Settlement Effects (All Clan Settlements)"),
@@ -590,8 +608,11 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (PartyAmountBonus != 0) desc += $"\n  Party Limit: {(PartyAmountBonus > 0 ? "+" : "")}{PartyAmountBonus}";
             if (MaxVassalsBonus != 0) desc += $"\n  Vassal Limit: {(MaxVassalsBonus > 0 ? "+" : "")}{MaxVassalsBonus}";
             if (RetinueSizeBonus != 0) desc += $"\n  Retinue Size: {(RetinueSizeBonus > 0 ? "+" : "")}{RetinueSizeBonus}";
+            //if (Retinue2SizeBonus != 0) desc += $"\n  Secondary Retinue Size: {(Retinue2SizeBonus > 0 ? "+" : "")}{Retinue2SizeBonus}";
             if (MercIncomeFlat != 0) desc += $"\n  Flat Income Bonus: {(MercIncomeFlat > 0 ? "+" : "")}{MercIncomeFlat}/day";
             if (MercIncomePercent != 0) desc += $"\n  Percent Income Bonus: {(MercIncomePercent > 0 ? "+" : "")}{MercIncomePercent}%/day";
+            if (ArmySpeedBonus != 0) desc += $"\n  Army Speed: {(ArmySpeedBonus > 0 ? "+" : "")}{ArmySpeedBonus}" +
+                                          $" {(ArmySpeedOncePerClan ? $"once/clan: {ArmySpeedOncePerClan}" : "")}";
 
             bool hasSfx = LoyaltyDailyFlat != 0 || LoyaltyDailyPercent != 0 || ProsperityDailyFlat != 0 || ProsperityDailyPercent != 0 ||
                 SecurityDailyFlat != 0 || SecurityDailyPercent != 0 || MilitiaDailyFlat != 0 || MilitiaDailyPercent != 0 ||
@@ -704,6 +725,24 @@ namespace BLTAdoptAHero.Actions.Upgrades
          LocDescription("{=BLT_RetinueSizeBonusDesc}Increases the maximum retinue size for all adopted heroes across all clans in the kingdom."),
          PropertyOrder(4), UsedImplicitly, DefaultValue(0)]
         public int RetinueSizeBonus { get; set; } = 0;
+
+        [LocDisplayName("{=BLT_ArmySpeedBonus}Army Speed Bonus"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
+         LocDescription(
+            "{=BLT_ArmySpeedBonusDesc}Flat movement-speed bonus contributed once per kingdom clan that is present in an army. " +
+            "Accumulates across every kingdom clan in the army. " +
+            "This bonus is ONLY active while in an army; the regular Party Speed Bonus does not apply in armies."),
+         PropertyOrder(5), UsedImplicitly, DefaultValue(0f)]
+        public float ArmySpeedBonus { get; set; } = 0f;
+
+        [LocDisplayName("{=BLT_ArmySpeedOncePerClan}Army Speed Once Per Clan"),
+         LocCategory("Clan Effects", "{=BLT_ClanEffects}Clan Effects (All Kingdom Clans)"),
+         LocDescription(
+            "{=BLT_ArmySpeedOncePerClanDesc}When ON (recommended), each kingdom clan contributes this bonus at most once to the army " +
+            "regardless of how many parties that clan has present. " +
+            "When OFF, every individual party from any kingdom clan adds the bonus independently."),
+         PropertyOrder(6), UsedImplicitly, DefaultValue(true)]
+        public bool ArmySpeedOncePerClan { get; set; } = true;
 
         // ── Settlement Effects ────────────────────────────────────────────────
         [LocDisplayName("{=BLT_LoyaltyFlat}Loyalty Daily (Flat)"),
@@ -901,6 +940,8 @@ namespace BLTAdoptAHero.Actions.Upgrades
             if (PartySizeBonus != 0) desc += $"\n  Party Size: {(PartySizeBonus > 0 ? "+" : "")}{PartySizeBonus}";
             if (PartySpeedBonus != 0) desc += $"\n  Party Speed: {(PartySpeedBonus > 0 ? "+" : "")}{PartySpeedBonus}";
             if (RetinueSizeBonus != 0) desc += $"\n  Retinue Size: {(RetinueSizeBonus > 0 ? "+" : "")}{RetinueSizeBonus} per clan";
+            if (ArmySpeedBonus != 0) desc += $"\n  Army Speed: {(ArmySpeedBonus > 0 ? "+" : "")}{ArmySpeedBonus}" +
+                                          $" {(ArmySpeedOncePerClan ? $"once/clan: {ArmySpeedOncePerClan}" : "")}";
 
             desc += "\n\nSettlement Effects (All Kingdom Settlements):";
             if (LoyaltyDailyFlat != 0) desc += $"\n  Loyalty: {(LoyaltyDailyFlat > 0 ? "+" : "")}{LoyaltyDailyFlat}/day";

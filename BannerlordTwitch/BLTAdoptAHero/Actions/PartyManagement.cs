@@ -1191,7 +1191,9 @@ namespace BLTAdoptAHero.Actions
 
             float influenceBefore = h.Clan.Influence;
             var gather = curTarget ?? newLeaderParty.CurrentSettlement ?? h.HomeSettlement;
-            h.Clan.Kingdom.CreateArmy(newLeaderParty.LeaderHero, gather, armyType, remaining);
+            AdoptedHeroFlags._allowBLTArmyCreation = true;
+            try { h.Clan.Kingdom.CreateArmy(newLeaderParty.LeaderHero, gather, armyType, remaining); }
+            finally { AdoptedHeroFlags._allowBLTArmyCreation = false; }
             h.Clan.Influence = influenceBefore;
 
             if (newLeaderParty.Army == null) { onFailure("Failed to transfer army leadership"); return; }
@@ -1541,7 +1543,9 @@ namespace BLTAdoptAHero.Actions
 
             float influenceBefore = h.Clan.Influence;
             var gather = curTarget ?? oldLeader.CurrentSettlement ?? h.HomeSettlement;
-            h.Clan.Kingdom.CreateArmy(h, gather, armyType, remaining);
+            AdoptedHeroFlags._allowBLTArmyCreation = true;
+            try { h.Clan.Kingdom.CreateArmy(h, gather, armyType, remaining); }
+            finally { AdoptedHeroFlags._allowBLTArmyCreation = false; }
             h.Clan.Influence = influenceBefore;
 
             if (party.Army == null) { onFailure("Failed to seize army leadership"); return; }
@@ -2082,7 +2086,9 @@ namespace BLTAdoptAHero.Actions
 
                 h.Clan.Influence += 200f;
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(h, -settings.ArmyPrice, true);
-                h.Clan.Kingdom.CreateArmy(h, gather, armyType, merged);
+                AdoptedHeroFlags._allowBLTArmyCreation = true;
+                try { h.Clan.Kingdom.CreateArmy(h, gather, armyType, merged); }
+                finally { AdoptedHeroFlags._allowBLTArmyCreation = false; }
                 newArmy = party.Army;
 
                 if (newArmy == null)
