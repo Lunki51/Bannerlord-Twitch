@@ -45,7 +45,6 @@ namespace BannerlordTwitch
         [UsedImplicitly] public bool IsModerator { get; private set; }
         [UsedImplicitly] public bool IsSubscriber { get; private set; }
         [UsedImplicitly] public bool IsVip { get; private set; }
-        //public bool IsWhisper { get; private set; }
         [UsedImplicitly] public string RedemptionId { get; private set; }
         [UsedImplicitly] public ActionBase Source { get; private set; }
 
@@ -62,6 +61,7 @@ namespace BannerlordTwitch
         }
 
         private static string CleanDisplayName(string str) => str.Replace(" ", "").Replace(@"\s", "");
+
         public static ReplyContext FromMessage(ActionBase source, ChatMessage msg, string args) =>
             new()
             {
@@ -77,19 +77,7 @@ namespace BannerlordTwitch
                 IsVip = msg.IsVip,
                 Source = source,
             };
-        
-        // public static ReplyContext FromWhisper(ResponseBase source, WhisperMessage whisper) =>
-        //     new()
-        //     {
-        //         UserName = whisper.DisplayName,
-        //         ReplyId = whisper.MessageId,
-        //         Args = whisper.Message,
-        //         IsBroadcaster = whisper.UserType == UserType.Broadcaster,
-        //         IsModerator = whisper.UserType == UserType.Moderator,
-        //         IsWhisper = true,
-        //         Source = source,
-        //     };
-        
+
         public static ReplyContext FromRedemption(ActionBase source, ChannelPointsCustomRewardRedemption redemption) =>
             new()
             {
@@ -98,7 +86,7 @@ namespace BannerlordTwitch
                 RedemptionId = redemption.Id,
                 Source = source,
             };
-        
+
         public static ReplyContext FromUser(ActionBase source, string userName, string args = null) =>
             new()
             {
@@ -107,7 +95,7 @@ namespace BannerlordTwitch
                 Source = source,
             };
     }
-    
+
     // https://twitchtokengenerator.com/
     // https://twitchtokengenerator.com/quick/AAYotwZPvU
     internal partial class TwitchService : IDisposable
@@ -124,6 +112,9 @@ namespace BannerlordTwitch
 
         private readonly ConcurrentDictionary<string, ChannelPointsCustomRewardRedemption> redemptionCache = new();
         private Bot bot;
+
+        // ── Extension PubSub ─────────────────────────────────────────────────
+        private ExtensionPubSubService extensionPubSub;
 
         public TwitchService()
         {
@@ -165,12 +156,29 @@ namespace BannerlordTwitch
                         Log.Fatal($"Service init failed: {t.Exception?.GetBaseException().Message}");
                         return;
                     }
-                    
+
                     var user = t.Result.Users.First();
 
                     Log.Info($"Channel ID is {user.Id}");
                     channelId = user.Id;
-                    
+
+                    // ── Init extension PubSub (requires channelId) ────────────
+                    if (authSettings.ExtensionConfigured)
+                    {
+                        extensionPubSub = new ExtensionPubSubService(
+                            new CustomTwitchHttpClient(),
+                            authSettings.ExtensionClientId,
+                            authSettings.ExtensionSecret,
+                            channelId,
+                            authSettings.AccessToken,
+                            authSettings.ClientID);
+                        Log.Info("[Extension] PubSub service ready");
+                    }
+                    else
+                    {
+                        Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
+                    }
+
                     // Connect the chatbot
                     bot = new Bot(user.Login, authSettings);
 
@@ -186,7 +194,7 @@ namespace BannerlordTwitch
                     eventsub.OnEventSubServiceConnected += OnEventSubConnected;
                     eventsub.OnChannelPointsRewardsRedeemed += OnRewardRedeemed;
                     RegisterRewardsAsync();
-                    
+
                     _ = eventsub.StartAsync(token);
 
                     /**
@@ -232,13 +240,13 @@ namespace BannerlordTwitch
             {
                 { "broadcaster_user_id", channelId }
             };
-            var subscriptionResponse = await api.Helix.EventSub.CreateEventSubSubscriptionAsync("channel.channel_points_custom_reward_redemption.add", "1", conditions,
-            EventSubTransportMethod.Websocket, eventsub.SessionId);
+            var subscriptionResponse = await api.Helix.EventSub.CreateEventSubSubscriptionAsync(
+                "channel.channel_points_custom_reward_redemption.add", "1", conditions,
+                EventSubTransportMethod.Websocket, eventsub.SessionId);
 
             //Listen to other event sub
-
         }
-        
+
         /**
         private void OnPubSubServiceConnected(object sender, EventArgs e)
         {
@@ -250,12 +258,13 @@ namespace BannerlordTwitch
 #pragma warning restore 618
             pubSub.SendTopics(authSettings.AccessToken);
         }**/
+
         private async void RegisterRewardsAsync()
         {
             RemoveRewards();
 
             Log.Info("Creating rewards");
-            
+
             GetCustomRewardsResponse existingRewards = null;
             try
             {
@@ -305,7 +314,7 @@ namespace BannerlordTwitch
                         "Bannerlord Twitch",
                         $"Failed to create some of the channel rewards:\n" + string.Join("\n", failures),
                         true, false, "Okay", null,
-                        () => {}, () => {}), true);
+                        () => { }, () => { }), true);
             }
         }
 
@@ -372,8 +381,8 @@ namespace BannerlordTwitch
                 try
                 {
 #endif
-                    redemptionCache.TryAdd(redemption.Id, redemption);
-                    ActionManager.HandleReward(reward.Handler, context, reward.HandlerConfig);
+                redemptionCache.TryAdd(redemption.Id, redemption);
+                ActionManager.HandleReward(reward.Handler, context, reward.HandlerConfig);
 #if !DEBUG
                 }
                 catch (Exception e)
@@ -401,18 +410,6 @@ namespace BannerlordTwitch
             }
 
             return affiliateSpoofing.FakeRedeem(reward.RewardSpec.Title.ToString(), user, message);
-            // var redeem = new OnRewardRedeemedArgs
-            // {
-            //     RedemptionId = Guid.NewGuid(),
-            //     Message = message,
-            //     DisplayName = user,
-            //     Login = user,
-            //     RewardTitle = rewardName,
-            //     ChannelId = null,
-            // };
-            // redemptionCache.TryAdd(redeem.RedemptionId, redeem);
-            //
-            // ActionManager.HandleReward(reward.Handler, ReplyContext.FromRedemption(reward, redeem), reward.HandlerConfig);
         }
 
         // private void ShowMessage(string screenMsg, string botMsg, string userToAt)
@@ -434,23 +431,16 @@ namespace BannerlordTwitch
         // }
 
         public bool IsSimTesting => simTest != null;
-        
+
         public void SendReply(ReplyContext context, params string[] messages)
         {
             if (context.Source.RespondInOverlay || IsSimTesting)
             {
                 Log.LogFeedResponse(context.UserName, messages);
-                //Log.Trace($"[{nameof(TwitchService)}] Feed Response to {context.UserName}: {Join(", ", messages)}");
             }
 
             if (context.Source.RespondInTwitch && !IsSimTesting)
             {
-                // if (context.IsWhisper)
-                // {
-                //     bot.SendWhisper(context.UserName, messages);
-                //     Log.Trace($"[whisper][{context.UserName}] {string.Join(" - ", messages)}");
-                // }
-                // else 
                 if (context.UserName != null)
                 {
                     bot.SendChatReply(context.UserName, messages);
@@ -460,6 +450,19 @@ namespace BannerlordTwitch
                 {
                     bot.SendChat(messages);
                     Log.Trace($"[{nameof(TwitchService)}] Chat: {string.Join(", ", messages)}");
+                }
+            }
+
+            // Extension PubSub: whisper named user, or broadcast if no user
+            if (context.Source.RespondInExtension && extensionPubSub != null && !IsSimTesting)
+            {
+                if (context.UserName != null)
+                {
+                    _ = extensionPubSub.SendWhisperToUserNameAsync(context.UserName, messages);
+                }
+                else
+                {
+                    _ = extensionPubSub.SendBroadcastAsync(messages);
                 }
             }
         }
@@ -474,8 +477,14 @@ namespace BannerlordTwitch
             {
                 bot.SendChat(messages);
             }
+
+            // Extension PubSub: non-replies are always broadcast (no specific user)
+            if (context.Source.RespondInExtension && extensionPubSub != null && !IsSimTesting)
+            {
+                _ = extensionPubSub.SendBroadcastAsync(messages);
+            }
         }
-        
+
         public void SendChat(params string[] messages)
         {
             if (!IsSimTesting)
@@ -488,6 +497,15 @@ namespace BannerlordTwitch
             }
 
             Log.Trace($"[{nameof(TwitchService)}] Chat: {string.Join(", ", messages)}");
+        }
+
+        /// <summary>
+        /// Call this from the BLTOverlay /register endpoint after validating
+        /// the viewer's JWT. Pre-warms the userId cache so first whisper is instant.
+        /// </summary>
+        public void RegisterExtensionUser(string userName, string userId)
+        {
+            extensionPubSub?.RegisterUser(userName, userId);
         }
 
         private void ShowCommandHelp()
@@ -507,7 +525,7 @@ namespace BannerlordTwitch
                 bot.SendChat(help.ToArray());
             });
         }
-        
+
         public void ExecuteCommand(string cmdName, ChatMessage chatMessage, string args)
         {
             MainThreadSync.Run(() =>
@@ -553,7 +571,7 @@ namespace BannerlordTwitch
             ActionManager.HandleCommand(cmd.Handler, context, cmd.HandlerConfig);
             return true;
         }
-        
+
         public void RedemptionComplete(ReplyContext context, string info = null)
         {
             if (!redemptionCache.TryRemove(context.RedemptionId, out var redemption))
@@ -561,8 +579,7 @@ namespace BannerlordTwitch
                 Log.Error($"RedemptionComplete failed: redemption {context.RedemptionId} not known!");
                 return;
             }
-            //Log.Trace($"[{nameof(TwitchService)}] Redemption of {redemption.RewardTitle} for {redemption.DisplayName} complete{(!IsNullOrEmpty(info) ? $": {info}" : "")}");
-            if(!string.IsNullOrEmpty(info))
+            if (!string.IsNullOrEmpty(info))
             {
                 ActionManager.SendReply(context, info);
             }
@@ -591,8 +608,7 @@ namespace BannerlordTwitch
                 Log.Error($"RedemptionCancelled failed: redemption {context.RedemptionId} not known!");
                 return;
             }
-            //Log.Trace($"[{nameof(TwitchService)}] Redemption of {redemption.RewardTitle} for {redemption.DisplayName} cancelled{(!IsNullOrEmpty(reason) ? $": {reason}" : "")}");
-            if(!string.IsNullOrEmpty(reason))
+            if (!string.IsNullOrEmpty(reason))
             {
                 ActionManager.SendReply(context, reason);
             }
@@ -614,11 +630,10 @@ namespace BannerlordTwitch
                 await api.Helix.ChannelPoints.UpdateRedemptionStatusAsync(
                     redemption.BroadcasterUserId,
                     redemption.Reward.Id,
-                    new List<string> {redemption.Id},
-                    new UpdateCustomRewardRedemptionStatusRequest {Status = status},
+                    new List<string> { redemption.Id },
+                    new UpdateCustomRewardRedemptionStatusRequest { Status = status },
                     authSettings.AccessToken
                 );
-                //Log.Info($"Set redemption status of {redemption.RedemptionId} ({redemption.RewardTitle} for {redemption.DisplayName}) to {status}");
             }
             catch (Exception e)
             {
@@ -626,14 +641,12 @@ namespace BannerlordTwitch
             }
         }
 
-
-        
         // private void OnOnPubSubServiceClosed(object sender, EventArgs e)
         // {
         //     Log.ScreenFail("PubSub Service closed, attempting reconnect...");
         //     pubSub.Connect();
         // }
-        
+
         public object FindGlobalConfig(string id) => settings?.GlobalConfigs?.FirstOrDefault(c => c.Id == id)?.Config;
 
         private static SimulationTest simTest;
@@ -642,10 +655,10 @@ namespace BannerlordTwitch
         public bool StartSim()
         {
             StopSim();
-            simTest = new (settings);
+            simTest = new(settings);
             return true;
         }
-        
+
         public bool StopSim()
         {
             if (simTest != null)
