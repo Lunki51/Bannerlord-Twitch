@@ -274,6 +274,18 @@ namespace BLTAdoptAHero
                     // Fell through → treat as drift below
                 }
 
+                // If the party is already in the act of besieging the correct settlement,
+                // do NOT re-issue — the game engine handles the assault transition itself.
+                // Just ensure the AI is unlocked and get out of the way.
+                if (order.Type == PartyOrderType.Siege
+                    && party.BesiegedSettlement != null
+                    && party.BesiegedSettlement.StringId == order.TargetSettlementId)
+                {
+                    order.ReissueAttempts = 0;
+                    party.Ai.SetDoNotMakeNewDecisions(false);
+                    return;
+                }
+
                 // ── Standard drift detection ──────────────────────────────────
                 var expectedBehavior = OrderTypeToAiBehavior(order.Type);
                 var expectedTarget = order.TargetSettlementId != null
