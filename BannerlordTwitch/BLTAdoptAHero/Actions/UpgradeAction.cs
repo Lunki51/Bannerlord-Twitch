@@ -244,7 +244,7 @@ namespace BLTAdoptAHero.Actions
             private string GetUpgradeEffects(ClanUpgrade u)
             {
                 var sb = new StringBuilder();
-                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.PartyAmountBonus != 0 || u.MaxVassalsBonus != 0 || u.RetinueSizeBonus != 0 || u.MercIncomeFlat != 0 || u.MercIncomePercent != 0)
+                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.PartyAmountBonus != 0 || u.MaxVassalsBonus != 0 || u.RetinueSizeBonus != 0 || u.ArmySpeedBonus != 0 || u.MercIncomeFlat != 0 || u.MercIncomePercent != 0)
                 {
                     sb.AppendLine("<strong>Clan Effects:</strong><br>");
                     if (u.RenownDaily != 0) sb.AppendLine($"Renown: {Signed(u.RenownDaily)}/day<br>");
@@ -254,6 +254,8 @@ namespace BLTAdoptAHero.Actions
                     if (u.PartyAmountBonus != 0) sb.AppendLine($"Party Limit: {Signed(u.PartyAmountBonus)}<br>");
                     if (u.MaxVassalsBonus != 0) sb.AppendLine($"Vassal Limit: {Signed(u.MaxVassalsBonus)}<br>");
                     if (u.RetinueSizeBonus != 0) sb.AppendLine($"Retinue Size: {Signed(u.RetinueSizeBonus)}<br>");
+                    if (u.ArmySpeedBonus != 0) sb.AppendLine($"Army Speed: {Signed(u.ArmySpeedBonus)} " +
+                                                             $"(once/clan: {u.ArmySpeedOncePerClan})<br>");
                     if (u.MercIncomeFlat != 0) sb.AppendLine($"Merc Income (Flat): {Signed(u.MercIncomeFlat)}/day<br>");
                     if (u.MercIncomePercent != 0) sb.AppendLine($"Merc Income (%): {Signed(u.MercIncomePercent)}%/day<br>");
                 }
@@ -303,7 +305,7 @@ namespace BLTAdoptAHero.Actions
                     if (u.MaxClansBonus != 0) sb.AppendLine($"Max Clans: {Signed(u.MaxClansBonus)}<br>");
                     if (u.MaxMercClansBonus != 0) sb.AppendLine($"Max Merc Clans: {Signed(u.MaxMercClansBonus)}<br>");
                 }
-                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.InfluenceDaily != 0 || u.RetinueSizeBonus != 0)
+                if (u.RenownDaily != 0 || u.PartySizeBonus != 0 || u.PartySpeedBonus != 0 || u.InfluenceDaily != 0 || u.RetinueSizeBonus != 0 || u.ArmySpeedBonus != 0)
                 {
                     sb.AppendLine("<br><strong>Clan Effects (All Kingdom Clans):</strong><br>");
                     if (u.RenownDaily != 0) sb.AppendLine($"Renown: {Signed(u.RenownDaily)}/day<br>");
@@ -311,6 +313,8 @@ namespace BLTAdoptAHero.Actions
                     if (u.PartySpeedBonus != 0) sb.AppendLine($"Party Speed: {Signed(u.PartySpeedBonus)}<br>");
                     if (u.InfluenceDaily != 0) sb.AppendLine($"Influence: {Signed(u.InfluenceDaily)}/day (all clans)<br>");
                     if (u.RetinueSizeBonus != 0) sb.AppendLine($"Retinue Size: {Signed(u.RetinueSizeBonus)} per clan<br>");
+                    if (u.ArmySpeedBonus != 0) sb.AppendLine($"Army Speed: {Signed(u.ArmySpeedBonus)} per clan in army " +
+                                                             $"(once/clan: {u.ArmySpeedOncePerClan})<br>");
                 }
                 if (u.LoyaltyDailyFlat != 0 || u.LoyaltyDailyPercent != 0 || u.ProsperityDailyFlat != 0 || u.ProsperityDailyPercent != 0 ||
                     u.SecurityDailyFlat != 0 || u.SecurityDailyPercent != 0 || u.MilitiaDailyFlat != 0 || u.MilitiaDailyPercent != 0 ||
@@ -549,7 +553,7 @@ namespace BLTAdoptAHero.Actions
         }
 
         // ════════════════════════════════════════════════════════════════════════
-        // List / Info helpers (unchanged)
+        // List / Info helpers
         // ════════════════════════════════════════════════════════════════════════
 
         private void HandleListCommand(string type, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
@@ -561,7 +565,12 @@ namespace BLTAdoptAHero.Actions
             {
                 sb.AppendLine("\n[Fief Upgrades]");
                 if (gc.FiefUpgrades?.Count > 0)
-                    foreach (var u in gc.FiefUpgrades) { sb.AppendLine($"  {u.ID}: {u.Name} - {u.GetCostString()}"); sb.AppendLine($"    {u.Description}"); }
+                    foreach (var u in gc.FiefUpgrades)
+                    {
+                        string tag = u.CapitalOnly ? " [CAPITAL ONLY — use: capital list]" : "";
+                        sb.AppendLine($"  {u.ID}: {u.Name} - {u.GetCostString()}{tag}");
+                        sb.AppendLine($"    {u.Description}");
+                    }
                 else sb.AppendLine("  No fief upgrades configured");
             }
             if (type == "all" || type == "clan")
@@ -618,9 +627,10 @@ namespace BLTAdoptAHero.Actions
 
         private void ShowClanInfo(string name, Hero hero, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
         {
-            if (string.IsNullOrEmpty(name)) { fail("Usage: info <clan> <name>"); return; }
+            if (string.IsNullOrEmpty(name)) { name = ""; }
             var clan = FindClan(name);
-            if (clan == null) { fail($"Clan '{name}' not found"); return; }
+            if (clan == null) { clan = hero?.Clan; }
+            if (clan == null) { fail($"Clan '{name}' not found and you have no clan!"); return; }
             var ids = UpgradeBehavior.Current?.GetClanUpgrades(clan) ?? new List<string>();
             var sb = new StringBuilder();
             sb.AppendLine($"=== {clan.Name} Upgrades ===");
@@ -638,6 +648,7 @@ namespace BLTAdoptAHero.Actions
         {
             if (string.IsNullOrEmpty(name)) { fail("Usage: info <kingdom> <name>"); return; }
             var kingdom = FindKingdom(name);
+            if (kingdom == null) { kingdom = hero?.Clan?.Kingdom; }
             if (kingdom == null) { fail($"Kingdom '{name}' not found"); return; }
             var ids = UpgradeBehavior.Current?.GetKingdomUpgrades(kingdom) ?? new List<string>();
             var sb = new StringBuilder();
@@ -892,15 +903,13 @@ namespace BLTAdoptAHero.Actions
                 var up = gc.FiefUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null)
                 { results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = id, Success = false, Message = $"Upgrade '{id}' not found in config" }); return results; }
+
                 int gold = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero);
                 if (gold < up.GoldCost)
                 { results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = false, Message = Naming.NotEnoughGold(up.GoldCost, gold) }); return results; }
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
-                UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
+
                 if (up.CapitalOnly)
                 {
-                    // Capital-only upgrades are stored at clan level and always follow the capital
                     if (CapitalBehavior.Current?.IsCapital(settlement, hero.Clan) != true)
                     {
                         results.Add(new PurchaseResult
@@ -912,17 +921,21 @@ namespace BLTAdoptAHero.Actions
                         });
                         return results;
                     }
+                    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
                     CapitalBehavior.Current.AddCapitalUpgrade(hero.Clan, id);
                 }
                 else
                 {
+                    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -up.GoldCost, true);
                     UpgradeBehavior.Current?.AddFiefUpgrade(settlement, id);
                 }
+
                 alreadyOwned.Add(id);
                 results.Add(new PurchaseResult { UpgradeId = id, UpgradeName = up.Name, Success = true });
             }
             return results;
         }
+
 
         // ════════════════════════════════════════════════════════════════════════
         // Clan purchase
@@ -1180,6 +1193,7 @@ namespace BLTAdoptAHero.Actions
         {
             if (string.IsNullOrWhiteSpace(name)) return null;
             var clan = Clan.All.FirstOrDefault(c => c?.Name?.ToString().Equals(name, OIC) == true);
+            clan ??= Clan.All.FirstOrDefault(c => c?.Name?.ToString().Equals("[BLT Clan]" + name, OIC) == true);
             return clan;
         }
 
@@ -1236,11 +1250,8 @@ namespace BLTAdoptAHero.Actions
                 ok($"Removed '{up.Name}' from {settlement.Name}!");
                 Log.ShowInformation($"{hero.Name} removed {up.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
             }
-
-            UpgradeBehavior.Current?.RemoveFiefUpgrade(settlement, upgradeId);
-            ok($"Removed '{up.Name}' from {settlement.Name}!");
-            Log.ShowInformation($"{hero.Name} removed {up.Name} from {settlement.Name}", hero.CharacterObject, Log.Sound.Notification1);
         }
+
 
         private void RemoveClanUpgrade(string upgradeId, Hero hero, Settings settings, GlobalCommonConfig gc, Action<string> ok, Action<string> fail)
         {

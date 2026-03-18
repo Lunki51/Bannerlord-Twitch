@@ -52,9 +52,21 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.CalculateFinalSpeed(mobileParty, finalSpeed);
 
-            if (UpgradeBehavior.Current != null)
+            if (UpgradeBehavior.Current == null) return result;
+
+            if (mobileParty.Army != null)
             {
-                result.Add(UpgradeBehavior.Current.GetTotalPartySpeedBonus(mobileParty.LeaderHero), Text);
+                float armyBonus = UpgradeBehavior.Current
+                    .GetTotalArmySpeedBonus(mobileParty.Army);
+                if (armyBonus != 0f)
+                    result.Add(armyBonus, Text);
+            }
+            else
+            {
+                float partyBonus = UpgradeBehavior.Current
+                    .GetTotalPartySpeedBonus(mobileParty.LeaderHero);
+                if (partyBonus != 0f)
+                    result.Add(partyBonus, Text);
             }
 
             return result;

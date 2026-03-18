@@ -113,9 +113,13 @@ namespace BLTAdoptAHero
             }
         }
 
-        // Catch capitals that were lost without a transfer in-progress (e.g. siege)
+        // ── FIX 6: TickCapitalLoss ────────────────────────────────────────────────────
+        // Previously, direct capital loss (e.g. siege) silently unset the capital with
+        // no cooldown, while FailTransfer (losing a transfer target) imposed CooldownDays.
+        // Now both paths impose the same cooldown for symmetry.
         private void TickCapitalLoss()
         {
+            float today = (float)CampaignTime.Now.ToDays;
             foreach (var clanId in _capitals.Keys.ToList())
             {
                 var clan = Clan.All.FirstOrDefault(c => c.StringId == clanId);
@@ -124,7 +128,13 @@ namespace BLTAdoptAHero
                 {
                     _capitals.Remove(clanId);
                     if (clan != null && settlement != null)
-                        Log($"{clan.Name} lost their capital {settlement.Name}. Capital unset.");
+                    {
+                        int coolDays = CapCfg?.CooldownDays ?? 30;
+                        _cooldownEnd[clanId] = today + coolDays;
+                        Log($"{clan.Name} lost their capital {settlement.Name}. Cooldown: {coolDays} days.");
+                    }
+                    else if (clan != null)
+                        Log($"{clan.Name}'s capital settlement no longer exists. Capital unset.");
                 }
             }
         }

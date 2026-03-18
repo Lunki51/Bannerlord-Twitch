@@ -625,6 +625,13 @@ namespace BLTAdoptAHero
                 sum += CapitalBehavior.Current.GetCapTaxFlat(s, currentValue + sum);
             return sum;
         }
+        public float GetTotalTaxPercent(Settlement s, float currentValue = float.MaxValue)
+        {
+            float sum = SumSettlementFloat(s, f => f.TaxIncomePercent, c => c.TaxIncomePercent, k => k.TaxIncomePercent, currentValue);
+            if (CapitalBehavior.Current != null)
+                sum += CapitalBehavior.Current.GetCapTaxPercent(s, currentValue + sum);
+            return sum;
+        }
         public float GetTotalHearthDaily(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.HearthDaily, c => c.HearthDaily, k => k.HearthDaily, currentValue);
@@ -674,6 +681,59 @@ namespace BLTAdoptAHero
             return b;
         }
 
+        public float GetTotalArmySpeedBonus(Army army)
+        {
+            if (army == null || ConfigSafe == null) return 0f;
+
+            float total = 0f;
+            // Tracks keys already added so we can enforce the OncePerClan cap.
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var armyParty in army.Parties)
+            {
+                var clan = armyParty?.ActualClan;
+                if (clan == null) continue;
+
+                // ── Clan upgrades ──────────────────────────────────────────
+                foreach (var upgradeId in GetClanUpgrades(clan))
+                {
+                    var up = ConfigSafe.ClanUpgrades?
+                        .FirstOrDefault(u => u.ID == upgradeId);
+                    if (up == null || up.ArmySpeedBonus == 0f) continue;
+                    if (!IsClanUpgradeActive(up, clan)) continue;
+
+                    // OncePerClan → deduplicate by clan+upgrade;
+                    // otherwise deduplicate by party+upgrade (each party counts).
+                    string key = up.ArmySpeedOncePerClan
+                        ? $"clan:{clan.StringId}:{upgradeId}"
+                        : $"party:{armyParty.StringId}:{upgradeId}";
+
+                    if (!seen.Add(key)) continue;
+                    total += up.ArmySpeedBonus;
+                }
+
+                // ── Kingdom upgrades ───────────────────────────────────────
+                if (clan.Kingdom == null) continue;
+                foreach (var upgradeId in GetKingdomUpgrades(clan.Kingdom))
+                {
+                    var up = ConfigSafe.KingdomUpgrades?
+                        .FirstOrDefault(u => u.ID == upgradeId);
+                    if (up == null || up.ArmySpeedBonus == 0f) continue;
+
+                    // OncePerClan → one contribution per clan in the army;
+                    // otherwise one contribution per party.
+                    string key = up.ArmySpeedOncePerClan
+                        ? $"kdom_clan:{clan.StringId}:{upgradeId}"
+                        : $"kdom_party:{armyParty.StringId}:{upgradeId}";
+
+                    if (!seen.Add(key)) continue;
+                    total += up.ArmySpeedBonus;
+                }
+            }
+
+            return total;
+        }
+
         public int GetClanPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartyAmountBonus, currentValue: currentValue);
         public int GetTotalPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => clan == null ? 0 : GetClanPartyAmountBonus(clan, currentValue);
 
@@ -709,6 +769,29 @@ namespace BLTAdoptAHero
         public int GetFlatClanMercBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.MercIncomeFlat, currentValue: currentValue);
         public float GetPercentClanMercBonus(Clan clan) => 1f + SumClanFloat(clan, c => c.MercIncomePercent);
         public int GetFlatMercBonus(Hero hero, float currentValue = float.MaxValue) => hero?.Clan == null ? 0 : GetFlatClanMercBonus(hero.Clan, currentValue);
+        /// <summary>
+        /// Sums MercIncomeFlat for all clans regardless of MercOnly restriction,
+        /// so lords can also receive flat merc-income upgrade bonuses.
+        /// LordOnly upgrades are still blocked for mercenary clans.
+        /// </summary>
+        public int GetFlatMercBonusAllClans(Clan clan, float currentValue = float.MaxValue)
+        {
+            if (clan == null || ConfigSafe == null) return 0;
+            bool guard = FloorGuardEnabled;
+            float sum = 0f;
+            foreach (var id in GetClanUpgrades(clan))
+            {
+                var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                if (up == null) continue;
+                if (up.LordOnly && clan.IsUnderMercenaryService) continue;   // mercs never get lord-only
+                if (up.ApplyToVassals) continue;
+                // MercOnly is intentionally NOT checked here — lords qualify for MercIncomeFlat too
+                int v = up.MercIncomeFlat;
+                if (guard && v < 0 && currentValue + sum + v < 0f) continue;
+                sum += v;
+            }
+            return (int)sum;
+        }
 
         public float GetTotalLoyaltyDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
@@ -725,49 +808,49 @@ namespace BLTAdoptAHero
         public float GetTotalProsperityDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.ProsperityDailyFlat, c => c.ProsperityDailyFlat, k => k.ProsperityDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapProsperityFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalProsperityDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.ProsperityDailyPercent, c => c.ProsperityDailyPercent, k => k.ProsperityDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapProsperityPct(s, currentValue + sum);
             return sum;
         }
         public float GetTotalSecurityDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.SecurityDailyFlat, c => c.SecurityDailyFlat, k => k.SecurityDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapSecurityFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalSecurityDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.SecurityDailyPercent, c => c.SecurityDailyPercent, k => k.SecurityDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapSecurityPercent(s, currentValue + sum);
             return sum;
         }
         public float GetTotalMilitiaDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.MilitiaDailyFlat, c => c.MilitiaDailyFlat, k => k.MilitiaDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapMilitiaFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalMilitiaDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.MilitiaDailyPercent, c => c.MilitiaDailyPercent, k => k.MilitiaDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapMilPercent(s, currentValue + sum);
             return sum;
         }
         public float GetTotalFoodDailyFlat(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.FoodDailyFlat, c => c.FoodDailyFlat, k => k.FoodDailyFlat, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyFlat(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapFoodFlat(s, currentValue + sum);
             return sum;
         }
         public float GetTotalFoodDailyPercent(Settlement s, float currentValue = float.MaxValue)
         {
             float sum = SumSettlementFloat(s, f => f.FoodDailyPercent, c => c.FoodDailyPercent, k => k.FoodDailyPercent, currentValue);
-            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapLoyaltyPercent(s, currentValue + sum);
+            if (CapitalBehavior.Current != null) sum += CapitalBehavior.Current.GetCapFoodPercent(s, currentValue + sum);
             return sum;
         }
 

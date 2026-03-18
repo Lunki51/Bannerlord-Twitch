@@ -209,15 +209,16 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new KingdomTaxBehavior());
                     campaignStarter.AddBehavior(new BLTLogsBehavior());
                     //campaignStarter.AddBehavior(new BLTClanAllianceBehavior());
-                    campaignStarter.AddBehavior(new BLTClanDiplomacyBehavior());
                     campaignStarter.AddBehavior(new BLTClanArmyBehavior());
                     campaignStarter.AddBehavior(new PartyOrderBehavior());
                     campaignStarter.AddBehavior(new TrainingBehavior());
+                    campaignStarter.AddBehavior(new CapitalBehavior());
                     // Diplomacy
-                    campaignStarter.AddBehavior(new BLTTreatyManager());       // 1. Core data
-                    campaignStarter.AddBehavior(new BLTDiplomacyHelper());     // 2. Rebellion tracking
-                    campaignStarter.AddBehavior(new BLTAllianceBehavior());    // 3. Alliance auto-join
-                    campaignStarter.AddBehavior(new BLTDiplomacyBehavior());   // 4. Cleanup
+                    campaignStarter.AddBehavior(new BLTTreatyManager());         // 1. Core data
+                    campaignStarter.AddBehavior(new BLTDiplomacyHelper());       // 2. Rebellion tracking
+                    campaignStarter.AddBehavior(new BLTAllianceBehavior());      // 3. Alliance auto-join
+                    campaignStarter.AddBehavior(new BLTDiplomacyBehavior());     // 4. Cleanup
+                    campaignStarter.AddBehavior(new BLTClanDiplomacyBehavior()); // Additional behavior for independent clans - disable as needed
 
                     gameStarterObject.AddModel(new BLTAgentApplyDamageModel(gameStarterObject.Models.OfType<AgentApplyDamageModel>().FirstOrDefault()));
                     gameStarterObject.AddModel(new BLTPartySizeLimitModel(gameStarterObject.Models.OfType<PartySizeLimitModel>().FirstOrDefault()));

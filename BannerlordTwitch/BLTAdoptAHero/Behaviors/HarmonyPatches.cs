@@ -27,7 +27,7 @@ namespace BLTAdoptAHero
     {
         public static bool _allowKingdomMove = false;
         public static bool _allowDiplomacyAction = false;
-        //public static bool _allowMarriage = false;
+        public static bool _allowBLTArmyCreation = false;
         public static bool _allowAIjoinBLT = GlobalCommonConfig.Get().AllowAIJoinBLT;
     }
 
@@ -920,30 +920,23 @@ namespace BLTAdoptAHero
 
                 var pb = PartyOrderBehavior.Current;
 
-                // ── BLT adopted hero ─────────────────────────────────────────────
                 if (armyLeader?.IsAdopted() == true)
                 {
-                    if (pb != null && pb.IsBLTArmiesBlocked(__instance))
+                    // Block all BLT army creation unless a BLT command explicitly allowed it
+                    if (!AdoptedHeroFlags._allowBLTArmyCreation)
                     {
 #if DEBUG
-                    Log.Trace($"[BLT] Blocked BLT army creation by {armyLeader?.Name} in {__instance?.Name} (allowblt off)");
+                    Log.Trace($"[BLT] Blocked unsanctioned BLT army creation by {armyLeader?.Name} in {__instance?.Name}");
 #endif
                         return false;
                     }
-                    return true; // explicitly allowed (or system not ready)
+                    // Sanctioned creation: still respect the per-kingdom block flag
+                    return pb == null || !pb.IsBLTArmiesBlocked(__instance);
                 }
 
-                // ── Pure AI/NPC hero ─────────────────────────────────────────────
-                if (pb == null)
-                    return true; // system not loaded — fail-safe
-
-                if (!pb.IsAIArmiesBlocked(__instance))
-                    return true; // not blocked for this kingdom
-
-#if DEBUG
-            Log.Trace($"[BLT] Blocked AI army creation by {armyLeader?.Name} in {__instance?.Name} (allowai off)");
-#endif
-                return false;
+                // AI hero
+                if (pb == null) return true;
+                return !pb.IsAIArmiesBlocked(__instance);
             }
             catch (Exception ex)
             {

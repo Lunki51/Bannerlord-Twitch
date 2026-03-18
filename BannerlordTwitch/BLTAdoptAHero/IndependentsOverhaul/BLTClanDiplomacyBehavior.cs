@@ -223,8 +223,8 @@ namespace BLTAdoptAHero
                 return $"{target.Name} is in a kingdom — use the kingdom diplomacy system";
 
             // At least one side must be BLT-adopted
-            if (!proposer.Leader.IsAdopted() && (target.Leader == null || !target.Leader.IsAdopted()))
-                return "At least one clan must be BLT-adopted to form a clan alliance";
+            if (target.Leader == null || !target.Leader.IsAdopted())
+                return "Target clan must be BLT-led to form a clan alliance";
 
             if (HasAlliance(proposer, target))
                 return $"Already allied with {target.Name}";
@@ -248,6 +248,34 @@ namespace BLTAdoptAHero
                 GoldCost = goldCost
             };
             return null; // success
+        }
+
+        // Runtime-only — not persisted (proposals are short-lived)
+        [NonSerialized]
+        private readonly Dictionary<string, (string proposerClanId, double expiresAtDays) > _clanPeaceProposals = new();
+
+        public string CreateClanPeaceProposal(Clan proposer, Clan target, int daysToAccept)
+        {
+            if (proposer == null || target == null) return "Invalid clan";
+            if (!proposer.IsAtWarWith(target)) return $"Not at war with {target.Name}";
+            var key = MakeKey(proposer, target);
+            _clanPeaceProposals[key] = (proposer.StringId, CampaignTime.Now.ToDays + daysToAccept);
+            return null;
+        }
+
+        public bool HasClanPeaceProposalFrom(Clan proposer, Clan target)
+        {
+            var key = MakeKey(proposer, target);
+            if (!_clanPeaceProposals.TryGetValue(key, out var p)) return false;
+            if (CampaignTime.Now.ToDays >= p.expiresAtDays)
+            { _clanPeaceProposals.Remove(key); return false; }
+            return p.proposerClanId == proposer?.StringId;
+        }
+
+        public void RemoveClanPeaceProposal(Clan proposer, Clan target)
+        {
+            var key = MakeKey(proposer, target);
+            _clanPeaceProposals.Remove(key);
         }
 
         /// <summary>
@@ -324,6 +352,80 @@ namespace BLTAdoptAHero
             _proposals.Values
                 .Where(p => p.TargetClanId == c?.StringId && !p.IsExpired())
                 .ToList();
+
+        private class ClanCTWProposal
+        {
+            public string CallerClanId;
+            public string CalledClanId;
+            public string TargetId;
+            public bool TargetIsKingdom;
+            public double ExpiresAtDays;
+            public bool IsExpired() => CampaignTime.Now.ToDays >= ExpiresAtDays;
+            public int DaysRemaining() => Math.Max(0, (int)(ExpiresAtDays - CampaignTime.Now.ToDays));
+        }
+
+        [NonSerialized]
+        private readonly Dictionary<string, ClanCTWProposal> _clanCTWProposals = new();
+
+        private string MakeCTWKey(Clan caller, Clan called) =>
+            $"ctw_{caller?.StringId}_{called?.StringId}";
+
+        public string CreateClanCTWProposal(Clan caller, Clan called, IFaction target, int daysToAccept)
+        {
+            if (caller == null || called == null || target == null) return "Invalid arguments";
+            if (!HasAlliance(caller, called))
+                return $"Not allied with {called.Name}";
+            if (!caller.IsAtWarWith(target))
+                return $"You are not at war with {target.Name}";
+            if (called.IsAtWarWith(target))
+                return $"{called.Name} is already at war with {target.Name}";
+
+            _clanCTWProposals[MakeCTWKey(caller, called)] = new ClanCTWProposal
+            {
+                CallerClanId = caller.StringId,
+                CalledClanId = called.StringId,
+                TargetId = target.StringId,
+                TargetIsKingdom = target is Kingdom,
+                ExpiresAtDays = CampaignTime.Now.ToDays + daysToAccept
+            };
+            return null;
+        }
+
+        public List<(Clan caller, IFaction target, int daysLeft)> GetClanCTWProposalsFor(Clan c)
+        {
+            return _clanCTWProposals.Values
+                .Where(p => p.CalledClanId == c?.StringId && !p.IsExpired())
+                .Select(p =>
+                {
+                    var caller = Clan.All.FirstOrDefault(x => x.StringId == p.CallerClanId);
+                    IFaction target = p.TargetIsKingdom
+                        ? (IFaction)Kingdom.All.FirstOrDefault(k => k.StringId == p.TargetId)
+                        : Clan.All.FirstOrDefault(x => x.StringId == p.TargetId);
+                    return (caller, target, p.DaysRemaining());
+                })
+                .Where(t => t.caller != null && t.target != null)
+                .ToList();
+        }
+
+        public string AcceptClanCTW(Clan accepter, Clan caller, out IFaction target)
+        {
+            target = null;
+            var key = MakeCTWKey(caller, accepter);
+            if (!_clanCTWProposals.TryGetValue(key, out var proposal))
+                return $"No CTW proposal from {caller?.Name}";
+            if (proposal.IsExpired())
+            { _clanCTWProposals.Remove(key); return $"CTW proposal from {caller?.Name} has expired"; }
+
+            target = proposal.TargetIsKingdom
+                ? (IFaction)Kingdom.All.FirstOrDefault(k => k.StringId == proposal.TargetId)
+                : Clan.All.FirstOrDefault(c => c.StringId == proposal.TargetId);
+
+            if (target == null)
+            { _clanCTWProposals.Remove(key); return "Target faction no longer exists"; }
+
+            _clanCTWProposals.Remove(key);
+            return null;
+        }
 
         // ── Fief-loss enforcement ─────────────────────────────────────────────
 
@@ -419,6 +521,17 @@ namespace BLTAdoptAHero
                 .Where(kvp => kvp.Value.IsExpired())
                 .Select(kvp => kvp.Key).ToList())
                 _proposals.Remove(key);
+
+            // Expire clan peace proposals
+            foreach (var key in _clanPeaceProposals
+                .Where(kvp => CampaignTime.Now.ToDays >= kvp.Value.expiresAtDays)
+                .Select(kvp => kvp.Key).ToList())
+                _clanPeaceProposals.Remove(key);
+
+            foreach (var key in _clanCTWProposals
+                .Where(kvp => kvp.Value.IsExpired())
+                .Select(kvp => kvp.Key).ToList())
+                _clanCTWProposals.Remove(key);
 
             // Fief-loss check for landed clans that have alliances
             foreach (var a in _alliances.Values.ToList())
