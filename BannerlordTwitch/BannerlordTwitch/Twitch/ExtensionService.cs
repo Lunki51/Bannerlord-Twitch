@@ -139,7 +139,7 @@ namespace BannerlordTwitch
                     throw new Exception("JWT contains whitespace");
 
                 // Write raw JWT to file (bypass logger corruption)
-                System.IO.File.WriteAllText(@"C:\temp\jwt_debug.txt", jwt);
+                //System.IO.File.WriteAllText(@"C:\temp\jwt_debug.txt", jwt);
 
                 Log.Info($"JWT LENGTH: {jwt.Length}");
 
