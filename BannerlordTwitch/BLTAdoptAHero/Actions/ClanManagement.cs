@@ -955,7 +955,7 @@ namespace BLTAdoptAHero.Actions
             Ship aa = new Ship(hull);
             ChangeShipOwnerAction.ApplyByProduction(party.Party, aa);
             onSuccess("new ship");
-            var limit = Campaign.Current.Models.PartyShipLimitModel.GetIdealShipNumber(clan);
+            //var limit = Campaign.Current.Models.PartyShipLimitModel.GetIdealShipNumber(clan);
 
         }
 
