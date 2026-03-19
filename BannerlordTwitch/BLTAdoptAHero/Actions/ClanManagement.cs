@@ -55,7 +55,8 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Leave", 6),
          //CategoryOrder("Disband", 6),
          CategoryOrder("Buy Noble Title", 7),
-         CategoryOrder("Edit Banner", 8)]
+         CategoryOrder("Edit Banner", 8),
+         CategoryOrder("Ship", 9)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -172,6 +173,18 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool EditBannerEnabled { get; set; } = true;
 
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Ship", "{=UnFfiM9h}Ship"),
+             LocDescription("Buy ships"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool BuyShipEnabled { get; set; } = true;
+
+            [LocDisplayName("{=d5WMYSvO}Gold Cost"),
+             LocCategory("Ship", "{=moApZJvC}Ship"),
+             LocDescription("Cost of buying a light ship. Medium is 2x, Heavy 3x."),
+             PropertyOrder(2), UsedImplicitly]
+            public int BuyShipPrice { get; set; } = 50000;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var EnabledCommands = new StringBuilder();
@@ -196,6 +209,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands = EnabledCommands.Append("{=moApZJvC}Buy Noble Title, ".Translate());
                 if (EditBannerEnabled)
                     EnabledCommands = EnabledCommands.Append("{=UnFfiM9h}Edit Banner, ".Translate());
+                if (BuyShipEnabled)
+                    EnabledCommands = EnabledCommands.Append("{=UnFfiM9h}Ship, ".Translate());
                 if (EnabledCommands != null)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString().Substring(0, EnabledCommands.ToString().Length - 2))));
 
@@ -234,6 +249,12 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "(bannerlord.party/banner/)\n" +
                                     "For long banners: !clan banner start -> !clan banner {code} (repeat) -> !clan banner end");
+                if (BuyTitleEnabled)
+                    generator.Value("<strong>" +
+                                    "Ship: " +
+                                    "</strong>" +
+                                    "Light/Medium/Heavy" +
+                                    "Price={price}{icon}".Translate(("price", BuyShipPrice.ToString()), ("icon", Naming.Gold)));
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -306,6 +327,7 @@ namespace BLTAdoptAHero.Actions
             //string disbandCommand = "{=TESTING}disband".Translate();
             string buytitleCommand = "{=jk3WfmjK}buy title".Translate();
             string bannerCommand = "{=15vWZKaM}banner".Translate();
+            string shipCommand = "ship";
 
             switch (command.ToLower())
             {
@@ -361,6 +383,9 @@ namespace BLTAdoptAHero.Actions
                         HandleBannerCommand(settings, adoptedHero, bannerCode, onSuccess, onFailure);
                         break;
                     }
+                case var _ when command.ToLower() == shipCommand:
+                    HandleShipCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
                 default:
                     onFailure("{=pkzDqw18}Invalid or empty clan action, try (join/create/lead/rename/stats/party/fiefs/leave/buy title/banner)".Translate());
                     break;
@@ -863,30 +888,76 @@ namespace BLTAdoptAHero.Actions
             onSuccess($"Your hero has left {oldClan.Name}");
         }
 
-        //private void HandleDisbandCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
-        //{
-        //    if (!settings.LeaveEnabled)
-        //    {
-        //        onFailure("Leaving clans is disabled");
-        //        return;
-        //    }
-        //    if (adoptedHero.Clan == null)
-        //    {
-        //        onFailure("{=yPeUCq8t}You are not in a clan".Translate());
-        //        return;
-        //    }
+        private void HandleShipCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (adoptedHero.Clan == null)
+            {
+                onFailure("{=yPeUCq8t}You are not in a clan".Translate());
+                return;
+            }
+            var cult = adoptedHero.Culture;
+            var clan = adoptedHero.Clan;
+            var party = adoptedHero.PartyBelongedTo;
+            var limit = Campaign.Current.Models.PartyShipLimitModel.GetIdealShipNumber(clan);
+            if (clan.WarPartyComponents.Sum(w => w.Party.Ships.Count()) >= limit)
+            {
+                onFailure($"Max ships ({limit})");
+                return;
+            }
+            if (party == null || party.MapEvent != null)
+            {
+                party = clan.WarPartyComponents.Select(p => p.MobileParty).Where(p => p.MapEvent == null).SelectRandom();
+            }
+            if (party == null)
+            {
+                onFailure("Your clan has no parties or they are all fighting");
+                return;
+            }
 
-        //    var mobileParty = MobileParty.All.ToList().Where(p => p.LeaderHero?.CharacterObject == adoptedHero.CharacterObject).FirstOrDefault();
-        //    if (mobileParty != null)
-        //    {
-        //        mobileParty.RemoveParty();
-        //    }
-        //    adoptedHero.Clan = null;
-        //    adoptedHero.Clan.Kingdom = null;
-        //    adoptedHero.SetNewOccupation(Occupation.Wanderer);
-        //    var targetSettlement = Settlement.All.Where(s => s.IsTown).SelectRandom();
-        //    EnterSettlementAction.ApplyForCharacterOnly(adoptedHero, targetSettlement);
-        //}
+            ShipHull.ShipType type;
+
+            switch (desiredName.ToLower())
+            {
+                case "light":
+                    type = ShipHull.ShipType.Light;
+                    break;
+
+                case "medium":
+                    type = ShipHull.ShipType.Medium;
+                    break;
+
+                case "heavy":
+                    type = ShipHull.ShipType.Heavy;
+                    break;
+
+                default:
+                    onFailure("invalid ship type. light/medium/heavy");
+                    return;
+            }
+
+
+
+            var settlementsWithCulture = Settlement.All
+                .Where(s => s.HasPort && s.Culture == cult)
+                .ToList();
+
+            var settlementsToUse = settlementsWithCulture.Any()
+                ? settlementsWithCulture
+                : Settlement.All.Where(s => s.HasPort).ToList(); // fallback
+
+            List<ShipHull> hulls = settlementsToUse
+                .SelectMany(s => s.Town.AvailableShips)
+                .Select(ship => ship.ShipHull)
+                .ToList();
+
+            
+            var hull = hulls.Where(h => h.Type == type).SelectRandom();
+            Ship aa = new Ship(hull);
+            ChangeShipOwnerAction.ApplyByProduction(party.Party, aa);
+            onSuccess("new ship");
+            var limit = Campaign.Current.Models.PartyShipLimitModel.GetIdealShipNumber(clan);
+
+        }
 
         private void HandleBuyTitleCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
         {
