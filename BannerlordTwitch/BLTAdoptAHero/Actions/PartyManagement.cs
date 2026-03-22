@@ -783,8 +783,8 @@ namespace BLTAdoptAHero.Actions
                 if (party == null) { onFailure("You have no party"); return; }
                 if (party.LeaderHero != h) { onFailure("You must be leading your party"); return; }
                 if (party.MapEvent != null) { onFailure("Your party is in combat"); return; }
-                if (party.Army != null && party.Army.LeaderParty != party)
-                { onFailure("You are in someone else's army — use !party army commands instead"); return; }
+                if (party.Army != null)
+                { onFailure("You are in army — use !party army commands instead"); return; }
                 targetParties = new List<MobileParty> { party };
             }
 
@@ -828,15 +828,15 @@ namespace BLTAdoptAHero.Actions
                 switch (subCmd)
                 {
                     case "siege":
-                        primaryTarget = FindBestSettlementToTarget(refParty, h.Clan.Kingdom, true);
+                        primaryTarget = FindBestSettlementToTarget(refParty, h.Clan.MapFaction, true);
                         if (primaryTarget == null) { onFailure("No valid siege target found"); return; }
                         break;
                     case "defend":
                     case "patrol":
-                        primaryTarget = FindBestSettlementToDefend(refParty, h.Clan.Kingdom);
+                        primaryTarget = FindBestSettlementToDefend(refParty, h.Clan.MapFaction);
                         break;
                     case "garrison":
-                        primaryTarget = FindBestSettlementToDefend(refParty, h.Clan.Kingdom);
+                        primaryTarget = FindBestSettlementToDefend(refParty, h.Clan.MapFaction);
                         if (primaryTarget == null) { onFailure("No garrison target found"); return; }
                         break;
                     case "raid":
@@ -854,12 +854,12 @@ namespace BLTAdoptAHero.Actions
             // ── Siege: war & reachability validation ─────────────────────────
             if (orderType == PartyOrderType.Siege)
             {
-                if (h.Clan.Kingdom == null) { onFailure("You must be in a kingdom to besiege"); return; }
+                //if (h.Clan.Kingdom == null) { onFailure("You must be in a kingdom to besiege"); return; }
                 if (primaryTarget != null && !primaryTarget.IsFortification)
                 { onFailure($"{primaryTarget.Name} is not a fortification"); return; }
-                if (primaryTarget != null && !h.Clan.Kingdom.IsAtWarWith(primaryTarget.MapFaction))
+                if (primaryTarget != null && !h.Clan.MapFaction.IsAtWarWith(primaryTarget.MapFaction))
                 { onFailure($"Not at war with {primaryTarget.Name}'s owners"); return; }
-                if (h.Clan.Kingdom.FactionsAtWarWith.Count == 0)
+                if (h.Clan.MapFaction.FactionsAtWarWith.Count == 0)
                 { onFailure("No active wars"); return; }
             }
 
@@ -912,7 +912,7 @@ namespace BLTAdoptAHero.Actions
                             results.Add($"{mp.LeaderHero?.FirstName}→{available.Settlement.Name}");
                         }
                         else
-                        {
+                        {                     
                             // No more villages; patrol / smart-guard the fortification
                             IssueSinglePartyOrder(settings, h, mp, PartyOrderType.SmartGuard, fortRef, null, null);
                             results.Add($"{mp.LeaderHero?.FirstName}→patrol");
@@ -977,7 +977,7 @@ namespace BLTAdoptAHero.Actions
                 if (!PartyOrderBehavior.IsSettlementReachable(mp, target))
                 {
                     // Reachability failure: fallback to smart-guard of nearest friendly fortification
-                    var fallback = FindBestSettlementToDefend(mp, h.Clan.Kingdom);
+                    var fallback = FindBestSettlementToDefend(mp, h.Clan.MapFaction);
                     orderType = PartyOrderType.SmartGuard;
                     target = fallback;
                     onFailure?.Invoke($"{mp.LeaderHero?.FirstName}: {target?.Name.ToString() ?? "target"} not reachable — patrolling instead");
@@ -1287,7 +1287,7 @@ namespace BLTAdoptAHero.Actions
             }
             else
             {
-                target = FindBestSettlementToDefend(party, h.Clan.Kingdom);
+                target = FindBestSettlementToDefend(party, h.Clan.MapFaction);
                 if (target == null) { onFailure("No garrison target found"); return; }
             }
 
@@ -1982,8 +1982,8 @@ namespace BLTAdoptAHero.Actions
             else
             {
                 target = subCmd == "siege"
-                    ? FindBestSettlementToTarget(party, h.Clan.Kingdom, true)
-                    : FindBestSettlementToDefend(party, h.Clan.Kingdom);
+                    ? FindBestSettlementToTarget(party, h.Clan.MapFaction, true)
+                    : FindBestSettlementToDefend(party, h.Clan.MapFaction);
             }
 
             // ── Siege-specific validation ──────────────────────────────────────────
@@ -2013,7 +2013,7 @@ namespace BLTAdoptAHero.Actions
 
                 if (!PartyOrderBehavior.IsSettlementReachable(party, target))
                 {
-                    var fallback = FindBestSettlementToDefend(party, h.Clan.Kingdom);
+                    var fallback = FindBestSettlementToDefend(party, h.Clan.MapFaction);
                     PartyOrderBehavior.IssueOrder(party, PartyOrderType.SmartGuard, fallback);
                     party.Ai.SetDoNotMakeNewDecisions(true);
                     PartyOrderBehavior.Current?.RegisterOrder(h, party, PartyOrderType.SmartGuard, fallback,
@@ -2164,49 +2164,89 @@ namespace BLTAdoptAHero.Actions
         //  HELPER METHODS
         // ─────────────────────────────────────────────────────────────────────
 
-        private Settlement FindBestSettlementToTarget(MobileParty party, Kingdom kingdom, bool forSiege)
+        private Settlement FindBestSettlementToTarget(MobileParty party, IFaction faction, bool forSiege)
         {
             Settlement best = null;
             float bestScore = 0f;
 
-            foreach (var enemy in kingdom.FactionsAtWarWith)
-            {
-                int stance = kingdom.GetStanceWith(enemy).BehaviorPriority;
-                if (stance == 1 || enemy.Settlements == null) continue;
-
-                foreach (var s in enemy.Settlements)
+            var kingdom = faction as Kingdom;
+            var clan = faction as Clan;
+            int stance = 0;
+            if (kingdom != null)
+            {               
+                foreach (var enemy in kingdom.FactionsAtWarWith)
                 {
-                    if (!s.IsFortification) continue;
-                    if (s.IsUnderSiege && s.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction != kingdom)
+                    stance = faction.GetStanceWith(enemy).BehaviorPriority;
+                    if (stance == 1 || enemy.Settlements == null) continue;
+                    
+                    foreach (var s in enemy.Settlements)
                     {
-                        var besiegerFaction = s.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction as Kingdom;
-                        bool allied = besiegerFaction != null
-                            && BLTTreatyManager.Current?.GetAlliance(kingdom, besiegerFaction) != null
-                            && besiegerFaction.IsAtWarWith(s.MapFaction);
-                        if (!allied) continue;
+                        if (!s.IsFortification) continue;
+                        if (s.IsUnderSiege && s.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction != faction)
+                        {
+
+                            var besiegerFaction = s.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction as Kingdom;
+                            bool allied = besiegerFaction != null
+                                && BLTTreatyManager.Current?.GetAlliance(kingdom, besiegerFaction) != null
+                                && besiegerFaction.IsAtWarWith(s.MapFaction);
+                            if (!allied) continue;
+                            
+                        }
+
+                        float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                            party, s, false, MobileParty.NavigationType.Default, out _);
+                        if (dist >= float.MaxValue - 1f) continue;
+                        if (!PartyOrderBehavior.IsSettlementReachable(party, s)) continue;
+
+                        float str = s.Town?.GarrisonParty?.Party.EstimatedStrength + s.Town?.Militia ?? 0f;
+                        var neighbours = Campaign.Current.Models.MapDistanceModel
+                            .GetNeighborsOfFortification(s.Town, MobileParty.NavigationType.Default);
+                        bool direct = neighbours.Any(n => faction.Settlements.Contains(n));
+
+                        float prox = 10000f / (dist + 1f);
+                        float penalty = Math.Min(str * 0.05f, prox * 0.5f);
+                        float score = (prox - penalty) * Math.Max(1, stance) * (direct ? 1.1f : 1f);
+
+                        if (score > bestScore) { bestScore = score; best = s; }
                     }
-
-                    float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
-                        party, s, false, MobileParty.NavigationType.Default, out _);
-                    if (dist >= float.MaxValue - 1f) continue;
-                    if (!PartyOrderBehavior.IsSettlementReachable(party, s)) continue;
-
-                    float str = s.Town?.GarrisonParty?.Party.EstimatedStrength + s.Town?.Militia ?? 0f;
-                    var neighbours = Campaign.Current.Models.MapDistanceModel
-                        .GetNeighborsOfFortification(s.Town, MobileParty.NavigationType.Default);
-                    bool direct = neighbours.Any(n => kingdom.Settlements.Contains(n));
-
-                    float prox = 10000f / (dist + 1f);
-                    float penalty = Math.Min(str * 0.05f, prox * 0.5f);
-                    float score = (prox - penalty) * Math.Max(1, stance) * (direct ? 1.1f : 1f);
-
-                    if (score > bestScore) { bestScore = score; best = s; }
                 }
             }
+            else
+            {
+                foreach (var enemy in clan.FactionsAtWarWith)
+                {
+                    foreach (var s in enemy.Settlements)
+                    {
+                        if (!s.IsFortification) continue;
+                        if (s.IsUnderSiege && s.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction != faction)
+                        {                          
+                            var besiegerC = s.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction as Clan;
+                            bool allied = besiegerC != null && BLTClanDiplomacyBehavior.Current?.HasAlliance(clan, besiegerC) == true && besiegerC.IsAtWarWith(s.MapFaction);
+                            if (!allied) continue;
+                        }
+
+                        float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
+                            party, s, false, MobileParty.NavigationType.Default, out _);
+                        if (dist >= float.MaxValue - 1f) continue;
+                        if (!PartyOrderBehavior.IsSettlementReachable(party, s)) continue;
+
+                        float str = s.Town?.GarrisonParty?.Party.EstimatedStrength + s.Town?.Militia ?? 0f;
+                        var neighbours = Campaign.Current.Models.MapDistanceModel
+                            .GetNeighborsOfFortification(s.Town, MobileParty.NavigationType.Default);
+                        bool direct = neighbours.Any(n => faction.Settlements.Contains(n));
+
+                        float prox = 10000f / (dist + 1f);
+                        float penalty = Math.Min(str * 0.05f, prox * 0.5f);
+                        float score = (prox - penalty) * Math.Max(1, stance) * (direct ? 1.1f : 1f);
+
+                        if (score > bestScore) { bestScore = score; best = s; }
+                    }
+                }
+            }         
             return best;
         }
 
-        public Settlement FindBestSettlementToDefend(MobileParty party, Kingdom kingdom)
+        public Settlement FindBestSettlementToDefend(MobileParty party, IFaction kingdom)
         {
             if (kingdom == null) return null;
             Settlement best = null;
@@ -2243,7 +2283,7 @@ namespace BLTAdoptAHero.Actions
                     if (!match.IsFortification) return null;
                     var tf = match.OwnerClan?.Kingdom ?? match.OwnerClan?.MapFaction;
                     if (tf == null || tf == hero.Clan.Kingdom) return null;
-                    if (!hero.Clan.Kingdom.IsAtWarWith(tf)) return null;
+                    if (!hero.Clan.MapFaction.IsAtWarWith(tf)) return null;
                     break;
                 case PartyOrderType.Garrison:
                     if (!match.IsFortification) return null;

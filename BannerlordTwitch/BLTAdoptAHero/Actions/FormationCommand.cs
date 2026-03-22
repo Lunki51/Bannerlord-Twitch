@@ -205,10 +205,20 @@ namespace BLTAdoptAHero.Actions
             string dist = "";
             if (f.TargetFormation != null)
             {
+                var q = f.TargetFormation.QuerySystem;
                 var myPos = f.CachedAveragePosition;
                 var targetPos = f.TargetFormation.CachedAveragePosition;
                 float pos = (targetPos - myPos).Length;
-                dist += $"-{pos:0}";
+                string type = q switch
+                {
+                    _ when q.IsInfantryFormationReadOnly => "Infantry",
+                    _ when q.IsRangedFormationReadOnly => "Ranged",
+                    _ when q.IsCavalryFormationReadOnly => "Cavalry",
+                    _ when q.IsRangedCavalryFormationReadOnly => "Horse archer",
+                    _ => "unknown"
+                };
+
+                dist += $"-Target:{type}-{pos:0}";
             }
 
             return $"{M(m)}-{A(a)}{dist}";
@@ -216,28 +226,28 @@ namespace BLTAdoptAHero.Actions
 
         string M(MovementOrder.MovementOrderEnum o) => o switch
         {
-            MovementOrder.MovementOrderEnum.Charge => "C",
-            MovementOrder.MovementOrderEnum.ChargeToTarget => "C",
-            MovementOrder.MovementOrderEnum.Advance => "A",
-            MovementOrder.MovementOrderEnum.FallBack => "R",
-            MovementOrder.MovementOrderEnum.Retreat => "R",
-            MovementOrder.MovementOrderEnum.Invalid => "H",
-            MovementOrder.MovementOrderEnum.Stop => "H",
-            MovementOrder.MovementOrderEnum.Follow => "F",
-            MovementOrder.MovementOrderEnum.FollowEntity => "F",
-            MovementOrder.MovementOrderEnum.Move => "M",
+            MovementOrder.MovementOrderEnum.Charge => "Charge",
+            MovementOrder.MovementOrderEnum.ChargeToTarget => "Charge",
+            MovementOrder.MovementOrderEnum.Advance => "Advance",
+            MovementOrder.MovementOrderEnum.FallBack => "Retreat",
+            MovementOrder.MovementOrderEnum.Retreat => "Retreat",
+            MovementOrder.MovementOrderEnum.Invalid => "Hold",
+            MovementOrder.MovementOrderEnum.Stop => "Hold",
+            MovementOrder.MovementOrderEnum.Follow => "Follow",
+            MovementOrder.MovementOrderEnum.FollowEntity => "Follow",
+            MovementOrder.MovementOrderEnum.Move => "Move",
             _ => "?"
         };
 
         string A(ArrangementOrder.ArrangementOrderEnum o) => o switch
         {
-            ArrangementOrder.ArrangementOrderEnum.Line => "LN",
-            ArrangementOrder.ArrangementOrderEnum.ShieldWall => "SH",
-            ArrangementOrder.ArrangementOrderEnum.Loose => "LO",
-            ArrangementOrder.ArrangementOrderEnum.Square => "SQ",
-            ArrangementOrder.ArrangementOrderEnum.Circle => "CI",
-            ArrangementOrder.ArrangementOrderEnum.Column => "CO",
-            ArrangementOrder.ArrangementOrderEnum.Scatter => "SC",
+            ArrangementOrder.ArrangementOrderEnum.Line => "Line",
+            ArrangementOrder.ArrangementOrderEnum.ShieldWall => "Wall",
+            ArrangementOrder.ArrangementOrderEnum.Loose => "Loose",
+            ArrangementOrder.ArrangementOrderEnum.Square => "Square",
+            ArrangementOrder.ArrangementOrderEnum.Circle => "Circle",
+            ArrangementOrder.ArrangementOrderEnum.Column => "Column",
+            ArrangementOrder.ArrangementOrderEnum.Scatter => "Scatter",
             _ => "--"
         };
 

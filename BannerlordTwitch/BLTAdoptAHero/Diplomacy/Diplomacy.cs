@@ -2196,7 +2196,7 @@ namespace BLTAdoptAHero
                 .Where(k => !k.IsEliminated && hero.Clan.IsAtWarWith(k))
                 .Cast<IFaction>()
                 .Concat(Clan.All
-                    .Where(c => !c.IsEliminated && c.Kingdom == null && c != hero.Clan && hero.Clan.IsAtWarWith(c)))
+                    .Where(c => !c.IsEliminated && c.Kingdom == null && c != hero.Clan && hero.Clan.IsAtWarWith(c) && !c.IsBanditFaction))
                 .ToList();
 
             bool hasAnyData = alliances.Count > 0 || proposals.Count > 0 || activeWars.Count > 0 || ctwProposals.Count > 0;

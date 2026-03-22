@@ -11,6 +11,7 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
 using BLTAdoptAHero.Annotations;
+using TaleWorlds.ObjectSystem;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Actions;
@@ -21,7 +22,7 @@ using TaleWorlds.Core;
 using TaleWorlds.Library;
 using TaleWorlds.Localization;
 using TaleWorlds.MountAndBlade;
-using NavalDLC.CharacterDevelopment;
+using NavalDLC.GameComponents;
 using NavalDLC.CampaignBehaviors;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
@@ -890,6 +891,11 @@ namespace BLTAdoptAHero.Actions
 
         private void HandleShipCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
         {
+            if (!settings.BuyShipEnabled)
+            {
+                onFailure("Ship buying is disabled");
+                return;
+            }
             if (adoptedHero.Clan == null)
             {
                 onFailure("{=yPeUCq8t}You are not in a clan".Translate());
@@ -898,7 +904,7 @@ namespace BLTAdoptAHero.Actions
             var cult = adoptedHero.Culture;
             var clan = adoptedHero.Clan;
             var party = adoptedHero.PartyBelongedTo;
-            var limit = Campaign.Current.Models.PartyShipLimitModel.GetIdealShipNumber(clan);
+            int limit = Campaign.Current.Models.ClanTierModel.GetPartyLimitForTier(clan, clan.Tier) * 3;
             if (clan.WarPartyComponents.Sum(w => w.Party.Ships.Count()) >= limit)
             {
                 onFailure($"Max ships ({limit})");
@@ -910,7 +916,7 @@ namespace BLTAdoptAHero.Actions
             }
             if (party == null)
             {
-                onFailure("Your clan has no parties or they are all fighting");
+                onFailure("Your clan has no valid parties");
                 return;
             }
 
@@ -935,28 +941,19 @@ namespace BLTAdoptAHero.Actions
                     return;
             }
 
+            var hulls = cult.AvailableShipHulls.Where(h => h.Type == type).ToList();
+            if (hulls == null || hulls.Count == 0) 
+                hulls = MBObjectManager.Instance.GetObjectTypeList<ShipHull>().Where(h => h.Type == type).ToList();
 
-
-            var settlementsWithCulture = Settlement.All
-                .Where(s => s.HasPort && s.Culture == cult)
-                .ToList();
-
-            var settlementsToUse = settlementsWithCulture.Any()
-                ? settlementsWithCulture
-                : Settlement.All.Where(s => s.HasPort).ToList(); // fallback
-
-            List<ShipHull> hulls = settlementsToUse
-                .SelectMany(s => s.Town.AvailableShips)
-                .Select(ship => ship.ShipHull)
-                .ToList();
-
-            
-            var hull = hulls.Where(h => h.Type == type).SelectRandom();
-            Ship aa = new Ship(hull);
-            ChangeShipOwnerAction.ApplyByProduction(party.Party, aa);
-            onSuccess("new ship");
-            //var limit = Campaign.Current.Models.PartyShipLimitModel.GetIdealShipNumber(clan);
-
+            var hull = hulls.SelectRandom();
+            if (hull == null)
+            {
+                onFailure("No hulls available");
+                return;
+            }
+            Ship newShip = new Ship(hull);
+            ChangeShipOwnerAction.ApplyByProduction(party.Party, newShip);
+            onSuccess($"Bought {desiredName.ToLower()} ship: {hull.Name}");
         }
 
         private void HandleBuyTitleCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)

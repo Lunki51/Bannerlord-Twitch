@@ -5,10 +5,14 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using TaleWorlds.CampaignSystem.Map;
+using TaleWorlds.CampaignSystem.MapEvents;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
 using BLTAdoptAHero.Actions;
 using TaleWorlds.Core;
+using Helpers;
 
 namespace BLTAdoptAHero
 {
@@ -630,7 +634,7 @@ namespace BLTAdoptAHero
         /// </summary>
         public static bool ValidateOrder(MobileParty party, PartyOrderType type, Settlement target)
         {
-            if (party.MapEvent != null) return false;
+            if (party.MapEvent != null && party.SiegeEvent == null) return false;
 
             switch (type)
             {
@@ -641,17 +645,57 @@ namespace BLTAdoptAHero
                         if (party.BesiegedSettlement == target) return true;
                         if (target.IsUnderSiege)
                         {
-                            var besiegerFaction = target.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction;
-                            if (besiegerFaction == party.MapFaction) return true;
-                            // Allow if allied with the besieger and both at war with the target
+                            var besiegerFaction = target.SiegeEvent?.BesiegerCamp?.MapFaction;
+                            Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE — target is under siege by {besiegerFaction?.Name}");
+
+                            if (besiegerFaction == null)
+                            {
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE FALSE — besieger faction null");
+                                return false;
+                            }
+
+                            if (besiegerFaction == party.MapFaction)
+                            {
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE TRUE — same faction as besieger");
+                                return true;
+                            }
+
                             var besiegerK = besiegerFaction as Kingdom;
                             var partyK = party.MapFaction as Kingdom;
-                            bool allied = besiegerK != null && partyK != null
-                                && BLTTreatyManager.Current?.GetAlliance(partyK, besiegerK) != null
-                                && besiegerK.IsAtWarWith(target.MapFaction);
-                            return allied;
+                            if (besiegerK != null && partyK != null)
+                            {
+                                var alliance = BLTTreatyManager.Current?.GetAlliance(partyK, besiegerK);
+                                bool besiegerAtWar = besiegerK.IsAtWarWith(target.MapFaction);
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE kingdom check — " +
+                                         $"alliance={alliance != null} besiegerAtWar={besiegerAtWar} " +
+                                         $"partyK={partyK.Name} besiegerK={besiegerK.Name}");
+                                bool result = alliance != null && besiegerAtWar;
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE {result} — kingdom alliance result");
+                                return result;
+                            }
+
+                            var besiegerC = besiegerFaction as Clan;
+                            var clan = party.ActualClan;
+                            if (besiegerC != null && clan != null && BLTClanDiplomacyBehavior.Current != null)
+                            {
+                                bool hasAlliance = BLTClanDiplomacyBehavior.Current.HasAlliance(clan, besiegerC);
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE {hasAlliance} — clan alliance check " +
+                                         $"clan={clan.Name} besiegerClan={besiegerC.Name}");
+                                return hasAlliance;
+                            }
+
+                            Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE FALSE — under siege but no alliance path matched. " +
+                                     $"besiegerFactionType={besiegerFaction.GetType().Name} " +
+                                     $"partyFactionType={party.MapFaction?.GetType().Name} " +
+                                     $"besiegerC={besiegerC?.Name} clan={clan?.Name} " +
+                                     $"diplomacyBehavior={BLTClanDiplomacyBehavior.Current != null}");
+                            return false;
                         }
-                        return party.BesiegedSettlement == null;
+
+                        bool noOtherSiege = party.BesiegedSettlement == null;
+                        Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE {noOtherSiege} — no active siege on target, " +
+                                 $"partyBesiegedSettlement={party.BesiegedSettlement?.StringId}");
+                        return noOtherSiege;
                     }
 
                 case PartyOrderType.Defend:
