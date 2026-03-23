@@ -299,7 +299,7 @@ namespace BLTAdoptAHero.Actions
                 sb.Append("{=MultipleChildren}Multiple children found: ".Translate());
                 for (int i = 0; i < matchingChildren.Count; i++)
                 {
-                    sb.Append($"{CleanName(matchingChildren[i].Name.ToString())}{i + 1}");
+                    sb.Append($"{CleanName(matchingChildren[i].FirstName.ToString())}{i + 1}");
                     sb.Append($" ({(int)matchingChildren[i].Age}, ");
                     sb.Append(matchingChildren[i].IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
                     if (matchingChildren[i].Spouse != null)
@@ -308,7 +308,8 @@ namespace BLTAdoptAHero.Actions
                         sb.Append(", 💀");
                     if (matchingChildren[i].Children.Count > 0)
                         sb.Append($", 👪:{matchingChildren[i].Children.Count}");
-                    if (i < matchingChildren.Count - 1) sb.Append(", ");
+                    sb.Append(")");
+                    if (i < matchingChildren.Count - 1) sb.Append(" - ");
                 }
                 onFailure(sb.ToString());
                 return;

@@ -5,6 +5,7 @@ using BannerlordTwitch;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Util;
 using BannerlordTwitch.Helpers;
+using BannerlordTwitch.Rewards;
 using JetBrains.Annotations;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Settlements;
@@ -79,16 +80,16 @@ namespace BLTAdoptAHero.Actions
             switch (mode)
             {
                 case "hero":
-                    HandleHeroLogs(adoptedHero, onSuccess, onFailure);
+                    HandleHeroLogs(adoptedHero, context, onFailure);
                     break;
                 case "clan":
-                    HandleClanLogs(adoptedHero, name, onSuccess, onFailure);
+                    HandleClanLogs(adoptedHero, name, context, onFailure);
                     break;
                 case "kingdom":
-                    HandleKingdomLogs(adoptedHero, name, onSuccess, onFailure);
+                    HandleKingdomLogs(adoptedHero, name, context, onFailure);
                     break;
                 case "fief":
-                    HandleFiefLogs(name, onSuccess, onFailure);
+                    HandleFiefLogs(name, context, onFailure);
                     break;
                 default:
                     onFailure("invalid. Use !logs hero/clan (clan)/kingdom (kingdom)/fief (fief)");
@@ -97,7 +98,7 @@ namespace BLTAdoptAHero.Actions
 
         }
 
-        private void HandleHeroLogs(Hero hero, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleHeroLogs(Hero hero, ReplyContext context, Action<string> onFailure)
         {
             var logsBehavior = Campaign.Current.GetCampaignBehavior<BLTLogsBehavior>();
 
@@ -115,10 +116,11 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            Reply(hero.Name.ToString(), logs, onSuccess);
+            //Reply(hero.Name.ToString(), logs, onSuccess);
+            ActionManager.SendReply(context, logs.ToArray());
         }
 
-        private void HandleClanLogs(Hero adoptedHero, string filter, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleClanLogs(Hero adoptedHero, string filter, ReplyContext context, Action<string> onFailure)
         {
             var logsBehavior = Campaign.Current.GetCampaignBehavior<BLTLogsBehavior>();
 
@@ -154,10 +156,11 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            Reply(desiredClan.Name.ToString(), logs, onSuccess);
+            //Reply(desiredClan.Name.ToString(), logs, onSuccess);
+            ActionManager.SendReply(context, logs.ToArray());
         }
 
-        private void HandleKingdomLogs(Hero adoptedHero, string filter, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleKingdomLogs(Hero adoptedHero, string filter, ReplyContext context, Action<string> onFailure)
         {
             var logsBehavior = Campaign.Current.GetCampaignBehavior<BLTLogsBehavior>();
 
@@ -195,10 +198,11 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            Reply(desiredKingdom.Name.ToString(), logs, onSuccess);
+            //Reply(desiredKingdom.Name.ToString(), logs, onSuccess);
+            ActionManager.SendReply(context, logs.ToArray());
         }
 
-        private void HandleFiefLogs(string filter, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleFiefLogs(string filter, ReplyContext context, Action<string> onFailure)
         {
             var logsBehavior = Campaign.Current.GetCampaignBehavior<BLTLogsBehavior>();
 
@@ -236,7 +240,8 @@ namespace BLTAdoptAHero.Actions
                 onFailure("No logs found for this fief.");
                 return;
             }
-            Reply(desiredFief.Name.ToString(), logs, onSuccess);
+            //Reply(desiredFief.Name.ToString(), logs, onSuccess);
+            ActionManager.SendReply(context, logs.ToArray());
         }
 
         private void Reply(string name, List<string> logs, Action<string> onSuccess)

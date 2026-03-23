@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using BannerlordTwitch;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Rewards;
@@ -64,12 +65,12 @@ namespace BLTAdoptAHero
                     // Handle !secondary retinue clear all
                     if (args.Length > 1 && args[1].ToLower() == "all")
                     {
-                        int count = 0;
-                        foreach (CharacterObject r in BLTAdoptAHeroCampaignBehavior.Current.GetRetinue2(adoptedHero))
+                        int count = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).Count();
+                        for (int i = 0; i < count; i++)
                         {
-                            BLTAdoptAHeroCampaignBehavior.Current.KillRetinue2AtIndex(adoptedHero, count);
-                            count += 1;
+                            BLTAdoptAHeroCampaignBehavior.Current.KillRetinueAtIndex(adoptedHero, 0);
                         }
+                        onSuccess("Cleared all retinue slots.");
                     }
                     else if (args.Length > 1 && int.TryParse(args[1], out int index))
                     {

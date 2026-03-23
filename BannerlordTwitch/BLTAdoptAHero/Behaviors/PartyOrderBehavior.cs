@@ -5,10 +5,14 @@ using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.Party;
 using TaleWorlds.CampaignSystem.Settlements;
+using TaleWorlds.CampaignSystem.ComponentInterfaces;
+using TaleWorlds.CampaignSystem.Map;
+using TaleWorlds.CampaignSystem.MapEvents;
 using BannerlordTwitch.Util;
 using BLTAdoptAHero;
 using BLTAdoptAHero.Actions;
 using TaleWorlds.Core;
+using Helpers;
 
 namespace BLTAdoptAHero
 {
@@ -177,11 +181,23 @@ namespace BLTAdoptAHero
 
                 if (!party.IsActive) { ExpireOrder(order, null, false); return; }
 
-                // ── FIX 1: never re-issue while the party is inside a settlement. ──────
-                // GetDistance from inside a settlement has no valid gate-origin, so
-                // LandPartyNeedsWaterCrossing returns garbage and stamps a land party
-                // with naval AI. Let the engine move the party out of the gate first.
-                if (party.CurrentSettlement != null) return;
+                // ── Settlement handling ─────────────────────────────────────────────────
+                if (party.CurrentSettlement != null)
+                {
+                    // Garrison at the correct fort: satisfied — stay locked
+                    if (order.Type == PartyOrderType.Garrison &&
+                        party.CurrentSettlement.StringId == order.TargetSettlementId)
+                    {
+                        order.ReissueAttempts = 0;
+                        party.Ai.SetDoNotMakeNewDecisions(true);
+                        return;
+                    }
+                    // Every other order type (including SmartGuard): unlock so the
+                    // party can leave. The order will be re-applied next tick.
+                    try { party.Ai.SetDoNotMakeNewDecisions(false); }
+                    catch (Exception ex) { Log.Error($"[BLT] AI unlock in settlement error: {ex}"); }
+                    return;
+                }
 
                 // Expiry
                 if (order.ExpiresAtDays > 0 && CampaignTime.Now.ToDays >= order.ExpiresAtDays)
@@ -193,7 +209,7 @@ namespace BLTAdoptAHero
 
                 if (party.MapEvent != null) return;
 
-                // ── SmartGuard: re-evaluate conditions every tick, no drift counter ──
+                // ── SmartGuard: re-evaluate conditions; only re-issue on state change ──
                 if (order.Type == PartyOrderType.SmartGuard)
                 {
                     var sgTarget = order.TargetSettlementId != null
@@ -204,9 +220,42 @@ namespace BLTAdoptAHero
                         ExpireOrder(order, "Invalid target", false);
                         return;
                     }
-                    IssueSmartGuardOrder(party, sgTarget);
+
+                    // Determine desired state from current world conditions
+                    var besiegerFaction = sgTarget.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction;
+                    bool enemySieging = sgTarget.IsUnderSiege
+                        && besiegerFaction != null
+                        && party.MapFaction.IsAtWarWith(besiegerFaction);
+
+                    Settlement raidedVillage = null;
+                    if (!enemySieging && sgTarget.BoundVillages != null)
+                    {
+                        foreach (var v in sgTarget.BoundVillages)
+                        {
+                            var vs = v?.Settlement;
+                            if (vs?.IsUnderRaid != true) continue;
+                            var rf = vs.LastAttackerParty?.MapFaction;
+                            if (rf != null && party.MapFaction.IsAtWarWith(rf))
+                            { raidedVillage = vs; break; }
+                        }
+                    }
+
+                    AiBehavior wantedBehavior = enemySieging
+                        ? AiBehavior.DefendSettlement
+                        : AiBehavior.PatrolAroundPoint;
+                    Settlement wantedTarget = enemySieging ? sgTarget
+                        : (raidedVillage ?? sgTarget);
+
+                    bool behaviorOk = party.DefaultBehavior == wantedBehavior;
+                    bool targetOk = party.TargetSettlement != null
+                                      && party.TargetSettlement.StringId == wantedTarget.StringId;
+
+                    // Only call IssueSmartGuardOrder when the desired state actually changed
+                    if (!behaviorOk || !targetOk)
+                        IssueSmartGuardOrder(party, sgTarget);
+
                     party.Ai.SetDoNotMakeNewDecisions(true);
-                    order.ReissueAttempts = 0;   // never count dynamic re-evals as drift
+                    order.ReissueAttempts = 0;
                     return;
                 }
 
@@ -229,6 +278,18 @@ namespace BLTAdoptAHero
                     // Fell through → treat as drift below
                 }
 
+                // If the party is already in the act of besieging the correct settlement,
+                // do NOT re-issue — the game engine handles the assault transition itself.
+                // Just ensure the AI is unlocked and get out of the way.
+                if (order.Type == PartyOrderType.Siege
+                    && party.BesiegedSettlement != null
+                    && party.BesiegedSettlement.StringId == order.TargetSettlementId)
+                {
+                    order.ReissueAttempts = 0;
+                    party.Ai.SetDoNotMakeNewDecisions(false);
+                    return;
+                }
+
                 // ── Standard drift detection ──────────────────────────────────
                 var expectedBehavior = OrderTypeToAiBehavior(order.Type);
                 var expectedTarget = order.TargetSettlementId != null
@@ -242,6 +303,8 @@ namespace BLTAdoptAHero
                 if (behaviorMatches && targetMatches)
                 {
                     order.ReissueAttempts = 0;
+                    if (order.Type == PartyOrderType.Siege && party.BesiegedSettlement != null)
+                        party.Ai.SetDoNotMakeNewDecisions(false);
                     return;
                 }
 
@@ -535,16 +598,29 @@ namespace BLTAdoptAHero
         {
             try
             {
+                // Already at sea — handled by the caller via IsCurrentlyAtSea
+                if (party.IsCurrentlyAtSea) return false;
+
+                // Distance calculation is unreliable from inside a settlement gate;
+                // returning false here prevents the naval-stamp bug entirely.
+                if (party.CurrentSettlement != null) return false;
+
                 float dist = Campaign.Current.Models.MapDistanceModel.GetDistance(
                     party, target, false, MobileParty.NavigationType.All, out float landRatio);
-                if (dist >= float.MaxValue - 1f) return true;
+
+                // Unreachable by land nav: do NOT assume naval — default to land.
+                // The old "return true" here was the root cause of the sailing bug.
+                if (dist >= float.MaxValue - 1f) return false;
+
+                // landRatio < 0.5 means the majority of the route crosses water
                 if (landRatio >= 0f && landRatio < 0.5f) return true;
+
                 return false;
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] LandPartyNeedsWaterCrossing error: {ex}");
-                return false;
+                return false;   // safe default: land routing
             }
         }
 
@@ -558,7 +634,7 @@ namespace BLTAdoptAHero
         /// </summary>
         public static bool ValidateOrder(MobileParty party, PartyOrderType type, Settlement target)
         {
-            if (party.MapEvent != null) return false;
+            if (party.MapEvent != null && party.SiegeEvent == null) return false;
 
             switch (type)
             {
@@ -569,17 +645,57 @@ namespace BLTAdoptAHero
                         if (party.BesiegedSettlement == target) return true;
                         if (target.IsUnderSiege)
                         {
-                            var besiegerFaction = target.SiegeEvent?.BesiegerCamp?.LeaderParty?.MapFaction;
-                            if (besiegerFaction == party.MapFaction) return true;
-                            // Allow if allied with the besieger and both at war with the target
+                            var besiegerFaction = target.SiegeEvent?.BesiegerCamp?.MapFaction;
+                            Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE — target is under siege by {besiegerFaction?.Name}");
+
+                            if (besiegerFaction == null)
+                            {
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE FALSE — besieger faction null");
+                                return false;
+                            }
+
+                            if (besiegerFaction == party.MapFaction)
+                            {
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE TRUE — same faction as besieger");
+                                return true;
+                            }
+
                             var besiegerK = besiegerFaction as Kingdom;
                             var partyK = party.MapFaction as Kingdom;
-                            bool allied = besiegerK != null && partyK != null
-                                && BLTTreatyManager.Current?.GetAlliance(partyK, besiegerK) != null
-                                && besiegerK.IsAtWarWith(target.MapFaction);
-                            return allied;
+                            if (besiegerK != null && partyK != null)
+                            {
+                                var alliance = BLTTreatyManager.Current?.GetAlliance(partyK, besiegerK);
+                                bool besiegerAtWar = besiegerK.IsAtWarWith(target.MapFaction);
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE kingdom check — " +
+                                         $"alliance={alliance != null} besiegerAtWar={besiegerAtWar} " +
+                                         $"partyK={partyK.Name} besiegerK={besiegerK.Name}");
+                                bool result = alliance != null && besiegerAtWar;
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE {result} — kingdom alliance result");
+                                return result;
+                            }
+
+                            var besiegerC = besiegerFaction as Clan;
+                            var clan = party.ActualClan;
+                            if (besiegerC != null && clan != null && BLTClanDiplomacyBehavior.Current != null)
+                            {
+                                bool hasAlliance = BLTClanDiplomacyBehavior.Current.HasAlliance(clan, besiegerC);
+                                Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE {hasAlliance} — clan alliance check " +
+                                         $"clan={clan.Name} besiegerClan={besiegerC.Name}");
+                                return hasAlliance;
+                            }
+
+                            Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE FALSE — under siege but no alliance path matched. " +
+                                     $"besiegerFactionType={besiegerFaction.GetType().Name} " +
+                                     $"partyFactionType={party.MapFaction?.GetType().Name} " +
+                                     $"besiegerC={besiegerC?.Name} clan={clan?.Name} " +
+                                     $"diplomacyBehavior={BLTClanDiplomacyBehavior.Current != null}");
+                            return false;
                         }
-                        return party.BesiegedSettlement == null;
+
+                        bool noOtherSiege = party.BesiegedSettlement == null;
+                        Log.Info($"[BLT-VALIDATE] {party.StringId}: SIEGE {noOtherSiege} — no active siege on target, " +
+                                 $"partyBesiegedSettlement={party.BesiegedSettlement?.StringId}");
+                        return noOtherSiege;
                     }
 
                 case PartyOrderType.Defend:

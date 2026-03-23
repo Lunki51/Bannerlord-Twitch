@@ -20,16 +20,19 @@ namespace BannerlordTwitch
          LocDescription("{=YM1rP7sP}Whether this is enabled or not"),
          PropertyOrder(-100), UsedImplicitly]
         public bool Enabled { get; set; }
+
         [LocDisplayName("{=86rc4cz6}Respond In Twitch"), LocCategory("General", "{=C5T5nnix}General"),
          LocDescription("{=7IBsjc51}Show response in the twitch chat"),
          PropertyOrder(-99), UsedImplicitly]
         public bool RespondInTwitch { get; set; }
+
         [LocDisplayName("{=0MgBhdtw}Respond In Overlay"), LocCategory("General", "{=C5T5nnix}General"),
          LocDescription("{=UQRfOFjs}Show response in the overlay window feed"),
          PropertyOrder(-98), UsedImplicitly]
         public bool RespondInOverlay { get; set; }
-        [LocDisplayName("{=0MgBhdtw}Respond In Extension"), LocCategory("General", "{=C5T5nnix}General"),
-         LocDescription("{=UQRfOFjs}Show response in BLT Extension"),
+
+        [LocDisplayName("{=BLTExtResp}Respond In Extension"), LocCategory("General", "{=C5T5nnix}General"),
+         LocDescription("{=BLTExtRespDesc}Send response to the BLT Twitch Extension panel. Replies with a named user are sent as a whisper to that viewer; messages without a user are broadcast to all viewers."),
          PropertyOrder(-97), UsedImplicitly]
         public bool RespondInExtension { get; set; }
 

@@ -30,7 +30,11 @@ namespace BLTAdoptAHero.Actions
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value($"Usage: !formation number");
+                generator.Value("Usage: !formation number");
+                generator.Value("Format: [M-A-N]");
+                generator.Value("M: C/A/R/H/F/M = Charge/Advance/Retreat/Hold/Follow/Move");
+                generator.Value("A: LN/SH/LO/SQ/CI/CO/SC");
+                generator.Value("N: distance to target");
             }
         }
 
@@ -61,9 +65,8 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Cannot change formation in tournament");
                 return;
             }
-            string num = "";
-            if (context.Args.Length > 0)
-                num = context.Args[0].ToString();
+
+            string num = context.Args.Length > 0 ? context.Args[0].ToString() : "";
 
             var agent = adoptedHero.GetAgent();
             if (agent == null)
@@ -71,8 +74,8 @@ namespace BLTAdoptAHero.Actions
                 onFailure("No hero");
                 return;
             }
-            Formation currentFormation = agent.Formation;
 
+            Formation currentFormation = agent.Formation;
             if (currentFormation == null)
             {
                 onFailure("No formation");
@@ -88,33 +91,32 @@ namespace BLTAdoptAHero.Actions
                 _ when query.IsRangedCavalryFormationReadOnly => FormationClass.HorseArcher,
                 _ => FormationClass.Infantry
             };
+
             if (settings.Filter)
             {
-                IEnumerable<Formation> allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.PhysicalClass == formType && f.CountOfUnits > 0).OrderBy(f => f.Index);
-                List<int> indexes = new();
+                var allFormations = agent.Team.FormationsIncludingSpecialAndEmpty
+                    .Where(f => f.PhysicalClass == formType && f.CountOfUnits > 0)
+                    .OrderBy(f => f.Index);
+
+                var indexes = allFormations.Select(f => f.Index).OrderBy(i => i).ToList();
+
                 var sb = new StringBuilder();
                 int number = 1;
+
                 foreach (var f in allFormations)
                 {
                     int troops = f.CountOfUnits;
-                    var order = f.GetMovementState();
-                    sb.Append($"{number}: {troops}({order}), ");
+                    string order = BuildCompact(f);
+                    sb.Append($"{number}:{troops}[{order}], ");
                     number++;
                 }
-
-                foreach (var a in allFormations)
-                {
-                    indexes.Add(a.Index);
-                }
-                indexes = indexes.OrderBy(i => i).ToList();
 
                 int count = indexes.Count;
                 int position = indexes.IndexOf(currentFormation.Index) + 1;
 
                 if (string.IsNullOrEmpty(num) || !int.TryParse(num, out int numb))
                 {
-                    string result = $"{formType} formation {position} out of {count}. {currentFormation.CountOfUnits} troops | {sb}";
-                    onSuccess(result);
+                    onSuccess($"{formType} {position}/{count} {currentFormation.CountOfUnits} | {sb}");
                     return;
                 }
 
@@ -124,57 +126,47 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                var newIndex = indexes[numb - 1];
-
-                var newformation = allFormations.FirstOrDefault(f => f.Index == newIndex);
-
+                var newformation = allFormations.ElementAt(numb - 1);
                 TransferHeroToFormation(agent, newformation);
 
-                onSuccess($"Moved hero to new formation. It has {newformation.CountOfUnits} troops");
-                return;
+                onSuccess($"Moved. {newformation.CountOfUnits} troops");
             }
             else
             {
-                IEnumerable<Formation> allFormations = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0).OrderBy(f => f.Index);
-                //IEnumerable<Formation> infantries = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.Infantry);
-                //IEnumerable<Formation> ranged = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.Ranged);
-                //IEnumerable<Formation> cavalries = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.Cavalry);
-                //IEnumerable<Formation> horsearchers = agent.Team.FormationsIncludingSpecialAndEmpty.Where(f => f.CountOfUnits > 0 && f.PhysicalClass == FormationClass.HorseArcher);
+                var allFormations = agent.Team.FormationsIncludingSpecialAndEmpty
+                    .Where(f => f.CountOfUnits > 0)
+                    .OrderBy(f => f.Index);
+
+                var indexes = allFormations.Select(f => f.Index).OrderBy(i => i).ToList();
 
                 var sb = new StringBuilder();
                 int number = 1;
+
                 foreach (var f in allFormations)
                 {
                     var q = f.QuerySystem;
                     string type = q switch
                     {
-                        _ when q.IsInfantryFormationReadOnly && q.IsRangedFormationReadOnly => "Mixed",
                         _ when q.IsInfantryFormationReadOnly => "Infantry",
                         _ when q.IsRangedFormationReadOnly => "Ranged",
-                        _ when q.IsCavalryFormationReadOnly && q.IsRangedCavalryFormationReadOnly => "Horse mixed",
                         _ when q.IsCavalryFormationReadOnly => "Cavalry",
                         _ when q.IsRangedCavalryFormationReadOnly => "Horse archer",
                         _ => "unknown"
                     };
-                    var order = f.GetMovementState();
+
                     int troops = f.CountOfUnits;
-                    sb.Append($"{number}: {type}({troops},{order}), ");
+                    string order = BuildCompact(f);
+
+                    sb.Append($"{number}:{type}({troops})[{order}], ");
                     number++;
                 }
-                List<int> indexes = new();
-                foreach (var a in allFormations)
-                {
-                    indexes.Add(a.Index);
-                }
-                indexes = indexes.OrderBy(i => i).ToList();
 
                 int count = indexes.Count;
                 int position = indexes.IndexOf(currentFormation.Index) + 1;
 
                 if (string.IsNullOrEmpty(num) || !int.TryParse(num, out int numb))
                 {
-                    string result = $"{formType} formation {position} | {currentFormation.CountOfUnits} troops | {sb}";
-                    onSuccess(result);
+                    onSuccess($"{formType} {position}/{count} {currentFormation.CountOfUnits} | {sb}");
                     return;
                 }
 
@@ -184,44 +176,80 @@ namespace BLTAdoptAHero.Actions
                     return;
                 }
 
-                var newIndex = indexes[numb - 1];
-
-                var newformation = allFormations.FirstOrDefault(f => f.Index == newIndex);
-
-                var newquery = newformation.QuerySystem;
-                string newformType = newquery switch
-                {
-                    _ when newquery.IsInfantryFormationReadOnly && newquery.IsRangedFormationReadOnly => "Mixed",
-                    _ when newquery.IsInfantryFormationReadOnly => "Infantry",
-                    _ when newquery.IsRangedFormationReadOnly => "Ranged",
-                    _ when newquery.IsCavalryFormationReadOnly && newquery.IsRangedCavalryFormationReadOnly => "Horse mixed",
-                    _ when newquery.IsCavalryFormationReadOnly => "Cavalry",
-                    _ when newquery.IsRangedCavalryFormationReadOnly => "Horse archer",
-                    _ => "unknown"
-                };
-
+                var newformation = allFormations.ElementAt(numb - 1);
                 TransferHeroToFormation(agent, newformation);
 
-                onSuccess($"Moved hero to new formation({newformType})");
-                return;
-            }         
+                onSuccess("Moved.");
+            }
         }
 
         private void TransferHeroToFormation(Agent heroAgent, Formation target)
         {
             if (heroAgent == null || target == null) return;
 
-            Formation oldFormation = heroAgent.Formation;
+            var oldFormation = heroAgent.Formation;
             heroAgent.Formation = target;
 
-            if (oldFormation != null)
-            {
-                oldFormation.Team.TriggerOnFormationsChanged(oldFormation);
-            }
+            oldFormation?.Team.TriggerOnFormationsChanged(oldFormation);
             target.Team.TriggerOnFormationsChanged(target);
 
             Log.Trace($"{heroAgent.Name} transferred to {target.FormationIndex.GetName()}");
-
         }
+
+
+        string BuildCompact(Formation f)
+        {
+            var m = f.GetReadonlyMovementOrderReference().OrderEnum;
+            var a = f.ArrangementOrder.OrderEnum;
+
+            string dist = "";
+            if (f.TargetFormation != null)
+            {
+                var q = f.TargetFormation.QuerySystem;
+                var myPos = f.CachedAveragePosition;
+                var targetPos = f.TargetFormation.CachedAveragePosition;
+                float pos = (targetPos - myPos).Length;
+                string type = q switch
+                {
+                    _ when q.IsInfantryFormationReadOnly => "Infantry",
+                    _ when q.IsRangedFormationReadOnly => "Ranged",
+                    _ when q.IsCavalryFormationReadOnly => "Cavalry",
+                    _ when q.IsRangedCavalryFormationReadOnly => "Horse archer",
+                    _ => "unknown"
+                };
+
+                dist += $"-Target:{type}-{pos:0}";
+            }
+
+            return $"{M(m)}-{A(a)}{dist}";
+        }
+
+        string M(MovementOrder.MovementOrderEnum o) => o switch
+        {
+            MovementOrder.MovementOrderEnum.Charge => "Charge",
+            MovementOrder.MovementOrderEnum.ChargeToTarget => "Charge",
+            MovementOrder.MovementOrderEnum.Advance => "Advance",
+            MovementOrder.MovementOrderEnum.FallBack => "Retreat",
+            MovementOrder.MovementOrderEnum.Retreat => "Retreat",
+            MovementOrder.MovementOrderEnum.Invalid => "Hold",
+            MovementOrder.MovementOrderEnum.Stop => "Hold",
+            MovementOrder.MovementOrderEnum.Follow => "Follow",
+            MovementOrder.MovementOrderEnum.FollowEntity => "Follow",
+            MovementOrder.MovementOrderEnum.Move => "Move",
+            _ => "?"
+        };
+
+        string A(ArrangementOrder.ArrangementOrderEnum o) => o switch
+        {
+            ArrangementOrder.ArrangementOrderEnum.Line => "Line",
+            ArrangementOrder.ArrangementOrderEnum.ShieldWall => "Wall",
+            ArrangementOrder.ArrangementOrderEnum.Loose => "Loose",
+            ArrangementOrder.ArrangementOrderEnum.Square => "Square",
+            ArrangementOrder.ArrangementOrderEnum.Circle => "Circle",
+            ArrangementOrder.ArrangementOrderEnum.Column => "Column",
+            ArrangementOrder.ArrangementOrderEnum.Scatter => "Scatter",
+            _ => "--"
+        };
+
     }
 }

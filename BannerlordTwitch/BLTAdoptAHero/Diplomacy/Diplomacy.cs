@@ -351,44 +351,46 @@ namespace BLTAdoptAHero
 
             if (adoptedHero.Clan.Kingdom == null)
             {
-                // Push MaxClanAlliances into the behavior each call so it stays in sync.
+                // Keep settings in sync
                 if (BLTClanDiplomacyBehavior.Current != null)
                     BLTClanDiplomacyBehavior.Current.MaxClanAlliances = settings.MaxClanAlliances;
+                if (BLTTreatyManager.Current != null)
+                    BLTTreatyManager.Current.MinWarDurationDays = settings.MinWarDuration;
 
-                var earlyArgs = context.Args.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
-                if (earlyArgs.Length > 0 && earlyArgs[0].Equals("clan", StringComparison.OrdinalIgnoreCase))
+                // Single leader check here covers all clan-path branches
+                if (!adoptedHero.IsClanLeader)
                 {
-                    HandleClanCommand(settings, adoptedHero,
-                        earlyArgs.Length > 1 ? earlyArgs[1] : "",
-                        onSuccess, onFailure);
+                    onFailure("You must be your clan's leader to use diplomacy commands");
                     return;
                 }
 
-                // Landed independent clans can also use war / peace commands.
-                if (BLTClanDiplomacyBehavior.IsLanded(adoptedHero.Clan))
+                var clanArgs = context.Args.Split(
+                    new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                var clanCmd = clanArgs.Length > 0 ? clanArgs[0].ToLower() : "";
+                var clanRest = clanArgs.Length > 1 ? clanArgs[1] : "";
+
+                switch (clanCmd)
                 {
-                    var landedArgs = context.Args.Split(
-                        new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    var landedCmd = landedArgs[0].ToLower();
-
-                    if (landedCmd == "war" || landedCmd == "peace")
-                    {
-                        if (!adoptedHero.IsClanLeader)
-                        {
-                            onFailure("You must be your clan's leader to use diplomacy commands");
-                            return;
-                        }
-                        var landedCmdArgs = landedArgs.Skip(1).ToArray();
-                        if (landedCmd == "war")
-                            HandleClanWarCommand(settings, adoptedHero, landedCmdArgs, onSuccess, onFailure);
-                        else
-                            HandleClanPeaceCommand(settings, adoptedHero, landedCmdArgs, onSuccess, onFailure);
+                    case "clan":
+                        HandleClanCommand(settings, adoptedHero, clanRest, onSuccess, onFailure);
                         return;
-                    }
+                    case "war":
+                        HandleClanWarCommand(settings, adoptedHero,
+                            clanRest.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries),
+                            onSuccess, onFailure);
+                        return;
+                    case "peace":
+                        HandleClanPeaceCommand(settings, adoptedHero,
+                            clanRest.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries),
+                            onSuccess, onFailure);
+                        return;
+                    case "info":
+                        HandleClanInfo(adoptedHero, onSuccess, onFailure);
+                        return;
+                    default:
+                        onFailure("Independent clan diplomacy: !diplomacy clan <ally|accept|break|info> [name] | war <target> | peace <target> | info");
+                        return;
                 }
-
-                // Non-landed clans that aren't using "clan" sub-command fall through
-                // to the IsKingdomLeader check below and will get an appropriate error.
             }
 
 
@@ -1407,7 +1409,7 @@ namespace BLTAdoptAHero
                     sb.AppendLine("\n[Wars]");
                     foreach (var war in wars)
                     {
-                        var enemies = war.GetEnemies(kingdom);
+                        var enemies = war.GetEnemies(kingdom).Where(e => !e.IsBanditFaction);
                         string enemyList = string.Join(", ", enemies.Select(e => e.Name.ToString()));
                         sb.AppendLine($"  • {enemyList}");
                     }
@@ -1982,12 +1984,9 @@ namespace BLTAdoptAHero
         private void HandleClanCommand(Settings settings, Hero hero, string subArgs,
             Action<string> onSuccess, Action<string> onFailure)
         {
+            // Kingdom & adoption checks — leader check already done by caller
             if (!hero.IsAdopted())
             { onFailure("Only BLT heroes can use clan diplomacy"); return; }
-            if (hero.Clan.Kingdom != null)
-            { onFailure("You are in a kingdom — use the kingdom diplomacy system (!diplomacy alliance)"); return; }
-            if (hero.Clan.Leader != hero)
-            { onFailure("You must be your clan's leader to use clan diplomacy"); return; }
             if (BLTClanDiplomacyBehavior.Current == null)
             { onFailure("Clan diplomacy system not available"); return; }
 
@@ -2001,8 +2000,19 @@ namespace BLTAdoptAHero
                 case "accept": HandleClanAccept(hero, arg, onSuccess, onFailure); break;
                 case "break": HandleClanBreak(hero, arg, onSuccess, onFailure); break;
                 case "info": HandleClanInfo(hero, onSuccess, onFailure); break;
+                case "ctw": HandleClanCTW(settings, hero, arg, onSuccess, onFailure); break;
+                case "war":
+                    HandleClanWarCommand(settings, hero,
+                        arg.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries),
+                        onSuccess, onFailure);
+                    break;
+                case "peace":
+                    HandleClanPeaceCommand(settings, hero,
+                        arg.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries),
+                        onSuccess, onFailure);
+                    break;
                 default:
-                    onFailure("Usage: !diplomacy clan <ally|accept|break|info> [clan_name]");
+                    onFailure("Usage: !diplomacy clan <ally|accept|break|ctw|info|war|peace> [args]");
                     break;
             }
         }
@@ -2048,22 +2058,96 @@ namespace BLTAdoptAHero
                     $"{hero.Clan.Name} proposes a clan alliance! Use !diplomacy clan accept {hero.Clan.Name}");
         }
 
-
-        // ── 5. HandleClanAccept — unchanged, just reproduced for completeness ─────
-
-        private static void HandleClanAccept(Hero hero, string proposerName,
+        private void HandleClanCTW(Settings settings, Hero hero, string arg,
             Action<string> onSuccess, Action<string> onFailure)
         {
-            if (string.IsNullOrWhiteSpace(proposerName))
-            { onFailure("Specify the proposing clan's name. Usage: !diplomacy clan accept <clan_name>"); return; }
+            // Usage: !diplomacy clan ctw <ally_clan_name> <target_name>
+            var parts = arg.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+            { onFailure("Usage: !diplomacy clan ctw <ally_clan> <target_clan_or_kingdom>"); return; }
 
+            string targetName = parts[parts.Length - 1];
+            string allyName = string.Join(" ", parts.Take(parts.Length - 1));
+
+            var allyClan = FindClanByName(allyName, requireIndependent: true);
+            if (allyClan == null) { onFailure($"Independent clan '{allyName}' not found"); return; }
+
+            IFaction target = (IFaction)FindKingdom(targetName)
+                              ?? FindClanByName(targetName, requireIndependent: false);
+            if (target == null) { onFailure($"Faction '{targetName}' not found"); return; }
+
+            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero) < settings.ClanAllyPrice)
+            {
+                onFailure(Naming.NotEnoughGold(settings.ClanAllyPrice,
+                    BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero)));
+                return;
+            }
+
+            string error = BLTClanDiplomacyBehavior.Current.CreateClanCTWProposal(
+                hero.Clan, allyClan, target, daysToAccept: 10);
+            if (error != null) { onFailure(error); return; }
+
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.ClanAllyPrice, true);
+
+            onSuccess($"Called {allyClan.Name} to war against {target.Name}. They have 10 days to respond.");
+
+            if (allyClan.Leader?.IsAdopted() == true)
+                BLTClanDiplomacyBehavior.NotifyClanLeader(allyClan,
+                    $"{hero.Clan.Name} calls you to war against {target.Name}! " +
+                    $"Accept with: !diplomacy clan accept ctw {hero.Clan.Name}");
+        }
+
+        // ── 5. HandleClanAccept — Replaces the original static HandleClanAccept ─────
+        private static void HandleClanAccept(Hero hero, string arg,
+            Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (string.IsNullOrWhiteSpace(arg))
+            {
+                onFailure("Usage: !diplomacy clan accept <clan_name> | " +
+                          "!diplomacy clan accept ctw <caller_clan_name>");
+                return;
+            }
+
+            var parts = arg.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+
+            // ── CTW accept ────────────────────────────────────────────────────────────
+            if (parts[0].Equals("ctw", StringComparison.OrdinalIgnoreCase))
+            {
+                string callerName = parts.Length > 1 ? parts[1] : "";
+                if (string.IsNullOrWhiteSpace(callerName))
+                { onFailure("Usage: !diplomacy clan accept ctw <caller_clan_name>"); return; }
+
+                var caller = FindClanByName(callerName);
+                if (caller == null) { onFailure($"Clan '{callerName}' not found"); return; }
+
+                string error = BLTClanDiplomacyBehavior.Current.AcceptClanCTW(
+                    hero.Clan, caller, out IFaction target);
+                if (error != null) { onFailure(error); return; }
+
+                AdoptedHeroFlags._allowDiplomacyAction = true;
+                try
+                {
+                    DeclareWarAction.ApplyByDefault(hero.Clan, target);
+                    FactionManager.DeclareWar(hero.Clan, target);
+                }
+                finally { AdoptedHeroFlags._allowDiplomacyAction = false; }
+
+                onSuccess($"Joined {caller.Name}'s war against {target.Name}!");
+                Log.ShowInformation($"{hero.Clan.Name} answered {caller.Name}'s call to war!",
+                    hero.CharacterObject, Log.Sound.Horns2);
+                BLTClanDiplomacyBehavior.NotifyClanLeader(caller,
+                    $"{hero.Clan.Name} has answered your call to war against {target.Name}!");
+                return;
+            }
+
+            // ── Alliance proposal accept ──────────────────────────────────────────────
+            string proposerName = arg;
             var proposer = FindClanByName(proposerName);
             if (proposer == null) { onFailure($"Clan '{proposerName}' not found"); return; }
 
-            string error = BLTClanDiplomacyBehavior.Current.AcceptProposal(hero.Clan, proposer);
-            if (error != null) { onFailure(error); return; }
+            string acceptError = BLTClanDiplomacyBehavior.Current.AcceptProposal(hero.Clan, proposer);
+            if (acceptError != null) { onFailure(acceptError); return; }
 
-            // Show (+N) for vassals on both sides in the success message.
             string heroLabel = BLTClanDiplomacyBehavior.ClanDisplayLabel(hero.Clan);
             string proposerLabel = BLTClanDiplomacyBehavior.ClanDisplayLabel(proposer);
 
@@ -2105,9 +2189,19 @@ namespace BLTAdoptAHero
 
             var alliances = dip.GetAlliancesFor(hero.Clan);
             var proposals = dip.GetProposalsFor(hero.Clan);
+            var ctwProposals = BLTClanDiplomacyBehavior.Current.GetClanCTWProposalsFor(hero.Clan);
 
-            if (alliances.Count == 0 && proposals.Count == 0)
-            { onSuccess($"{hero.Clan.Name} has no active clan alliances or pending proposals"); return; }
+            // Collect all factions the clan is at war with
+            var activeWars = Kingdom.All
+                .Where(k => !k.IsEliminated && hero.Clan.IsAtWarWith(k))
+                .Cast<IFaction>()
+                .Concat(Clan.All
+                    .Where(c => !c.IsEliminated && c.Kingdom == null && c != hero.Clan && hero.Clan.IsAtWarWith(c) && !c.IsBanditFaction))
+                .ToList();
+
+            bool hasAnyData = alliances.Count > 0 || proposals.Count > 0 || activeWars.Count > 0 || ctwProposals.Count > 0;
+            if (!hasAnyData)
+            { onSuccess($"{hero.Clan.Name} has no active clan alliances, wars, or pending proposals"); return; }
 
             var sb = new StringBuilder($"{hero.Clan.Name} Clan Diplomacy");
 
@@ -2115,6 +2209,13 @@ namespace BLTAdoptAHero
             int ownVassals = VassalBehavior.Current?.GetVassalClans(hero.Clan)?.Count ?? 0;
             if (ownVassals > 0)
                 sb.Append($" (+{ownVassals} vassals)");
+
+            if (activeWars.Count > 0)
+            {
+                sb.Append($" | Wars({activeWars.Count}):");
+                foreach (var enemy in activeWars)
+                    sb.Append($" {enemy.Name}({(int)enemy.CurrentTotalStrength}str)");
+            }
 
             if (alliances.Count > 0)
             {
@@ -2124,7 +2225,7 @@ namespace BLTAdoptAHero
                     var other = a.GetOther(hero.Clan);
                     if (other == null) continue;
                     int days = (int)(CampaignTime.Now.ToDays - a.StartDays);
-                    string lbl = BLTClanDiplomacyBehavior.ClanDisplayLabel(other); // (+N) for vassals
+                    string lbl = BLTClanDiplomacyBehavior.ClanDisplayLabel(other);
                     bool otherHasArmy = BLTClanArmyBehavior.Current?.HasClanArmy(other) == true;
                     sb.Append($" {lbl}(+{days}d{(otherHasArmy ? ",army" : "")})");
                 }
@@ -2141,9 +2242,15 @@ namespace BLTAdoptAHero
                 }
             }
 
+            if (ctwProposals.Count > 0)
+            {
+                sb.Append($" | CTW Calls({ctwProposals.Count}):");
+                foreach (var (caller, target, daysLeft) in ctwProposals)
+                    sb.Append($" {caller?.Name}→{target?.Name}({daysLeft}d left)");
+            }
+
             onSuccess(sb.ToString());
         }
-
 
         // ── 8. NEW — HandleClanWarCommand ─────────────────────────────────────────
         //    Allows landed independent clans to declare war on other clans or kingdoms.
@@ -2172,6 +2279,13 @@ namespace BLTAdoptAHero
 
             if (target == null)
             { onFailure($"Could not find kingdom or independent clan '{tgtName}'"); return; }
+
+            if (tgtClan != null && BLTClanDiplomacyBehavior.Current?.HasAlliance(clan, tgtClan) == true)
+            {
+                onFailure($"Cannot declare war on {target.Name} — you are allied. " +
+                          $"Use !diplomacy clan break {tgtName} first.");
+                return;
+            }
 
             if (clan.IsAtWarWith(target))
             { onFailure($"Already at war with {target.Name}"); return; }
@@ -2240,9 +2354,7 @@ namespace BLTAdoptAHero
         private void HandleClanPeaceCommand(Settings settings, Hero hero, string[] args,
             Action<string> onSuccess, Action<string> onFailure)
         {
-            if (!settings.PeaceEnabled)
-            { onFailure("Peace is disabled"); return; }
-
+            if (!settings.PeaceEnabled) { onFailure("Peace is disabled"); return; }
             if (args.Length == 0)
             { onFailure("Usage: !diplomacy peace <clan_or_kingdom_name>"); return; }
 
@@ -2250,69 +2362,90 @@ namespace BLTAdoptAHero
             var clan = hero.Clan;
 
             Kingdom tgtKingdom = FindKingdom(tgtName);
-            Clan tgtClan = tgtKingdom == null
-                ? FindClanByName(tgtName, requireIndependent: false) // can peace non-independent
-                : null;
+            Clan tgtClan = tgtKingdom == null ? FindClanByName(tgtName, requireIndependent: false) : null;
             IFaction target = (IFaction)tgtKingdom ?? tgtClan;
 
-            if (target == null)
-            { onFailure($"Could not find kingdom or clan '{tgtName}'"); return; }
+            if (target == null) { onFailure($"Could not find kingdom or clan '{tgtName}'"); return; }
+            if (!clan.IsAtWarWith(target)) { onFailure($"Not at war with {target.Name}"); return; }
 
-            if (!clan.IsAtWarWith(target))
-            { onFailure($"Not at war with {target.Name}"); return; }
+            // ── Check if target already proposed peace to us — accept it ─────────────
+            if (tgtClan != null &&
+                BLTClanDiplomacyBehavior.Current?.HasClanPeaceProposalFrom(tgtClan, clan) == true)
+            {
+                if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero) < settings.PeacePrice)
+                {
+                    onFailure(Naming.NotEnoughGold(settings.PeacePrice,
+                        BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero)));
+                    return;
+                }
+
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
+                BLTClanDiplomacyBehavior.Current.RemoveClanPeaceProposal(tgtClan, clan);
+
+                AdoptedHeroFlags._allowDiplomacyAction = true;
+                try
+                {
+                    MakePeaceAction.Apply(clan, target);
+                    FactionManager.SetNeutral(clan, target);
+                }
+                finally { AdoptedHeroFlags._allowDiplomacyAction = false; }
+
+                Hero tgtLeaderAccept = tgtClan.Leader;
+                if (tgtLeaderAccept?.IsAdopted() == true)
+                    BLTClanDiplomacyBehavior.NotifyClanLeader(tgtClan,
+                        $"{clan.Name} has accepted your peace offer!");
+
+                onSuccess($"Peace accepted with {target.Name}");
+                Log.ShowInformation($"{clan.Name} made peace with {target.Name}!", hero.CharacterObject);
+                return;
+            }
 
             if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero) < settings.PeacePrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.PeacePrice,
-                BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero))); return;
-            }
-
-            Hero tgtLeader = tgtKingdom?.Leader ?? tgtClan?.Leader;
-            bool tgtIsBLT = tgtLeader != null && tgtLeader.IsAdopted();
-            bool tgtIsMain = tgtLeader == Hero.MainHero;
-
-            // If target is BLT-led or the main hero's kingdom, create a proposal.
-            if (tgtIsBLT || tgtIsMain)
-            {
-                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
-
-                // Reuse the BLTClanAllianceProposal as a peace-proposal carrier
-                // by storing it in the clan diplomacy behavior's proposal dict with a
-                // special naming convention so accept/reject can find it.
-                // Simpler: just notify the target and let them do !diplomacy peace <clan>.
-                // They'll pay their own PeacePrice when accepting.
-
-                onSuccess($"Peace offer sent to {target.Name}. They must use " +
-                          $"!diplomacy peace {clan.Name} to accept.");
-
-                if (tgtLeader != null && tgtIsBLT)
-                {
-                    string tName = tgtLeader.FirstName.ToString()
-                        .Replace(BLTAdoptAHeroModule.Tag, "")
-                        .Replace(BLTAdoptAHeroModule.DevTag, "")
-                        .Trim();
-                    Log.LogFeedResponse(
-                        $"@{tName} {clan.Name} offers peace! Use !diplomacy peace {clan.Name} to accept.");
-                }
+                    BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(hero)));
                 return;
             }
 
-            // AI target — force peace immediately, no tribute.
-            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
+            Hero tgtLeader = tgtKingdom?.Leader ?? tgtClan?.Leader;
+            bool tgtIsBLT = tgtLeader?.IsAdopted() == true;
 
+            // ── BLT or player target: create a formal proposal ────────────────────────
+            if (tgtIsBLT || tgtLeader == Hero.MainHero)
+            {
+                if (tgtClan == null)
+                { onFailure("Clan peace proposals only supported for independent clans currently"); return; }
+
+                BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
+                string propError = BLTClanDiplomacyBehavior.Current?.CreateClanPeaceProposal(clan, tgtClan, 10);
+                if (propError != null)
+                {
+                    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, settings.PeacePrice, false);
+                    onFailure(propError);
+                    return;
+                }
+
+                onSuccess($"Peace offer sent to {target.Name} (10 days to respond). " +
+                          $"They can accept with: !diplomacy peace {clan.Name}");
+
+                if (tgtIsBLT)
+                    BLTClanDiplomacyBehavior.NotifyClanLeader(tgtClan,
+                        $"{clan.Name} offers peace! Accept with !diplomacy peace {clan.Name}");
+                return;
+            }
+
+            // ── AI target: force peace immediately ───────────────────────────────────
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(hero, -settings.PeacePrice, true);
             AdoptedHeroFlags._allowDiplomacyAction = true;
             try
             {
                 MakePeaceAction.Apply(clan, target);
                 FactionManager.SetNeutral(clan, target);
             }
-            finally
-            {
-                AdoptedHeroFlags._allowDiplomacyAction = false;
-            }
+            finally { AdoptedHeroFlags._allowDiplomacyAction = false; }
 
             onSuccess($"Made peace with {target.Name}");
-            Log.ShowInformation($"{clan.Name} has made peace with {target.Name}!", hero.CharacterObject);
+            Log.ShowInformation($"{clan.Name} made peace with {target.Name}!", hero.CharacterObject);
         }
 
 
@@ -2542,7 +2675,7 @@ namespace BLTAdoptAHero
             // This is the old diplomacy code from the original Diplomacy.cs file
             // Keeping it as a fallback when new system is disabled
             // [Include original Diplomacy.cs implementation here]
-            onFailure("Old diplomacy system - use the attached original Diplomacy.cs");
+            onFailure("Old diplomacy system - use the 'simple diplomacy' handler instead (yes this toggle doesn't work, lol)");
         }
     }
 }

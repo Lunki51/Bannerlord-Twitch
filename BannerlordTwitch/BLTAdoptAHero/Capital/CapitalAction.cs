@@ -47,7 +47,6 @@ namespace BLTAdoptAHero.Actions
             var cfg = GlobalCommonConfig.Get()?.CapitalConfig;
             if (cfg == null || !cfg.Enabled) { fail("Capital system is not configured"); return; }
             if (hero.Clan == null) { fail("You are not in a clan"); return; }
-            if (!hero.IsClanLeader) { fail("Only clan leaders can manage the capital"); return; }
 
             if (ctx.Args.IsEmpty()) { ShowInfo(hero, cfg, ok, fail); return; }
 
@@ -71,11 +70,20 @@ namespace BLTAdoptAHero.Actions
         }
 
         // ── Permission check ──────────────────────────────────────────────────
+        // Added a baseline clan-leader / kingdom-ruler check at the top, so all
+        // permission logic is consolidated here rather than split with the outer gate.
         private static bool HasPermission(Hero hero, CapitalConfig cfg, out string err)
         {
             err = null;
             bool independent = hero.Clan.Kingdom == null;
             bool isRuler = !independent && hero.Clan.Kingdom.Leader == hero;
+
+            // Baseline: must be clan leader or kingdom ruler
+            if (!hero.IsClanLeader && !isRuler)
+            {
+                err = "Only clan leaders can manage the capital";
+                return false;
+            }
 
             if (independent && cfg.AllowIndependentClans) return true;
             if (!independent && (!cfg.RequireRulingClan || isRuler)) return true;

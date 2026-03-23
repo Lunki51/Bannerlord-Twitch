@@ -170,27 +170,42 @@ namespace BLTAdoptAHero.Actions
                 }
             }
 
-            // === MERCENARY INCOME ===
-            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
+            // === FLAT INCOME ===
+            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled)
             {
-                int mercIncome = (int)(CalculateMercenaryIncome(clan) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
-                int bonusMerc = (int)(UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader) * UpgradeBehavior.Current.GetPercentClanMercBonus(clan));
-
-                int vassalMercIncome = 0;
-                if (VassalBehavior.Current != null)
+                if (clan.IsUnderMercenaryService)
                 {
-                    vassalMercIncome = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
+                    float mercMult = UpgradeBehavior.Current.GetPercentClanMercBonus(clan);
+                    int mercIncome = (int)(CalculateMercenaryIncome(clan) * mercMult);
+                    int bonusMerc = (int)(UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader) * mercMult);
+
+                    int vassalMercIncome = 0;
+                    if (VassalBehavior.Current != null)
+                        vassalMercIncome = VassalBehavior.Current.CalculateVassalMercenaryBonus(clan);
+
+                    totalIncome += mercIncome + bonusMerc + vassalMercIncome;
+
+                    sb.Append($"Mercenary: +{mercIncome}{(bonusMerc > 0 ? $"(+{bonusMerc})" : "")}");
+                    if (vassalMercIncome > 0)
+                        sb.Append($" | Vassal contracts: +{vassalMercIncome}");
+                    sb.Append(" | ");
                 }
-
-                int totalMercIncome = mercIncome + bonusMerc + vassalMercIncome;
-                totalIncome += totalMercIncome;
-
-                sb.Append($"Mercenary: +{mercIncome}{(bonusMerc > 0 ? $"(+{bonusMerc})" : "")}");
-                if (vassalMercIncome > 0)
+                else
                 {
-                    sb.Append($" | Vassal contracts: +{vassalMercIncome}");
+                    int flatBonus = UpgradeBehavior.Current.GetFlatMercBonusAllClans(clan);
+                    if (flatBonus > 0)
+                    {
+                        totalIncome += flatBonus;
+                        sb.Append($"Income bonus: +{flatBonus} | ");
+                    }
+
+                    int vassalMercIncome = VassalBehavior.Current?.CalculateVassalMercenaryBonus(clan) ?? 0;
+                    if (vassalMercIncome > 0)
+                    {
+                        totalIncome += vassalMercIncome;
+                        sb.Append($"Vassal contracts: +{vassalMercIncome} | ");
+                    }
                 }
-                sb.Append(" | ");
             }
 
             // === TRIBUTE INCOME ===
