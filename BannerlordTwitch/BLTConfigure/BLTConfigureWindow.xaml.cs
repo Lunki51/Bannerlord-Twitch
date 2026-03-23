@@ -267,8 +267,10 @@ namespace BLTConfigure
             "user:read:email",
             "chat:edit",
             "chat:read",
-            //"whispers:edit",
             "whispers:read",
+            "channel:read:subscriptions",
+            "channel:read:redemptions",
+            "channel:manage:redemptions",
         };
 
         private static readonly SolidColorBrush ErrorStatusForeground = Brushes.Crimson;

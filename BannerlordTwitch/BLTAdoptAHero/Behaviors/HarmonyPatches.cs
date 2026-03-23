@@ -8,6 +8,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Map;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
@@ -17,6 +18,8 @@ using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
 using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
+using TaleWorlds.CampaignSystem.CampaignBehaviors.AiBehaviors;
+using TaleWorlds.CampaignSystem.Siege;
 using System.Linq;
 using TaleWorlds.CampaignSystem.MapEvents;
 using System.Runtime.CompilerServices;
@@ -969,28 +972,19 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Let vanilla handle all kingdom armies — we only care about null-kingdom clan armies.
                 if (__instance.Kingdom != null) return true;
 
-                // Pick a friendly gathering point for the clan.
-                // Fall back to focusSettlement (the order target) as a last resort so the
-                // army at least moves somewhere even if it finds nothing friendly.
                 var gather = BLTClanArmyBehavior.FindClanGatherSettlement(__instance)
                              ?? focusSettlement;
 
                 if (gather == null)
                 {
-                    // Truly nothing to gather at — hold position.
                     __instance.LeaderParty.SetMoveModeHold();
                     return false;
                 }
 
-                // Set the army's AI target to the gathering settlement so the
-                // gathering state machine works correctly.
                 __instance.AiBehaviorObject = gather;
 
-                // Replicate SendLeaderPartyToReachablePointAroundPosition (private in Army).
-                // Vanilla always uses GatePosition here, matching our replication exactly.
                 __instance.LeaderParty.SetMoveGoToPoint(
                     NavigationHelper.FindReachablePointAroundPosition(
                         gather.GatePosition,
@@ -1000,12 +994,42 @@ namespace BLTAdoptAHero
                         false),
                     __instance.LeaderParty.NavigationCapability);
 
-                return false; // skip vanilla body
+                return false;
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] BLT_ClanArmyFindGatheringPatch error: {ex}");
-                return true; // fail-safe: let vanilla run
+                return true;
+            }
+        }
+    }
+
+    #endregion
+
+    #region ClanSiegePatches
+
+    [HarmonyPatch(typeof(AiPartyThinkBehavior), "PartyHourlyAiTick")]
+    internal static class BLT_PartyHourlyAiTickPatch
+    {
+        [HarmonyPrefix]
+        static bool Prefix(MobileParty mobileParty)
+        {
+            try
+            {
+                // If this party has an active siege order, skip the vanilla AI tick entirely
+                // — our PartyOrderBehavior.OnHourlyTickParty handles it instead
+                var order = PartyOrderBehavior.Current?.GetActiveOrder(mobileParty.StringId);
+                if (order?.Type != PartyOrderType.Siege) return true;
+                if (mobileParty.MapFaction.IsKingdomFaction) return true;
+                if (mobileParty.MapFaction == Clan.PlayerClan.MapFaction) return true;
+
+                //Log.Trace("AiPartyTick");
+                return false; // Skip vanilla tick — prevent Hold/disband interference
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_PartyHourlyAiTickPatch error: {ex}");
+                return true;
             }
         }
     }
