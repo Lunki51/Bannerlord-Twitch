@@ -333,6 +333,7 @@
     <Compile Include="Actions\CampaignInfo.cs" />
     <Compile Include="Actions\BattleInfo.cs" />
     <Compile Include="Actions\CampaignLogs.cs" />
+    <Compile Include="Actions\VassalCommand.cs" />
     <Compile Include="Actions\FormationCommand.cs" />
     <Compile Include="Actions\EquipCustomItem.cs" />
     <Compile Include="Actions\ManageFief.cs" />
@@ -394,6 +395,7 @@
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\BLTLogsBehavior.cs" />
+    <Compile Include="Behaviors\BLTHeroDetachmentBehavior.cs" />
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
