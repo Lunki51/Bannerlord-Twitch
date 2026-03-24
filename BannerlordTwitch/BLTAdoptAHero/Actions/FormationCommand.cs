@@ -65,8 +65,9 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Cannot change formation in tournament");
                 return;
             }
+            var splitArgs = context.Args.Split(' ');
 
-            string num = context.Args.Length > 0 ? context.Args[0].ToString() : "";
+            string num = context.Args.Length > 0 ? splitArgs[0].ToString() : "";
 
             var agent = adoptedHero.GetAgent();
             if (agent == null)
@@ -79,6 +80,41 @@ namespace BLTAdoptAHero.Actions
             if (currentFormation == null)
             {
                 onFailure("No formation");
+                return;
+            }
+           
+            var behavior = BLTHeroDetachmentBehavior.Current;
+            var keywords = new[] { "detach", "attach", "charge", "hold", "mimic", "gate", "climb" };
+            if (keywords.Contains(num))
+            {
+                
+                if (behavior == null) { onFailure("Detachment system not active"); return; }
+
+                string error = num switch
+                {
+                    "detach" => behavior.Detach(agent),
+                    "attach" => behavior.Attach(agent),
+                    "charge" => behavior.Charge(agent),
+                    "hold" => behavior.Hold(agent),
+                    "mimic" => behavior.Mimic(agent),
+                    "gate" => behavior.TargetDoor(agent),
+                    "walls" => behavior.Walls(agent),
+                    _ => "Unknown command"
+                };
+
+                if (error != null) onFailure(error);
+                else onSuccess($"{num} ok");
+                return;
+            }
+
+            if (num == "front" || num == "back")
+            {
+                if (behavior.IsDetached(agent))
+                {
+                    onFailure("Reattach before moving");
+                    return;
+                }
+                SetHeroFormationPosition(agent, num, onSuccess, onFailure);
                 return;
             }
 
@@ -119,7 +155,11 @@ namespace BLTAdoptAHero.Actions
                     onSuccess($"{formType} {position}/{count} {currentFormation.CountOfUnits} | {sb}");
                     return;
                 }
-
+                if (behavior.IsDetached(agent))
+                {
+                    onFailure("Reattach before changing formations");
+                    return;
+                }
                 if (numb > count || numb <= 0)
                 {
                     onFailure("Invalid number");
@@ -169,7 +209,11 @@ namespace BLTAdoptAHero.Actions
                     onSuccess($"{formType} {position}/{count} {currentFormation.CountOfUnits} | {sb}");
                     return;
                 }
-
+                if (behavior.IsDetached(agent))
+                {
+                    onFailure("Reattach before changing formations");
+                    return;
+                }
                 if (numb > count || numb <= 0)
                 {
                     onFailure("Invalid number");
@@ -251,5 +295,57 @@ namespace BLTAdoptAHero.Actions
             _ => "--"
         };
 
+        private void SetHeroFormationPosition(Agent heroAgent, string position, Action<string> onSuccess, Action<string> onFailure)
+        {
+            var formation = heroAgent.Formation;
+            if (formation == null) { onFailure("No formation"); return; }
+
+            var unit = heroAgent as IFormationUnit;
+            if (unit == null) { onFailure("Not a formation unit"); return; }
+
+            var arrangement = formation.Arrangement;
+
+            try
+            {
+                switch (position.ToLowerInvariant())
+                {
+                    case "front":
+                        {
+                            var candidate = arrangement.GetAllUnits()
+                                .Select(u => u as Agent)
+                                .Where(a => a != null && a != heroAgent && a.GetHero() == null)
+                                .OrderBy(a => ((IFormationUnit)a).FormationRankIndex)
+                                .ThenBy(a => ((IFormationUnit)a).FormationFileIndex)
+                                .FirstOrDefault();
+
+                            if (candidate == null) { onFailure("No troop found"); break; }
+
+                            arrangement.SwitchUnitLocationsWithUnpositionedUnit(candidate, unit);
+                            onSuccess($"Moved to front");
+                            break;
+                        }
+
+                    case "back":
+                        {
+                            var candidate = arrangement.GetAllUnits()
+                                .Select(u => u as Agent)
+                                .Where(a => a != null && a != heroAgent && a.GetHero() == null)
+                                .OrderByDescending(a => ((IFormationUnit)a).FormationRankIndex)
+                                .ThenBy(a => ((IFormationUnit)a).FormationFileIndex)
+                                .FirstOrDefault();
+
+                            if (candidate == null) { onFailure("No troop found"); break; }
+
+                            arrangement.SwitchUnitLocationsWithUnpositionedUnit(candidate, unit);
+                            onSuccess($"Moved to back");
+                            break;
+                        }
+                }
+            }
+            catch (Exception e)
+            {
+                onFailure($"Formation type does not support this operation ({e.Message})");
+            }
+        }
     }
 }
