@@ -2,13 +2,14 @@
     "name": "blt-overlay-server",
     "version": "1.0.0",
     "description": "BLT Overlay local relay server",
+    "type": "commonjs",
     "main": "server.js",
     "scripts": {
         "start": "node server.js"
     },
     "dependencies": {
-        "express": "^4.18.2",
+        "express": "^4.22.1",
         "open": "^9.1.0",
-        "ws": "^8.16.0"
+        "ws": "^8.20.0"
     }
 }

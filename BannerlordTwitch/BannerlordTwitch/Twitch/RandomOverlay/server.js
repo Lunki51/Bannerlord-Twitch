@@ -11,7 +11,7 @@ const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 const fs = require('fs');
 const path = require('path');
-const open = require('open');
+const open = require('open').default;
 
 // ── Config ────────────────────────────────────────────────────
 const CONFIG_PATH = path.join(__dirname, 'config.json');
@@ -184,9 +184,9 @@ server.listen(PORT_HTTP, () => {
     console.log('╔══════════════════════════════════════════════╗');
     console.log('║         BLT Overlay — Local Server           ║');
     console.log('╠══════════════════════════════════════════════╣');
-    console.log(`║  Overlay URL  →  http://localhost:${PORT_HTTP}        ║`);
-    console.log(`║  Game WS      →  ws://localhost:${PORT_HTTP}/ws       ║`);
-    console.log(`║  Status       →  http://localhost:${PORT_HTTP}/status ║`);
+    console.log(`║  Overlay URL  →  http://localhost:${PORT_HTTP}       ║`);
+    console.log(`║  Game WS      →  ws://localhost:${PORT_HTTP}/ws      ║`);
+    console.log(`║  Status       →  http://localhost:${PORT_HTTP}/status║`);
     if (config.clientId)
         console.log(`║  Auth         →  http://localhost:${PORT_HTTP}/auth   ║`);
     console.log('╚══════════════════════════════════════════════╝');

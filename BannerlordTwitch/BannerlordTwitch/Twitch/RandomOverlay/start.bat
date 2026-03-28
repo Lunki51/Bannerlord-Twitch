@@ -2,60 +2,101 @@
 title BLT Overlay Server
 cd /d "%~dp0"
 
-:: Refresh PATH from registry so a freshly installed Node.js is found
-:: without needing to open a new command prompt window
-for /f "tokens=2*" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path 2^>nul') do set "PATH=%%b;%PATH%"
-for /f "tokens=2*" %%a in ('reg query "HKCU\Environment" /v Path 2^>nul') do set "PATH=%%b;%PATH%"
+:: ── Locate Node.js ────────────────────────────────────────────
+set "NODE_EXE="
 
-:: Check Node.js
+:: Try PATH first
 where node >nul 2>&1
-if %errorlevel% neq 0 (
+if not errorlevel 1 set "NODE_EXE=node"
+
+:: Fallback to common locations if PATH failed
+if "%NODE_EXE%"=="" if exist "C:\Program Files\nodejs\node.exe" set "NODE_EXE=C:\Program Files\nodejs\node.exe"
+if "%NODE_EXE%"=="" if exist "C:\Program Files (x86)\nodejs\node.exe" set "NODE_EXE=C:\Program Files (x86)\nodejs\node.exe"
+if "%NODE_EXE%"=="" if exist "%LOCALAPPDATA%\Programs\nodejs\node.exe" set "NODE_EXE=%LOCALAPPDATA%\Programs\nodejs\node.exe"
+
+if "%NODE_EXE%"=="" (
     echo.
-    echo  MISSING: Node.js is not installed.
-    echo  Download it from: https://nodejs.org  (click the LTS button)
-    echo  Run the installer, click through the defaults, then run this file again.
+    echo  *** MISSING: Node.js ***
+    echo  Node.js was not found on PATH or in common install locations.
+    echo  Download it from: https://nodejs.org (click the LTS button)
     echo.
     pause
     exit /b 1
 )
 
-:: Check npm (should come with Node but occasionally breaks)
+echo [OK] Node.js found: %NODE_EXE%
+"%NODE_EXE%" --version
+
+:: ── Locate npm ───────────────────────────────────────────────
 where npm >nul 2>&1
-if %errorlevel% neq 0 (
+if errorlevel 1 (
     echo.
-    echo  MISSING: npm is not installed (it normally comes with Node.js).
+    echo  *** MISSING: npm ***
+    echo  npm was not found on your PATH.
     echo  Try reinstalling Node.js from: https://nodejs.org
-    echo  Run the installer, click through the defaults, then run this file again.
+    echo.
+    pause
+    exit /b 1
+) else (
+    set "NPM_CMD=npm"
+    echo [OK] npm found: %NPM_CMD%
+    "%NPM_CMD%" --version
+)
+
+:: ── Ensure server.js exists ───────────────────────────────────
+if not exist "server.js" (
+    echo.
+    echo  *** ERROR: server.js not found ***
+    echo  Make sure this file is in the same folder as this script.
     echo.
     pause
     exit /b 1
 )
 
-:: Install dependencies if needed
+:: ── Install dependencies if needed ────────────────────────────
 if not exist "node_modules" (
+    echo.
     echo Installing dependencies, please wait...
-    call npm install
-    if %errorlevel% neq 0 (
-        echo npm install failed. Check your internet connection.
+    call "%NPM_CMD%" install
+    if errorlevel 1 (
+        echo.
+        echo  npm install failed. Check your internet connection and try again.
+        echo.
         pause
         exit /b 1
     )
 )
 
-:: Create public dir if missing
+:: ── Create public folder if missing ──────────────────────────
 if not exist "public" mkdir public
 
-:: Warn if ting.html isn't in place
-if not exist "public\ting.html" (
+:: ── Warn if overlay HTML is missing ───────────────────────────
+dir /b "public\*.html" >nul 2>&1
+if errorlevel 1 (
     echo.
-    echo  WARNING: public\ting.html not found.
-    echo  Copy ting.html into the public\ folder.
+    echo  WARNING: No HTML file found in public\
+    echo  Copy your overlay HTML file into the public\ folder.
     echo.
 )
 
+:: ── Start server ──────────────────────────────────────────────
 echo.
 echo  Starting BLT Overlay Server...
 echo  Press Ctrl+C to stop.
 echo.
-node server.js
-pause
+
+:: Run Node and capture exit code
+"%NODE_EXE%" server.js
+set SERVER_EXIT=%ERRORLEVEL%
+
+if %SERVER_EXIT% neq 0 (
+    echo.
+    echo  *** Server exited with error code %SERVER_EXIT% ***
+    echo  Check server.js and dependencies.
+    echo.
+    pause
+) else (
+    echo.
+    echo  Server exited normally.
+    pause
+)
