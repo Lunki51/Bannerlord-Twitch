@@ -11,9 +11,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using BannerlordTwitch.Util;
 using TwitchLib.Api.Core.Enums;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.CSharp;
-using System.IdentityModel.Tokens.Jwt;
+using BannerlordTwitch.BLTOverlay;
 
 namespace BannerlordTwitch
 {
@@ -120,7 +118,7 @@ namespace BannerlordTwitch
 
         // ── PubSub POST (direct HttpClient, no TwitchLib helpers) ────────────
 
-        private async Task PostAsync(string[] targets, ExtensionMessage inner)
+        private async Task PostAsync(string[] targets, object inner)
         {
             try
             {
@@ -243,6 +241,46 @@ namespace BannerlordTwitch
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string user { get; set; }
             public string[] messages { get; set; }
+        }
+
+        public async Task SendWireBroadcastAsync(BltWireMessage wire)
+        {
+            await PostAsync(new[] { "broadcast" }, wire);
+        }
+
+        public async Task SendWireWhisperToUserNameAsync(string userName, BltWireMessage wire)
+        {
+            var userId = await ResolveUserIdAsync(userName);
+            if (userId == null)
+            {
+                Log.Trace($"[ExtensionPubSub] Could not resolve userId for '{userName}', skipping whisper");
+                return;
+            }
+
+            await PostAsync(new[] { $"whisper-U{userId}" }, wire);
+        }
+    }
+
+    namespace BLTOverlay
+    {
+        public class BltWireMessage
+        {
+            public int V { get; set; } = 1;
+            public string Id { get; set; } = Guid.NewGuid().ToString("N");
+            public string Kind { get; set; } = "event";
+            public string Source { get; set; } = "game";
+            public string Target { get; set; } = "overlay";
+            public BltWireUser User { get; set; }
+            public long Ts { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            public string Command { get; set; }
+            public string Args { get; set; }
+            public object Data { get; set; }
+        }
+
+        public class BltWireUser
+        {
+            public string Id { get; set; }
+            public string Name { get; set; }
         }
     }
 }
