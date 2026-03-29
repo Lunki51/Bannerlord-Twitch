@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using TaleWorlds.MountAndBlade;
 using TaleWorlds.Core;
@@ -10,12 +11,34 @@ namespace BLTAdoptAHero
 {
     internal class BLTHeroDetachmentBehavior : AutoMissionBehavior<BLTHeroDetachmentBehavior>
     {
-        private readonly Dictionary<Agent, HeroDetachment> _detachments = new();
+        private enum DetachmentOrder { None, Hold, Follow, Navigate }
+
+        private class DetachmentState
+        {
+            public HeroDetachment Detachment;
+            public DetachmentOrder Order = DetachmentOrder.None;
+            public WorldPosition HoldPosition;
+            public WorldPosition NavigationTarget;
+            //public WorldPosition WaypointTarget;
+            public bool HasWaypoint;
+            public float LastNavigationReissueTime;
+            //public List<int> BlockedNavmeshIds = new();
+        }
+
+        private readonly Dictionary<Agent, DetachmentState> _detachments = new();
 
         public bool IsDetached(Agent agent) => _detachments.ContainsKey(agent);
 
         public bool TryGetDetachment(Agent agent, out HeroDetachment detachment)
-            => _detachments.TryGetValue(agent, out detachment);
+        {
+            if (_detachments.TryGetValue(agent, out var state))
+            {
+                detachment = state.Detachment;
+                return true;
+            }
+            detachment = null;
+            return false;
+        }
 
         public string Detach(Agent agent)
         {
@@ -29,70 +52,70 @@ namespace BLTAdoptAHero
             var detachment = new HeroDetachment(formation);
             formation.JoinDetachment(detachment);
             detachment.AddAgentAtSlotIndex(agent, 0);
-            _detachments[agent] = detachment;
+            _detachments[agent] = new DetachmentState { Detachment = detachment };
             return null;
         }
 
         public string Attach(Agent agent)
         {
-            if (!_detachments.TryGetValue(agent, out var detachment))
+            if (!_detachments.TryGetValue(agent, out var state))
                 return "Not detached";
 
-            CleanupDetachment(agent, detachment);
+            CleanupDetachment(agent, state);
             return null;
         }
 
         public string Charge(Agent agent)
         {
-            if (!_detachments.TryGetValue(agent, out var detachment))
+            if (!_detachments.TryGetValue(agent, out var state))
                 return "Not detached";
 
+            // Clear all scripted movement so AI is completely free
             agent.DisableScriptedMovement();
             agent.DisableScriptedCombatMovement();
             agent.SetScriptedCombatFlags(Agent.AISpecialCombatModeFlags.None);
+            agent.SetScriptedFlags(Agent.AIScriptedFrameFlags.None);
 
-            var closestEnemy = detachment.ParentFormation?.CachedClosestEnemyFormation;
-            if (closestEnemy != null)
-                agent.SetTargetFormationIndex(closestEnemy.Formation.Index);
+            // Point at closest enemy formation
+            var closestFormation = state.Detachment.ParentFormation?.CachedClosestEnemyFormation;
+            if (closestFormation != null)
+                agent.SetTargetFormationIndex(closestFormation.Formation.Index);
 
+            state.Order = DetachmentOrder.None;
             return null;
         }
 
         public string Hold(Agent agent)
         {
-            if (!_detachments.ContainsKey(agent))
+            if (!_detachments.TryGetValue(agent, out var state))
                 return "Not detached";
 
-            agent.DisableScriptedMovement();
-            agent.DisableScriptedCombatMovement();
-            var pos = agent.GetWorldPosition();
-            agent.SetScriptedPosition(ref pos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
+            state.HoldPosition = agent.GetWorldPosition();
+            state.Order = DetachmentOrder.Hold;
+
+            ApplyHold(agent, state);
             return null;
         }
 
-        public string Mimic(Agent agent)
+        public string Follow(Agent agent)
         {
-            if (!_detachments.TryGetValue(agent, out var detachment))
+            if (!_detachments.TryGetValue(agent, out var state))
                 return "Not detached";
 
-            var parent = detachment.ParentFormation;
+            var parent = state.Detachment.ParentFormation;
             if (parent == null)
                 return "No parent formation";
 
+            // Clear scripted movement — tick will reapply behind median position
             agent.DisableScriptedMovement();
             agent.DisableScriptedCombatMovement();
-
-            var order = parent.GetReadonlyMovementOrderReference();
-            var pos = order.CreateNewOrderWorldPositionMT(parent, WorldPosition.WorldPositionEnforcedCache.NavMeshVec3);
-            if (pos.IsValid)
-                agent.SetScriptedPosition(ref pos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
-
+            state.Order = DetachmentOrder.Follow;
             return null;
         }
 
         public string TargetDoor(Agent agent)
         {
-            if (!_detachments.ContainsKey(agent))
+            if (!_detachments.TryGetValue(agent, out var state))
                 return "Not detached";
 
             CastleGate nearestGate = null;
@@ -114,17 +137,24 @@ namespace BLTAdoptAHero
             if (nearestGate == null)
                 return "No gate found";
 
+            
             agent.DisableScriptedMovement();
+
             if (agent.Team.IsAttacker)
-            {                        
+            {
+                state.Order = DetachmentOrder.None;
                 agent.SetScriptedTargetEntity(
-                nearestGate.GameEntity,
-                Agent.AISpecialCombatModeFlags.AttackEntity,
-                true);
+                    nearestGate.GameEntity,
+                    Agent.AISpecialCombatModeFlags.AttackEntity,
+                    true);
             }
             else
-            {
-                var pos = nearestGate.DefenseWaitFrame.Origin;
+            {// In TargetDoor and Walls, after finding target:
+                var pos = nearestGate.MiddlePosition.Position;
+                state.NavigationTarget = pos;
+                state.Order = DetachmentOrder.Navigate;
+                state.LastNavigationReissueTime = Mission.Current.CurrentTime;
+                SetAgentNavigatingAggressively(agent);
                 agent.SetScriptedPosition(ref pos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
             }
 
@@ -133,117 +163,211 @@ namespace BLTAdoptAHero
 
         public string Walls(Agent agent)
         {
-            if (!_detachments.ContainsKey(agent))
+            if (!_detachments.TryGetValue(agent, out var state))
                 return "Not detached";
 
-            float nearestDist;
-            WorldPosition targetPos;
+            state.Order = DetachmentOrder.None;
+            agent.DisableScriptedMovement();
+            agent.DisableScriptedCombatMovement();
 
-            // ─────────────────────────────
-            // 1. WALLS
-            // ─────────────────────────────
-            nearestDist = float.MaxValue;
-            targetPos = default;
+            float nearestDist = float.MaxValue;
+            WorldPosition targetPos = default;
+            bool found = false;
 
-            foreach (var obj in Mission.ActiveMissionObjects)
+            // Find nearest gate to use as an obstacle reference
+            CastleGate nearestGate = null;
+            float nearestGateDist = float.MaxValue;
+            foreach (var obj in Mission.Current.ActiveMissionObjects)
             {
-                if (obj is not WallSegment wall)
-                    continue;
-
-                if (!wall.IsBreachedWall && agent.Team.IsAttacker)
-                    continue;
-
-                var pos = agent.Team.IsAttacker ? wall.AttackerWaitFrame : wall.DefenseWaitFrame;
-                float dist = wall.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
-
-                if (dist < nearestDist)
+                if (obj is not CastleGate gate) continue;
+                float dist = gate.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
+                if (dist < nearestGateDist)
                 {
-                    nearestDist = dist;
-                    targetPos = pos.Origin;
+                    nearestGateDist = dist;
+                    nearestGate = gate;
                 }
             }
 
-            if (nearestDist < float.MaxValue)
-            {
-                agent.SetScriptedPosition(ref targetPos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
-                return null;
-            }
-
-            // ─────────────────────────────
-            // 2. SIEGE TOWERS
-            // ─────────────────────────────
-
+            // 1. Wall segments
             foreach (var obj in Mission.ActiveMissionObjects)
             {
-                if (agent.Team.IsDefender)
-                    break;
+                if (obj is not WallSegment wall) continue;
+                if (!wall.IsBreachedWall && agent.Team.IsAttacker) continue;
 
-                if (obj is not SiegeTower tower)
-                    continue;
-
-                if (tower.IsDeactivated || !tower.HasArrivedAtTarget)
-                    continue;
-
-                var pos = tower.GameEntity.GlobalPosition;
-                float dist = tower.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
-
-                if (dist < nearestDist)
+                // Use TacticalPosition.Position — designer-placed, ground level, navmesh valid
+                WorldPosition worldPos;
+                if (agent.Team.IsAttacker)
                 {
-                    nearestDist = dist;
-                    targetPos = new WorldPosition(Mission.Scene, pos);
+                    // AttackerWaitPosition is specifically for attackers approaching breach
+                    if (wall.AttackerWaitPosition != null)
+                        worldPos = wall.AttackerWaitPosition.Position;
+                    else if (wall.AttackerWaitFrame.Origin.IsValid)
+                        worldPos = wall.AttackerWaitFrame.Origin;
+                    else
+                        continue; // no valid position, skip
                 }
-            }
-
-            if (nearestDist < float.MaxValue)
-            {
-                agent.SetScriptedPosition(ref targetPos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
-                return null;
-            }
-
-            // ─────────────────────────────
-            // 3. LADDERS
-            // ─────────────────────────────
-            StandingPoint nearestPoint = null;
-
-            foreach (var obj in Mission.ActiveMissionObjects)
-            {
-                if (agent.Team.IsDefender)
-                    break;
-
-                if (obj is not SiegeLadder ladder)
-                    continue;
-
-                foreach (var sp in ladder.StandingPoints)
+                else
                 {
-                    if (sp.IsDeactivated || sp.HasUser)
+                    // WaitPosition for defenders, fallback to MiddlePosition
+                    if (wall.WaitPosition != null)
+                        worldPos = wall.MiddlePosition.Position;
+                    else if (wall.MiddlePosition != null)
+                        worldPos = wall.WaitPosition.Position;
+                    else
                         continue;
+                }
 
-                    float dist = sp.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
+                if (!worldPos.IsValid) continue;
+
+                float dist = wall.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
+                if (dist < nearestDist)
+                {
+                    nearestDist = dist;
+                    targetPos = worldPos;
+                    found = true;
+                }
+            }
+
+            // 2. Siege towers
+            if (!found && agent.Team.IsAttacker)
+            {
+                foreach (var obj in Mission.ActiveMissionObjects)
+                {
+                    if (obj is not SiegeTower tower) continue;
+                    if (tower.IsDeactivated || !tower.HasArrivedAtTarget) continue;
+
+                    float dist = tower.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
                     if (dist < nearestDist)
                     {
                         nearestDist = dist;
-                        nearestPoint = sp;
+                        targetPos = new WorldPosition(Mission.Scene, tower.GameEntity.GlobalPosition);
+                        found = true;
                     }
                 }
             }
 
-            if (nearestPoint == null)
+            // 3. Ladders
+            if (!found && agent.Team.IsAttacker)
+            {
+                foreach (var obj in Mission.ActiveMissionObjects)
+                {
+                    if (obj is not SiegeLadder ladder) continue;
+                    foreach (var sp in ladder.StandingPoints)
+                    {
+                        if (sp.IsDeactivated || sp.HasUser) continue;
+                        float dist = sp.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
+                        if (dist < nearestDist)
+                        {
+                            nearestDist = dist;
+                            targetPos = new WorldPosition(sp.GameEntity.Scene, sp.GameEntity.GlobalPosition);
+                            found = true;
+                        }
+                    }
+                }
+            }
+
+            if (!found)
                 return "No valid target (wall/tower/ladder)";
 
-            var worldPos = new WorldPosition(
-                nearestPoint.GameEntity.Scene,
-                nearestPoint.GameEntity.GlobalPosition);
+            // If there's a gate between agent and target, check if we should
+            // use a waypoint to route around it
+            if (nearestGate != null)
+            {
+                Vec2 agentPos2D = agent.Position.AsVec2;
+                Vec2 targetPos2D = targetPos.AsVec2;
+                Vec2 gatePos2D = nearestGate.GameEntity.GlobalPosition.AsVec2;
 
-            agent.SetScriptedPosition(ref worldPos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
+                // Check if gate is roughly between agent and target
+                Vec2 agentToTarget = (targetPos2D - agentPos2D).Normalized();
+                Vec2 agentToGate = gatePos2D - agentPos2D;
+                float gateAlongPath = Vec2.DotProduct(agentToTarget, agentToGate);
+                float gateLateralDist = (agentToGate - agentToTarget * gateAlongPath).Length;
 
+                // Gate is in the way if it's roughly along the path and within ~8m laterally
+                bool gateIsInWay = gateAlongPath > 0f
+                    && gateAlongPath < agentToGate.Length
+                    && gateLateralDist < 8f;
+
+                if (gateIsInWay)
+                {
+                    // Find a waypoint to the side of the gate
+                    // Use the gate's right vector to pick a side
+                    MatrixFrame gateFrame = nearestGate.GameEntity.GetGlobalFrame();
+                    Vec2 gateSide = gateFrame.rotation.s.AsVec2.Normalized();
+
+                    // Pick the side that's closer to the target laterally
+                    Vec2 waypointLeft = gatePos2D + gateSide * 12f;
+                    Vec2 waypointRight = gatePos2D - gateSide * 12f;
+
+                    Vec2 chosenWaypoint = waypointLeft.DistanceSquared(targetPos2D) < waypointRight.DistanceSquared(targetPos2D)
+                        ? waypointLeft
+                        : waypointRight;
+
+                    // Build a WorldPosition for the waypoint
+                    WorldPosition waypointWorldPos = agent.GetWorldPosition();
+                    waypointWorldPos.SetVec2(chosenWaypoint);
+
+                    // Only use waypoint if it's on the navmesh
+                    if (waypointWorldPos.GetNavMesh() != UIntPtr.Zero)
+                    {
+                        // Store final target, navigate to waypoint first
+                        state.NavigationTarget = targetPos;
+                        //state.WaypointTarget = waypointWorldPos;
+                        state.Order = DetachmentOrder.Navigate;
+                        state.LastNavigationReissueTime = Mission.Current.CurrentTime;
+                        state.HasWaypoint = true;
+
+                        SetAgentNavigatingAggressively(agent);
+                        agent.SetScriptedPosition(ref waypointWorldPos, false,
+                            Agent.AIScriptedFrameFlags.NeverSlowDown);
+                        return null;
+                    }
+                }
+            }
+
+            state.NavigationTarget = targetPos;
+            state.HasWaypoint = false;
+            state.Order = DetachmentOrder.Navigate;
+            state.LastNavigationReissueTime = Mission.Current.CurrentTime;
+
+            SetAgentNavigatingAggressively(agent);
+            agent.SetScriptedPosition(ref targetPos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
             return null;
+        }
+
+        // --- Mission callbacks ---
+
+        public override void OnMissionTick(float dt)
+        {
+            foreach (var kvp in _detachments)
+            {
+                var agent = kvp.Key;
+                var state = kvp.Value;
+
+                if (!agent.IsActive()) continue;
+
+                switch (state.Order)
+                {
+                    case DetachmentOrder.Hold:
+                        ApplyHold(agent, state);
+                        break;
+
+                    case DetachmentOrder.Follow:
+                        ApplyFollow(agent, state);
+                        break;
+
+                    case DetachmentOrder.Navigate:
+                        ApplyNavigate(agent, state);
+                        break;
+                }
+            }
         }
 
         public override void OnAgentRemoved(Agent killedAgent, Agent killerAgent,
             AgentState agentState, KillingBlow blow)
         {
-            if (_detachments.TryGetValue(killedAgent, out var detachment))
-                CleanupDetachment(killedAgent, detachment);
+            if (_detachments.TryGetValue(killedAgent, out var state))
+                CleanupDetachmentOnDeath(killedAgent, state);
         }
 
         public override void OnAgentDeleted(Agent affectedAgent)
@@ -253,18 +377,150 @@ namespace BLTAdoptAHero
 
         protected override void OnEndMission()
         {
-            foreach (var kvp in new Dictionary<Agent, HeroDetachment>(_detachments))
-                CleanupDetachment(kvp.Key, kvp.Value);
+            _detachments.Clear();
         }
 
-        private void CleanupDetachment(Agent agent, HeroDetachment detachment)
+        // --- Helpers ---
+
+        private static void ApplyHold(Agent agent, DetachmentState state)
         {
+            agent.DisableScriptedCombatMovement();
+            var pos = state.HoldPosition;
+            agent.SetScriptedPosition(ref pos, false, Agent.AIScriptedFrameFlags.NeverSlowDown);
+        }
+
+        private static void ApplyFollow(Agent agent, DetachmentState state)
+        {
+            var parent = state.Detachment.ParentFormation;
+            if (parent == null) return;
+
+            // Target a point slightly behind the formation's median position
+            var medianPos = parent.CachedMedianPosition;
+            if (!medianPos.IsValid) return;
+
+            // Offset behind the formation direction
+            Vec2 behindOffset = -parent.Direction * 3f;
+            var targetPos = medianPos;
+            targetPos.SetVec2(medianPos.AsVec2 + behindOffset);
+
+            agent.DisableScriptedCombatMovement();
+            agent.SetScriptedPosition(ref targetPos, false, Agent.AIScriptedFrameFlags.None);
+        }
+
+        private static void ApplyNavigate(Agent agent, DetachmentState state)
+        {
+            const float ReissueInterval = 1.5f;
+            const float ArrivedDistanceSq = 3f; // 3m radius
+
+            float now = Mission.Current.CurrentTime;
+
+            // Determine current target — waypoint first if we have one
+            WorldPosition currentTarget = /*state.HasWaypoint
+                ? state.WaypointTarget
+                :*/ state.NavigationTarget;
+
+            float distSq = agent.Position.AsVec2.DistanceSquared(currentTarget.AsVec2);
+
+            if (distSq < ArrivedDistanceSq)
+            {
+                if (state.HasWaypoint)
+                {
+                    // Waypoint reached, now navigate to final target
+                    state.HasWaypoint = false;
+                    state.LastNavigationReissueTime = now;
+                    var finalPos = state.NavigationTarget;
+                    agent.SetScriptedPosition(ref finalPos, false,
+                        Agent.AIScriptedFrameFlags.NeverSlowDown);
+                    return;
+                }
+
+                // Final target reached
+                //UnblockNavmeshIds(agent, state);
+                state.HoldPosition = agent.GetWorldPosition();
+                state.Order = DetachmentOrder.Hold;
+                ClearAgentNavigatingAggressively(agent);
+                ApplyHold(agent, state);
+                return;
+            }
+
+            if (now - state.LastNavigationReissueTime > ReissueInterval)
+            {
+                state.LastNavigationReissueTime = now;
+                agent.SetScriptedPosition(ref currentTarget, false,
+                    Agent.AIScriptedFrameFlags.NeverSlowDown);
+            }
+        }
+
+        //private static void UnblockNavmeshIds(Agent agent, DetachmentState state)
+        //{
+        //    foreach (var id in state.BlockedNavmeshIds)
+        //        agent.SetAgentExcludeStateForFaceGroupId(id, false);
+        //    state.BlockedNavmeshIds.Clear();
+        //}
+
+        private static void SetAgentNavigatingAggressively(Agent agent)
+        {
+            // Stop agent getting distracted by enemies en route
+            agent.SetAutomaticTargetSelection(false);
+
+            // DefaultDetached makes the agent navigate more aggressively
+            // through crowds rather than waiting for space
+            agent.HumanAIComponent?.SetBehaviorValueSet(
+                HumanAIComponent.BehaviorValueSet.DefaultDetached);
+
+            // NeverSlowDown prevents the agent slowing for obstacles
+            agent.SetScriptedFlags(
+                agent.GetScriptedFlags() | Agent.AIScriptedFrameFlags.NeverSlowDown);
+        }
+
+        private static void ClearAgentNavigatingAggressively(Agent agent)
+        {
+            agent.SetAutomaticTargetSelection(true);
+            agent.HumanAIComponent?.SetBehaviorValueSet(
+                HumanAIComponent.BehaviorValueSet.Default);
+            agent.SetScriptedFlags(
+                agent.GetScriptedFlags() & ~Agent.AIScriptedFrameFlags.NeverSlowDown);
+        }
+
+        private void CleanupDetachmentOnDeath(Agent agent, DetachmentState state)
+        {
+            //UnblockNavmeshIds(agent, state);
+            ClearAgentNavigatingAggressively(agent);
+
+            var detachment = state.Detachment;
+            var formation = agent.Formation;
+
+            // Just remove the agent from the detachment and leave it —
+            // do NOT call AttachUnit on a dying agent, it causes the crash
             detachment.RemoveAgent(agent);
-            agent.Formation?.AttachUnit(agent);
-            agent.Formation?.LeaveDetachment(detachment);
+
+            if (formation != null)
+                formation.LeaveDetachment(detachment);
+
+            _detachments.Remove(agent);
+        }
+
+        // Normal cleanup for Attach command — full reattach is safe here
+        private void CleanupDetachment(Agent agent, DetachmentState state)
+        {
+            //UnblockNavmeshIds(agent, state);
+            ClearAgentNavigatingAggressively(agent);
+
+            var detachment = state.Detachment;
+            var formation = agent.Formation;
+
+            detachment.RemoveAgent(agent);
+
+            if (formation != null)
+            {
+                formation.LeaveDetachment(detachment);
+                formation.AttachUnit(agent);
+            }
+
             _detachments.Remove(agent);
         }
     }
+
 
     internal class HeroDetachment : IDetachment
     {

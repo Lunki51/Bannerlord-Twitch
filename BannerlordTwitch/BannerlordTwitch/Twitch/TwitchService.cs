@@ -163,21 +163,21 @@ namespace BannerlordTwitch
                     channelId = user.Id;
 
                     // ── Init extension PubSub (requires channelId) ────────────
-                    if (authSettings.ExtensionConfigured)
-                    {
-                        extensionPubSub = new ExtensionPubSubService(
-                            new CustomTwitchHttpClient(),
-                            authSettings.ExtensionClientId,
-                            authSettings.ExtensionSecret,
-                            channelId,
-                            authSettings.AccessToken,
-                            authSettings.ClientID);
-                        Log.Info("[Extension] PubSub service ready");
-                    }
-                    else
-                    {
-                        Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
-                    }
+                    //if (authSettings.ExtensionConfigured)
+                    //{
+                    //    extensionPubSub = new ExtensionPubSubService(
+                    //        new CustomTwitchHttpClient(),
+                    //        authSettings.ExtensionClientId,
+                    //        authSettings.ExtensionSecret,
+                    //        channelId,
+                    //        authSettings.AccessToken,
+                    //        authSettings.ClientID);
+                    //    Log.Info("[Extension] PubSub service ready");
+                    //}
+                    //else
+                    //{
+                    //    Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
+                    //}
 
                     // Connect the chatbot
                     bot = new Bot(user.Login, authSettings);
@@ -434,6 +434,7 @@ namespace BannerlordTwitch
 
         public void SendReply(ReplyContext context, params string[] messages)
         {
+            Log.Info($"[SendReply] user={context.UserName} redemptionId={context.RedemptionId} ext={context.Source.RespondInExtension} msgs={string.Join("|", messages)}\n{new System.Diagnostics.StackTrace()}");
             if (context.Source.RespondInOverlay || IsSimTesting)
             {
                 Log.LogFeedResponse(context.UserName, messages);
@@ -469,6 +470,7 @@ namespace BannerlordTwitch
 
         public void SendNonReply(ReplyContext context, params string[] messages)
         {
+            Log.Info($"[SendNonReply] user={context.UserName} redemptionId={context.RedemptionId} ext={context.Source.RespondInExtension} msgs={string.Join("|", messages)}\n{new System.Diagnostics.StackTrace()}");
             if (context.Source.RespondInOverlay || IsSimTesting)
             {
                 Log.LogFeedMessage(messages);

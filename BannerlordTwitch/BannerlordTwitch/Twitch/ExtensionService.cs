@@ -11,9 +11,6 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using BannerlordTwitch.Util;
 using TwitchLib.Api.Core.Enums;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.CSharp;
-using System.IdentityModel.Tokens.Jwt;
 
 namespace BannerlordTwitch
 {
@@ -61,7 +58,7 @@ namespace BannerlordTwitch
 
         public async Task SendBroadcastAsync(string[] messages)
         {
-            var inner = new ExtensionMessage { type = "message", user = null, messages = messages };
+            var inner = new ExtensionMessage { type = "broadcast", user = null, messages = messages };
             await PostAsync(new[] { "broadcast" }, inner);
         }
 
@@ -70,12 +67,18 @@ namespace BannerlordTwitch
             var userId = await ResolveUserIdAsync(userName);
             if (userId == null)
             {
-                Log.Trace($"[ExtensionPubSub] Could not resolve userId for '{userName}', skipping whisper");
+                // Can't identify the user — fall back to broadcast so the message
+                // still appears in the panel (frontend will show it without filtering).
+                Log.Trace($"[ExtensionPubSub] Could not resolve userId for '{userName}', falling back to broadcast");
+                var broadcastInner = new ExtensionMessage { type = "broadcast", user = null, messages = messages };
+                await PostAsync(new[] { "broadcast" }, broadcastInner);
                 return;
             }
-            var inner = new ExtensionMessage { type = "reply", user = userName, messages = messages };
-            await PostAsync(new[] { $"whisper-U{userId}" }, inner);
-            //await PostAsync(new[] { "broadcast" }, inner);
+
+            // Always put the resolved userId in the user field so the frontend can
+            // reliably compare it against auth.userId (which is also a numeric id string).
+            var inner = new ExtensionMessage { type = "reply", user = userId, messages = messages };
+            await PostAsync(new[] { "broadcast" }, inner);
         }
 
         public void RegisterUser(string userName, string userId)
@@ -127,23 +130,16 @@ namespace BannerlordTwitch
                 string innerJson = JsonSerializer.Serialize(inner);
                 string jwt = BuildExtensionJwt();
 
-                // ── SAFEGUARDS ─────────────────────────────
-
                 if (string.IsNullOrWhiteSpace(jwt))
-                    Log.Error("JWT is empty");
+                    Log.Error("[ExtensionPubSub] JWT is empty");
 
                 if (jwt.Count(c => c == '.') != 2)
-                    Log.Error("JWT does not have 3 parts");
+                    Log.Error("[ExtensionPubSub] JWT does not have 3 parts");
 
                 if (jwt.Any(char.IsWhiteSpace))
                     throw new Exception("JWT contains whitespace");
 
-                // Write raw JWT to file (bypass logger corruption)
-                //System.IO.File.WriteAllText(@"C:\temp\jwt_debug.txt", jwt);
-
-                Log.Info($"JWT LENGTH: {jwt.Length}");
-
-                // ── REQUEST ───────────────────────────────
+                Log.Info($"[ExtensionPubSub] JWT LENGTH: {jwt.Length}");
 
                 var outer = new ExtensionPubSubPayload
                 {
