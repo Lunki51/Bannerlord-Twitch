@@ -195,8 +195,9 @@ server.listen(PORT_HTTP, () => {
     console.log('Waiting for game mod connection…');
 
     // Auto-open the overlay in browser on startup
-    open(`http://localhost:${PORT_HTTP}`).catch(() => { });
-});
+    const overlayPath = path.join(PUBLIC_DIR, 'RandomOverlay.html');
 
+    open(`http://localhost:${PORT_HTTP}/RandomOverlay.html`).catch(() => { });
+});
 // Graceful shutdown
 process.on('SIGINT', () => { console.log('\n[Server] Shutting down…'); server.close(() => process.exit(0)); });
