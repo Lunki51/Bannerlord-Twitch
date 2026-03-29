@@ -26,6 +26,8 @@ namespace BLTAdoptAHero
 
         public static float FiefIncomeSharePercent { get; set; } = 0.25f; // 25% default
 
+        public static bool KingdomVassals { get; set; } = false; // TODO
+
         // Persisted: maps vassal clan StringId to master clan StringId
         private Dictionary<string, string> _vassalToMaster = new();
 

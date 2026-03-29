@@ -84,11 +84,11 @@ namespace BLTAdoptAHero.Actions
             }
            
             var behavior = BLTHeroDetachmentBehavior.Current;
-            var keywords = new[] { "detach", "attach", "charge", "hold", "mimic", "gate", "climb" };
+            var keywords = new[] { "detach", "attach", "charge", "hold", "follow", "gate", "walls" };
             if (keywords.Contains(num))
-            {
-                
+            {               
                 if (behavior == null) { onFailure("Detachment system not active"); return; }
+                if (!Mission.Current.IsDeploymentFinished) { onFailure("Cannot detach while deploying"); return; }
 
                 string error = num switch
                 {
@@ -96,7 +96,7 @@ namespace BLTAdoptAHero.Actions
                     "attach" => behavior.Attach(agent),
                     "charge" => behavior.Charge(agent),
                     "hold" => behavior.Hold(agent),
-                    "mimic" => behavior.Mimic(agent),
+                    "follow" => behavior.Follow(agent),
                     "gate" => behavior.TargetDoor(agent),
                     "walls" => behavior.Walls(agent),
                     _ => "Unknown command"
