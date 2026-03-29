@@ -91,7 +91,7 @@ namespace BannerlordTwitch
 
                 ConsoleFeedHub.Register();
 
-                BLTOverlay.BLTOverlay.Start(); // Removed, replace!
+                //BLTOverlay.BLTOverlay.Start(); // Removed, replace!
             }
         }
 

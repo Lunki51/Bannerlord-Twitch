@@ -488,23 +488,46 @@ namespace BLTAdoptAHero
             return sum;
         }
 
-        private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> sel, bool vassalOnly = false, float currentValue = float.MaxValue)
+        private float SumClanFloat(Clan clan, Func<ClanUpgrade, float> sel, bool includeVassalOf = false, float currentValue = float.MaxValue)
         {
             if (clan == null || ConfigSafe == null) return 0f;
             bool guard = FloorGuardEnabled;
             float sum = 0f;
+
+            // Own clan upgrades — skip ApplyToVassals ones (those apply to vassals, not self)
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                if (!IsClanUpgradeActive(up, clan)) continue;           // ← unified filter
-                if (up.ApplyToVassals && !vassalOnly) continue;
+                if (!IsClanUpgradeActive(up, clan)) continue;
+                if (up.ApplyToVassals) continue;   // lord-side: skip, will be applied to vassals instead
                 float v = sel(up);
                 if (guard && v < 0f && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
+
+            // If requested, also pick up ApplyToVassals upgrades from this clan's liege
+            if (includeVassalOf && clan.Kingdom != null)
+            {
+                // The liege is the ruling clan of the kingdom
+                var liegeClan = clan.Kingdom.RulingClan;
+                if (liegeClan != null && liegeClan != clan)
+                {
+                    foreach (var id in GetClanUpgrades(liegeClan))
+                    {
+                        var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                        if (up == null || !up.ApplyToVassals) continue;
+                        if (!IsClanUpgradeActive(up, liegeClan)) continue;
+                        float v = sel(up);
+                        if (guard && v < 0f && currentValue + sum + v < 0f) continue;
+                        sum += v;
+                    }
+                }
+            }
+
             return sum;
         }
+
 
         private float SumKingdomFloat(Kingdom kingdom, Func<KingdomUpgrade, float> sel, float currentValue = float.MaxValue)
         {
@@ -535,7 +558,9 @@ namespace BLTAdoptAHero
             float clanSum = 0f, kingSum = 0f;
             if (clan != null)
             {
-                clanSum = SumClanFloat(clan, clanSel, currentValue: runningTotal);
+                // Pass includeVassalOf: true so that if this clan is a vassal,
+                // its liege's ApplyToVassals upgrades are picked up here.
+                clanSum = SumClanFloat(clan, clanSel, includeVassalOf: true, currentValue: runningTotal);
                 runningTotal += clanSum;
                 if (clan.Kingdom != null)
                     kingSum = SumKingdomFloat(clan.Kingdom, kingSel, runningTotal);
@@ -561,21 +586,42 @@ namespace BLTAdoptAHero
             return (int)sum;
         }
 
-        private int SumClanInt(Clan clan, Func<ClanUpgrade, int> sel, bool vassalOnly = false, float currentValue = float.MaxValue)
+        private int SumClanInt(Clan clan, Func<ClanUpgrade, int> sel, bool includeVassalOf = false, float currentValue = float.MaxValue)
         {
             if (clan == null || ConfigSafe == null) return 0;
             bool guard = FloorGuardEnabled;
             float sum = 0f;
+
+            // Own clan upgrades — skip ApplyToVassals ones
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                if (!IsClanUpgradeActive(up, clan)) continue;           // ← unified filter
-                if (up.ApplyToVassals && !vassalOnly) continue;
+                if (!IsClanUpgradeActive(up, clan)) continue;
+                if (up.ApplyToVassals) continue;
                 int v = sel(up);
                 if (guard && v < 0 && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
+
+            // Pick up ApplyToVassals upgrades from this clan's liege
+            if (includeVassalOf && clan.Kingdom != null)
+            {
+                var liegeClan = clan.Kingdom.RulingClan;
+                if (liegeClan != null && liegeClan != clan)
+                {
+                    foreach (var id in GetClanUpgrades(liegeClan))
+                    {
+                        var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                        if (up == null || !up.ApplyToVassals) continue;
+                        if (!IsClanUpgradeActive(up, liegeClan)) continue;
+                        int v = sel(up);
+                        if (guard && v < 0 && currentValue + sum + v < 0f) continue;
+                        sum += v;
+                    }
+                }
+            }
+
             return (int)sum;
         }
 
@@ -608,7 +654,7 @@ namespace BLTAdoptAHero
             int clanSum = 0, kingSum = 0;
             if (clan != null)
             {
-                clanSum = SumClanInt(clan, clanSel, currentValue: runningTotal);
+                clanSum = SumClanInt(clan, clanSel, includeVassalOf: true, currentValue: runningTotal);
                 runningTotal += clanSum;
                 if (clan.Kingdom != null)
                     kingSum = SumKingdomInt(clan.Kingdom, kingSel, runningTotal);
@@ -647,7 +693,8 @@ namespace BLTAdoptAHero
             return sum;
         }
 
-        public int GetClanRetinueSizeBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.RetinueSizeBonus, currentValue: currentValue);
+        public int GetClanRetinueSizeBonus(Clan clan, float currentValue = float.MaxValue)
+            => SumClanInt(clan, c => c.RetinueSizeBonus, includeVassalOf: true, currentValue: currentValue);
         public int GetKingdomRetinueSizeBonus(Kingdom kingdom, float currentValue = float.MaxValue) => SumKingdomInt(kingdom, k => k.RetinueSizeBonus, currentValue);
         public int GetTotalRetinueSizeBonus(Hero hero, float currentValue = float.MaxValue)
         {
@@ -658,7 +705,8 @@ namespace BLTAdoptAHero
             return bonus;
         }
 
-        public int GetClanPartySizeBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartySizeBonus, currentValue: currentValue);
+        public int GetClanPartySizeBonus(Clan clan, float currentValue = float.MaxValue)
+            => SumClanInt(clan, c => c.PartySizeBonus, includeVassalOf: true, currentValue: currentValue);
         public int GetKingdomPartySizeBonus(Kingdom k, float currentValue = float.MaxValue) => SumKingdomInt(k, u => u.PartySizeBonus, currentValue);
         public int GetTotalPartySizeBonus(Hero hero, float currentValue = float.MaxValue)
         {
@@ -670,7 +718,8 @@ namespace BLTAdoptAHero
             return b;
         }
 
-        public float GetClanPartySpeedBonus(Clan clan, float currentValue = float.MaxValue) => SumClanFloat(clan, c => c.PartySpeedBonus, currentValue: currentValue);
+        public float GetClanPartySpeedBonus(Clan clan, float currentValue = float.MaxValue)
+            => SumClanFloat(clan, c => c.PartySpeedBonus, includeVassalOf: true, currentValue: currentValue);
         public float GetKingdomPartySpeedBonus(Kingdom k, float currentValue = float.MaxValue) => SumKingdomFloat(k, u => u.PartySpeedBonus, currentValue);
         public float GetTotalPartySpeedBonus(Hero hero, float currentValue = float.MaxValue)
         {
@@ -734,13 +783,16 @@ namespace BLTAdoptAHero
             return total;
         }
 
-        public int GetClanPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.PartyAmountBonus, currentValue: currentValue);
+        public int GetClanPartyAmountBonus(Clan clan, float currentValue = float.MaxValue)
+            => SumClanInt(clan, c => c.PartyAmountBonus, includeVassalOf: true, currentValue: currentValue);
         public int GetTotalPartyAmountBonus(Clan clan, float currentValue = float.MaxValue) => clan == null ? 0 : GetClanPartyAmountBonus(clan, currentValue);
 
-        public int GetClanMaxVassalsBonus(Clan clan, float currentValue = float.MaxValue) => SumClanInt(clan, c => c.MaxVassalsBonus, currentValue: currentValue);
+        public int GetClanMaxVassalsBonus(Clan clan, float currentValue = float.MaxValue)
+            => SumClanInt(clan, c => c.MaxVassalsBonus, includeVassalOf: true, currentValue: currentValue);
         public int GetTotalMaxVassalsBonus(Clan clan, float currentValue = float.MaxValue) => clan == null ? 0 : GetClanMaxVassalsBonus(clan, currentValue);
 
-        public float GetClanRenownDaily(Clan clan, float currentValue = float.MaxValue) => SumClanFloat(clan, c => c.RenownDaily, currentValue: currentValue);
+        public float GetClanRenownDaily(Clan clan, float currentValue = float.MaxValue)
+            => SumClanFloat(clan, c => c.RenownDaily, includeVassalOf: true, currentValue: currentValue);
         public float GetKingdomRenownDaily(Kingdom k, float currentValue = float.MaxValue) => SumKingdomFloat(k, u => u.RenownDaily, currentValue);
         public float GetTotalRenownDaily(Hero hero, float currentValue = float.MaxValue)
         {
@@ -750,7 +802,8 @@ namespace BLTAdoptAHero
             return b;
         }
 
-        public float GetClanInfluenceDaily(Clan clan, float currentValue = float.MaxValue) => SumClanFloat(clan, c => c.InfluenceDaily, currentValue: currentValue);
+        public float GetClanInfluenceDaily(Clan clan, float currentValue = float.MaxValue)
+            => SumClanFloat(clan, c => c.InfluenceDaily, includeVassalOf: true, currentValue: currentValue);
         public float GetKingdomInfluenceDaily(Kingdom kingdom, float currentValue = float.MaxValue) => SumKingdomFloat(kingdom, k => k.InfluenceDaily, currentValue);
 
         public void ApplyRenownDaily(Clan clan)
@@ -779,17 +832,38 @@ namespace BLTAdoptAHero
             if (clan == null || ConfigSafe == null) return 0;
             bool guard = FloorGuardEnabled;
             float sum = 0f;
+
+            // Own upgrades (skip ApplyToVassals)
             foreach (var id in GetClanUpgrades(clan))
             {
                 var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
                 if (up == null) continue;
-                if (up.LordOnly && clan.IsUnderMercenaryService) continue;   // mercs never get lord-only
+                if (up.LordOnly && clan.IsUnderMercenaryService) continue;
                 if (up.ApplyToVassals) continue;
-                // MercOnly is intentionally NOT checked here — lords qualify for MercIncomeFlat too
                 int v = up.MercIncomeFlat;
                 if (guard && v < 0 && currentValue + sum + v < 0f) continue;
                 sum += v;
             }
+
+            // Liege's ApplyToVassals upgrades
+            if (clan.Kingdom != null)
+            {
+                var liegeClan = clan.Kingdom.RulingClan;
+                if (liegeClan != null && liegeClan != clan)
+                {
+                    foreach (var id in GetClanUpgrades(liegeClan))
+                    {
+                        var up = ConfigSafe.ClanUpgrades.FirstOrDefault(u => u.ID == id);
+                        if (up == null || !up.ApplyToVassals) continue;
+                        if (up.LordOnly && clan.IsUnderMercenaryService) continue;
+                        if (!IsClanUpgradeActive(up, liegeClan)) continue;
+                        int v = up.MercIncomeFlat;
+                        if (guard && v < 0 && currentValue + sum + v < 0f) continue;
+                        sum += v;
+                    }
+                }
+            }
+
             return (int)sum;
         }
 
