@@ -500,6 +500,27 @@ namespace BLTAdoptAHero
 
     #endregion
 
+    #region DEATH
+
+    [HarmonyPatch(typeof(KillCharacterAction), "ApplyInternal")]
+    internal class BLTNoDeathAllowed
+    {
+        static bool Prefix(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail actionDetail, bool showNotification, bool isForced = false)
+        {           
+            if (isForced) return true;
+            if (!victim.IsAdopted()) return true;
+            if (killer == Hero.MainHero && actionDetail == KillCharacterAction.KillCharacterActionDetail.Executed) return true;
+            var config = GlobalCommonConfig.Get();
+            if (!config.AllowDeath) return false;
+            if (victim.Age > config.MinimumAge) return true;
+
+            return false;
+        }
+    }
+
+
+    #endregion
+
     #region OnShipOwnerChanged
 
     [HarmonyPatch(typeof(ShipTradeCampaignBehavior), "OnShipOwnerChanged")]

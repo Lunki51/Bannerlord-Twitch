@@ -279,13 +279,19 @@ namespace BLTAdoptAHero
          PropertyOrder(1), Document, UsedImplicitly]
         public bool AllowDeath { get; set; } = true;
 
+        [LocDisplayName("{=4sNJRQyw}Minimum age"),
+         LocCategory("Death", "{=dbU7WEKG}Death"),
+         LocDescription("{=VbBUYOfc}Minimum age death before adopted hero can die"),
+         PropertyOrder(2), Document, UsedImplicitly]
+        public int MinimumAge { get; set; } = 30;
+
         [Browsable(false), UsedImplicitly]
         public float DeathChance { get; set; } = 0.1f;
 
         [LocDisplayName("{=ZEfAPyOm}Final Death Chance Percent"),
          LocCategory("Death", "{=dbU7WEKG}Death"),
          LocDescription("{=xlt1pNuT}Final death chance percent (includes vanilla chance)"),
-         PropertyOrder(2),
+         PropertyOrder(3),
          Range(0, 10), Editor(typeof(SliderFloatEditor), typeof(SliderFloatEditor)),
          YamlIgnore, Document, UsedImplicitly]
         public float FinalDeathChancePercent

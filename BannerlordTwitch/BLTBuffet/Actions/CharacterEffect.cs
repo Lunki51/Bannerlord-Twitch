@@ -52,6 +52,8 @@ namespace BLTBuffet
                 return;
             }
 
+
+
             var effectsBehaviour = BLTEffectsBehaviour.Get();
 
             var config = (Config)baseConfig;
@@ -78,6 +80,13 @@ namespace BLTBuffet
                     .SelectRandom(),
                 _ => null
             };
+
+            // If all agents in all ally teams are adopted heroes then the team is depleted 
+            if (!config.AllowWhenDepleted && target.Team?.ActiveAgents?.All(a => a?.IsAdopted() == true) == true)
+            {
+                onFailure("{=JuJSYmP2}You cannot be use this effect, your side is depleted!".Translate());
+                return;
+            }
 
             if (target == null || target.AgentVisuals == null)
             {
