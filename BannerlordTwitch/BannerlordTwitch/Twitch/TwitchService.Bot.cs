@@ -165,6 +165,17 @@ namespace BannerlordTwitch
                     }
                 }
             }
+            private bool TryClaimMessage(string id)
+            {
+                if (!_msgIdSet.Add(id))
+                    return false;               // already seen
+
+                _msgIdQueue.Enqueue(id);
+                if (_msgIdQueue.Count > MsgIdCap)
+                    _msgIdSet.Remove(_msgIdQueue.Dequeue()); // evict oldest
+
+                return true;
+            }
 
             //public void SendWhisper(string userName, params string[] msg)
             //{
@@ -231,15 +242,14 @@ namespace BannerlordTwitch
                 SendChat("{=SbufvVIR}bot reporting for duty!".Translate(), "{=vBtkF25N}Type !help for command list".Translate());
             }
 
-            private HashSet<string> handledMessages = new();
+            private readonly Queue<string> _msgIdQueue = new();
+            private readonly HashSet<string> _msgIdSet = new();
+            private const int MsgIdCap = 500;
             private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
             {
-                // Double check we didn't already handle this message, as sometimes bot can be receiving them twice
-                if (!handledMessages.Add(e.ChatMessage.Id))
+                if (!TryClaimMessage(e.ChatMessage.Id))
                     return;
 
-                // Register the user info always and before doing anything else, so it is appropriately up to date in
-                // case a bot command is being issued
                 TwitchHub.AddUser(e.ChatMessage.DisplayName, e.ChatMessage.ColorHex);
 
                 string msg = e.ChatMessage.Message;

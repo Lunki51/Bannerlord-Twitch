@@ -11,6 +11,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using BannerlordTwitch.Util;
 using TwitchLib.Api.Core.Enums;
+using BannerlordTwitch.BLTOverlay;
 
 namespace BannerlordTwitch
 {
@@ -58,7 +59,7 @@ namespace BannerlordTwitch
 
         public async Task SendBroadcastAsync(string[] messages)
         {
-            var inner = new ExtensionMessage { type = "broadcast", user = null, messages = messages };
+            var inner = new ExtensionMessage { type = "message", user = null, messages = messages };
             await PostAsync(new[] { "broadcast" }, inner);
         }
 
@@ -67,18 +68,12 @@ namespace BannerlordTwitch
             var userId = await ResolveUserIdAsync(userName);
             if (userId == null)
             {
-                // Can't identify the user — fall back to broadcast so the message
-                // still appears in the panel (frontend will show it without filtering).
-                Log.Trace($"[ExtensionPubSub] Could not resolve userId for '{userName}', falling back to broadcast");
-                var broadcastInner = new ExtensionMessage { type = "broadcast", user = null, messages = messages };
-                await PostAsync(new[] { "broadcast" }, broadcastInner);
+                Log.Trace($"[ExtensionPubSub] Could not resolve userId for '{userName}', skipping whisper");
                 return;
             }
-
-            // Always put the resolved userId in the user field so the frontend can
-            // reliably compare it against auth.userId (which is also a numeric id string).
-            var inner = new ExtensionMessage { type = "reply", user = userId, messages = messages };
-            await PostAsync(new[] { "broadcast" }, inner);
+            var inner = new ExtensionMessage { type = "reply", user = userName, messages = messages };
+            await PostAsync(new[] { $"whisper-U{userId}" }, inner);
+            //await PostAsync(new[] { "broadcast" }, inner);
         }
 
         public void RegisterUser(string userName, string userId)
@@ -123,23 +118,30 @@ namespace BannerlordTwitch
 
         // ── PubSub POST (direct HttpClient, no TwitchLib helpers) ────────────
 
-        private async Task PostAsync(string[] targets, ExtensionMessage inner)
+        private async Task PostAsync(string[] targets, object inner)
         {
             try
             {
                 string innerJson = JsonSerializer.Serialize(inner);
                 string jwt = BuildExtensionJwt();
 
+                // ── SAFEGUARDS ─────────────────────────────
+
                 if (string.IsNullOrWhiteSpace(jwt))
-                    Log.Error("[ExtensionPubSub] JWT is empty");
+                    Log.Error("JWT is empty");
 
                 if (jwt.Count(c => c == '.') != 2)
-                    Log.Error("[ExtensionPubSub] JWT does not have 3 parts");
+                    Log.Error("JWT does not have 3 parts");
 
                 if (jwt.Any(char.IsWhiteSpace))
                     throw new Exception("JWT contains whitespace");
 
-                Log.Info($"[ExtensionPubSub] JWT LENGTH: {jwt.Length}");
+                // Write raw JWT to file (bypass logger corruption)
+                //System.IO.File.WriteAllText(@"C:\temp\jwt_debug.txt", jwt);
+
+                Log.Info($"JWT LENGTH: {jwt.Length}");
+
+                // ── REQUEST ───────────────────────────────
 
                 var outer = new ExtensionPubSubPayload
                 {
@@ -239,6 +241,46 @@ namespace BannerlordTwitch
             [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string user { get; set; }
             public string[] messages { get; set; }
+        }
+
+        public async Task SendWireBroadcastAsync(BltWireMessage wire)
+        {
+            await PostAsync(new[] { "broadcast" }, wire);
+        }
+
+        public async Task SendWireWhisperToUserNameAsync(string userName, BltWireMessage wire)
+        {
+            var userId = await ResolveUserIdAsync(userName);
+            if (userId == null)
+            {
+                Log.Trace($"[ExtensionPubSub] Could not resolve userId for '{userName}', skipping whisper");
+                return;
+            }
+
+            await PostAsync(new[] { $"whisper-U{userId}" }, wire);
+        }
+    }
+
+    namespace BLTOverlay
+    {
+        public class BltWireMessage
+        {
+            public int V { get; set; } = 1;
+            public string Id { get; set; } = Guid.NewGuid().ToString("N");
+            public string Kind { get; set; } = "event";
+            public string Source { get; set; } = "game";
+            public string Target { get; set; } = "overlay";
+            public BltWireUser User { get; set; }
+            public long Ts { get; set; } = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            public string Command { get; set; }
+            public string Args { get; set; }
+            public object Data { get; set; }
+        }
+
+        public class BltWireUser
+        {
+            public string Id { get; set; }
+            public string Name { get; set; }
         }
     }
 }

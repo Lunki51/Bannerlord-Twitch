@@ -10,6 +10,7 @@ using TwitchLib.EventSub.Websockets.Core.EventArgs;
 using TwitchLib.EventSub.Websockets;
 using Microsoft.Extensions.Hosting;
 using TwitchLib.EventSub.Core.SubscriptionTypes.Channel;
+using BannerlordTwitch.Util;
 
 namespace BannerlordTwitch.Twitch
 {
@@ -41,9 +42,9 @@ namespace BannerlordTwitch.Twitch
 
             _eventSubWebsocketClient.ChannelPointsCustomRewardRedemptionAdd += async (object e, ChannelPointsCustomRewardRedemptionArgs args) =>
             {
-                OnChannelPointsRewardsRedeemed.Invoke(e, args.Notification.Payload.Event);
+                OnChannelPointsRewardsRedeemed?.Invoke(e, args.Notification.Payload.Event);
             };
-  
+
             _eventSubWebsocketClient.ChannelFollow += OnChannelFollow;
         }
 
@@ -59,6 +60,8 @@ namespace BannerlordTwitch.Twitch
 
         private async Task OnErrorOccurred(object sender, ErrorOccuredArgs e)
         {
+            // Was empty — swallowing all websocket errors silently
+            Log.Error($"[EventSub] Error: {e.Exception?.Message ?? "(no message)"}");
         }
 
         private async Task OnChannelFollow(object sender, ChannelFollowArgs e)
@@ -70,17 +73,19 @@ namespace BannerlordTwitch.Twitch
         {
             if (!e.IsRequestedReconnect)
             {
-                OnEventSubServiceConnected.Invoke(sender, e);
-                // subscribe to topics
+                // Guard against NullReferenceException if nobody subscribed
+                OnEventSubServiceConnected?.Invoke(sender, e);
             }
         }
 
         private async Task OnWebsocketDisconnected(object sender, EventArgs e)
         {
-            // Don't do this in production. You should implement a better reconnect strategy
+            Log.LogFeedSystem("EventSub disconnected, reconnecting…");
+            // Add a small delay before each retry so we don't hammer Twitch
             while (!await _eventSubWebsocketClient.ReconnectAsync())
             {
-                await Task.Delay(1000);
+                Log.Error("[EventSub] Reconnect attempt failed, retrying in 5s…");
+                await Task.Delay(5000);
             }
         }
 

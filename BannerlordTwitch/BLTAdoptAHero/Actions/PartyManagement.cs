@@ -1219,24 +1219,39 @@ namespace BLTAdoptAHero.Actions
             Army targetArmy = null;
             string countStr = tgtArg;
 
+            // FIX 4: Replace the ambiguous "first integer = army index" heuristic with
+            // an explicit "army N" prefix so a king can unambiguously target either
+            // their own army (no prefix, number = count) or a kingdom army by index
+            // ("army N", optional trailing count).
             if (isKing && !string.IsNullOrWhiteSpace(tgtArg))
             {
-                var tokens = tgtArg.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
-                if (tokens.Length >= 1 && int.TryParse(tokens[0], out int armyIdx))
+                var tokens = tgtArg.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+
+                // Explicit kingdom-army targeting: "kick army N [K]"
+                if (tokens.Length >= 2
+                    && tokens[0].Equals("army", StringComparison.OrdinalIgnoreCase)
+                    && int.TryParse(tokens[1], out int armyIdx))
                 {
                     var kArmies = h.Clan.Kingdom.Armies.ToList();
-                    if (armyIdx >= 1 && armyIdx <= kArmies.Count)
-                    {
-                        targetArmy = kArmies[armyIdx - 1];
-                        countStr = tokens.Length > 1 ? tokens[1] : "";
-                    }
+                    if (armyIdx < 1 || armyIdx > kArmies.Count)
+                    { onFailure($"Invalid army index {armyIdx}. Kingdom has {kArmies.Count} armies."); return; }
+                    targetArmy = kArmies[armyIdx - 1];
+                    countStr = tokens.Length > 2 ? string.Join(" ", tokens.Skip(2)) : "";
                 }
+                // No "army" prefix → act on the king's own army; the whole arg is the count.
+                // targetArmy remains null and falls through to the own-army path below.
             }
 
             if (targetArmy == null)
             {
                 if (army == null || army.LeaderParty != party)
-                { onFailure("You must be leading an army (kings can specify an army index)"); return; }
+                {
+                    if (isKing)
+                        onFailure("You must be leading an army to kick parties from it, or use 'kick army N [K]' to target a kingdom army by index");
+                    else
+                        onFailure("You must be leading an army");
+                    return;
+                }
                 targetArmy = army;
             }
 
@@ -1413,7 +1428,7 @@ namespace BLTAdoptAHero.Actions
         // ── CREATE ────────────────────────────────────────────────────────────
 
         private void ArmyCreate(Settings settings, Hero h, MobileParty party, Army army,
-            string tgtArg, Action<string> onSuccess, Action<string> onFailure)
+    string tgtArg, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.KingArmyManageEnabled) { onFailure("King army management is disabled"); return; }
             if (h.Clan.Kingdom?.Leader != h) { onFailure("You must be king to commission an NPC-led army"); return; }
@@ -1455,7 +1470,17 @@ namespace BLTAdoptAHero.Actions
                 ?? h.Clan.Kingdom.Settlements.FirstOrDefault(s => s.IsFortification);
             if (gather == null) { onFailure("Could not determine a gather point"); return; }
 
-            // FIX: release any BLT order locks on parties being absorbed into the new army
+            // FIX 2: release any active BLT order lock on the party that is about to
+            // become army leader.  Without this the leader's AI remains locked and it
+            // will ignore the new army behaviour until the order expires naturally.
+            if (leaderParty?.StringId != null)
+            {
+                PartyOrderBehavior.Current?.CancelOrdersForParty(leaderParty.StringId, null, false);
+                try { leaderParty.Ai.SetDoNotMakeNewDecisions(false); }
+                catch (Exception ex) { Log.Error($"[BLT] ArmyCreate: AI unlock failed for leader {leaderParty.Name}: {ex}"); }
+            }
+
+            // Release BLT order locks on all member parties being absorbed into the new army.
             foreach (var mp in members)
             {
                 if (mp?.StringId == null) continue;
@@ -1491,39 +1516,71 @@ namespace BLTAdoptAHero.Actions
             if (army != null && army.LeaderParty == party) { onFailure("You are already leading an army — use reassign instead"); return; }
             if (h.Clan.Kingdom == null) { onFailure("You are not in a kingdom"); return; }
 
-            var clanArmies = h.Clan.Kingdom.Armies
-                .Where(a => a.LeaderParty?.ActualClan == h.Clan && a.LeaderParty?.LeaderHero != h)
-                .ToList();
+            bool isKing = settings.KingArmyManageEnabled && h.Clan.Kingdom.Leader == h;
+
+            // Kings can take over any army in the kingdom; non-kings are restricted to
+            // armies led by a member of their own clan.
+            var kArmies = h.Clan.Kingdom.Armies.ToList();
+            var eligibleArmies = isKing
+                ? kArmies.Where(a => a.LeaderParty?.LeaderHero != h).ToList()
+                : kArmies.Where(a => a.LeaderParty?.ActualClan == h.Clan
+                                   && a.LeaderParty?.LeaderHero != h).ToList();
 
             Army targetArmy = null;
             if (string.IsNullOrWhiteSpace(tgtArg))
             {
-                if (clanArmies.Count == 0) { onFailure("No armies in your clan to take over"); return; }
-                if (clanArmies.Count == 1) targetArmy = clanArmies[0];
+                if (eligibleArmies.Count == 0)
+                {
+                    onFailure(isKing
+                        ? "No other armies in your kingdom to take over"
+                        : "No armies in your clan to take over");
+                    return;
+                }
+                if (eligibleArmies.Count == 1)
+                {
+                    targetArmy = eligibleArmies[0];
+                }
                 else
                 {
-                    var sb2 = new StringBuilder("Multiple clan armies — specify index or leader name: ");
-                    for (int i = 0; i < clanArmies.Count; i++)
-                        sb2.Append($"[{i + 1}] {clanArmies[i].LeaderParty?.LeaderHero?.Name} | ");
+                    var sb2 = new StringBuilder(isKing
+                        ? "Multiple kingdom armies — specify index or leader name: "
+                        : "Multiple clan armies — specify index or leader name: ");
+                    // Use kingdom indices so they match 'army view' output.
+                    for (int i = 0; i < kArmies.Count; i++)
+                    {
+                        if (!eligibleArmies.Contains(kArmies[i])) continue;
+                        sb2.Append($"[{i + 1}] {kArmies[i].LeaderParty?.LeaderHero?.Name} | ");
+                    }
                     onFailure(sb2.ToString().TrimEnd(' ', '|'));
                     return;
                 }
             }
             else
             {
-                var kArmies = h.Clan.Kingdom.Armies.ToList();
+                // Numeric argument: treat as a kingdom army index (consistent with all
+                // other army subcommands that use 'army view' indices).
                 if (int.TryParse(tgtArg, out int idx) && idx >= 1 && idx <= kArmies.Count)
                 {
                     var candidate = kArmies[idx - 1];
-                    if (candidate.LeaderParty?.ActualClan != h.Clan) { onFailure($"Army [{idx}] is not led by a clan member"); return; }
-                    if (candidate.LeaderParty?.LeaderHero == h) { onFailure("That is your own army"); return; }
+                    if (candidate.LeaderParty?.LeaderHero == h)
+                    { onFailure("That is your own army — use reassign instead"); return; }
+                    if (!isKing && candidate.LeaderParty?.ActualClan != h.Clan)
+                    { onFailure($"Army [{idx}] is not led by a clan member"); return; }
                     targetArmy = candidate;
                 }
                 else
                 {
-                    targetArmy = clanArmies.FirstOrDefault(a =>
-                        a.LeaderParty?.LeaderHero?.Name.ToString().IndexOf(tgtArg, StringComparison.OrdinalIgnoreCase) >= 0);
-                    if (targetArmy == null) { onFailure($"No clan army found matching '{tgtArg}'"); return; }
+                    // Name search: kings search all kingdom armies; non-kings search clan only.
+                    targetArmy = eligibleArmies.FirstOrDefault(a =>
+                        a.LeaderParty?.LeaderHero?.Name.ToString()
+                            .IndexOf(tgtArg, StringComparison.OrdinalIgnoreCase) >= 0);
+                    if (targetArmy == null)
+                    {
+                        onFailure(isKing
+                            ? $"No kingdom army found matching '{tgtArg}'"
+                            : $"No clan army found matching '{tgtArg}'");
+                        return;
+                    }
                 }
             }
 
@@ -1563,10 +1620,11 @@ namespace BLTAdoptAHero.Actions
                 h.CharacterObject, Log.Sound.Horns2);
         }
 
+
         // ── CALL ──────────────────────────────────────────────────────────────
 
         private void ArmyCall(Settings settings, Hero h, MobileParty party, Army army,
-            string tgtArg, Action<string> onSuccess, Action<string> onFailure)
+    string tgtArg, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.CallEnabled) { onFailure("Call is disabled"); return; }
             if (h.Clan.IsUnderMercenaryService) { onFailure("Mercenaries cannot call armies"); return; }
@@ -1607,9 +1665,6 @@ namespace BLTAdoptAHero.Actions
                 }
             }
             var indexStr = string.Join(" ", indexTokens);
-
-            if (callType != "nearby" && callType != "all")
-            { onFailure("Specify: army call nearby [army_index] | army call all [army_index]"); return; }
 
             Army targetArmy = null;
 
@@ -1677,7 +1732,21 @@ namespace BLTAdoptAHero.Actions
             if (callType == "nearby")
             {
                 var ldrPos2 = armyLdrParty.GetPosition2D;
-                eligible = eligible.OrderBy(p => p.GetPosition2D.Distance(ldrPos2)).ToList();
+                float radius = settings.CallNearbyRadius;
+
+                // FIX 1a: apply the radius filter that was previously missing entirely.
+                eligible = eligible
+                    .Where(p => p.GetPosition2D.Distance(ldrPos2) <= radius)
+                    .OrderBy(p => p.GetPosition2D.Distance(ldrPos2))
+                    .ToList();
+
+                if (callCount.HasValue)
+                    eligible = eligible.Take(callCount.Value).ToList();
+            }
+            else // "all"
+            {
+                // FIX 1b: honour the count argument for the "all" path — was previously
+                // parsed but discarded because the Take guard only existed for "nearby".
                 if (callCount.HasValue)
                     eligible = eligible.Take(callCount.Value).ToList();
             }
@@ -1698,7 +1767,6 @@ namespace BLTAdoptAHero.Actions
             {
                 try
                 {
-                    // FIX: release any BLT order lock before assigning the party to the army
                     PartyOrderBehavior.Current?.CancelOrdersForParty(p.StringId, null, false);
                     try { p.Ai.SetDoNotMakeNewDecisions(false); }
                     catch (Exception aiEx) { Log.Error($"[BLT] ArmyCall: AI unlock failed for {p.Name}: {aiEx}"); }
@@ -2075,7 +2143,7 @@ namespace BLTAdoptAHero.Actions
                     merged = new MBList<MobileParty>();
                 }
 
-                // FIX: release any BLT order locks on parties being absorbed into the new army
+                // Release any BLT order locks on parties being absorbed into the new army.
                 foreach (var mp in merged)
                 {
                     if (mp?.StringId == null) continue;
@@ -2083,6 +2151,11 @@ namespace BLTAdoptAHero.Actions
                     try { mp.Ai.SetDoNotMakeNewDecisions(false); }
                     catch (Exception ex) { Log.Error($"[BLT] ArmyOrder (kingdom): AI unlock failed for {mp.Name}: {ex}"); }
                 }
+
+                // FIX 3: snapshot influence *before* the temporary +200 bonus so we can
+                // restore it precisely if CreateArmy fails, preventing the hero from
+                // keeping a free 200 influence on every failed attempt.
+                float influenceBeforeBonus = h.Clan.Influence;
 
                 h.Clan.Influence += 200f;
                 BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(h, -settings.ArmyPrice, true);
@@ -2093,6 +2166,8 @@ namespace BLTAdoptAHero.Actions
 
                 if (newArmy == null)
                 {
+                    // Restore influence to exactly what it was before the +200 injection.
+                    h.Clan.Influence = influenceBeforeBonus;
                     BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(h, settings.ArmyPrice, false);
                     onFailure("Army creation failed");
                     return;
@@ -2130,7 +2205,7 @@ namespace BLTAdoptAHero.Actions
                     merged = new MBList<MobileParty>();
                 }
 
-                // FIX: release any BLT order locks on parties being absorbed into the new army
+                // Release any BLT order locks on parties being absorbed into the new army.
                 foreach (var mp in merged)
                 {
                     if (mp?.StringId == null) continue;
