@@ -188,6 +188,12 @@ namespace BLTBuffet
              ItemsSource(typeof(SoundEffectItemSource)),
              PropertyOrder(19), UsedImplicitly]
             public string DeactivateSound { get; set; }
+
+            [LocDisplayName("{=WrEr2Ovi}Allow When Depleted"),
+             LocCategory("General", "{=C5T5nnix}General"),
+             LocDescription("{=K0vIkJBp}Whether this summon is allowed when no vanilla troops are left, only applies to battles and sieges"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool AllowWhenDepleted { get; set; } = false;
         }
     }
 }

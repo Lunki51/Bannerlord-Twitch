@@ -25,9 +25,9 @@ Commands:
   ID: 6b05f682-afe1-45e2-ba68-e6ee086ee412
   ModeratorOnly: false
   Name: '{=woTpsqyV}ach'
-  RespondInExtension: true
-  RespondInOverlay: true
-  RespondInTwitch: false
+  RespondInExtension: false
+  RespondInOverlay: false
+  RespondInTwitch: true
 - Documentation: Adopt a newly created Hero. Almost all other actions require an adopted hero.
   Enabled: true
   Handler: AdoptAHero
@@ -284,7 +284,7 @@ Commands:
   ModeratorOnly: false
   Name: '{=QQX2aboq}auction'
   RespondInExtension: false
-  RespondInOverlay: true
+  RespondInOverlay: false
   RespondInTwitch: true
 - Documentation: "{=1TBIIJVZ}Place a bid on the current auction, if one is active.<br>Usage is <code>!bid (gold amount)</code>, e.g. <code>!bid 100000</code>. If there is no auction, or the bid doesn't exceed the reserve price, it will be rejected."
   Enabled: true
@@ -296,7 +296,7 @@ Commands:
   ModeratorOnly: false
   Name: '{=taI6SRSG}bid'
   RespondInExtension: false
-  RespondInOverlay: true
+  RespondInOverlay: false
   RespondInTwitch: true
 - Documentation: '{=thajdk5s}Use this to bet on tournament matches, when available.<br>Usage is <code>!bltbet (team) (gold)</code>, for example <code>!bltbet red 10000</code> to bet 10000 gold on red. Winnings are divided up from the whole pot, based on relative bet size.<br>If only one team is bet upon, the bets will be refunded.'
   Enabled: true
@@ -309,7 +309,7 @@ Commands:
   Name: '{=haKiwbsR}bltbet'
   RespondInExtension: false
   RespondInOverlay: true
-  RespondInTwitch: true
+  RespondInTwitch: false
 - Documentation: Buy a randomly tiered mount for your Hero.Only for mounted classes.(1250000 gold)
   Enabled: true
   Handler: SmithItem
@@ -333,24 +333,25 @@ Commands:
   Enabled: true
   Handler: ClanManagement
   HandlerConfig:
-    AllianceEnabled: true
-    AllianceMax: 5
+    BuyShipEnabled: true
+    BuyShipPrice: 50000
     BuyTitleEnabled: false
     CreateEnabled: true
-    CreatePrice: 1000000
+    CreatePrice: 500000
     EditBannerEnabled: true
     FiefsEnabled: true
     JoinAllowPlayer: true
     JoinEnabled: true
     JoinMaxHeroes: 50
-    JoinPrice: 150000
-    LeadChallengeHeroes: true
+    JoinPrice: 100000
+    LeadChallengeHeroes: false
     LeadEnabled: true
     LeadPrice: 1000000
     LeaveEnabled: true
     RenameEnabled: true
-    RenamePrice: 100000
+    RenamePrice: 10000
     Renown: 100
+    SelectHome: true
     StatsEnabled: true
     TitlePrice: 200000
   Help: ''
@@ -489,6 +490,7 @@ Commands:
   HandlerConfig:
     ActivateParticleEffect: psys_game_stone_water_coll
     ActivateSound: 
+    AllowWhenDepleted: false
     DamageMultiplier: 
     DamagePerSecond: 0
     DeactivateParticleEffect: 
@@ -520,13 +522,13 @@ Commands:
     CultureEnabled: true
     ForbiddenCultures: ''
     ForbiddenRaces: ''
-    GenderCost: 50000
+    GenderCost: 10000
     GenderDisabledonNative: true
     GenderEnabled: true
     MarriageCost: 50000
     MarriageEnabled: true
     OnlySpawnSpouse: true
-    RaceEnabled: true
+    RaceEnabled: false
   Help: ''
   HideHelp: true
   ID: 8443567a-70cb-4073-bb00-b00cc150ab81
@@ -588,7 +590,6 @@ Commands:
     JoinMaxMercClansBLT: 10
     JoinMaxMercClansPlayer: 3
     JoinPrice: 150000
-    KingVassalsOnly: false
     LeaveEnabled: true
     MaxTaxRate: 50
     MercenaryEnabled: true
@@ -608,11 +609,6 @@ Commands:
     SponsorKingCutPercent: 0.25
     StatsEnabled: true
     TaxEnabled: true
-    VassalAmount: 3
-    VassalEnabled: true
-    VassalFiefIncomeShare: 0.25
-    VassalMercIncomeShare: 0.25
-    VassalPrice: 20000000
   Help: ''
   HideHelp: true
   ID: a87232d0-93a7-4123-9981-892b3d19c832
@@ -632,7 +628,7 @@ Commands:
   Name: nameitem
   RespondInExtension: false
   RespondInOverlay: true
-  RespondInTwitch: true
+  RespondInTwitch: false
 - Documentation: ''
   Enabled: true
   Handler: UsePower
@@ -710,7 +706,7 @@ Commands:
       MaxRetinueSize: 5
       UseBasicTroops: true
       UseEliteMilitiaTroops: true
-      UseEliteTroops: true
+      UseEliteTroops: false
       UseHeroesCultureUnits: true
       UseMilitiaTroops: true
   Help: upgrade retinue
@@ -805,7 +801,7 @@ Commands:
   Enabled: true
   Handler: HeroInfoCommand
   HandlerConfig:
-    MinSkillToShow: 100
+    MinSkillToShow: 150
     ShowAchievements: false
     ShowAttributes: true
     ShowCivilianInventory: false
@@ -816,7 +812,7 @@ Commands:
     ShowInventory: false
     ShowPowers: false
     ShowRetinue: true
-    ShowRetinue2: false
+    ShowRetinue2: true
     ShowRetinue2List: false
     ShowRetinueList: false
     ShowStorage: false
@@ -829,7 +825,7 @@ Commands:
   Name: '{=J2AqvpeF}stats'
   RespondInExtension: true
   RespondInOverlay: true
-  RespondInTwitch: false
+  RespondInTwitch: true
 - Documentation: Use this when the streamer enters a battle, to spawn your adopted hero on the streamers side (along with your retinue).
   Enabled: true
   Handler: SummonHero
@@ -939,7 +935,7 @@ Commands:
   Enabled: true
   Handler: HeirCommand
   HandlerConfig:
-    Inheritance: 0.5
+    Inheritance: 1
     MaxInheritedCustomItems: 10
     Notifications: true
     OverrideAge: false
@@ -955,7 +951,7 @@ Commands:
   ModeratorOnly: false
   Name: heir
   RespondInExtension: false
-  RespondInOverlay: true
+  RespondInOverlay: false
   RespondInTwitch: true
 - Documentation: ''
   Enabled: true
@@ -968,6 +964,7 @@ Commands:
     AlliancePrice: 150000
     BreakAlliancePrice: 0
     BreakNAPPrice: 0
+    ClanAllyPrice: 50000
     CTWAcceptanceDays: 15
     CTWCooldown: 30
     CTWEnabled: true
@@ -975,6 +972,7 @@ Commands:
     CTWPrice: 50000
     EnableNewDiplomacy: true
     MaxAlliances: 3
+    MaxClanAlliances: 3
     MaxNAPs: 5
     MinWarDuration: 30
     NAPCostScaleRate: 1.2
@@ -1007,7 +1005,12 @@ Commands:
 - Documentation: ''
   Enabled: true
   Handler: BattleInfo
-  HandlerConfig: 
+  HandlerConfig:
+    Commands: []
+    DisableAutomaticFulfillment: false
+    GlobalConfigs: []
+    Rewards: []
+    SimTesting: 
   Help: ''
   HideHelp: false
   ID: 84f063ca-3c3d-4839-b981-d7ded370609d
@@ -1079,25 +1082,32 @@ Commands:
   Handler: PartyManagement
   HandlerConfig:
     ArmyEnabled: true
+    ArmyKickEnabled: true
     ArmyMaxReissueAttempts: 5
-    ArmyOrderExpiryHours: 0
+    ArmyOrderExpiryDays: 0
     ArmyPrice: 50000
+    AutoCallPartiesOnCreate: true
     CallBaseInfluenceCost: 0
     CallEnabled: true
     CallInfluenceCostPerParty: 25
     CallNearbyRadius: 30
+    ClanOrdersEnabled: true
     CreateArmyPrice: 100000
+    GarrisonEnabled: true
     JoinBaseInfluenceCost: 0
     JoinEnabled: true
     JoinInfluenceCostPerParty: 10
     KingAIArmyToggleEnabled: true
     KingArmyManageEnabled: true
     KingBLTArmyToggleEnabled: true
+    PartyOrderExpiryDays: 0
+    RaidEnabled: true
     TakeoverEnabled: true
     ThreatEnabled: true
     ThreatMaxResults: 3
     ThreatScanRadius: 12
     TrainEnabled: true
+    TrainMaxTier: 0
   Help: ''
   HideHelp: false
   ID: 39691dbb-a4f0-4f39-9ec7-966e2a0b22f9
@@ -1127,6 +1137,8 @@ Commands:
     AllowKingdomLeadersForFiefs: false
     AllowListCommand: true
     Enabled: true
+    IndependentClansCountAsLords: true
+    IndependentClansCountAsMercs: false
   Help: ''
   HideHelp: false
   ID: 70142873-1f14-4521-9be0-7d563d574a25
@@ -1149,7 +1161,7 @@ Commands:
   RespondInOverlay: false
   RespondInTwitch: true
 - Documentation: ''
-  Enabled: true
+  Enabled: false
   Handler: CampaignLogs
   HandlerConfig:
     cLogs: 10
@@ -1194,15 +1206,108 @@ Commands:
 - Documentation: ''
   Enabled: true
   Handler: ManageFief
-  HandlerConfig: 
+  HandlerConfig:
+    Commands: []
+    DisableAutomaticFulfillment: false
+    GlobalConfigs: []
+    Rewards: []
+    SimTesting: 
   Help: ''
   HideHelp: false
   ID: c009d87c-b00a-495d-9e56-3dd6db4f21b3
   ModeratorOnly: false
-  Name: manage
+  Name: fief
+  RespondInExtension: false
+  RespondInOverlay: true
+  RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: VassalManagement
+  HandlerConfig:
+    KingdomVassals: false
+    KingVassalsOnly: false
+    VassalAmount: 1
+    VassalEnabled: true
+    VassalFiefIncomeShare: 0.25
+    VassalMercIncomeShare: 0.25
+    VassalPrice: 250000
+  Help: ''
+  HideHelp: false
+  ID: 2cadb3ed-78f3-4136-b440-f8ff49b11390
+  ModeratorOnly: false
+  Name: vassal
+  RespondInExtension: false
+  RespondInOverlay: true
+  RespondInTwitch: false
+- Documentation: ''
+  Enabled: true
+  Handler: CapitalAction
+  HandlerConfig:
+    Enabled: true
+  Help: ''
+  HideHelp: false
+  ID: 44412857-2e64-45d5-9183-0f8dbbbf3fd7
+  ModeratorOnly: false
+  Name: capital
   RespondInExtension: false
   RespondInOverlay: false
   RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: Retinue2
+  HandlerConfig:
+    AllByDefault: true
+    Retinue2:
+      CostTier1: 50000
+      CostTier2: 100000
+      CostTier3: 200000
+      CostTier4: 350000
+      CostTier5: 550000
+      CostTier6: 800000
+      IncludeBanditUnits: false
+      MaxRetinue2Size: 5
+      UseBasicTroops: false
+      UseEliteMilitiaTroops: false
+      UseEliteTroops: true
+      UseHeroesCultureUnits: true
+      UseMilitiaTroops: false
+  Help: ''
+  HideHelp: false
+  ID: 9788a897-d48b-4428-ba57-7d4dd34b8bd5
+  ModeratorOnly: false
+  Name: eliteretinue
+  RespondInExtension: false
+  RespondInOverlay: false
+  RespondInTwitch: true
+- Documentation: ''
+  Enabled: true
+  Handler: HeroInfoCommand
+  HandlerConfig:
+    MinSkillToShow: 0
+    ShowAchievements: false
+    ShowAttributes: true
+    ShowCivilianInventory: false
+    ShowEquipment: false
+    ShowFamily: false
+    ShowGeneral: false
+    ShowGold: false
+    ShowInventory: false
+    ShowPowers: false
+    ShowRetinue: false
+    ShowRetinue2: false
+    ShowRetinue2List: false
+    ShowRetinueList: false
+    ShowStorage: false
+    ShowTopSkills: true
+    ShowTrackedStats: false
+  Help: ''
+  HideHelp: false
+  ID: 5fbbaab9-fcb6-445b-a557-edbb9bd0ba7e
+  ModeratorOnly: false
+  Name: skills
+  RespondInExtension: false
+  RespondInOverlay: true
+  RespondInTwitch: false
 DisableAutomaticFulfillment: false
 GlobalConfigs:
 - Config:
@@ -2104,8 +2209,13 @@ GlobalConfigs:
       - !StatisticRequirement
         Comparison: GreaterOrEqual
         OtherStatistic: None
-        Statistic: ConsecutiveSummons
+        Statistic: Summons
         Value: 5
+      - !StatisticRequirement
+        Comparison: Less
+        OtherStatistic: None
+        Statistic: Summons
+        Value: 20
       XPGain: 0
     - Enabled: true
       GiveItemReward: true
@@ -2134,8 +2244,13 @@ GlobalConfigs:
       - !StatisticRequirement
         Comparison: GreaterOrEqual
         OtherStatistic: None
-        Statistic: ConsecutiveSummons
+        Statistic: Summons
         Value: 20
+      - !StatisticRequirement
+        Comparison: Less
+        OtherStatistic: None
+        Statistic: Summons
+        Value: 50
       XPGain: 0
     - Enabled: true
       GiveItemReward: true
@@ -2194,8 +2309,13 @@ GlobalConfigs:
       - !StatisticRequirement
         Comparison: GreaterOrEqual
         OtherStatistic: None
-        Statistic: ConsecutiveAttacks
+        Statistic: Attacks
         Value: 5
+      - !StatisticRequirement
+        Comparison: Less
+        OtherStatistic: None
+        Statistic: Attacks
+        Value: 20
       XPGain: 0
     - Enabled: true
       GiveItemReward: true
@@ -2224,8 +2344,13 @@ GlobalConfigs:
       - !StatisticRequirement
         Comparison: GreaterOrEqual
         OtherStatistic: None
-        Statistic: ConsecutiveAttacks
+        Statistic: Attacks
         Value: 20
+      - !StatisticRequirement
+        Comparison: Less
+        OtherStatistic: None
+        Statistic: Attacks
+        Value: 50
       XPGain: 0
     - Enabled: true
       GiveItemReward: true
@@ -2287,50 +2412,48 @@ GlobalConfigs:
         Statistic: TotalStreamerKills
         Value: 5
       XPGain: 0
-    - Enabled: true
-      GiveItemReward: false
-      GivePassivePower: true
-      GoldGain: 0
-      ID: 6b062fe2-7c74-4613-83b1-e3d0e39e3656
-      ItemReward:
-        ArmorWeight: 1
-        CustomItemName: '{=W47g8bCB}Reward {ITEMNAME}'
-        CustomItemPower: 1
-        CustomWeight: 1
-        MountWeight: 0.1
-        Tier1Weight: 0
-        Tier2Weight: 0
-        Tier3Weight: 0
-        Tier4Weight: 0
-        Tier5Weight: 3
-        Tier6Weight: 2
-        WeaponWeight: 1
-      Name: test
-      NotificationText: ''
-      PassivePowerReward:
-        Name: Passive
-        Powers:
-        - PowerID: a3b16d6d-5a2f-416c-9098-55f13f626f34
-          Requirements: []
-      Requirements:
-      - !StatisticRequirement
-        Comparison: GreaterOrEqual
-        OtherStatistic: None
-        Statistic: Battles
-        Value: 1
-      XPGain: 0
     AllowAIJoinBLT: true
     AllowDeath: true
-    ApplyDeathChanceToAllHeroes: true
+    ApplyDeathChanceToAllHeroes: false
     BlockNegativesAtFloor: true
-    BLTArmyMinLifetimeDays: 30
-    BLTChildAgeMult: 5
-    CastleBaseGold: 1500
+    BLTArmyMinLifetimeDays: 15
+    BLTChildAgeMult: 3
+    CapitalConfig:
+      AllowIndependentClans: true
+      AllowListCommand: true
+      CooldownDays: 30
+      Enabled: true
+      FoodDailyFlat: 0
+      FoodDailyPercent: 0
+      GarrisonCapacityBonus: 0
+      HearthDaily: 0
+      InfluenceDaily: 0
+      LoyaltyDailyFlat: 0
+      LoyaltyDailyPercent: 0
+      MilitiaDailyFlat: 0
+      MilitiaDailyPercent: 0
+      PartySizeBonus: 0
+      PartySpeedBonus: 0
+      ProsperityDailyFlat: 0
+      ProsperityDailyPercent: 0
+      RenownDaily: 0
+      RequireRulingClan: true
+      SecurityDailyFlat: 0
+      SecurityDailyPercent: 0
+      SetCost: 500000
+      TaxIncomeFlat: 0
+      TaxIncomePercent: 0
+      TransferCost: 1000000
+      TransferDays: 30
+    CastleBaseGold: 2500
     ClanUpgrades:
     - ApplyToVassals: false
+      ArmySpeedBonus: 0
+      ArmySpeedOncePerClan: false
       BuffsTroopTierOf: ''
       BuffsTroopTierOfIDs: []
       CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       DailyTroopSpawnAmount: 0
       Description: Increase your clan's fame across the land
@@ -2365,6 +2488,7 @@ GlobalConfigs:
       RenownDaily: 1
       RequiredUpgradeID: ''
       RequiredUpgradeIDs: []
+      RetinueSizeBonus: 0
       SecurityDailyFlat: 0
       SecurityDailyPercent: 0
       TaxIncomeFlat: 0
@@ -2374,9 +2498,12 @@ GlobalConfigs:
       TroopTierBonus: 0
       TroopTree: Basic
     - ApplyToVassals: false
+      ArmySpeedBonus: 0
+      ArmySpeedOncePerClan: false
       BuffsTroopTierOf: ''
       BuffsTroopTierOfIDs: []
       CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       DailyTroopSpawnAmount: 0
       Description: Allow larger party sizes for all clan members
@@ -2411,6 +2538,7 @@ GlobalConfigs:
       RenownDaily: 0
       RequiredUpgradeID: ''
       RequiredUpgradeIDs: []
+      RetinueSizeBonus: 0
       SecurityDailyFlat: 0
       SecurityDailyPercent: 0
       TaxIncomeFlat: 0
@@ -2420,9 +2548,12 @@ GlobalConfigs:
       TroopTierBonus: 0
       TroopTree: Basic
     - ApplyToVassals: false
+      ArmySpeedBonus: 0
+      ArmySpeedOncePerClan: false
       BuffsTroopTierOf: ''
       BuffsTroopTierOfIDs: []
       CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       DailyTroopSpawnAmount: 0
       Description: Improve loyalty and prosperity in all clan settlements
@@ -2457,6 +2588,7 @@ GlobalConfigs:
       RenownDaily: 0
       RequiredUpgradeID: ''
       RequiredUpgradeIDs: []
+      RetinueSizeBonus: 0
       SecurityDailyFlat: 0
       SecurityDailyPercent: 0
       TaxIncomeFlat: 0
@@ -2466,9 +2598,12 @@ GlobalConfigs:
       TroopTierBonus: 0
       TroopTree: Basic
     - ApplyToVassals: false
+      ArmySpeedBonus: 0
+      ArmySpeedOncePerClan: false
       BuffsTroopTierOf: ''
       BuffsTroopTierOfIDs: []
       CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       DailyTroopSpawnAmount: 0
       Description: Increase your clan's fame across the land
@@ -2504,6 +2639,7 @@ GlobalConfigs:
       RequiredUpgradeID: clan_renown1
       RequiredUpgradeIDs:
       - clan_renown1
+      RetinueSizeBonus: 0
       SecurityDailyFlat: 0
       SecurityDailyPercent: 0
       TaxIncomeFlat: 0
@@ -2516,7 +2652,7 @@ GlobalConfigs:
     CustomItemLimit: 8
     CustomRewardModifiers:
       AmmoDamage:
-        Max: 20
+        Max: 10
         Min: 5
       Armor:
         Max: 15
@@ -2528,11 +2664,11 @@ GlobalConfigs:
         Max: 80
         Min: 40
       MountChargeDamage:
-        Max: 5
-        Min: 2
+        Max: 3
+        Min: 1.5
       MountHitPoints:
-        Max: 2
-        Min: 1.25
+        Max: 2.5
+        Min: 1.5
       MountManeuver:
         Max: 1.5
         Min: 1.1
@@ -2541,7 +2677,7 @@ GlobalConfigs:
         Min: 1.1
       Power: 1
       ThrowingStack:
-        Max: 6
+        Max: 8
         Min: 2
       WeaponDamage:
         Max: 20
@@ -2550,17 +2686,18 @@ GlobalConfigs:
         Max: 20
         Min: 5
       WeaponSpeed:
-        Max: 20
+        Max: 15
         Min: 5
-    DeathChance: 0.05
+    DeathChance: 0.1
     DifficultyScaling: 1
     DifficultyScalingMax: 3
     DifficultyScalingMin: 0.2
-    DifficultyScalingOnEnemySide: true
-    DifficultyScalingOnPlayersSide: true
+    DifficultyScalingOnEnemySide: false
+    DifficultyScalingOnPlayersSide: false
     FiefIncomeEnabled: true
     FiefUpgrades:
     - CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       Description: Better administration increases loyalty growth
       FoodDailyFlat: 0
@@ -2590,6 +2727,7 @@ GlobalConfigs:
       TaxIncomePercent: 0
       TierLevel: 0
     - CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       Description: Attract more merchants to boost prosperity
       FoodDailyFlat: 0
@@ -2619,6 +2757,7 @@ GlobalConfigs:
       TaxIncomePercent: 0
       TierLevel: 0
     - CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       Description: Additional guard posts improve security
       FoodDailyFlat: 0
@@ -2648,6 +2787,7 @@ GlobalConfigs:
       TaxIncomePercent: 0
       TierLevel: 0
     - CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       Description: Train civilians as militia
       FoodDailyFlat: 0
@@ -2677,6 +2817,7 @@ GlobalConfigs:
       TaxIncomePercent: 0
       TierLevel: 0
     - CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       Description: Larger granaries store more food
       FoodDailyFlat: 5
@@ -2707,7 +2848,7 @@ GlobalConfigs:
       TierLevel: 0
     GoldIncomeEnabled: true
     GoldPerKill: 5000
-    HealPerKill: 20
+    HealPerKill: 25
     HearthPerVillageTier: 300
     IncludeDefaultShouts: true
     IncludeProsperity: true
@@ -2722,9 +2863,12 @@ GlobalConfigs:
       ShowNotification: false
       XPReward: 0
     KingdomUpgrades:
-    - BuffsTroopTierOf: ''
+    - ArmySpeedBonus: 0
+      ArmySpeedOncePerClan: true
+      BuffsTroopTierOf: ''
       BuffsTroopTierOfIDs: []
       CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       DailyTroopSpawnAmount: 0
       Description: Strengthen the ruler's influence
@@ -2756,6 +2900,7 @@ GlobalConfigs:
       RenownDaily: 0
       RequiredUpgradeID: ''
       RequiredUpgradeIDs: []
+      RetinueSizeBonus: 0
       SecurityDailyFlat: 0
       SecurityDailyPercent: 0
       TaxIncomeFlat: 0
@@ -2764,9 +2909,12 @@ GlobalConfigs:
       TroopTier: 1
       TroopTierBonus: 0
       TroopTree: Basic
-    - BuffsTroopTierOf: ''
+    - ArmySpeedBonus: 0
+      ArmySpeedOncePerClan: true
+      BuffsTroopTierOf: ''
       BuffsTroopTierOfIDs: []
       CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       DailyTroopSpawnAmount: 0
       Description: Increase party sizes and militia across the kingdom
@@ -2798,6 +2946,7 @@ GlobalConfigs:
       RenownDaily: 0
       RequiredUpgradeID: ''
       RequiredUpgradeIDs: []
+      RetinueSizeBonus: 0
       SecurityDailyFlat: 0
       SecurityDailyPercent: 0
       TaxIncomeFlat: 0
@@ -2806,9 +2955,12 @@ GlobalConfigs:
       TroopTier: 1
       TroopTierBonus: 0
       TroopTree: Basic
-    - BuffsTroopTierOf: ''
+    - ArmySpeedBonus: 0
+      ArmySpeedOncePerClan: true
+      BuffsTroopTierOf: ''
       BuffsTroopTierOfIDs: []
       CanBeRemoved: false
+      CapitalOnly: false
       CoastalOnly: false
       DailyTroopSpawnAmount: 0
       Description: Boost prosperity and loyalty in all kingdom settlements
@@ -2840,6 +2992,7 @@ GlobalConfigs:
       RenownDaily: 0
       RequiredUpgradeID: ''
       RequiredUpgradeIDs: []
+      RetinueSizeBonus: 0
       SecurityDailyFlat: 0
       SecurityDailyPercent: 0
       TaxIncomeFlat: 0
@@ -2849,14 +3002,15 @@ GlobalConfigs:
       TroopTierBonus: 0
       TroopTree: Basic
     LevelScalingCap: 5
-    LockBLTArmyCohesion: true
-    LoseGold: 5000
+    LockBLTArmyCohesion: false
+    LoseGold: -5000
     LoseXP: 5000
     MapCastleLength: 2.5
     MapTownRadius: 2.15
     MercenaryIncomeEnabled: true
-    MercenaryMaxIncome: 2000
+    MercenaryMaxIncome: 5000
     MercenaryMultiplier: 10
+    MinimumAge: 30
     MinimumGoldPerKill: 0.5
     MoraleLossFactor: 0.5
     NametagEnabled: true
@@ -2864,13 +3018,13 @@ GlobalConfigs:
     NametagHeight: 30
     NametagKey: H
     NametagWidth: 150
-    ProsperityMultiplier: 1
+    ProsperityMultiplier: 25
     RawXPSkillCap: 330
     ReferenceLevelReward: 15
     RelativeLevelScaling: 0.5
     RestrictedItems: ''
-    Retinue2DeathChance: 0.025
-    RetinueDeathChance: 0.025
+    Retinue2DeathChance: 0
+    RetinueDeathChance: 0.05
     RetinueGoldPerKill: 2500
     RetinueHealPerKill: 50
     RetinueUseHeroesFormation: false
@@ -2883,7 +3037,7 @@ GlobalConfigs:
     SubBoost: 1
     SummonCooldownInSeconds: 60
     SummonCooldownUseMultiplier: 1.5
-    TownBaseGold: 3000
+    TownBaseGold: 5000
     TrainGoldCostMultiplier: 500
     TrainMaxDailySpend: 100000
     UncapFoodStocks: false
@@ -2932,21 +3086,21 @@ GlobalConfigs:
     - !AbsorbHealthPower
       DamageToAbsorbPercent: 10
       ID: 4a60ed27-334e-446e-8e75-9804b1980c8b
-      MaxAbsorb: 0
+      MaxAbsorb: 30
       Name: '{=mJQ88gTg}Vampiric I'
       Pfx: []
       PowerDurationSeconds: 120
     - !AbsorbHealthPower
       DamageToAbsorbPercent: 25
       ID: b3e5da20-1b82-4820-a373-ff9a8190dd98
-      MaxAbsorb: 0
+      MaxAbsorb: 30
       Name: '{=EHkU2FPe}Vampiric II'
       Pfx: []
       PowerDurationSeconds: 120
     - !AbsorbHealthPower
       DamageToAbsorbPercent: 50
       ID: 936524f5-7bde-4793-828a-1e0cf4a8a6ba
-      MaxAbsorb: 0
+      MaxAbsorb: 30
       Name: '{=gDsSjnnd}Vampiric III'
       Pfx: []
       PowerDurationSeconds: 120
@@ -4722,15 +4876,30 @@ Rewards:
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 25
+      Max: 22
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
-    StartingGold: 0
+    StartingGold: 50000
     StartingSkills:
     - MaxLevel: 75
       MinLevel: 25
-      Skill: All
+      Skill: Melee
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Ranged
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Riding
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Athletics
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Support
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Personal
     SubscriberOnly: false
     ViewerSelects: Culture
   ID: eafbd312-1127-4930-bca0-47b83e205c7b
@@ -4806,15 +4975,30 @@ Rewards:
     Notifications: false
     OverrideAge: true
     StartingAgeRange:
-      Max: 25
+      Max: 22
       Min: 18
     StartingClass: 00000000-0000-0000-0000-000000000000
     StartingEquipmentTier: 1
-    StartingGold: 0
+    StartingGold: 50000
     StartingSkills:
     - MaxLevel: 75
       MinLevel: 25
-      Skill: All
+      Skill: Melee
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Ranged
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Riding
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Athletics
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Support
+    - MaxLevel: 75
+      MinLevel: 25
+      Skill: Personal
     SubscriberOnly: false
     ViewerSelects: Nothing
   ID: e072adb0-83a2-4408-87bb-b2cff3f12ee2
@@ -4870,6 +5054,7 @@ Rewards:
   HandlerConfig:
     ActivateParticleEffect: psys_burning_projectile_default_coll_small
     ActivateSound: 
+    AllowWhenDepleted: false
     DamageMultiplier: 2
     DamagePerSecond: 1
     DeactivateParticleEffect: 
@@ -4917,7 +5102,7 @@ Rewards:
   RespondInOverlay: true
   RespondInTwitch: false
   RewardSpec:
-    BackgroundColorText: '#FF000000'
+    BackgroundColorText: '#FFFFD700'
     Cost: 50
     DisableAutomaticFulfillment: false
     GlobalCooldownSeconds: 
@@ -4941,7 +5126,7 @@ Rewards:
   RespondInOverlay: true
   RespondInTwitch: false
   RewardSpec:
-    BackgroundColorText: '#FF000000'
+    BackgroundColorText: '#FFDC143C'
     Cost: 50
     DisableAutomaticFulfillment: false
     GlobalCooldownSeconds: 
@@ -4952,7 +5137,7 @@ Rewards:
     Prompt: Add 50,000 XP to a random skill of your adopted hero, once per stream
     Title: Daily XP
 - Documentation: '{=CSmE7Y50}Transfer 10,000 gold to the streamers character, from your hero.'
-  Enabled: true
+  Enabled: false
   Handler: AddGoldToPlayer
   HandlerConfig:
     AlertSound: Notification1
@@ -4979,6 +5164,7 @@ Rewards:
   HandlerConfig:
     ActivateParticleEffect: psys_game_stone_water_coll
     ActivateSound: 
+    AllowWhenDepleted: false
     DamageMultiplier: 
     DamagePerSecond: 0
     DeactivateParticleEffect: 
@@ -5014,6 +5200,7 @@ Rewards:
   HandlerConfig:
     ActivateParticleEffect: psys_game_stone_water_coll
     ActivateSound: 
+    AllowWhenDepleted: false
     DamageMultiplier: 
     DamagePerSecond: 0
     DeactivateParticleEffect: 
@@ -5046,7 +5233,7 @@ Rewards:
     Prompt: '{=a8DqM6AY}Heal the streamer over time'
     Title: '{=MSpPJJhZ}Heal Streamer'
 - Documentation: '{=SXzjFdG1}Use this if you no longer wish to play with your current hero. They will be marked as (retired), and you will then be able to adopt a new one. Inheritence rules apply the same to retirement as they do to death. You MUST enter yes at the prompt (exactly as written, in lower case) for the retirement to complete.'
-  Enabled: false
+  Enabled: true
   Handler: RetireMyHero
   HandlerConfig:
     RetireCreatedOnly: true

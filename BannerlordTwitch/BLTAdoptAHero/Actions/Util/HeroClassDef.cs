@@ -224,14 +224,14 @@ namespace BLTAdoptAHero
                         );
                     }
                 });
-            });
+            }, false);
 
             generator.Table("hero-class", () =>
             {
                 generator.TR(() => generator
                     .TD("{=zy3uK94p}Formation".Translate())
                     .TD(SummonHero.FormationItemSource.GetFriendlyName(Formation)));
-            });
+            },false);
 
             generator.Table("hero-class", () =>
             {
@@ -249,7 +249,7 @@ namespace BLTAdoptAHero
                         });
                     }
                 });
-            });
+            }, false);
 
             if (Mounted)
             {
@@ -285,7 +285,7 @@ namespace BLTAdoptAHero
                             });
                         }
                     });
-                });
+                },false);
             }
 
             generator.Table("hero-class", () =>
@@ -294,7 +294,7 @@ namespace BLTAdoptAHero
                     => generator.TD("{=MvddFKo4}Passive Power".Translate()).TD(() => PassivePower.GenerateDocumentation(generator)));
                 generator.TR(()
                     => generator.TD("{=wdCMNOGd}Active Power".Translate()).TD(() => ActivePower.GenerateDocumentation(generator)));
-            });
+            },false);
         }
         #endregion
     }

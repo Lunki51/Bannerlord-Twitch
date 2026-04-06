@@ -396,6 +396,7 @@
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\BLTLogsBehavior.cs" />
     <Compile Include="Behaviors\BLTHeroDetachmentBehavior.cs" />
+    <Compile Include="Behaviors\BLTHeirBehavior.cs" />
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />

@@ -45,7 +45,7 @@ namespace BLTAdoptAHero
                 public CharacterObject TroopType { get; set; }
                 public int Level { get; set; }
                 public int SavedTroopIndex { get; set; }
-            }
+            }          
 
             public int Gold { get; set; }
             [UsedImplicitly]
@@ -104,8 +104,7 @@ namespace BLTAdoptAHero
             }
         }
 
-        private Dictionary<Hero, HeroData> heroData = new();
-        public Dictionary<Hero, Hero> heirList = new();
+        private Dictionary<Hero, HeroData> heroData = new();       
         private Dictionary<Hero, HashSet<Guid>> heroAchievementPassivePowers = new();
         #endregion
 
@@ -326,16 +325,6 @@ namespace BLTAdoptAHero
             MapHub.UpdateMapData();
         }
 
-        //private Mission lastMission = null;
-        //private void OnTick(float dt)
-        //{
-        //    // Check mission status every tick to immediately hide/show map
-        //    if (Mission.Current != lastMission)
-        //    {
-        //        lastMission = Mission.Current;
-        //        MapHub.UpdateMapData(); // Force immediate update when mission changes
-        //    }
-        //}
         public override void SyncData(IDataStore dataStore)
         {
             using var scopedJsonSync = new ScopedJsonSync(dataStore, nameof(BLTAdoptAHeroCampaignBehavior));

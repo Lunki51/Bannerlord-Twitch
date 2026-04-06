@@ -30,11 +30,8 @@ namespace BLTAdoptAHero.Actions
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value("Usage: !formation number");
-                generator.Value("Format: [M-A-N]");
-                generator.Value("M: C/A/R/H/F/M = Charge/Advance/Retreat/Hold/Follow/Move");
-                generator.Value("A: LN/SH/LO/SQ/CI/CO/SC");
-                generator.Value("N: distance to target");
+                generator.Value("<strong>Usage:</strong> !formation number");
+                generator.Value("!formation front/back");
             }
         }
 
@@ -316,11 +313,11 @@ namespace BLTAdoptAHero.Actions
                                 .Where(a => a != null && a != heroAgent && a.GetHero() == null)
                                 .OrderBy(a => ((IFormationUnit)a).FormationRankIndex)
                                 .ThenBy(a => ((IFormationUnit)a).FormationFileIndex)
-                                .FirstOrDefault();
+                                .Take((int)arrangement.Width).SelectRandom();
 
                             if (candidate == null) { onFailure("No troop found"); break; }
 
-                            arrangement.SwitchUnitLocationsWithUnpositionedUnit(candidate, unit);
+                            arrangement.SwitchUnitLocations(candidate, unit);
                             onSuccess($"Moved to front");
                             break;
                         }
@@ -332,11 +329,11 @@ namespace BLTAdoptAHero.Actions
                                 .Where(a => a != null && a != heroAgent && a.GetHero() == null)
                                 .OrderByDescending(a => ((IFormationUnit)a).FormationRankIndex)
                                 .ThenBy(a => ((IFormationUnit)a).FormationFileIndex)
-                                .FirstOrDefault();
+                                .Take((int)arrangement.Width).SelectRandom();
 
                             if (candidate == null) { onFailure("No troop found"); break; }
 
-                            arrangement.SwitchUnitLocationsWithUnpositionedUnit(candidate, unit);
+                            arrangement.SwitchUnitLocations(candidate, unit);
                             onSuccess($"Moved to back");
                             break;
                         }
