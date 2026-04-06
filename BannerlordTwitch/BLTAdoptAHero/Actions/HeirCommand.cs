@@ -10,6 +10,8 @@ using BannerlordTwitch.Localization;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.UI;
 using BannerlordTwitch.Util;
+using BLTAdoptAHero;
+using BLTAdoptAHero.Behaviors;
 using BLTAdoptAHero.Annotations;
 using TaleWorlds.CampaignSystem;
 using TaleWorlds.CampaignSystem.Actions;
@@ -103,7 +105,9 @@ namespace BLTAdoptAHero
             Hero adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(userName);
             Hero ancestor = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(userName) ?? BLTAdoptAHeroCampaignBehavior.Current.GetRetiredHero(userName);
             Hero heirHero;
-            BLTAdoptAHeroCampaignBehavior.Current.heirList.TryGetValue(ancestor, out heirHero);
+            var behavior = Campaign.Current.GetCampaignBehavior<BLTHeirBehavior>();
+            if (behavior == null) return(false, "BLTHeirBehavior not initialized");
+            behavior.heirList.TryGetValue(ancestor, out heirHero);
 
             // Determine heir logic
             if (adoptedHero != null && heirHero == null)
@@ -111,24 +115,26 @@ namespace BLTAdoptAHero
                 if (string.IsNullOrWhiteSpace(contextArgs))
                 {
                     Hero newHeir = adoptedHero.Clan.Heroes
-                    .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero) && !h.IsAdopted())
+                    .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero || h.Siblings.Contains(adoptedHero)) && !h.IsAdopted())
                     .SelectRandom();
                     if (newHeir == null)
                         return (false, "No suitable heir found in adopted hero's clan.");
 
-                    BLTAdoptAHeroCampaignBehavior.Current.heirList.Add(adoptedHero, newHeir);
+                    behavior.heirList.Add(adoptedHero, newHeir);
+                    behavior._heirs.Add(newHeir);
                     return (true, $"Assigned heir to {newHeir.FirstName}");
                 }
                 else
                 {
                     Hero newHeir = adoptedHero.Clan.Heroes
-                   .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero) && !h.IsAdopted())
+                   .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero || h.Siblings.Contains(adoptedHero) || h.Spouse == adoptedHero) && !h.IsAdopted())
                    .FirstOrDefault(c => c.Name.ToString().IndexOf(contextArgs, StringComparison.OrdinalIgnoreCase) >= 0);
 
                     if (newHeir == null)
                         return (false, $"No hero named '{contextArgs}' found to adopt as heir.");
 
-                    BLTAdoptAHeroCampaignBehavior.Current.heirList.Add(adoptedHero, newHeir);
+                    behavior.heirList.Add(adoptedHero, newHeir);
+                    behavior._heirs.Add(newHeir);
                     return (true, $"Assigned heir to {newHeir.FirstName}");
                 }
             }
@@ -138,12 +144,14 @@ namespace BLTAdoptAHero
                 {
 
                     Hero newHeir = adoptedHero.Clan.Heroes
-                    .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero) && !h.IsAdopted())
+                    .Where(h => h.IsAlive && h.Age >= Campaign.Current.Models.AgeModel.HeroComesOfAge && (h.Father == adoptedHero || h.Mother == adoptedHero || h.Siblings.Contains(adoptedHero) || h.Spouse == adoptedHero) && !h.IsAdopted())
                     .FirstOrDefault(c => c.Name.ToString().IndexOf(contextArgs, StringComparison.OrdinalIgnoreCase) >= 0);
                     if (newHeir == null)
                         return (false, $"No hero named '{contextArgs}' found to adopt as heir.");
-                    BLTAdoptAHeroCampaignBehavior.Current.heirList.Remove(adoptedHero);
-                    BLTAdoptAHeroCampaignBehavior.Current.heirList.Add(adoptedHero, newHeir);
+                    behavior.heirList.Remove(adoptedHero);
+                    behavior.heirList.Add(adoptedHero, newHeir);
+                    behavior._heirs.Remove(heirHero);
+                    behavior._heirs.Add(newHeir);
                     return (true, $"Assigned heir to {newHeir.FirstName}");
                 }
                 else
@@ -151,7 +159,7 @@ namespace BLTAdoptAHero
                     return (true, $"Heir is {heirHero.FirstName}");
                 }
             }
-            else if (adoptedHero == null && heirHero != null)
+            else if (adoptedHero == null && heirHero != null) // adoption
             {
                 Hero newHero = heirHero;
                 if (newHero == null)
@@ -234,6 +242,11 @@ namespace BLTAdoptAHero
                 else
                     Log.Info("{=K7nuJVCN}{OldName} is now known as {NewName}!".Translate(("OldName", oldName), ("NewName", newHero.Name)));
 
+                // Cleanup lists
+                behavior._heirs.Remove(heirHero);
+                var key = behavior.heirList.FirstOrDefault(h => h.Value == heirHero).Key;
+                behavior.heirList.Remove(key);
+
                 return inherited.Any()
                     ? (true, "{=PAc5S0GY}{OldName} is now known as {NewName}, they have {NewGold} (inheriting {Inherited})!"
                         .Translate(
@@ -245,6 +258,7 @@ namespace BLTAdoptAHero
                         ("OldName", oldName),
                         ("NewName", newHero.Name),
                         ("NewGold", newGold + Naming.Gold)));
+                
             }
             else { return (false, "No heir to adopt"); }           
         }

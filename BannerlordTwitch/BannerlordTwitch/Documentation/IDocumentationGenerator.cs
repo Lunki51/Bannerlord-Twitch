@@ -26,8 +26,8 @@ namespace BannerlordTwitch
         IDocumentationGenerator H3(string css, string content);
         IDocumentationGenerator H3(string content);
 
-        IDocumentationGenerator Table(string css, Action content);
-        IDocumentationGenerator Table(Action content);
+        IDocumentationGenerator Table(string css, Action content, bool collapsible = true, string summary = "View Table");
+        IDocumentationGenerator Table(Action content, bool collapsible = true, string summary = "View Table");
 
         IDocumentationGenerator TR(string css, Action content);
         IDocumentationGenerator TR(Action content);

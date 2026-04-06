@@ -169,7 +169,7 @@ namespace BLTAdoptAHero
                         if (affectedAgent.IsAdopted())
                         {
                             if (!BLTAdoptAHeroModule.CommonConfig.AllowDeath
-                                || StaticRandom.Next() > BLTAdoptAHeroModule.CommonConfig.DeathChance)
+                                || StaticRandom.Next() > BLTAdoptAHeroModule.CommonConfig.DeathChance || BLTAdoptAHeroModule.CommonConfig.MinimumAge <= affectedAgent.GetHero().Age)
                             {
                                 agentState = affectedAgent.State = AgentState.Unconscious;
                             }

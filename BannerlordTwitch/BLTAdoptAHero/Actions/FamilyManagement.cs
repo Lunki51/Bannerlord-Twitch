@@ -35,7 +35,25 @@ namespace BLTAdoptAHero.Actions
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value($"Max Kids From Baby Command: {MakeKidsLimit}");
+
+                generator.Value("<strong>Family Management:</strong> Manage and view your hero's family members, including spouse, children, and parents.");
+                generator.Value($"<strong>Max Kids From Baby Command:</strong> {MakeKidsLimit}");
+
+                generator.Value("<strong>Usage:</strong>");
+                generator.Value(" - spouse");
+                generator.Value(" - spouse rename <name>");
+                generator.Value(" - spouse looks <body>");
+                generator.Value(" - spouse baby");
+                generator.Value(" - spouse skills");
+                generator.Value(" - children: List all children.");
+                generator.Value(" - <childName>*");
+                generator.Value(" - <childName>* rename <name>");
+                generator.Value(" - <childName>* looks <body>");
+                generator.Value(" - <childName>* marry <viewer>* <viewer_child>*");
+
+                generator.Value("<strong>Notes:</strong>");
+                generator.Value("* means command expects 1 word in that field");
+                
             }
 
         }

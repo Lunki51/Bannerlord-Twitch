@@ -677,6 +677,9 @@
     <Compile Include="Twitch\CustomTwitchHttpClient.cs" />
     <Compile Include="Twitch\Dummy\AffiliateSpoofingHttpCallHandler.cs" />
     <Compile Include="Twitch\Dummy\TwitchRedirectingHttpCallHandler.cs" />
+    <Compile Include="Twitch\RandomOverlay\BLTProtocol.cs" />
+    <Compile Include="Twitch\RandomOverlay\ExtensionReceiverService.cs" />
+    <Compile Include="Twitch\RandomOverlay\LocalRelayService.cs" />
     <Compile Include="Twitch\TwitchEventSubSocket.cs" />
     <Compile Include="Twitch\TwitchService.Bot.cs" />
     <Compile Include="Twitch\TwitchService.cs" />
@@ -745,6 +748,7 @@
     <Content Include="Scripts\jquery-3.7.1.slim.min.js" />
     <Content Include="Scripts\jquery.signalR-2.4.3.js" />
     <Content Include="Scripts\jquery.signalR-2.4.3.min.js" />
+    <Content Include="Twitch\RandomOverlay\server.js" />
     <Content Include="Web.config" />
     <Content Include="_Module\Bannerlord-Twitch-Auth.yaml" />
     <Content Include="_Module\Bannerlord-Twitch-Documentation.css" />
@@ -874,6 +878,9 @@
     <None Include="app.config" />
     <None Include="Scripts\jquery-3.7.1.min.map" />
     <None Include="Scripts\jquery-3.7.1.slim.min.map" />
+    <None Include="Twitch\RandomOverlay\package.json" />
+    <None Include="Twitch\RandomOverlay\start.bat" />
+    <None Include="Twitch\RandomOverlay\start.sh" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

@@ -4,7 +4,7 @@ using System.Text;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
-using HarmonyLib;
+using System.Reflection;
 using BannerlordTwitch;
 using BannerlordTwitch.Helpers;
 using BannerlordTwitch.Localization;
@@ -57,7 +57,8 @@ namespace BLTAdoptAHero.Actions
          //CategoryOrder("Disband", 6),
          CategoryOrder("Buy Noble Title", 7),
          CategoryOrder("Edit Banner", 8),
-         CategoryOrder("Ship", 9)]
+         CategoryOrder("Ship", 9),
+         CategoryOrder("Home", 10)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -186,6 +187,12 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public int BuyShipPrice { get; set; } = 50000;
 
+            [LocDisplayName("{=pYjIUlTE}Select home"),
+             LocCategory("Home", "{=UnFfiM9h}Home"),
+             LocDescription("Select home"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool SelectHome { get; set; } = true;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var EnabledCommands = new StringBuilder();
@@ -212,6 +219,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands = EnabledCommands.Append("{=UnFfiM9h}Edit Banner, ".Translate());
                 if (BuyShipEnabled)
                     EnabledCommands = EnabledCommands.Append("{=UnFfiM9h}Ship, ".Translate());
+                if (SelectHome)
+                    EnabledCommands = EnabledCommands.Append("{=UnFfiM9h}Home, ".Translate());
                 if (EnabledCommands != null)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString().Substring(0, EnabledCommands.ToString().Length - 2))));
 
@@ -250,7 +259,7 @@ namespace BLTAdoptAHero.Actions
                                     "</strong>" +
                                     "(bannerlord.party/banner/)\n" +
                                     "For long banners: !clan banner start -> !clan banner {code} (repeat) -> !clan banner end");
-                if (BuyTitleEnabled)
+                if (BuyShipEnabled)
                     generator.Value("<strong>" +
                                     "Ship: " +
                                     "</strong>" +
@@ -329,6 +338,7 @@ namespace BLTAdoptAHero.Actions
             string buytitleCommand = "{=jk3WfmjK}buy title".Translate();
             string bannerCommand = "{=15vWZKaM}banner".Translate();
             string shipCommand = "ship";
+            string homeCommand = "home";
 
             switch (command.ToLower())
             {
@@ -387,8 +397,11 @@ namespace BLTAdoptAHero.Actions
                 case var _ when command.ToLower() == shipCommand:
                     HandleShipCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
+                case var _ when command.ToLower() == homeCommand:
+                    HandleHomeCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
                 default:
-                    onFailure("{=pkzDqw18}Invalid or empty clan action, try (join/create/lead/rename/stats/party/fiefs/leave/buy title/banner)".Translate());
+                    onFailure("{=pkzDqw18}Invalid or empty clan action, try (join/create/lead/rename/stats/party/fiefs/leave/buy title/banner/ship/home)".Translate());
                     break;
             }
         }
@@ -465,6 +478,10 @@ namespace BLTAdoptAHero.Actions
             {
                 onFailure("{=TESTING}You cannot create a clan while in the players party".Translate());
                 return;
+            }
+            if (adoptedHero.Clan == Clan.PlayerClan)
+            {
+                adoptedHero.CompanionOf = null;
             }
 
             var fullClanName = $"[BLT Clan] {desiredName}";
@@ -1065,6 +1082,111 @@ namespace BLTAdoptAHero.Actions
             catch (Exception ex)
             {
                 onFailure($"Failed to update banner: {ex.Message}");
+            }
+        }
+
+        private void HandleHomeCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.SelectHome) 
+            {
+                onFailure("Setting clan home is disabled");
+                return;
+            }
+            if (adoptedHero.Clan == null)
+            {
+                onFailure("{=yPeUCq8t}You are not in a clan".Translate());
+                return;
+            }
+            if (!adoptedHero.IsClanLeader)
+            {
+                onFailure("{=jQZ93EID}You are not the leader of your clan".Translate());
+                return;
+            }
+            if (string.IsNullOrEmpty(desiredName))
+            {
+                onSuccess($"Home is {adoptedHero.Clan.HomeSettlement.Name}");
+                return;
+            }
+            if (adoptedHero.Clan.Fiefs.Count > 0)
+            {               
+                Settlement newHome = adoptedHero.Clan.Fiefs.FirstOrDefault(t => t.Name.ToString().IndexOf(desiredName, StringComparison.InvariantCultureIgnoreCase) > 0).Settlement;
+                if (newHome == null)
+                {
+                    onFailure($"No settlement named {desiredName}");
+                    return;
+                }
+
+                // --- Update clan home ---
+                var homeProp = typeof(Clan).GetProperty(
+                    "HomeSettlement",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+                );
+                homeProp.SetValue(adoptedHero.Clan, newHome);
+
+                // --- Update all heroes in clan ---
+                foreach (var hero in adoptedHero.Clan.Heroes)
+                {
+                    hero.UpdateHomeSettlement();
+                }
+
+                var vassals = VassalBehavior.Current?.GetVassalClans(adoptedHero.Clan);
+                foreach (Clan vassal in vassals)
+                {
+                    if (vassal.Fiefs.Count > 0) continue;
+
+                    var vassalHomeProp = typeof(Clan).GetProperty(
+                        "HomeSettlement",
+                        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+                    );
+                    vassalHomeProp.SetValue(vassal, newHome);
+
+                    foreach (var hero in vassal.Heroes)
+                    {
+                        hero.UpdateHomeSettlement();
+                    }
+                }
+                onSuccess($"Home updated to {newHome.Name}");
+            }
+            else
+            {
+                bool hasKingdom = adoptedHero.Clan.Kingdom != null;
+                Settlement newHome = hasKingdom ? adoptedHero.Clan.Kingdom.Fiefs.FirstOrDefault(t => t.Name.ToString().IndexOf(desiredName, StringComparison.InvariantCultureIgnoreCase) >= 0).Settlement : Town.AllFiefs.FirstOrDefault(t => t.Name.ToString().IndexOf(desiredName, StringComparison.InvariantCultureIgnoreCase) >= 0).Settlement;
+                if (newHome == null)
+                {
+                    onFailure($"No settlement named {desiredName}");
+                    return;
+                }
+
+                // --- Update clan home ---
+                var homeProp = typeof(Clan).GetProperty(
+                    "HomeSettlement",
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+                );
+                homeProp.SetValue(adoptedHero.Clan, newHome);
+
+                // --- Update all heroes in clan ---
+                foreach (var hero in adoptedHero.Clan.Heroes)
+                {
+                    hero.UpdateHomeSettlement();
+                }
+
+                var vassals = VassalBehavior.Current?.GetVassalClans(adoptedHero.Clan);
+                foreach (Clan vassal in vassals)
+                {
+                    if (vassal.Fiefs.Count > 0) continue;
+
+                    var vassalHomeProp = typeof(Clan).GetProperty(
+                        "HomeSettlement",
+                        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+                    );
+                    vassalHomeProp.SetValue(vassal, newHome);
+
+                    foreach (var hero in vassal.Heroes)
+                    {
+                        hero.UpdateHomeSettlement();
+                    }
+                }
+                onSuccess($"Home updated to {newHome.Name}");
             }
         }
     }

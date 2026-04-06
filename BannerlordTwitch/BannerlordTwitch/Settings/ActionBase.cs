@@ -32,7 +32,7 @@ namespace BannerlordTwitch
         public bool RespondInOverlay { get; set; }
 
         [LocDisplayName("{=BLTExtResp}Respond In Extension"), LocCategory("General", "{=C5T5nnix}General"),
-         LocDescription("{=BLTExtRespDesc}Send response to the BLT Twitch Extension panel. Replies with a named user are sent as a whisper to that viewer; messages without a user are broadcast to all viewers."),
+         LocDescription("{=BLTExtRespDesc}"/*Send response to the BLT Twitch Extension panel. Replies with a named user are sent as a whisper to that viewer; messages without a user are broadcast to all viewers.*/+"WIP"),
          PropertyOrder(-97), UsedImplicitly]
         public bool RespondInExtension { get; set; }
 

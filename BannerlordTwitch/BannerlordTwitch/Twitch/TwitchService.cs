@@ -5,6 +5,7 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using BannerlordTwitch.BLTOverlay;
 using BannerlordTwitch.Dummy;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Rewards;
@@ -94,6 +95,19 @@ namespace BannerlordTwitch
                 Args = args,
                 Source = source,
             };
+
+        public static ReplyContext FromOverlay(
+            ActionBase source,
+            string userName,
+            string args = null) =>
+            new()
+            {
+                UserName = CleanDisplayName(userName),
+                Args = args,
+                Source = source,
+                IsModerator = true,      // ← IMPORTANT (see below)
+                IsBroadcaster = true     // overlay = trusted
+            };
     }
 
     // https://twitchtokengenerator.com/
@@ -102,8 +116,8 @@ namespace BannerlordTwitch
     {
         private TwitchEventSubSocket eventsub;
         private readonly TwitchAPI api;
-        private string channelId;
-        private readonly AuthSettings authSettings;
+        public string channelId;
+        public readonly AuthSettings authSettings;
 
         private TwitchPubSub pubSub;
 
@@ -115,6 +129,7 @@ namespace BannerlordTwitch
 
         // ── Extension PubSub ─────────────────────────────────────────────────
         private ExtensionPubSubService extensionPubSub;
+        private LocalRelayService localRelay;
 
         public TwitchService()
         {
@@ -163,21 +178,23 @@ namespace BannerlordTwitch
                     channelId = user.Id;
 
                     // ── Init extension PubSub (requires channelId) ────────────
-                    if (authSettings.ExtensionConfigured)
-                    {
-                        extensionPubSub = new ExtensionPubSubService(
-                            new CustomTwitchHttpClient(),
-                            authSettings.ExtensionClientId,
-                            authSettings.ExtensionSecret,
-                            channelId,
-                            authSettings.AccessToken,
-                            authSettings.ClientID);
-                        Log.Info("[Extension] PubSub service ready");
-                    }
-                    else
-                    {
-                        Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
-                    }
+                    //if (authSettings.ExtensionConfigured)
+                    //{
+                    //    extensionPubSub = new ExtensionPubSubService(
+                    //        new CustomTwitchHttpClient(),
+                    //        authSettings.ExtensionClientId,
+                    //        authSettings.ExtensionSecret,
+                    //        channelId,
+                    //        authSettings.AccessToken,
+                    //        authSettings.ClientID);
+                    //    Log.Info("[Extension] PubSub service ready");
+                    //    localRelay = new LocalRelayService();
+                    //    Log.Info("[LocalRelay] Service started — OBS source: http://localhost:3000");
+                    //}
+                    //else
+                    //{
+                    //    Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
+                    //}
 
                     // Connect the chatbot
                     bot = new Bot(user.Login, authSettings);
@@ -236,15 +253,25 @@ namespace BannerlordTwitch
 
         private async void OnEventSubConnected(object o, WebsocketConnectedArgs args)
         {
-            var conditions = new Dictionary<string, string>()
+            try
             {
-                { "broadcaster_user_id", channelId }
-            };
-            var subscriptionResponse = await api.Helix.EventSub.CreateEventSubSubscriptionAsync(
-                "channel.channel_points_custom_reward_redemption.add", "1", conditions,
-                EventSubTransportMethod.Websocket, eventsub.SessionId);
+                var conditions = new Dictionary<string, string>
+        {
+            { "broadcaster_user_id", channelId }
+        };
+                var subscriptionResponse = await api.Helix.EventSub.CreateEventSubSubscriptionAsync(
+                    "channel.channel_points_custom_reward_redemption.add",
+                    "1",
+                    conditions,
+                    EventSubTransportMethod.Websocket,
+                    eventsub.SessionId);
 
-            //Listen to other event sub
+                Log.Info($"[EventSub] Subscribed to channel points, status: {subscriptionResponse.Subscriptions?.FirstOrDefault()?.Status}");
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[EventSub] Failed to subscribe to channel points: {ex.Message}");
+            }
         }
 
         /**
@@ -435,35 +462,35 @@ namespace BannerlordTwitch
         public void SendReply(ReplyContext context, params string[] messages)
         {
             if (context.Source.RespondInOverlay || IsSimTesting)
-            {
                 Log.LogFeedResponse(context.UserName, messages);
-            }
 
             if (context.Source.RespondInTwitch && !IsSimTesting)
             {
                 if (context.UserName != null)
                 {
                     bot.SendChatReply(context.UserName, messages);
-                    Log.Trace($"[{nameof(TwitchService)}] Reply to {context.UserName}: {string.Join(", ", messages)}");
+                    Log.Trace($"[TwitchService] Reply to {context.UserName}: {string.Join(", ", messages)}");
                 }
                 else
                 {
                     bot.SendChat(messages);
-                    Log.Trace($"[{nameof(TwitchService)}] Chat: {string.Join(", ", messages)}");
                 }
             }
 
-            // Extension PubSub: whisper named user, or broadcast if no user
-            if (context.Source.RespondInExtension && extensionPubSub != null && !IsSimTesting)
+            if (context.Source.RespondInExtension && !IsSimTesting)
             {
-                if (context.UserName != null)
+                // Twitch Extension PubSub (if configured)
+                if (extensionPubSub != null)
                 {
-                    _ = extensionPubSub.SendWhisperToUserNameAsync(context.UserName, messages);
+                    if (context.UserName != null)
+                        _ = extensionPubSub.SendWhisperToUserNameAsync(context.UserName, messages);
+                    else
+                        _ = extensionPubSub.SendBroadcastAsync(messages);
                 }
-                else
-                {
-                    _ = extensionPubSub.SendBroadcastAsync(messages);
-                }
+
+                // Local relay — always active, no configuration needed
+                if (localRelay != null)
+                    _ = localRelay.SendReplyAsync(context.UserName, messages);
             }
         }
 
@@ -560,6 +587,70 @@ namespace BannerlordTwitch
                 }
 #endif
             });
+        }
+
+        public void ExecuteOverlayRaw(string rawCommand, string userName)
+        {
+            if (string.IsNullOrWhiteSpace(rawCommand))
+                return;
+
+            // Match Bot.cs parsing EXACTLY
+            var parts = rawCommand.Split(new[] { ' ' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0)
+                return;
+
+            string cmdName = parts[0];
+            string args = parts.Length > 1 ? parts[1] : string.Empty;
+
+            ExecuteOverlayCommand(cmdName, userName, args);
+        }
+
+        public void ExecuteOverlayCommand(string cmdName, string userName, string args)
+        {
+            MainThreadSync.Run(() =>
+            {
+                var cmd = this.settings.GetCommand(cmdName);
+                if (cmd == null)
+                {
+                    Log.Trace($"[Overlay] Unknown command '{cmdName}'");
+                    return;
+                }
+
+                var context = ReplyContext.FromOverlay(cmd, userName, args);
+
+                if (cmd.ModeratorOnly && !context.IsModerator && !context.IsBroadcaster)
+                {
+                    Log.Info($"[Overlay] Blocked '{cmdName}' from '{context.UserName}' (not mod)");
+                    SendReply(context,
+                        "{=X9J4K2L8}@{DisplayName}, Only moderators and broadcaster can use this command"
+                            .Translate(("DisplayName", context.UserName)));
+                    return;
+                }
+
+#if !DEBUG
+                try
+                {
+#endif
+                    ActionManager.HandleCommand(cmd.Handler, context, cmd.HandlerConfig);
+#if !DEBUG
+                }
+                catch (Exception e)
+                {
+                    Log.Exception($"Overlay command {cmdName} failed: {e.Message}", e);
+                }
+#endif
+            });
+        }
+
+        public void ExecuteOverlayWire(BltWireMessage wire)
+        {
+            if (wire == null || wire.Kind != "command" || string.IsNullOrWhiteSpace(wire.Command))
+                return;
+
+            ExecuteOverlayCommand(
+                wire.Command,
+                wire.User?.Name,
+                wire.Args ?? string.Empty);
         }
 
         public bool TestCommand(string cmdName, string userName, string args)

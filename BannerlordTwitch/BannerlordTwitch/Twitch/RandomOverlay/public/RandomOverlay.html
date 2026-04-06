@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BLT</title>
+<script src="https://extension-files.twitch.tv/helper/v1/twitch-ext.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:rgba(7,9,17,.95);--bg2:rgba(10,12,21,.97);--bg3:rgba(16,19,34,.9);
+  --bdr:rgba(92,70,20,.42);--bdr-hi:rgba(160,120,40,.7);
+  --gold:#a88535;--gold-hi:#cca840;--gdim:rgba(168,133,53,.15);
+  --tx:#c0b490;--dim:#524c38;
+  --gr:#366836;--gr-hi:#4a944a;--re:#7a2c2c;--re-hi:#aa4040;
+  --bl:#245270;--bl-hi:#3c7aa0;--wa:#6e5818;--wa-hi:#9c8030;
+  --pw:270px;--ph:490px;--hh:34px;--tbh:28px;--r:4px;
+}
+body{pointer-events:none;overflow:hidden;width:100vw;height:100vh;
+  font:11.5px/1.4 'Segoe UI',system-ui,sans-serif;color:var(--tx)}
+[data-i]{pointer-events:all}
+#notifs{position:fixed;top:12px;right:12px;width:305px;z-index:3000;
+  display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.nf{pointer-events:all;background:var(--bg);border:1px solid var(--bdr);
+  border-left:3px solid var(--gold);border-radius:var(--r);
+  padding:8px 10px;animation:si .22s ease;box-shadow:0 4px 18px rgba(0,0,0,.65)}
+.nf.war{border-left-color:var(--re-hi)}.nf.peace{border-left-color:var(--gr-hi)}
+.nf.prop{border-left-color:var(--wa-hi)}.nf.info{border-left-color:var(--bl-hi)}
+.nt{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--gold);font-weight:700;margin-bottom:3px}
+.nb{font-size:11px}.na{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+@keyframes si{from{transform:translateX(12px);opacity:0}to{transform:none;opacity:1}}
+#conn{position:fixed;bottom:5px;right:9px;display:flex;align-items:center;gap:4px;font-size:9px;color:var(--dim);pointer-events:none}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--re-hi)}.dot.on{background:var(--gr-hi)}
+#toast{position:fixed;bottom:48px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.92);border:1px solid var(--bdr);border-radius:3px;padding:4px 12px;font-size:10.5px;opacity:0;transition:opacity .17s;pointer-events:none;white-space:nowrap;z-index:5000}
+#toast.show{opacity:1}
+.panel{pointer-events:all;position:fixed;bottom:0;width:var(--pw);height:var(--ph);display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--bdr);border-bottom:none;transition:transform .28s cubic-bezier(.4,0,.2,1)}
+#lp{left:0;border-left:none;border-top-right-radius:6px}
+#rp{right:0;border-right:none;border-top-left-radius:6px}
+#lp.closed{transform:translateY(calc(var(--ph) - var(--hh)))}
+#rp.closed{transform:translateY(calc(var(--ph) - var(--hh)))}
+.phdr{display:flex;align-items:center;height:var(--hh);padding:0 10px;background:rgba(130,100,25,.1);border-bottom:1px solid var(--bdr);cursor:pointer;user-select:none;flex-shrink:0;border-radius:inherit}
+.phdr-t{flex:1;font-weight:700;font-size:10.5px;letter-spacing:1.1px;text-transform:uppercase;color:var(--gold)}
+.phdr-btn{background:none;border:none;color:var(--gold);cursor:pointer;font-size:11px;padding:2px 4px;pointer-events:all}
+.tabs{display:flex;border-bottom:1px solid var(--bdr);flex-shrink:0;height:var(--tbh)}
+.tb{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);cursor:pointer;font-size:9.5px;text-align:center;text-transform:uppercase;letter-spacing:.25px;transition:all .13s;pointer-events:all;min-width:0;overflow:hidden}
+.tb.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--gdim)}
+.tb:hover:not(.on):not(.grey){color:var(--tx)}.tb.grey{opacity:.35;cursor:default}
+.pane{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(160,120,40,.35) transparent}
+.pane::-webkit-scrollbar{width:3px}
+.pane::-webkit-scrollbar-thumb{background:rgba(160,120,40,.35);border-radius:2px}
+.pg{display:none;padding:7px}.pg.on{display:block}
+.sec{margin-bottom:9px}
+.sec-t{color:var(--gold);font-size:9px;text-transform:uppercase;letter-spacing:.75px;margin-bottom:4px;border-bottom:1px solid rgba(160,120,40,.15);padding-bottom:2px}
+.lb{background:rgba(0,0,0,.35);border:1px solid var(--bdr);border-radius:var(--r);padding:7px 8px;margin-bottom:7px}
+.lrow{display:flex;align-items:center;gap:5px;margin-bottom:4px}.lrow:last-child{margin:0}
+.ll{font-size:8.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.35px;width:48px;flex-shrink:0}
+.lv{font-weight:600;font-size:11.5px;margin-left:auto}
+.lv.g{color:var(--gold)}.lv.gr{color:var(--gr-hi)}.lv.r{color:var(--re-hi)}.lv.b{color:var(--bl-hi)}
+.bw{flex:1;background:rgba(0,0,0,.45);border-radius:2px;height:4px;overflow:hidden}
+.bf{height:100%;border-radius:2px;transition:width .4s}
+.bf-hp{background:var(--gr-hi)}.bf-pow{background:var(--gold)}.bf-mor{background:var(--bl-hi)}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:5px}
+.sg{display:flex;flex-direction:column;align-items:center;gap:1px;background:rgba(0,0,0,.28);border:1px solid rgba(160,120,40,.1);border-radius:3px;padding:4px 2px}
+.sl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.2px}
+.sv{font-size:10.5px;font-weight:600}.sv.g{color:var(--gold)}.sv.gr{color:var(--gr-hi)}.sv.r{color:var(--re-hi)}
+.row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:11px}.row:last-child{border:none}
+.rk{color:var(--dim)}.rv{font-weight:500}.rv.g{color:var(--gold)}.rv.gr{color:var(--gr-hi)}.rv.r{color:var(--re-hi)}
+.btn{pointer-events:all;background:rgba(14,16,28,.85);border:1px solid var(--bdr);border-radius:3px;color:var(--tx);cursor:pointer;font-size:11px;padding:5px 8px;transition:all .12s;width:100%;text-align:left;display:flex;align-items:center;gap:5px;margin-bottom:3px;line-height:1.3}
+.btn:hover{background:rgba(160,120,40,.11);border-color:var(--bdr-hi);color:var(--gold-hi)}
+.btn:active{transform:scale(.985)}
+.btn.r:hover{background:rgba(170,64,64,.16);border-color:var(--re-hi);color:var(--re-hi)}
+.btn.g:hover{background:rgba(74,148,74,.13);border-color:var(--gr-hi);color:var(--gr-hi)}
+.btn.w:hover{background:rgba(156,128,48,.14);border-color:var(--wa-hi);color:var(--wa-hi)}
+.btn.b:hover{background:rgba(60,122,160,.14);border-color:var(--bl-hi);color:var(--bl-hi)}
+.btn:active{transform:scale(.985)}
+.btn2{display:grid;grid-template-columns:1fr 1fr;gap:3px;margin-bottom:3px}.btn2 .btn{margin:0}
+.btn3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;margin-bottom:3px}.btn3 .btn{margin:0}
+.inp,.sel{background:rgba(0,0,0,.55);border:1px solid var(--bdr);border-radius:3px;color:var(--tx);font-size:11px;padding:4px 7px;width:100%;outline:none;pointer-events:all;margin-bottom:4px}
+.inp:focus,.sel:focus{border-color:var(--bdr-hi)}.sel option{background:#0a0c18}
+.fr{display:flex;gap:4px;margin-bottom:4px}.fr .inp{margin:0;flex:1}.fr .btn{margin:0;width:auto;flex-shrink:0}
+.note{font-size:9.5px;color:var(--dim);line-height:1.4;margin-top:2px}
+.prel{position:relative}
+.inact{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:rgba(7,9,17,.75);z-index:5;pointer-events:none}
+.inact-msg{color:var(--dim);font-size:10.5px;text-align:center}
+.popup{pointer-events:all;position:fixed;background:var(--bg2);border:1px solid var(--bdr-hi);border-radius:5px;z-index:1500;display:flex;flex-direction:column;box-shadow:0 12px 44px rgba(0,0,0,.78);min-width:360px;max-width:500px;max-height:64vh}
+.popup.hide{display:none!important}
+.pop-hdr{display:flex;align-items:center;padding:7px 11px;background:rgba(130,100,25,.08);border-bottom:1px solid var(--bdr);border-radius:5px 5px 0 0;cursor:move;user-select:none;flex-shrink:0}
+.pop-t{flex:1;color:var(--gold);font-weight:700;font-size:10.5px;text-transform:uppercase;letter-spacing:.9px}
+.pop-x{background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:0 3px;pointer-events:all;line-height:1}
+.pop-x:hover{color:var(--re-hi)}
+.pop-body{overflow-y:auto;flex:1;padding:10px;scrollbar-width:thin;scrollbar-color:rgba(160,120,40,.35) transparent}
+.ptabs{display:flex;gap:3px;margin-bottom:8px;flex-wrap:wrap}
+.ptb{flex:1;min-width:60px;background:rgba(14,16,28,.85);border:1px solid var(--bdr);border-radius:3px;color:var(--dim);cursor:pointer;font-size:9.5px;padding:4px 2px;text-align:center;text-transform:uppercase;letter-spacing:.25px;transition:all .12s;pointer-events:all}
+.ptb.on{color:var(--gold);background:var(--gdim);border-color:var(--bdr-hi)}
+.pp{display:none}.pp.on{display:block}
+#input-modal{top:50%;left:50%;transform:translate(-50%,-50%);min-width:255px;max-width:310px}
+#pop-diplo{width:84vw;height:86vh;max-width:none;min-width:0;max-height:none;border-radius:7px;flex-direction:column}
+#pop-diplo>.pop-hdr{cursor:default}
+#pop-diplo-body{display:flex;flex:1;overflow:hidden}
+#d-left{width:245px;flex-shrink:0;border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow:hidden;background:rgba(0,0,0,.18)}
+#d-mysum{padding:8px 10px;border-bottom:1px solid var(--bdr);background:rgba(0,0,0,.25);flex-shrink:0}
+.d-my-t{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--gold);margin-bottom:4px}
+.d-my-row{display:flex;gap:5px;flex-wrap:wrap}
+.d-my-pill{font-size:9px;padding:1px 6px;border-radius:10px;border:1px solid}
+.d-my-pill.war{color:var(--re-hi);border-color:rgba(170,64,64,.4);background:rgba(170,64,64,.1)}
+.d-my-pill.ally{color:var(--gr-hi);border-color:rgba(74,148,74,.35);background:rgba(74,148,74,.08)}
+.d-my-pill.nap{color:var(--bl-hi);border-color:rgba(60,122,160,.3);background:rgba(60,122,160,.08)}
+.d-my-pill.trade{color:var(--wa-hi);border-color:rgba(156,128,48,.35);background:rgba(156,128,48,.07)}
+.d-my-pill.truce{color:var(--gold);border-color:rgba(160,120,40,.35);background:var(--gdim)}
+#d-search{padding:5px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+#d-search .inp{margin:0;font-size:10.5px}
+#d-kdom-list{flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(160,120,40,.35) transparent}
+.k-item{display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.025);transition:background .1s}
+.k-item:hover{background:rgba(160,120,40,.07)}
+.k-item.sel{background:rgba(160,120,40,.12);border-left:2px solid var(--gold);padding-left:6px}
+.k-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.k-dot.war{background:var(--re-hi)}.k-dot.allied{background:var(--gr-hi)}.k-dot.nap{background:var(--bl-hi)}
+.k-dot.trade{background:var(--wa-hi)}.k-dot.neutral{background:rgba(130,120,100,.45)}.k-dot.truce{background:var(--gold)}
+.k-name{flex:1;font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.k-meta{font-size:9px;color:var(--dim);text-align:right}
+#d-left-bot{padding:6px;border-top:1px solid var(--bdr);flex-shrink:0}
+#d-right{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#d-tabs{display:flex;border-bottom:1px solid var(--bdr);flex-shrink:0;background:rgba(0,0,0,.15)}
+.dtb{flex:1;background:none;border:none;border-bottom:2px solid transparent;color:var(--dim);cursor:pointer;font-size:9.5px;padding:7px 4px;text-align:center;text-transform:uppercase;letter-spacing:.3px;transition:all .13s;pointer-events:all}
+.dtb.on{color:var(--gold);border-bottom-color:var(--gold);background:var(--gdim)}
+.dtb:hover:not(.on){color:var(--tx)}
+#d-content{flex:1;overflow-y:auto;padding:12px;scrollbar-width:thin;scrollbar-color:rgba(160,120,40,.35) transparent}
+.dp{display:none}.dp.on{display:block}
+.kd-header{background:rgba(0,0,0,.3);border:1px solid var(--bdr);border-radius:var(--r);padding:10px;margin-bottom:8px}
+.kd-name{font-size:16px;font-weight:700;color:var(--gold-hi);margin-bottom:4px}
+.kd-ruler{font-size:10px;color:var(--dim);margin-bottom:6px}
+.kd-stats{display:flex;gap:8px;flex-wrap:wrap}
+.kd-stat{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,.03);border:1px solid rgba(160,120,40,.1);border-radius:3px;padding:4px 10px;min-width:60px}
+.kd-sl{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px}
+.kd-sv{font-size:12px;font-weight:700}
+.kd-rel{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;border-radius:var(--r);margin-bottom:10px;font-weight:700;font-size:13px}
+.kd-rel.war{background:rgba(170,64,64,.16);border:1px solid rgba(170,64,64,.4);color:var(--re-hi)}
+.kd-rel.allied{background:rgba(74,148,74,.13);border:1px solid rgba(74,148,74,.35);color:var(--gr-hi)}
+.kd-rel.nap{background:rgba(60,122,160,.12);border:1px solid rgba(60,122,160,.32);color:var(--bl-hi)}
+.kd-rel.trade{background:rgba(156,128,48,.11);border:1px solid rgba(156,128,48,.32);color:var(--wa-hi)}
+.kd-rel.neutral{background:rgba(255,255,255,.02);border:1px solid var(--bdr);color:var(--dim)}
+.kd-rel.truce{background:rgba(100,80,20,.16);border:1px solid rgba(160,120,40,.32);color:var(--gold)}
+.kd-body{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kd-col{display:flex;flex-direction:column;gap:6px}
+.act-sec{margin-bottom:6px}
+.act-sec-t{font-size:8.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--gold);margin-bottom:4px;border-bottom:1px solid rgba(160,120,40,.12);padding-bottom:2px}
+.act-item{margin-bottom:3px}
+.act-btn{pointer-events:all;background:rgba(14,16,28,.85);border:1px solid var(--bdr);border-radius:3px;color:var(--tx);cursor:pointer;font-size:11px;padding:5px 8px;transition:all .12s;width:100%;text-align:left;display:flex;align-items:center;gap:5px;line-height:1.3}
+.act-btn:hover{background:rgba(160,120,40,.11);border-color:var(--bdr-hi);color:var(--gold-hi)}
+.act-btn.r:hover{background:rgba(170,64,64,.16);border-color:var(--re-hi);color:var(--re-hi)}
+.act-btn.g:hover{background:rgba(74,148,74,.13);border-color:var(--gr-hi);color:var(--gr-hi)}
+.act-btn.w:hover{background:rgba(156,128,48,.14);border-color:var(--wa-hi);color:var(--wa-hi)}
+.act-btn.b:hover{background:rgba(60,122,160,.14);border-color:var(--bl-hi);color:var(--bl-hi)}
+.act-btn.dis{opacity:.38;cursor:not-allowed;pointer-events:none}
+.act-why{font-size:9px;color:var(--dim);font-style:italic;padding:1px 4px;margin-top:1px}
+.exp-form{display:none;background:rgba(0,0,0,.32);border:1px solid var(--bdr);border-radius:3px;padding:7px;margin-top:3px}
+.exp-form.on{display:block}
+.exp-row{display:flex;gap:4px;margin-bottom:4px;align-items:center}
+.exp-row .inp{margin:0;flex:1;font-size:10.5px;padding:3px 6px}
+.exp-row label{font-size:9.5px;color:var(--dim);white-space:nowrap;flex-shrink:0}
+.stance-row{display:flex;gap:3px;margin-bottom:4px}
+.stance-btn{flex:1;pointer-events:all;background:rgba(14,16,28,.85);border:1px solid var(--bdr);border-radius:3px;color:var(--dim);cursor:pointer;font-size:10px;padding:4px 2px;text-align:center;transition:all .12s}
+.stance-btn.cur{color:var(--gold);border-color:var(--gold);background:var(--gdim)}
+.stance-btn:hover:not(.cur){color:var(--tx)}
+.tribute-box{background:rgba(0,0,0,.25);border:1px solid rgba(156,128,48,.2);border-radius:3px;padding:6px;margin-bottom:5px;font-size:10.5px}
+.tb-pay{color:var(--re-hi)}.tb-rec{color:var(--gr-hi)}
+.ov-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.ov-card{background:rgba(0,0,0,.28);border:1px solid var(--bdr);border-radius:var(--r);padding:8px}
+.ov-card-t{font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);margin-bottom:5px}
+.ov-entry{font-size:11px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.03)}
+.ov-entry:last-child{border:none}
+.ov-entry.war{color:var(--re-hi)}.ov-entry.ally{color:var(--gr-hi)}.ov-entry.nap{color:var(--bl-hi)}
+.ov-entry.trade{color:var(--wa-hi)}.ov-entry.truce{color:var(--gold)}
+.prop-card{background:rgba(0,0,0,.28);border:1px solid var(--bdr);border-radius:var(--r);padding:9px;margin-bottom:7px}
+.prop-from{font-size:12px;font-weight:700;color:var(--gold-hi);margin-bottom:3px}
+.prop-desc{font-size:11px;margin-bottom:3px}.prop-days{font-size:9.5px;color:var(--dim);margin-bottom:6px}
+.prop-acts{display:flex;gap:5px}
+.war-card{background:rgba(170,64,64,.05);border:1px solid rgba(170,64,64,.22);border-radius:var(--r);padding:9px;margin-bottom:7px}
+.war-kn{font-size:13px;font-weight:700;color:var(--re-hi);margin-bottom:5px}
+.war-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:7px}
+.wm-stat{display:flex;flex-direction:column;align-items:center;min-width:55px}
+.wm-l{font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:.3px}
+.wm-v{font-size:12px;font-weight:700}
+.clan-card{background:rgba(0,0,0,.25);border:1px solid var(--bdr);border-radius:var(--r);padding:8px;margin-bottom:5px}
+.clan-card-n{font-size:11.5px;font-weight:600;margin-bottom:2px}
+.clan-card-m{font-size:10px;color:var(--dim);margin-bottom:5px}
+</style>
+</head>
+<body>
+
+<div id="notifs"></div>
+<div id="conn"><div class="dot" id="dot"></div><span id="ct">Connecting…</span></div>
+<div id="toast"></div>
+
+<!-- LEFT PANEL -->
+<div id="lp" class="panel" data-i>
+  <div class="phdr" onclick="togglePanel('lp')">
+    <span class="phdr-t">⚔ BLT Actions</span>
+    <button class="phdr-btn" id="lptog">▼</button>
+  </div>
+  <div class="tabs" id="ltabs">
+    <button class="tb on" onclick="ltab('battle',this)">⚔ Battle</button>
+    <button class="tb"    onclick="ltab('party',this)">🗺 Party</button>
+    <button class="tb"    onclick="ltab('retinue',this)">🛡 Retinue</button>
+  </div>
+  <div class="pane" id="lpane">
+    <!-- BATTLE -->
+    <div class="pg on prel" id="p-battle">
+      <div class="inact" id="b-inact"><div style="font-size:22px">⚔</div><div class="inact-msg">Not in an active battle</div></div>
+      <div class="sec">
+        <div class="sec-t">⚡ Live Status</div>
+        <div class="lb">
+          <div class="lrow"><span class="ll">HP</span><div class="bw"><div class="bf bf-hp" id="bf-hp" style="width:0%"></div></div><span class="lv gr" id="b-hp">—</span></div>
+          <div class="lrow"><span class="ll">Mount</span><div class="bw"><div class="bf bf-hp" id="bf-mhp" style="width:0%"></div></div><span class="lv b" id="b-mhp">—</span></div>
+          <div class="lrow"><span class="ll">Power</span><div class="bw"><div class="bf bf-pow" id="bf-pow" style="width:0%"></div></div><span class="lv g" id="b-pow">—</span></div>
+        </div>
+        <div class="sgrid">
+          <div class="sg"><span class="sl">Kills</span><span class="sv" id="b-kills">—</span></div>
+          <div class="sg"><span class="sl">Ret.K</span><span class="sv gr" id="b-rk">—</span></div>
+          <div class="sg"><span class="sl">Gold</span><span class="sv g" id="b-gold">—</span></div>
+          <div class="sg"><span class="sl">XP</span><span class="sv b" id="b-xp">—</span></div>
+        </div>
+        <div class="row"><span class="rk">Class</span><span class="rv g" id="b-class">—</span></div>
+        <div class="row"><span class="rk">Weapon</span><span class="rv" id="b-wpn" style="font-size:10px;max-width:160px;text-align:right">—</span></div>
+        <div class="row"><span class="rk">Allies / Enemies</span><span class="rv"><span class="rv gr" id="b-ally">—</span> / <span class="rv r" id="b-enem">—</span></span></div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">📐 Formation — <span id="b-form" style="color:var(--tx);font-weight:600">—</span></div>
+        <div class="fr">
+          <input class="inp" id="form-inp" placeholder="formation #" type="number" min="1" max="8" style="margin:0">
+          <button class="btn g" onclick="cmd('formation '+byId('form-inp').value)" style="margin:0;width:auto;padding:4px 10px">Switch</button>
+          <button class="btn" onclick="cmd('formation')" style="margin:0;width:auto;padding:4px 7px">Info</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">📋 Info</div>
+        <button class="btn" onclick="cmd('battleinfo')">🔄 Refresh Battle Info</button>
+        <button class="btn" onclick="cmd('itemstats armor')">🛡 Armor Totals</button>
+        <button class="btn" onclick="cmd('itemstats inv')">🗡 Full Inventory</button>
+      </div>
+    </div>
+    <!-- PARTY -->
+    <div class="pg" id="p-party">
+      <div class="sec">
+        <div class="sec-t">📊 Status</div>
+        <div class="lb">
+          <div class="row"><span class="rk">Name</span><span class="rv g" id="pt-name">—</span></div>
+          <div class="row"><span class="rk">Troops</span><span class="rv" id="pt-size">—</span></div>
+          <div class="row"><span class="rk">Speed / Morale</span><span class="rv" id="pt-sm">—</span></div>
+          <div class="row"><span class="rk">Food</span><span class="rv" id="pt-food">—</span></div>
+          <div class="row"><span class="rk">Status</span><span class="rv" id="pt-beh" style="font-size:10px;text-align:right;max-width:150px">—</span></div>
+        </div>
+        <button class="btn" onclick="cmd('party')">🔄 Refresh</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">⚙ Party</div>
+        <div class="btn2">
+          <button class="btn g" onclick="cmd('party create')">➕ Create</button>
+          <button class="btn"   onclick="cmd('party stats')">📊 Stats</button>
+        </div>
+        <div class="btn2">
+          <button class="btn" onclick="modal('Fief to govern:','party govern')">🏰 Govern…</button>
+          <button class="btn r" onclick="cmd('party disband')">💨 Disband</button>
+        </div>
+        <button class="btn r" onclick="cmd('party disband all')">💨 Disband All Clan Parties</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">📚 Training</div>
+        <div class="fr">
+          <input class="inp" id="train-gold" placeholder="Gold to invest" type="number" style="margin:0">
+          <button class="btn g" onclick="cmd('party train '+byId('train-gold').value)" style="margin:0;width:auto;padding:4px 8px">Invest</button>
+        </div>
+        <div class="btn2">
+          <button class="btn" onclick="cmd('party train status')">📋 Status</button>
+          <button class="btn r" onclick="cmd('party train cancel')">✕ Cancel</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">🎯 Clan Orders</div>
+        <div class="btn2">
+          <button class="btn w" onclick="modal('Settlement to besiege:','party siege')">⚔ Siege…</button>
+          <button class="btn"   onclick="modal('Settlement to defend:','party defend')">🛡 Defend…</button>
+        </div>
+        <div class="btn2">
+          <button class="btn"   onclick="modal('Settlement to patrol:','party patrol')">👁 Patrol…</button>
+          <button class="btn r" onclick="modal('Village to raid:','party raid')">🔥 Raid…</button>
+        </div>
+        <div class="btn2">
+          <button class="btn b" onclick="modal('Fortification to garrison:','party garrison')">🏰 Garrison…</button>
+          <button class="btn"   onclick="cmd('party release all')">↩ Release All</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">⚔ Army</div>
+        <button class="btn b" onclick="openPop('pop-army')">🏴 Open Army Panel…</button>
+      </div>
+    </div>
+    <!-- RETINUE -->
+    <div class="pg" id="p-retinue">
+      <div class="sec">
+        <div class="sec-t">🛡 Primary Retinue</div>
+        <div class="lb">
+          <div class="row"><span class="rk">Count / Avg Tier</span><span class="rv g" id="r-cnt">—</span></div>
+        </div>
+        <div id="r1-list" class="note" style="margin-bottom:5px">No data</div>
+        <div class="btn2">
+          <button class="btn g" onclick="cmd('retinue all')">⬆ Buy All</button>
+          <button class="btn r" onclick="cmd('retinue clear all')">🗑 Clear All</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">🛡 Secondary Retinue</div>
+        <div class="lb">
+          <div class="row"><span class="rk">Count / Avg Tier</span><span class="rv g" id="r2-cnt">—</span></div>
+        </div>
+        <div id="r2-list" class="note" style="margin-bottom:5px">No data</div>
+        <div class="btn2">
+          <button class="btn g" onclick="cmd('retinue2 all')">⬆ Buy All</button>
+          <button class="btn r" onclick="cmd('retinue2 clear all')">🗑 Clear All</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">💰 Income</div>
+        <button class="btn g" onclick="cmd('goldincome')">📊 Daily Income Breakdown</button>
+        <button class="btn" onclick="cmd('logs hero')">📜 Hero Logs</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div id="rp" class="panel" data-i>
+  <div class="phdr" onclick="togglePanel('rp')">
+    <span class="phdr-t">📋 BLT Status</span>
+    <button class="phdr-btn" id="rptog">▼</button>
+  </div>
+  <div class="tabs" id="rtabs">
+    <button class="tb on" onclick="rtab('hero',this)">👤 Hero</button>
+    <button class="tb"    onclick="rtab('clan',this)">🏰 Clan</button>
+    <button class="tb"    onclick="rtab('kingdom',this)">👑 Kdom</button>
+    <button class="tb"    onclick="rtab('upgrades',this)">⬆ Upg.</button>
+  </div>
+  <div class="pane" id="rpane">
+    <!-- HERO -->
+    <div class="pg on" id="p-hero">
+      <div class="sec">
+        <div class="sec-t">👤 Character</div>
+        <div class="lb">
+          <div class="row"><span class="rk">Class</span><span class="rv g" id="h-class">—</span></div>
+          <div class="row"><span class="rk">Level / Gold</span><span class="rv" id="h-lvlgold">—</span></div>
+          <div class="row"><span class="rk">HP</span><span class="rv gr" id="h-hp">—</span></div>
+          <div class="row"><span class="rk">Age / Gender</span><span class="rv" id="h-age">—</span></div>
+          <div class="row"><span class="rk">Location</span><span class="rv b" id="h-loc" style="font-size:10px">—</span></div>
+        </div>
+        <div id="h-skills" class="note">—</div>
+        <button class="btn" style="margin-top:4px" onclick="cmd('heroinfo')">🔄 Refresh Hero Info</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">⚔ Equipment</div>
+        <div class="row"><span class="rk">Tier / Class</span><span class="rv g" id="h-einfo">—</span></div>
+        <div class="btn2" style="margin-top:5px">
+          <button class="btn g" onclick="cmd('equip')">⬆ Upgrade Tier</button>
+          <button class="btn"   onclick="cmd('reequip')">🔄 Reequip</button>
+        </div>
+        <button class="btn" onclick="modal('Class name:','class')">🎖 Change Class…</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">🗃 Custom Items</div>
+        <button class="btn" onclick="cmd('equipcustom')">📋 List Custom Items</button>
+        <div class="fr">
+          <input class="inp" id="ci-idx" placeholder="# or name" style="margin:0">
+          <button class="btn g" onclick="cmd('equipcustom '+byId('ci-idx').value)" style="margin:0;width:auto;padding:4px 8px">Equip</button>
+          <button class="btn r" onclick="cmd('discard '+byId('ci-idx').value)" style="margin:0;width:auto;padding:4px 8px">Discard</button>
+        </div>
+      </div>
+    </div>
+    <!-- CLAN -->
+    <div class="pg" id="p-clan">
+      <div class="sec">
+        <div class="sec-t">🏰 Clan Info</div>
+        <div class="lb">
+          <div class="row"><span class="rk">Clan</span><span class="rv g" id="c-name">—</span></div>
+          <div class="row"><span class="rk">Tier / Renown</span><span class="rv" id="c-tier">—</span></div>
+          <div class="row"><span class="rk">Kingdom</span><span class="rv b" id="c-kdom">—</span></div>
+          <div class="row"><span class="rk">Influence / Gold</span><span class="rv g" id="c-ig">—</span></div>
+          <div class="row"><span class="rk">Members / Parties</span><span class="rv" id="c-mp">—</span></div>
+          <div class="row"><span class="rk">Fiefs</span><span class="rv" id="c-fiefs">—</span></div>
+        </div>
+        <button class="btn" onclick="cmd('clan stats')">🔄 Refresh</button>
+        <button class="btn" onclick="cmd('logs clan')">📜 Clan Logs</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">⚙ Clan Management</div>
+        <div class="btn2">
+          <button class="btn g" onclick="modal('Clan name to join:','clan join')">🤝 Join…</button>
+          <button class="btn g" onclick="modal('New clan name:','clan create')">➕ Create…</button>
+        </div>
+        <div class="btn2">
+          <button class="btn w" onclick="cmd('clan lead')">⚔ Challenge Leadership</button>
+          <button class="btn r" onclick="cmd('clan leave')">🚪 Leave</button>
+        </div>
+        <button class="btn" onclick="cmd('clan buy title')">🎖 Buy Noble Title</button>
+        <button class="btn" onclick="modal('Banner code:','clan banner')">🏳 Set Banner…</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">👨‍👩‍👧 Family</div>
+        <div class="btn2">
+          <button class="btn" onclick="cmd('family')">👪 Overview</button>
+          <button class="btn g" onclick="cmd('family spouse baby')">🍼 Have Baby</button>
+        </div>
+        <button class="btn" onclick="modal('Member name + subcommand:','family')">👤 Member Command…</button>
+      </div>
+    </div>
+    <!-- KINGDOM -->
+    <div class="pg" id="p-kingdom">
+      <div class="sec">
+        <div class="sec-t">👑 Kingdom Info</div>
+        <div class="lb">
+          <div class="row"><span class="rk">Kingdom</span><span class="rv g" id="k-name">—</span></div>
+          <div class="row"><span class="rk">Ruler / Capital</span><span class="rv" id="k-rc">—</span></div>
+          <div class="row"><span class="rk">Clans / Strength</span><span class="rv" id="k-cs">—</span></div>
+          <div class="row"><span class="rk">Fiefs</span><span class="rv" id="k-fiefs">—</span></div>
+          <div class="row"><span class="rk">Wars</span><span class="rv r" id="k-wars">—</span></div>
+          <div class="row"><span class="rk">Alliances</span><span class="rv gr" id="k-ally">—</span></div>
+        </div>
+        <button class="btn" onclick="cmd('kingdom stats')">🔄 Refresh</button>
+        <button class="btn b" onclick="openDiplo()">🌐 Full Diplomacy Panel</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">⚙ Kingdom Management</div>
+        <div class="btn2">
+          <button class="btn g" onclick="modal('Kingdom name to join:','kingdom join')">🤝 Join…</button>
+          <button class="btn"   onclick="modal('Kingdom name (merc):','kingdom merc')">⚔ Mercenary…</button>
+        </div>
+        <div class="btn2">
+          <button class="btn r" onclick="cmd('kingdom rebel')">🔥 Rebel</button>
+          <button class="btn r" onclick="cmd('kingdom leave')">🚪 Leave</button>
+        </div>
+        <button class="btn w" onclick="modal('New kingdom name:','kingdom create')">👑 Create Kingdom…</button>
+      </div>
+      <div class="sec">
+        <div class="sec-t">⚖ Policy &amp; Tax</div>
+        <div class="fr">
+          <input class="inp" id="pol-inp" placeholder="Policy name" style="margin:0">
+          <button class="btn w" onclick="cmd('kingdom policy '+byId('pol-inp').value)" style="margin:0;width:auto;padding:4px 8px">Toggle</button>
+        </div>
+        <div class="fr">
+          <input class="inp" id="tax-inp" placeholder="Tax rate %" type="number" style="margin:0">
+          <button class="btn w" onclick="cmd('kingdom tax '+byId('tax-inp').value)" style="margin:0;width:auto;padding:4px 8px">Set Tax</button>
+        </div>
+      </div>
+    </div>
+    <!-- UPGRADES -->
+    <div class="pg" id="p-upgrades">
+      <div class="sec">
+        <div class="sec-t">📋 Browse</div>
+        <div class="btn3">
+          <button class="btn" onclick="cmd('upgrade list fief')">🏰 Fief</button>
+          <button class="btn" onclick="cmd('upgrade list clan')">🏰 Clan</button>
+          <button class="btn" onclick="cmd('upgrade list kingdom')">👑 Kingdom</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">🏰 Fief Upgrade</div>
+        <div class="fr">
+          <input class="inp" id="fu-sett" placeholder="Settlement" style="margin:0;flex:1.5">
+          <input class="inp" id="fu-id" placeholder="Upgrade ID" style="margin:0;flex:1">
+        </div>
+        <div class="btn2">
+          <button class="btn g" onclick="cmd('upgrade fief '+byId('fu-sett').value+' '+byId('fu-id').value)">💰 Buy</button>
+          <button class="btn w" onclick="cmd('upgrade auto fief '+byId('fu-sett').value+' '+byId('fu-id').value)">⬆ Auto</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">🏰 Clan / 👑 Kingdom Upgrade</div>
+        <div class="fr">
+          <input class="inp" id="cu-id" placeholder="Upgrade ID" style="margin:0">
+          <button class="btn g" onclick="cmd('upgrade clan '+byId('cu-id').value)" style="margin:0;width:auto;padding:4px 8px">Clan</button>
+          <button class="btn g" onclick="cmd('upgrade kingdom '+byId('cu-id').value)" style="margin:0;width:auto;padding:4px 8px">Kingdom</button>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-t">🏰 Fief Management</div>
+        <div class="fr">
+          <input class="inp" id="mf-fief" placeholder="Fief name" style="margin:0">
+          <button class="btn" onclick="cmd('managefief '+byId('mf-fief').value+' info')" style="margin:0;width:auto;padding:4px 8px">Info</button>
+        </div>
+        <button class="btn" onclick="modal('Campaign info mode:','campaigninfo')">📊 Campaign Info…</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ARMY POPUP -->
+<div class="popup hide" id="pop-army" style="top:80px;left:285px" data-i>
+  <div class="pop-hdr" id="pop-army-hdr"><span class="pop-t">⚔ Army Commands</span><button class="pop-x" onclick="closePop('pop-army')">✕</button></div>
+  <div class="pop-body">
+    <div class="ptabs">
+      <button class="ptb on" onclick="ptab('a-status',this)">Status</button>
+      <button class="ptb"    onclick="ptab('a-orders',this)">Orders</button>
+      <button class="ptb"    onclick="ptab('a-manage',this)">Manage</button>
+      <button class="ptb"    onclick="ptab('a-call',this)">Call/Join</button>
+    </div>
+    <div class="pp on" id="a-status">
+      <div class="btn2"><button class="btn" onclick="cmd('party army status')">📊 Status</button><button class="btn" onclick="cmd('party army view')">📋 View All</button></div>
+      <button class="btn" onclick="cmd('party army threat')">⚠ Threat Scan</button>
+    </div>
+    <div class="pp" id="a-orders">
+      <div class="fr"><input class="inp" id="ao-sett" placeholder="Settlement (blank=auto)" style="margin:0"></div>
+      <div class="btn3">
+        <button class="btn w" onclick="cmd('party army siege '+byId('ao-sett').value)">⚔ Siege</button>
+        <button class="btn"   onclick="cmd('party army defend '+byId('ao-sett').value)">🛡 Defend</button>
+        <button class="btn"   onclick="cmd('party army patrol '+byId('ao-sett').value)">👁 Patrol</button>
+      </div>
+      <div class="btn2">
+        <button class="btn b" onclick="modal('Fortification:','party army garrison')">🏰 Garrison…</button>
+        <button class="btn r" onclick="cmd('party army release')">↩ Release</button>
+      </div>
+    </div>
+    <div class="pp" id="a-manage">
+      <div class="btn2">
+        <button class="btn r" onclick="cmd('party army disband')">💨 Disband</button>
+        <button class="btn r" onclick="cmd('party army leave')">🚪 Leave</button>
+      </div>
+      <button class="btn" onclick="modal('Hero name:','party army reassign')">🔄 Reassign Command…</button>
+      <button class="btn r" onclick="modal('# weakest to kick:','party army kick')">👢 Kick…</button>
+      <button class="btn b" onclick="modal('NPC lord (blank=random):','party army create')">➕ Commission NPC Army…</button>
+    </div>
+    <div class="pp" id="a-call">
+      <div class="fr"><input class="inp" id="ac-idx" placeholder="Army index (king)" style="margin:0"></div>
+      <div class="btn2">
+        <button class="btn g" onclick="cmd('party army call nearby '+byId('ac-idx').value)">📍 Nearby</button>
+        <button class="btn g" onclick="cmd('party army call all '+byId('ac-idx').value)">📣 All</button>
+      </div>
+      <div class="fr">
+        <input class="inp" id="aj-idx" placeholder="Army index" type="number" style="margin:0">
+        <button class="btn b" onclick="cmd('party army join '+byId('aj-idx').value)" style="margin:0;width:auto;padding:4px 10px">Join</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DIPLOMACY POPUP -->
+<div class="popup hide" id="pop-diplo" data-i style="top:7vh;left:8vw;width:84vw;height:86vh;max-width:none;min-width:0;max-height:none">
+  <div class="pop-hdr" id="pop-diplo-hdr">
+    <span class="pop-t">🌐 Diplomacy</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="d-my-kname" style="font-size:10px;color:var(--dim)">—</span>
+      <button class="pop-x" onclick="closePop('pop-diplo')">✕</button>
+    </div>
+  </div>
+  <div id="pop-diplo-body">
+    <div id="d-left">
+      <div id="d-mysum">
+        <div class="d-my-t">My Treaties</div>
+        <div class="d-my-row" id="d-my-pills"><span class="d-my-pill" style="color:var(--dim);border-color:var(--bdr)">No data</span></div>
+      </div>
+      <div id="d-search"><input class="inp" id="d-sf" placeholder="🔍 Filter kingdoms…" oninput="filterKdoms()" style="margin:0;font-size:10.5px"></div>
+      <div id="d-kdom-list"></div>
+      <div id="d-left-bot">
+        <button class="btn" onclick="selectKdom(null)" style="margin:0;font-size:10px;justify-content:center">📋 Overview</button>
+      </div>
+    </div>
+    <div id="d-right">
+      <div id="d-tabs">
+        <button class="dtb on" onclick="dTab('overview',this)">Overview</button>
+        <button class="dtb"    onclick="dTab('proposals',this)">Proposals <span id="d-prop-badge" style="display:none;font-size:8px;background:var(--re-hi);color:#fff;padding:0 4px;border-radius:8px;margin-left:3px"></span></button>
+        <button class="dtb"    onclick="dTab('wars',this)">Wars</button>
+        <button class="dtb"    onclick="dTab('clan',this)">Clan Diplo</button>
+        <button class="dtb"    onclick="dTab('lookup',this)">Lookup</button>
+      </div>
+      <div id="d-content">
+        <div class="dp on" id="dp-overview"></div>
+        <div class="dp" id="dp-proposals"></div>
+        <div class="dp" id="dp-wars"></div>
+        <div class="dp" id="dp-clan"></div>
+        <div class="dp" id="dp-lookup">
+          <div class="sec-t" style="margin-bottom:8px">🔍 Campaign Lookup</div>
+          <div class="fr"><input class="inp" id="lk-kdom" placeholder="Kingdom name" style="margin:0"><button class="btn" onclick="cmd('campaigninfo kingdom '+byId('lk-kdom').value)" style="margin:0;width:auto;padding:4px 8px">Kingdom</button></div>
+          <div class="fr"><input class="inp" id="lk-clan" placeholder="Clan name" style="margin:0"><button class="btn" onclick="cmd('campaigninfo clan '+byId('lk-clan').value)" style="margin:0;width:auto;padding:4px 8px">Clan</button></div>
+          <div class="fr"><input class="inp" id="lk-fief" placeholder="Fief name" style="margin:0"><button class="btn" onclick="cmd('campaigninfo fief '+byId('lk-fief').value)" style="margin:0;width:auto;padding:4px 8px">Fief</button></div>
+          <div class="btn3" style="margin-top:4px">
+            <button class="btn" onclick="cmd('campaigninfo kingdomlist')">📋 Kingdom List</button>
+            <button class="btn" onclick="cmd('campaigninfo warlist')">⚔ War List</button>
+            <button class="btn" onclick="cmd('campaigninfo time')">📅 Date</button>
+          </div>
+          <div class="btn2">
+            <button class="btn" onclick="modal('Kingdom:','campaigninfo armies')">🏴 Armies…</button>
+            <button class="btn" onclick="modal('Kingdom:','campaigninfo map')">🗺 Borders…</button>
+          </div>
+        </div>
+        <div class="dp" id="dp-kdom"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INPUT MODAL -->
+<div class="popup hide" id="input-modal" data-i>
+  <div class="pop-hdr" style="cursor:default"><span class="pop-t" id="modal-lbl">Enter value</span><button class="pop-x" onclick="closePop('input-modal')">✕</button></div>
+  <div class="pop-body" style="padding:10px">
+    <input class="inp" id="modal-inp" style="margin-bottom:8px">
+    <div class="btn2" style="margin:0">
+      <button class="btn g" onclick="submitModal()" style="margin:0">✓ Confirm</button>
+      <button class="btn r" onclick="closePop('input-modal')" style="margin:0">✕ Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// HELPERS — defined first; everything else depends on these
+// ═══════════════════════════════════════════════════════════════
+function byId(id) { return document.getElementById(id); }
+function set(id, v) { const el = byId(id); if (el) el.textContent = v; }
+function fnum(n) { return Number(n).toLocaleString(); }
+function esc(s) { return String(s ?? '').replace(/[<>&"]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])); }
+function barW(id, f) { const el = byId(id); if (el) el.style.width = (Math.min(1, Math.max(0, f)) * 100) + '%'; }
+
+// ═══════════════════════════════════════════════════════════════
+// UI PRIMITIVES
+// ═══════════════════════════════════════════════════════════════
+let _lCl = false, _rCl = false;
+function togglePanel(id) {
+  if (id === 'lp') { _lCl = !_lCl; byId('lp').classList.toggle('closed', _lCl); byId('lptog').textContent = _lCl ? '▲' : '▼'; }
+  else             { _rCl = !_rCl; byId('rp').classList.toggle('closed', _rCl); byId('rptog').textContent = _rCl ? '▲' : '▼'; }
+}
+
+// Left-panel tab switcher
+function ltab(name, btn) {
+  if (btn.classList.contains('grey')) return;
+  byId('ltabs').querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
+  byId('lpane').querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  const pg = byId('p-' + name);
+  if (pg) pg.classList.add('on');
+}
+// Right-panel tab switcher
+function rtab(name, btn) {
+  byId('rtabs').querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
+  byId('rpane').querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  const pg = byId('p-' + name);
+  if (pg) pg.classList.add('on');
+}
+// Popup inner tab switcher
+function ptab(name, btn) {
+  const body = btn.closest('.pop-body');
+  body.querySelectorAll('.ptb').forEach(b => b.classList.remove('on'));
+  body.querySelectorAll('.pp').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  const pg = byId(name);
+  if (pg) pg.classList.add('on');
+}
+
+function openPop(id)  { byId(id)?.classList.remove('hide'); }
+function closePop(id) { byId(id)?.classList.add('hide'); }
+function setConn(ok, txt) { byId('dot').classList.toggle('on', ok); byId('ct').textContent = txt; }
+
+let _toastTimer;
+function toast(msg) {
+  const el = byId('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// Drag support for small popups
+function makeDrag(pop, hdr) {
+  let ox = 0, oy = 0, mx = 0, my = 0;
+  hdr.addEventListener('mousedown', e => {
+    e.preventDefault();
+    [mx, my] = [e.clientX, e.clientY];
+    function drag(e2) {
+      [ox, oy] = [mx - e2.clientX, my - e2.clientY];
+      [mx, my] = [e2.clientX, e2.clientY];
+      pop.style.top  = Math.max(0, pop.offsetTop  - oy) + 'px';
+      pop.style.left = Math.max(0, pop.offsetLeft - ox) + 'px';
+    }
+    function up() { removeEventListener('mousemove', drag); removeEventListener('mouseup', up); }
+    addEventListener('mousemove', drag);
+    addEventListener('mouseup', up);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+const G = {
+  user: {name:null, id:null}, inMission: false,
+  battle:null, party:null, hero:null, clan:null, kingdom:null, retinue:null, diplomacy:null,
+  selK: null
+};
+
+// ═══════════════════════════════════════════════════════════════
+// TWITCH EXT + LOCAL RELAY
+// ═══════════════════════════════════════════════════════════════
+const ext = window.Twitch?.ext;
+let _localWs  = null;   // WebSocket to local relay server
+let _localRetry = null; // retry timer handle
+
+function initExt() {
+  if (ext) {
+    // ── Running inside Twitch Extension viewer ──────────────
+    ext.onAuthorized(auth => {
+      G.user.id   = auth.userId;
+      G.user.name = auth.login;
+      setConn(true, 'Twitch');
+      extSend({ type:'register', userName:auth.login, userId:auth.userId });
+      ext.listen('broadcast',              (_, __, raw) => onMsg(raw));
+      // FIX: wildcard 'whisper-*' is invalid — listen on specific user topic
+      ext.listen('whisper-U' + auth.userId,(_, __, raw) => onMsg(raw));
+    });
+    ext.onError(e => { console.error('[BLT ext]', e); setConn(false, 'Extension error'); });
+  } else {
+    // ── Running as OBS Browser Source / standalone ──────────
+    // Try local relay server first; fall back to mock data if unreachable
+    connectLocalRelay();
+  }
+}
+
+function connectLocalRelay() {
+  clearTimeout(_localRetry);
+  setConn(false, 'Connecting…');
+
+  try {
+    _localWs = new WebSocket('ws://localhost:3000/ws');
+  } catch (e) {
+    scheduleReconnect();
+    return;
+  }
+
+  _localWs.onopen = () => {
+    setConn(true, 'Local relay');
+    console.log('[BLT] Local relay connected');
+    // Identify this client to the server
+    _localWs.send(JSON.stringify({ type:'identify', client:'overlay',
+                                   userName: G.user.name, userId: G.user.id }));
+  };
+
+  _localWs.onmessage = e => onMsg(e.data);
+
+  _localWs.onclose = () => {
+    setConn(false, 'Disconnected');
+    console.warn('[BLT] Local relay closed, retrying…');
+    scheduleReconnect();
+  };
+
+  _localWs.onerror = () => {
+    // onclose fires immediately after onerror, which handles retry
+    // Only load mock on the very first failure so dev can still preview UI
+    if (!G._hadRelay) { G._hadRelay = false; loadMock(); }
+  };
+}
+
+function scheduleReconnect() {
+  _localRetry = setTimeout(connectLocalRelay, 4000);
+}
+
+function extSend(obj) {
+  const json = JSON.stringify(obj);
+  if (ext) {
+    ext.send('broadcast', 'application/json', json);
+  } else if (_localWs?.readyState === WebSocket.OPEN) {
+    _localWs.send(json);
+  } else {
+    console.log('[BLT DEV →]', obj);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MESSAGE HANDLING
+// ═══════════════════════════════════════════════════════════════
+function onMsg(raw) {
+  let m;
+  try {
+    // SDK may deliver pre-parsed object or raw JSON string depending on version
+    m = (typeof raw === 'string') ? JSON.parse(raw) : raw;
+  } catch {
+    toast(String(raw).slice(0, 80));
+    return;
+  }
+
+  // Support both legacy {type} shape and BltWireMessage {Kind, V} shape
+  const t = m.type ?? m.kind ?? m.Kind;
+
+  switch (t) {
+    case 'state':    applyState(m.data ?? m.Data); break;
+    case 'message':
+    case 'reply':    notif('info', '📋 BLT', (m.messages ?? []).join(' ')); break;
+    case 'proposal': notifProp(m); break;
+    case 'war':      notif('war',   '⚔ War Declared', m.message ?? '', 0); break;
+    case 'peace':    notif('peace', '☮ Peace',        m.message ?? ''); break;
+    case 'ack':      toast('✓ ' + m.command); break;
+    case 'event':    handleWireEvent(m); break;   // BltWireMessage kind=event
+    case 'command':  break;                        // echo of outbound command, ignore
+    default:
+      // Unknown but has Data — try treating it as a state push
+      if (m.Data || m.data) applyState(m.Data ?? m.data);
+      else console.log('[BLT] Unknown message:', m);
+  }
+}
+
+function handleWireEvent(wire) {
+  // BltWireMessage carrying a full game state snapshot
+  if (wire.Data ?? wire.data) applyState(wire.Data ?? wire.data);
+}
+
+function applyState(d) {
+  if (!d) return;
+  if (d.inMission !== undefined) G.inMission = d.inMission;
+  if (d.battle    !== undefined) G.battle    = d.battle;
+  if (d.party     !== undefined) G.party     = d.party;
+  if (d.hero      !== undefined) G.hero      = d.hero;
+  if (d.clan      !== undefined) G.clan      = d.clan;
+  if (d.kingdom   !== undefined) G.kingdom   = d.kingdom;
+  if (d.retinue   !== undefined) G.retinue   = d.retinue;
+  if (d.diplomacy !== undefined) G.diplomacy = d.diplomacy;
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMMANDS
+// ═══════════════════════════════════════════════════════════════
+function cmd(raw) {
+  toast('⚡ !' + raw);
+  extSend({ type:'command', command:raw, userName:G.user.name, userId:G.user.id });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════════
+let _modalCmd = null;
+function modal(label, pfx) {
+  _modalCmd = pfx;
+  byId('modal-lbl').textContent = label;
+  byId('modal-inp').value = '';
+  openPop('input-modal');
+  setTimeout(() => byId('modal-inp').focus(), 55);
+}
+function submitModal() {
+  const v = byId('modal-inp').value.trim();
+  if (_modalCmd) cmd(v ? `${_modalCmd} ${v}` : _modalCmd);
+  closePop('input-modal');
+  _modalCmd = null;
+}
+// Wire up modal input key handling after DOM is ready (see DOMContentLoaded below)
+
+// ═══════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════
+function notif(type, title, body, ttl = 6000) {
+  const el = document.createElement('div');
+  el.className = 'nf ' + type;
+  el.innerHTML = `<div class="nt">${esc(title)}</div><div class="nb">${esc(body)}</div>`;
+  byId('notifs').appendChild(el);
+  if (ttl) setTimeout(() => el.remove(), ttl);
+}
+function notifProp(m) {
+  const fr = esc(m.from ?? '?'), pt = esc(m.proposalType ?? 'Proposal');
+  const el = document.createElement('div');
+  el.className = 'nf prop';
+  el.innerHTML = `<div class="nt">📨 Incoming Proposal</div>
+    <div class="nb">${fr} proposes <strong>${pt}</strong></div>
+    <div class="na">
+      <button class="btn g" onclick="cmd('diplomacy accept ${pt} ${fr}');this.closest('.nf').remove()" style="margin:0;padding:3px 9px">✓ Accept</button>
+      <button class="btn r" onclick="cmd('diplomacy reject ctw ${fr}');this.closest('.nf').remove()" style="margin:0;padding:3px 9px">✗ Reject</button>
+      <button class="btn b" onclick="openDiplo();selectKdom('${fr}');this.closest('.nf').remove()" style="margin:0;padding:3px 9px">🌐 View</button>
+    </div>`;
+  byId('notifs').appendChild(el);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+function render() { renderBattle(); renderParty(); renderRetinue(); renderHero(); renderClan(); renderKingdom(); renderDiplo(); }
+
+function renderBattle() {
+  const b = G.battle, ia = byId('b-inact');
+  if (!b || !G.inMission) { ia.style.display = 'flex'; return; }
+  ia.style.display = 'none';
+  barW('bf-hp',  (b.hp ?? 0)    / Math.max(b.hpMax    ?? 100, 1));
+  barW('bf-mhp', b.mountHp != null ? b.mountHp / Math.max(b.mountHpMax ?? 1, 1) : 0);
+  barW('bf-pow', (b.power ?? 0) / 100);
+  set('b-hp',    (b.hp ?? '?') + '/' + (b.hpMax ?? '?'));
+  set('b-mhp',   b.mountHp != null ? b.mountHp + '/' + (b.mountHpMax ?? '?') : '—');
+  set('b-pow',   (b.power ?? 0) + '%');
+  set('b-kills', b.kills        ?? '—');
+  set('b-rk',    b.retinueKills ?? '—');
+  set('b-gold',  b.goldWon != null ? fnum(b.goldWon) + 'g' : '—');
+  set('b-xp',    b.xpWon        ?? '—');
+  set('b-class', b.class        ?? '—');
+  set('b-wpn',   b.weapon       ?? '—');
+  set('b-ally',  b.allies       ?? '—');
+  set('b-enem',  b.enemies      ?? '—');
+  set('b-form',  b.formation    ?? '—');
+}
+function renderParty() {
+  const p = G.party; if (!p) return;
+  set('pt-name', p.name ?? '—');
+  set('pt-size', (p.troops ?? '?') + '/' + (p.limit ?? '?') + ' troops');
+  const spd = typeof p.speed === 'number' ? p.speed.toFixed(1) : (p.speed ?? '?');
+  set('pt-sm',   spd + 'spd · ' + (p.morale != null ? Math.round(p.morale) + 'mor' : '—'));
+  set('pt-food', p.food != null ? p.food + (p.foodChange != null ? ' (' + p.foodChange + '/d)' : '') : '—');
+  set('pt-beh',  p.behavior ?? '—');
+}
+function renderRetinue() {
+  const r = G.retinue; if (!r) return;
+  const p = r.primary ?? {};
+  set('r-cnt', (p.count ?? '—') + ' · T' + (p.tier != null ? p.tier.toFixed(1) : '?') + ' avg');
+  byId('r1-list').textContent = p.troops?.length ? p.troops.map(t => t.name + (t.count > 1 ? ' x' + t.count : '')).join(', ') : 'No retinue';
+  const s = r.secondary ?? {};
+  set('r2-cnt', (s.count ?? '—') + ' · T' + (s.tier != null ? s.tier.toFixed(1) : '?') + ' avg');
+  byId('r2-list').textContent = s.troops?.length ? s.troops.map(t => t.name + (t.count > 1 ? ' x' + t.count : '')).join(', ') : 'No secondary retinue';
+}
+function renderHero() {
+  const h = G.hero; if (!h) return;
+  set('h-class',   h.class    ?? '—');
+  set('h-lvlgold', 'Lv' + (h.level ?? '?') + ' · ' + (h.gold != null ? fnum(h.gold) + 'g' : '—'));
+  set('h-hp',      (h.hp ?? '?') + '/' + (h.hpMax ?? '?'));
+  set('h-age',     (h.age ?? '?') + ' yrs · ' + (h.gender ?? '?'));
+  set('h-loc',     h.location ?? '—');
+  set('h-einfo',   'T' + (h.tier != null ? h.tier + 1 : '?') + ' · ' + (h.eclass ?? '—'));
+  byId('h-skills').textContent = h.skills ?? '—';
+}
+function renderClan() {
+  const c = G.clan; if (!c) return;
+  set('c-name',  c.name ?? '—');
+  set('c-tier',  'T' + (c.tier ?? '?') + ' · ' + fnum(c.renown ?? 0) + ' renown');
+  set('c-kdom',  c.kingdom ?? 'None');
+  set('c-ig',    fnum(c.influence ?? 0) + ' inf · ' + fnum(c.gold ?? 0) + 'g');
+  set('c-mp',    (c.members ?? '?') + ' members · ' + (c.parties ?? '?') + '/' + (c.partyLimit ?? '?') + ' parties');
+  set('c-fiefs', (c.towns ?? '?') + ' towns / ' + (c.castles ?? '?') + ' castles');
+}
+function renderKingdom() {
+  const k = G.kingdom; if (!k) return;
+  set('k-name',  k.name    ?? '—');
+  set('k-rc',    (k.ruler  ?? '—') + ' · ' + (k.capital ?? '—'));
+  set('k-cs',    (k.clans  ?? '?') + ' clans · ' + fnum(k.str ?? 0) + ' str');
+  set('k-fiefs', (k.towns  ?? '?') + ' towns / ' + (k.castles ?? '?') + ' castles');
+  set('k-wars',  k.wars    ?? '—');
+  set('k-ally',  k.allies  ?? '—');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DIPLOMACY
+// ═══════════════════════════════════════════════════════════════
+function renderDiplo() {
+  const d = G.diplomacy; if (!d) return;
+  set('d-my-kname', d.myKingdom ?? 'No Kingdom');
+  const kdoms = d.kingdoms ?? [];
+  const wars   = kdoms.filter(k => k.relation === 'war').length;
+  const allies = kdoms.filter(k => k.relation === 'allied').length;
+  const naps   = kdoms.filter(k => k.relation === 'nap').length;
+  const trades = kdoms.filter(k => k.relation === 'trade').length;
+  const truces = kdoms.filter(k => k.truceRemaining > 0 && k.relation !== 'war').length;
+  let pills = '';
+  if (wars)   pills += `<span class="d-my-pill war">⚔ ${wars} war${wars>1?'s':''}</span>`;
+  if (allies) pills += `<span class="d-my-pill ally">🤝 ${allies} ally</span>`;
+  if (naps)   pills += `<span class="d-my-pill nap">🕊 ${naps} NAP</span>`;
+  if (trades) pills += `<span class="d-my-pill trade">📦 ${trades} trade</span>`;
+  if (truces) pills += `<span class="d-my-pill truce">⏳ ${truces} truce</span>`;
+  if (!pills)  pills = '<span style="font-size:9.5px;color:var(--dim)">No active treaties</span>';
+  byId('d-my-pills').innerHTML = pills;
+  const propCount = (d.proposals ?? []).length + (d.ctwProposals ?? []).length;
+  const pb = byId('d-prop-badge');
+  if (pb) { pb.style.display = propCount ? 'inline' : 'none'; pb.textContent = propCount; }
+  renderKdomList();
+  if (G.selK) {
+    const k = kdoms.find(k => k.name === G.selK);
+    if (k) renderKdomDetail(k);
+  } else {
+    const at = document.querySelector('#d-tabs .dtb.on');
+    const _dtm = at?.getAttribute('onclick').match(/dTab\('(\w+)'/);
+    const tabName = _dtm?.[1] ?? 'overview';
+    renderDiploTab(tabName);
+  }
+}
+
+function renderKdomList() {
+  const d = G.diplomacy;
+  const filter = (byId('d-sf')?.value || '').toLowerCase();
+  const kingdoms = (d?.kingdoms ?? []).filter(k => !k.isEliminated && (!filter || k.name.toLowerCase().includes(filter)));
+  const order = ['war','allied','nap','trade','truce','neutral'];
+  kingdoms.sort((a, b) => order.indexOf(getEffRel(a)) - order.indexOf(getEffRel(b)) || a.name.localeCompare(b.name));
+  byId('d-kdom-list').innerHTML = kingdoms.map(k => `
+    <div class="k-item${G.selK === k.name ? ' sel' : ''}" onclick="selectKdom('${esc(k.name)}')">
+      <div class="k-dot ${getEffRel(k)}"></div>
+      <div class="k-name">${esc(k.name)}</div>
+      <div class="k-meta">${relBadge(k)}<br>${fnum(k.strength ?? 0)}</div>
+    </div>`).join('');
+}
+
+function getEffRel(k) {
+  if (k.relation === 'war')    return 'war';
+  if (k.relation === 'allied') return 'allied';
+  if (k.relation === 'nap')   return 'nap';
+  if (k.relation === 'trade') return 'trade';
+  if (k.truceRemaining > 0)   return 'truce';
+  return 'neutral';
+}
+function relBadge(k) {
+  const r = getEffRel(k);
+  const label  = {war:'⚔ War', allied:'🤝 Allied', nap:'🕊 NAP', trade:'📦 Trade', truce:`⏳ ${k.truceRemaining}d`, neutral:'—'};
+  const colour = {war:'re-hi', allied:'gr-hi', nap:'bl-hi', trade:'wa-hi', truce:'gold', neutral:'dim'};
+  return `<span style="font-size:8.5px;color:var(--${colour[r]})">${label[r]}</span>`;
+}
+function filterKdoms() { renderKdomList(); }
+
+function selectKdom(name) {
+  G.selK = name;
+  renderKdomList();
+  if (!name) {
+    document.querySelectorAll('.dp').forEach(p => p.classList.remove('on'));
+    byId('dp-overview').classList.add('on');
+    document.querySelectorAll('#d-tabs .dtb').forEach((b, i) => b.classList.toggle('on', i === 0));
+    renderDiploOverview();
+  } else {
+    document.querySelectorAll('.dp').forEach(p => p.classList.remove('on'));
+    document.querySelectorAll('#d-tabs .dtb').forEach(b => b.classList.remove('on'));
+    byId('dp-kdom').classList.add('on');
+    const k = (G.diplomacy?.kingdoms ?? []).find(k => k.name === name);
+    if (k) renderKdomDetail(k);
+  }
+}
+
+function dTab(name, btn) {
+  G.selK = null;
+  document.querySelectorAll('#d-tabs .dtb').forEach(b => b.classList.remove('on'));
+  document.querySelectorAll('.dp').forEach(p => p.classList.remove('on'));
+  btn.classList.add('on');
+  byId('dp-' + name)?.classList.add('on');
+  document.querySelectorAll('.k-item').forEach(el => el.classList.remove('sel'));
+  renderDiploTab(name);
+}
+function renderDiploTab(name) {
+  switch (name) {
+    case 'overview':  renderDiploOverview(); break;
+    case 'proposals': renderProposals();     break;
+    case 'wars':      renderWars();          break;
+    case 'clan':      renderClanDiplo();     break;
+  }
+}
+function openDiplo() { openPop('pop-diplo'); selectKdom(null); renderDiplo(); }
+
+function computeActions(k) {
+  const d   = G.diplomacy;
+  const nl  = d?.isKingdomLeader ? null : 'Must be kingdom leader';
+  const rel = getEffRel(k);
+  let wr = nl;
+  if (!wr) {
+    if (rel === 'war')             wr = 'Already at war';
+    else if (rel === 'allied')     wr = 'Allied — break alliance first';
+    else if (rel === 'nap')        wr = 'NAP exists — break it first';
+    else if (k.truceRemaining > 0) wr = `Truce active (${k.truceRemaining} days)`;
+  }
+  let nr = nl;
+  if (!nr) {
+    if (rel === 'war')              nr = 'At war — make peace first';
+    else if (rel === 'allied')      nr = 'Already allied';
+    else if (rel === 'nap')         nr = 'NAP already exists';
+    else if (!k.isBLT)              nr = 'NAPs with AI kingdoms disabled';
+    else if ((d?.napCount||0) >= (d?.maxNAPs||5)) nr = `Max NAPs (${d?.napCount}/${d?.maxNAPs})`;
+  }
+  let ar = nl;
+  if (!ar) {
+    if (rel === 'war')              ar = 'At war — make peace first';
+    else if (rel === 'allied')      ar = 'Already allied';
+    else if (k.truceRemaining > 0)  ar = `Truce active (${k.truceRemaining} days)`;
+    else if (!k.isBLT)              ar = 'Alliances with AI disabled';
+    else if ((d?.allianceCount||0) >= (d?.maxAlliances||3)) ar = `Max alliances (${d?.allianceCount}/${d?.maxAlliances})`;
+  }
+  let tr = nl;
+  if (!tr) {
+    if (rel === 'war')      tr = 'At war — make peace first';
+    else if (k.tradeExists) tr = 'Trade agreement already exists';
+  }
+  const pr = nl || (rel !== 'war' ? 'Not at war' : null);
+  const ourWars = (d?.kingdoms ?? []).filter(k2 => k2.relation === 'war').map(k2 => k2.name);
+  return {
+    war:           { ok: !wr, why: wr },
+    peaceOffer:    { ok: !pr, why: pr },
+    peaceDemand:   { ok: !pr, why: pr },
+    nap:           { ok: !nr, why: nr },
+    alliance:      { ok: !ar, why: ar },
+    trade:         { ok: !tr, why: tr },
+    breakNap:      { ok: !nl && rel === 'nap',    why: nl || (rel !== 'nap'    ? 'No NAP exists'     : null) },
+    breakAlliance: { ok: !nl && rel === 'allied',  why: nl || (rel !== 'allied' ? 'No alliance exists' : null) },
+    ctw:           { ok: !nl && rel === 'allied' && ourWars.length > 0,
+                     why: nl ?? (rel !== 'allied' ? 'Must be allied' : 'No active wars'),
+                     wars: ourWars },
+  };
+}
+
+function actBtn(label, cmdStr, act, cls = '', onclk = '') {
+  if (act && !act.ok)
+    return `<div class="act-item"><button class="act-btn dis ${cls}">${label}</button><div class="act-why">✕ ${esc(act.why)}</div></div>`;
+  const h = onclk ? `onclick="${onclk}"` : cmdStr ? `onclick="cmd('${cmdStr}')"` : '';
+  return `<div class="act-item"><button class="act-btn ${cls}" ${h}>${label}</button></div>`;
+}
+function togglePeaceForm(id) { byId(id)?.classList.toggle('on'); }
+function confirmWar(kname)   { togglePeaceForm('war-conf-' + kname); }
+function sendPeace(kname, type) {
+  const el  = byId('pf-' + (type === 'offer' ? 'oa' : 'da') + '-' + kname);
+  const amt = el?.value?.trim() || '0';
+  cmd(`diplomacy peace ${type} ${kname}${amt && amt !== '0' ? ' ' + amt : ''} yes`);
+  togglePeaceForm('pf-' + type + '-' + kname);
+}
+function sendCTW(allyName) {
+  const target = byId('ctw-target-' + allyName)?.value;
+  if (!target) { notif('info', '⚠', 'No war target selected'); return; }
+  cmd(`diplomacy ctw ${allyName} ${target}`);
+}
+function setStance(kname, stance)  { cmd(`diplomacy warstance ${kname} ${stance}`); }
+function openStanceModal(kname)    { modal(`War stance vs ${kname} (balanced/defensive/aggressive):`, `diplomacy warstance ${kname}`); }
+
+function renderKdomDetail(k) {
+  const acts = computeActions(k);
+  const rel  = getEffRel(k);
+  const relLabel = { war:'⚔ AT WAR', allied:'🤝 ALLIED', nap:'🕊 NON-AGGRESSION PACT', trade:'📦 TRADE AGREEMENT', truce:`⏳ TRUCE (${k.truceRemaining} days)`, neutral:'Neutral' };
+  const relIco   = { war:'⚔', allied:'🤝', nap:'🕊', trade:'📦', truce:'⏳', neutral:'•' };
+  let tributeHtml = '';
+  if (k.tributePaying    > 0) tributeHtml += `<div class="tribute-box"><span class="tb-pay">↑ Paying: ${fnum(k.tributePaying)}g/day</span> (${k.tributeDays}d)</div>`;
+  if (k.tributeReceiving > 0) tributeHtml += `<div class="tribute-box"><span class="tb-rec">↓ Receiving: ${fnum(k.tributeReceiving)}g/day</span> (${k.tributeDays}d)</div>`;
+  let stanceHtml = '';
+  if (rel === 'war') {
+    const cur = k.warStance || 'balanced';
+    stanceHtml = `<div class="act-sec"><div class="act-sec-t">⚔ War Stance</div><div class="stance-row">
+      <button class="stance-btn${cur==='balanced'  ?' cur':''}" onclick="setStance('${esc(k.name)}','balanced')">⚖ Balanced</button>
+      <button class="stance-btn${cur==='defensive' ?' cur':''}" onclick="setStance('${esc(k.name)}','defensive')">🛡 Defensive</button>
+      <button class="stance-btn${cur==='aggressive'?' cur':''}" onclick="setStance('${esc(k.name)}','aggressive')">🔥 Aggressive</button>
+    </div></div>`;
+  }
+  const myProp  = (G.diplomacy?.proposals ?? []).find(p => p.from === k.name);
+  const propNote = myProp ? `<div class="note" style="margin-bottom:6px;color:var(--wa-hi)">📨 Incoming ${myProp.type} proposal — see Proposals tab</div>` : '';
+  const ourWars = (G.diplomacy?.kingdoms ?? []).filter(k2 => k2.relation === 'war').map(k2 => k2.name);
+  const ctwSel  = ourWars.length ? `<select class="sel" id="ctw-target-${esc(k.name)}" style="margin-bottom:4px">${ourWars.map(w=>`<option>${esc(w)}</option>`).join('')}</select>` : '';
+  byId('dp-kdom').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <button class="btn" onclick="selectKdom(null)" style="margin:0;width:auto;padding:3px 8px;font-size:10px">← Back</button>
+      <span style="font-size:9px;color:var(--dim)">Kingdom Detail</span>
+    </div>
+    <div class="kd-header">
+      <div class="kd-name">${esc(k.name)} ${k.isBLT?'<span style="font-size:9px;color:var(--bl-hi)">[BLT]</span>':''}</div>
+      <div class="kd-ruler">Ruler: ${esc(k.ruler??'Unknown')} · Capital: ${esc(k.capital??'Unknown')}</div>
+      <div class="kd-stats">
+        <div class="kd-stat"><span class="kd-sl">Strength</span><span class="kd-sv" style="color:var(--gold)">${fnum(k.strength??0)}</span></div>
+        <div class="kd-stat"><span class="kd-sl">Clans</span><span class="kd-sv">${k.clans??'?'}</span></div>
+        <div class="kd-stat"><span class="kd-sl">Towns</span><span class="kd-sv" style="color:var(--gr-hi)">${k.towns??'?'}</span></div>
+        <div class="kd-stat"><span class="kd-sl">Castles</span><span class="kd-sv">${k.castles??'?'}</span></div>
+      </div>
+    </div>
+    <div class="kd-rel ${rel}">${relIco[rel]} ${relLabel[rel]}</div>
+    ${propNote}${tributeHtml}
+    <div class="kd-body">
+      <div class="kd-col">
+        ${stanceHtml}
+        <div class="act-sec">
+          <div class="act-sec-t">☮ Peace</div>
+          ${actBtn('☮ Peace Offer…','',acts.peaceOffer,'w',`togglePeaceForm("pf-offer-${esc(k.name)}")`)}
+          <div class="exp-form" id="pf-offer-${esc(k.name)}">
+            <div class="exp-row"><label>Tribute/day:</label><input class="inp" id="pf-oa-${esc(k.name)}" type="number" placeholder="0=none" style="width:75px"></div>
+            <div class="exp-row">
+              <button class="btn g" onclick="sendPeace('${esc(k.name)}','offer')" style="margin:0">Send Offer</button>
+              <button class="btn" onclick="togglePeaceForm('pf-offer-${esc(k.name)}')" style="margin:0;width:auto;padding:4px 7px">✕</button>
+            </div>
+          </div>
+          ${actBtn('⚔ Peace Demand…','',acts.peaceDemand,'r',`togglePeaceForm("pf-demand-${esc(k.name)}")`)}
+          <div class="exp-form" id="pf-demand-${esc(k.name)}">
+            <div class="exp-row"><label>Tribute/day:</label><input class="inp" id="pf-da-${esc(k.name)}" type="number" placeholder="0=none" style="width:75px"></div>
+            <div class="exp-row">
+              <button class="btn r" onclick="sendPeace('${esc(k.name)}','demand')" style="margin:0">Send Demand</button>
+              <button class="btn" onclick="togglePeaceForm('pf-demand-${esc(k.name)}')" style="margin:0;width:auto;padding:4px 7px">✕</button>
+            </div>
+          </div>
+        </div>
+        <div class="act-sec">
+          <div class="act-sec-t">⚔ War</div>
+          ${actBtn('⚔ Declare War…','',acts.war,'r',`confirmWar("${esc(k.name)}")`)}
+          <div class="exp-form" id="war-conf-${esc(k.name)}">
+            <div style="font-size:10.5px;color:var(--re-hi);margin-bottom:5px">⚠ Declare war on ${esc(k.name)}?<br><span style="color:var(--dim);font-size:9.5px">Strength: ${fnum(k.strength??0)}</span></div>
+            <div class="exp-row">
+              <button class="btn r" onclick="cmd('diplomacy war ${esc(k.name)} yes')" style="margin:0">✓ Confirm War</button>
+              <button class="btn" onclick="togglePeaceForm('war-conf-${esc(k.name)}')" style="margin:0;width:auto;padding:4px 7px">✕</button>
+            </div>
+          </div>
+          ${actBtn('📊 War Details','diplomacy info wars',{ok:rel==='war',why:rel!=='war'?'Not at war':null})}
+          ${actBtn('⚖ War Stance…','',{ok:rel==='war',why:rel!=='war'?'Not at war':null},'',`openStanceModal("${esc(k.name)}")`)}
+        </div>
+      </div>
+      <div class="kd-col">
+        <div class="act-sec">
+          <div class="act-sec-t">🤝 Treaty Actions</div>
+          ${actBtn('🕊 Propose NAP',      `diplomacy nap ${esc(k.name)}`,           acts.nap,           'b')}
+          ${actBtn('🤝 Propose Alliance', `diplomacy alliance ${esc(k.name)}`,       acts.alliance,      'g')}
+          ${actBtn('📦 Propose Trade',    `diplomacy trade ${esc(k.name)}`,          acts.trade)}
+          ${actBtn('💔 Break NAP',        `diplomacy break nap ${esc(k.name)}`,      acts.breakNap,      'r')}
+          ${actBtn('💔 Break Alliance',   `diplomacy break alliance ${esc(k.name)}`, acts.breakAlliance, 'r')}
+        </div>
+        <div class="act-sec">
+          <div class="act-sec-t">📣 Alliance Actions</div>
+          ${acts.ctw.ok
+            ? `${ctwSel}<button class="act-btn w" onclick="sendCTW('${esc(k.name)}')">📣 Call ${esc(k.name)} to War →</button>`
+            : `<div class="act-item"><button class="act-btn dis">📣 Call to War</button><div class="act-why">✕ ${esc(acts.ctw.why)}</div></div>`}
+        </div>
+        <div class="act-sec">
+          <div class="act-sec-t">📋 Lookup</div>
+          <button class="act-btn" onclick="cmd('campaigninfo kingdom ${esc(k.name)}')">📊 Kingdom Info</button>
+          <button class="act-btn" onclick="cmd('campaigninfo war ${esc(k.name)}')">⚔ War Details</button>
+          <button class="act-btn" onclick="cmd('campaigninfo clans ${esc(k.name)}')">🏰 Clan List</button>
+          <button class="act-btn" onclick="cmd('campaigninfo fiefs ${esc(k.name)}')">🏰 Fief List</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderDiploOverview() {
+  const d = G.diplomacy;
+  if (!d) { byId('dp-overview').innerHTML = '<div class="note">No diplomacy data — run !diplomacy info</div>'; return; }
+  const kdoms  = d.kingdoms ?? [];
+  const wars   = kdoms.filter(k => k.relation === 'war');
+  const allies = kdoms.filter(k => k.relation === 'allied');
+  const naps   = kdoms.filter(k => k.relation === 'nap');
+  const trades = kdoms.filter(k => k.relation === 'trade');
+  const truces = kdoms.filter(k => k.truceRemaining > 0 && k.relation !== 'war');
+  const card   = (title, items, cls, empty) => `<div class="ov-card"><div class="ov-card-t">${title}</div>${
+    items.length ? items.map(k=>`<div class="ov-entry ${cls}" onclick="selectKdom('${esc(k.name)}')" style="cursor:pointer">${esc(k.name)}</div>`).join('')
+                 : `<div class="ov-entry" style="color:var(--dim)">${empty}</div>`}</div>`;
+  byId('dp-overview').innerHTML = `
+    <div style="margin-bottom:8px"><button class="btn" onclick="cmd('diplomacy info')">🔄 Refresh Diplomacy</button></div>
+    <div class="ov-grid">
+      ${card('⚔ Wars ('+wars.length+')',   wars,   'war',  'No active wars')}
+      ${card('🤝 Alliances ('+allies.length+')', allies, 'ally', 'None — max '+(d.maxAlliances||3))}
+      ${card('🕊 NAPs ('+naps.length+')',   naps,   'nap',  'None — max '+(d.maxNAPs||5))}
+    </div>
+    <div class="ov-grid">
+      ${card('📦 Trade ('+trades.length+')', trades, 'trade', 'None')}
+      ${card('⏳ Truces ('+truces.length+')', truces, 'truce', 'None')}
+      <div class="ov-card"><div class="ov-card-t">📤 Send Proposal</div>
+        <select class="sel" id="ov-prop-type" style="margin-bottom:5px">
+          <option value="peace offer">Peace Offer</option>
+          <option value="peace demand">Peace Demand</option>
+          <option value="nap">Non-Aggression Pact</option>
+          <option value="alliance">Alliance</option>
+          <option value="trade">Trade Agreement</option>
+        </select>
+        <div class="fr">
+          <input class="inp" id="ov-prop-target" placeholder="Kingdom…" style="margin:0">
+          <button class="btn w" onclick="sendOvProp()" style="margin:0;width:auto;padding:4px 8px">Send</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <button class="btn" onclick="cmd('diplomacy info wars')">⚔ War Details</button>
+      <button class="btn" onclick="cmd('diplomacy info alliances')">🤝 Alliance Details</button>
+      <button class="btn" onclick="cmd('diplomacy info tributes')">💰 Tribute Details</button>
+      <button class="btn" onclick="cmd('diplomacy info truces')">⏳ Truce Details</button>
+    </div>`;
+}
+function sendOvProp() {
+  const type = byId('ov-prop-type')?.value, tgt = byId('ov-prop-target')?.value?.trim();
+  if (!tgt) { notif('info', '⚠', 'Enter a kingdom name'); return; }
+  cmd(`diplomacy ${type} ${tgt}`);
+  byId('ov-prop-target').value = '';
+}
+
+function renderProposals() {
+  const d = G.diplomacy, props = d?.proposals ?? [], ctws = d?.ctwProposals ?? [];
+  let html = (!props.length && !ctws.length) ? '<div class="note">No pending proposals</div>' : '';
+  props.forEach(p => {
+    const desc = p.type === 'peace'
+      ? `Peace proposal${p.dailyTribute > 0 ? ` (${p.isOffer?'offering':'demanding'} ${fnum(p.dailyTribute)}g/day × ${p.duration}d)` : ''}`
+      : p.type === 'alliance' ? 'Defensive Alliance proposal'
+      : p.type === 'nap'     ? 'Non-Aggression Pact proposal'
+      : p.type === 'trade'   ? 'Trade Agreement proposal'
+      : `${p.type} proposal`;
+    html += `<div class="prop-card">
+      <div class="prop-from">📨 ${esc(p.from)}</div>
+      <div class="prop-desc">${desc}</div>
+      <div class="prop-days">⏳ ${p.daysRemaining??'?'} days to respond</div>
+      <div class="prop-acts">
+        <button class="btn g" onclick="cmd('diplomacy accept ${esc(p.type)} ${esc(p.from)}')" style="margin:0;flex:1">✓ Accept</button>
+        <button class="btn b" onclick="selectKdom('${esc(p.from)}')" style="margin:0;flex:1">🌐 View</button>
+      </div></div>`;
+  });
+  ctws.forEach(ctw => {
+    html += `<div class="prop-card">
+      <div class="prop-from">📣 Call to War: ${esc(ctw.caller)}</div>
+      <div class="prop-desc">Join war against <strong>${esc(ctw.target)}</strong></div>
+      <div class="prop-days">⏳ ${ctw.daysRemaining??'?'} days to respond</div>
+      <div class="prop-acts">
+        <button class="btn g" onclick="cmd('diplomacy accept ctw ${esc(ctw.caller)}')" style="margin:0;flex:1">⚔ Join War</button>
+        <button class="btn r" onclick="cmd('diplomacy reject ctw ${esc(ctw.caller)}')" style="margin:0;flex:1">✗ Decline</button>
+      </div></div>`;
+  });
+  byId('dp-proposals').innerHTML = html;
+}
+
+function renderWars() {
+  const wars = (G.diplomacy?.kingdoms ?? []).filter(k => k.relation === 'war');
+  if (!wars.length) {
+    byId('dp-wars').innerHTML = '<div class="note">No active wars</div><button class="btn" onclick="cmd(\'diplomacy info wars\')">📊 Fetch War Info</button>';
+    return;
+  }
+  byId('dp-wars').innerHTML = `<div style="margin-bottom:8px"><button class="btn" onclick="cmd('diplomacy info wars')">🔄 Refresh</button></div>` +
+    wars.map(k => {
+      const cur = k.warStance || 'balanced';
+      return `<div class="war-card">
+        <div class="war-kn" onclick="selectKdom('${esc(k.name)}')" style="cursor:pointer">⚔ ${esc(k.name)} (${fnum(k.strength??0)} str)</div>
+        <div class="war-meta">
+          <div class="wm-stat"><span class="wm-l">Days</span><span class="wm-v">${k.warDays??'?'}</span></div>
+          <div class="wm-stat"><span class="wm-l">Our Cas.</span><span class="wm-v" style="color:var(--re-hi)">${k.ourCasualties??'?'}</span></div>
+          <div class="wm-stat"><span class="wm-l">Their Cas.</span><span class="wm-v" style="color:var(--gr-hi)">${k.theirCasualties??'?'}</span></div>
+          <div class="wm-stat"><span class="wm-l">Raids</span><span class="wm-v">${k.ourRaids??'?'}</span></div>
+          <div class="wm-stat"><span class="wm-l">Sieges</span><span class="wm-v">${k.ourSieges??'?'}</span></div>
+        </div>
+        <div class="stance-row">
+          <button class="stance-btn${cur==='balanced'  ?' cur':''}" onclick="setStance('${esc(k.name)}','balanced')">⚖ Balanced</button>
+          <button class="stance-btn${cur==='defensive' ?' cur':''}" onclick="setStance('${esc(k.name)}','defensive')">🛡 Defensive</button>
+          <button class="stance-btn${cur==='aggressive'?' cur':''}" onclick="setStance('${esc(k.name)}','aggressive')">🔥 Aggressive</button>
+        </div>
+        <div class="btn2" style="margin-top:5px">
+          <button class="btn w" onclick="sendPeace('${esc(k.name)}','offer')">☮ Quick Peace Offer</button>
+          <button class="btn" onclick="cmd('campaigninfo war ${esc(k.name)}')">📊 War Details</button>
+        </div>
+      </div>`;
+    }).join('');
+}
+
+function renderClanDiplo() {
+  const d = G.diplomacy, clans = d?.independentClans ?? [];
+  let html = `<div class="sec-t" style="margin-bottom:8px">🏰 Independent Clan Alliances${d?.isIndependent?' (Your clan is independent)':''}</div>`;
+  html += clans.length ? clans.map(c => `<div class="clan-card">
+    <div class="clan-card-n">${esc(c.name)}</div>
+    <div class="clan-card-m">Leader: ${esc(c.leader??'?')} · ${c.atWar?'⚔ At War':c.allied?'🤝 Allied':'Neutral'}</div>
+    <div class="btn2">${c.allied
+      ? `<button class="btn r" onclick="cmd('diplomacy clan break ${esc(c.name)}')">💔 Break</button><button class="btn w" onclick="clanCTW('${esc(c.name)}')">📣 CTW…</button>`
+      : c.proposalFrom
+        ? `<button class="btn g" onclick="cmd('diplomacy clan accept ${esc(c.name)}')">✓ Accept Proposal</button>`
+        : `<button class="btn g" onclick="cmd('diplomacy clan ally ${esc(c.name)}')">🤝 Propose</button><button class="btn r" onclick="clanWar('${esc(c.name)}')">⚔ War…</button>`
+    }</div></div>`).join('')
+  : '<div class="note">No independent clans tracked</div>';
+  html += `<div class="sec-t" style="margin:12px 0 6px">📤 Manual Commands</div>
+    <div class="fr"><input class="inp" id="cd-name" placeholder="Clan name" style="margin:0">
+      <button class="btn g" onclick="cmd('diplomacy clan ally '+byId('cd-name').value)" style="margin:0;width:auto;padding:4px 8px">Ally</button>
+      <button class="btn r" onclick="cmd('diplomacy clan break '+byId('cd-name').value)" style="margin:0;width:auto;padding:4px 8px">Break</button>
+    </div>
+    <div class="fr"><input class="inp" id="cd-accept" placeholder="Proposer clan" style="margin:0"><button class="btn g" onclick="cmd('diplomacy clan accept '+byId('cd-accept').value)" style="margin:0;width:auto;padding:4px 8px">Accept</button></div>
+    <div class="fr"><input class="inp" id="cd-war" placeholder="Target" style="margin:0"><button class="btn r" onclick="cmd('diplomacy clan war '+byId('cd-war').value+' yes')" style="margin:0;width:auto;padding:4px 8px">Declare War</button></div>
+    <div class="fr"><input class="inp" id="cd-peace" placeholder="Target" style="margin:0"><button class="btn w" onclick="cmd('diplomacy clan peace '+byId('cd-peace').value)" style="margin:0;width:auto;padding:4px 8px">Make Peace</button></div>
+    <button class="btn" onclick="cmd('diplomacy clan info')">📋 Clan Diplo Info</button>`;
+  byId('dp-clan').innerHTML = html;
+}
+function clanCTW(ally) { modal(`Target for ${ally} to fight:`, `diplomacy clan ctw ${ally}`); }
+function clanWar(name) { if (confirm(`Declare war on ${name}?`)) cmd(`diplomacy clan war ${name} yes`); }
+
+// ═══════════════════════════════════════════════════════════════
+// MOCK DATA (dev mode only)
+// ═══════════════════════════════════════════════════════════════
+function loadMock() {
+  applyState({
+    inMission:true,
+    battle:{hp:78,hpMax:100,mountHp:92,mountHpMax:110,kills:4,retinueKills:18,goldWon:820,xpWon:340,power:62,class:'Cataphract',weapon:'Great Sword',allies:134,enemies:87,formation:'Cavalry 2/3'},
+    party:{name:"Aldric's Party",troops:182,limit:220,speed:4.6,morale:72,food:48,foodChange:-4.2,behavior:'Patrolling near Quyaz'},
+    hero:{class:'Cataphract',level:24,gold:62450,hp:78,hpMax:100,age:31,gender:'Male',location:'Quyaz area',tier:4,eclass:'Cataphract',skills:'1H:180 Riding:210 Leadership:140'},
+    clan:{name:'[BLT Clan] Ironhold',tier:4,renown:2960,kingdom:'Western Empire',influence:340,gold:280000,members:6,parties:2,partyLimit:3,towns:1,castles:2},
+    kingdom:{name:'Western Empire',ruler:'Garios',clans:12,str:48200,towns:7,castles:14,wars:'Sturgia',allies:'Vlandia',capital:'Lycaron'},
+    retinue:{
+      primary:  {count:18,tier:5.2,troops:[{name:'Cataphract',count:10},{name:'Imperial Legionary',count:8}]},
+      secondary:{count:12,tier:3.8,troops:[{name:'Palatine Guard',count:7},{name:'Sturgian Warrior',count:5}]}
+    },
+    diplomacy:{
+      myKingdom:'Western Empire',isKingdomLeader:true,isClanLeader:true,isIndependent:false,
+      allianceCount:1,maxAlliances:3,napCount:0,maxNAPs:5,
+      kingdoms:[
+        {name:'Sturgia',      strength:16200,clans:9,towns:4,castles:10,ruler:'Raganvad',capital:'Revyl',  relation:'war',    warDays:42,warStance:'balanced',truceRemaining:0,tributePaying:0,tributeReceiving:0,tributeDays:0,tradeExists:false,isBLT:true, ourCasualties:820,theirCasualties:1240,ourRaids:2,ourSieges:1},
+        {name:'Vlandia',      strength:22100,clans:12,towns:7,castles:11,ruler:'Derthert',capital:'Sargot', relation:'allied', warDays:0, warStance:'',         truceRemaining:0,tributePaying:0,tributeReceiving:0,tributeDays:0,tradeExists:true, isBLT:false},
+        {name:'Khuzait',      strength:18400,clans:8, towns:3,castles:7, ruler:'Monchug', capital:'Ortongard',relation:'neutral',warDays:0,warStance:'',        truceRemaining:0,tributePaying:200,tributeReceiving:0,tributeDays:45,tradeExists:false,isBLT:false},
+        {name:'N. Empire',    strength:14200,clans:7, towns:5,castles:8, ruler:'Lucon',   capital:'Zeonica',relation:'nap',    warDays:0, warStance:'',         truceRemaining:0,tributePaying:0,tributeReceiving:0,tributeDays:0,tradeExists:false,isBLT:true},
+        {name:'Aserai',       strength:12800,clans:6, towns:5,castles:4, ruler:'Unqid',   capital:'Husn Fulq',relation:'neutral',warDays:0,warStance:'',        truceRemaining:0,tributePaying:0,tributeReceiving:0,tributeDays:0,tradeExists:false,isBLT:false},
+        {name:'Battania',     strength:10100,clans:5, towns:3,castles:5, ruler:'Caladog', capital:'Dunglanys',relation:'truce', warDays:0,warStance:'',         truceRemaining:18,tributePaying:0,tributeReceiving:150,tributeDays:62,tradeExists:false,isBLT:false},
+        {name:'S. Empire',    strength:9200, clans:4, towns:3,castles:6, ruler:'Rhagaea', capital:'Zeonica',relation:'trade',  warDays:0, warStance:'',         truceRemaining:0,tributePaying:0,tributeReceiving:0,tributeDays:0,tradeExists:true, isBLT:true},
+      ],
+      proposals:[
+        {type:'peace',from:'Sturgia',isOffer:true,dailyTribute:300,duration:90,daysRemaining:9},
+        {type:'alliance',from:'S. Empire',daysRemaining:11},
+      ],
+      ctwProposals:[],
+      independentClans:[
+        {name:'[BLT Clan] ClanOfSwords',leader:'SwordViewer',allied:true, atWar:false},
+        {name:'Desert Raiders',          leader:'BanditChief', allied:false,atWar:true},
+      ]
+    }
+  });
+  setTimeout(() => notif('info','📋 BLT','Running in dev mock mode'), 400);
+  setTimeout(() => notifProp({from:'Sturgia',proposalType:'Peace Treaty'}), 1800);
+  setTimeout(() => notif('war','⚔ War Alert','S. Empire broke your NAP!', 0), 3500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  makeDrag(byId('pop-army'), byId('pop-army-hdr'));
+  // Modal keyboard handling — must be after DOM ready
+  byId('modal-inp').addEventListener('keydown', e => {
+    if (e.key === 'Enter')  submitModal();
+    if (e.key === 'Escape') closePop('input-modal');
+  });
+  initExt();
+});
+</script>
+</body>
+</html>
