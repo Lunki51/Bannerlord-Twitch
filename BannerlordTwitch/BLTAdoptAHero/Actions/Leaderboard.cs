@@ -21,7 +21,8 @@ namespace BLTAdoptAHero
         {
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value($"Usage: !leaderboard hero (kills|deaths|battles|summons|attacks|tournaments|1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|family) or !leaderboard clan (power|renown|members|dead|fiefs|gold|party)");
+                generator.Value($"Usage: !leaderboard hero (kills|deaths|battles|summons|attacks|tournaments|"/*1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|*/+ "family)" +
+                    " or !leaderboard clan (power|renown|members|dead|fiefs|gold|party|merc|prosperity)");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -59,7 +60,7 @@ namespace BLTAdoptAHero
         {
             if (filter.Length == 0)
             {
-                return "kills|deaths|battles|summons|attacks|tournaments|1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|family";
+                return "kills|deaths|battles|summons|attacks|tournaments|"/*1H-AXE|1H-MACE|1H-POLE|1H-SWORD|2H-AXE|2H-MACE|2H-POLE|2H-SWORD|BOW|DAGGER|JAVELIN|PICK|SLING|STONE|THROW-AXE|THROW-KNIFE|XBOW|*/+ "family";
             }
             var adoptedHeroes = BLTAdoptAHeroCampaignBehavior.GetAllAdoptedHeroes();
 
@@ -151,7 +152,7 @@ namespace BLTAdoptAHero
         {
             if (filter.Length == 0)
             {
-                return "power|renown|members|dead|fiefs|gold";
+                return "power|renown|members|dead|fiefs|gold|party|merc|prosperity";
             }
             if (userHero.Clan == null || !userHero.Clan.Leader.IsAdopted())
                 return "You have no clan.";

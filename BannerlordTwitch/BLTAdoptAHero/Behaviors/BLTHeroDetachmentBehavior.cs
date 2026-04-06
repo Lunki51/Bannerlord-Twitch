@@ -24,6 +24,7 @@ namespace BLTAdoptAHero
             public float LastNavigationReissueTime;
             //public List<int> BlockedNavmeshIds = new();
         }
+        
 
         private readonly Dictionary<Agent, DetachmentState> _detachments = new();
 

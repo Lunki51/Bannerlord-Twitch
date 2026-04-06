@@ -19,6 +19,21 @@ namespace BLTAdoptAHero
      UsedImplicitly]
     public class BattleInfo : HeroCommandHandlerBase
     {
+        private class Documentation : IDocumentable
+        {
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.Value("<strong>Usage:</strong> !battleinfo [hero name]\n");
+                generator.Value("<strong>Description:</strong> Shows detailed information about your adopted hero's current battle status, including health, mount, weapons, kills, retinue, gold, XP, and active powers.\n");
+                generator.Value("<strong>Notes:</strong> ");
+                generator.Value("• Only works if the hero is adopted and currently in a mission.\n");
+                generator.Value("• Shows death info and cooldown if hero is not active in battle.\n");
+            }
+        }
+
+        public override Type HandlerConfigType => typeof(Settings);
+
+
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
             Action<string> onSuccess, Action<string> onFailure)
         {
@@ -86,8 +101,14 @@ namespace BLTAdoptAHero
 
             if (agent == null && !MissionHelpers.InTournament())
             {
-                string playerFaction = (isDefend ? mapEvent.DefenderSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString()); string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
-                string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{allyTotal}({defendCount})/{enemyTotal}({attackCount}) - " : $"{allyTotal}({attackCount})/{enemyTotal}({defendCount}) - ");
+                string battlestring = "";
+                try
+                {
+                    string playerFaction = (isDefend ? mapEvent.DefenderSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString()); string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
+                    battlestring += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{allyTotal}({defendCount})/{enemyTotal}({attackCount}) - " : $"{allyTotal}({attackCount})/{enemyTotal}({defendCount}) - ");
+                }
+                catch (Exception e) { battlestring += "Error getting factions - "; Log.Trace(e.StackTrace); }
+
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
 
@@ -136,11 +157,11 @@ namespace BLTAdoptAHero
             }
 
             // Active combat
-            float currentTime = Mission.Current.CurrentTime;
-            bool hasAttacked = (currentTime - agent.LastMeleeAttackTime < 10f)
+            //float currentTime = Mission.Current.CurrentTime;
+            bool hasAttacked = /*(currentTime - agent.LastMeleeAttackTime < 10f)
                 || (currentTime - agent.LastRangedAttackTime < 10f)
                 || (currentTime - agent.LastMeleeHitTime < 10f)
-                || (currentTime - agent.LastRangedHitTime < 10f);
+                || (currentTime - agent.LastRangedHitTime < 10f);*/false;
 
 
             // Mounted info
@@ -238,8 +259,12 @@ namespace BLTAdoptAHero
             string message = "";
             if (!MissionHelpers.InTournament())
             {
-                string playerFaction = (isDefend ? mapEvent.DefenderSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString()); string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
-                message += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+                try
+                {
+                    string playerFaction = (isDefend ? mapEvent.DefenderSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString()); string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
+                    message += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+                }
+                catch (Exception e) { message += "Error getting factions - "; Log.Trace(e.StackTrace); }
             }
                 
             message +=

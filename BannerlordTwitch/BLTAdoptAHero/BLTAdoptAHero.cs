@@ -21,7 +21,7 @@ using TaleWorlds.MountAndBlade;
 using TaleWorlds.MountAndBlade.ComponentInterfaces;
 using TaleWorlds.MountAndBlade.GauntletUI.Widgets.Mission.NameMarker;
 using TaleWorlds.MountAndBlade.Source.Missions;
-using TaleWorlds.MountAndBlade.View.Screens;
+using TaleWorlds.MountAndBlade.View;
 using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Localization;
@@ -93,16 +93,16 @@ namespace BLTAdoptAHero
         }
 
 
-        [UsedImplicitly, HarmonyPostfix, HarmonyPatch(typeof(MissionScreen), "TaleWorlds.MountAndBlade.IMissionSystemHandler.OnMissionAfterStarting")]
-        static void OnMissionAfterStartingPostFix(MissionScreen __instance)
-        {
-            if (__instance.Mission.GetMissionBehavior<MissionNameMarkerUIHandler>() == null
-            && (__instance.Mission.GetMissionBehavior<BattleSpawnLogic>() != null
-                || __instance.Mission.GetMissionBehavior<TournamentFightMissionController>() != null))
-            {
-                __instance.AddMissionView(SandBoxViewCreator.CreateMissionNameMarkerUIHandler(__instance.Mission));
-            }
-        }
+        //[UsedImplicitly, HarmonyPostfix, HarmonyPatch(typeof(MissionScreen), "TaleWorlds.MountAndBlade.IMissionSystemHandler.OnMissionAfterStarting")]
+        //static void OnMissionAfterStartingPostFix(MissionScreen __instance)
+        //{
+        //    if (__instance.Mission.GetMissionBehavior<MissionNameMarkerUIHandler>() == null
+        //    && (__instance.Mission.GetMissionBehavior<BattleSpawnLogic>() != null
+        //        || __instance.Mission.GetMissionBehavior<TournamentFightMissionController>() != null))
+        //    {
+        //        __instance.AddMissionView(SandBoxViewCreator.CreateMissionNameMarkerUIHandler(__instance.Mission));
+        //    }
+        //}
 
         [HarmonyPatch(typeof(MissionAgentMarkerTargetVM))]
         [HarmonyPatch(MethodType.Constructor)]
@@ -158,11 +158,11 @@ namespace BLTAdoptAHero
         }
 
 
-        [UsedImplicitly, HarmonyPrefix, HarmonyPatch(typeof(MissionGauntletNameMarkerView), "OnConversationEnd")]
-        public static bool OnConversationEndPrefix(MissionGauntletNameMarkerView __instance)
-        {
-            return __instance.Mission != null;
-        }
+        //[UsedImplicitly, HarmonyPrefix, HarmonyPatch(typeof(MissionGauntletNameMarkerView), "OnConversationEnd")]
+        //public static bool OnConversationEndPrefix(MissionGauntletNameMarkerView __instance)
+        //{
+        //    return __instance.Mission != null;
+        //}
 
         [UsedImplicitly, HarmonyPostfix, HarmonyPatch(typeof(NameMarkerScreenWidget), "OnLateUpdate")]
         public static void NameMarkerScreenWidget_OnLateUpdatePostfix(List<NameMarkerListPanel> ____markers)
@@ -209,6 +209,7 @@ namespace BLTAdoptAHero
                     campaignStarter.AddBehavior(new VassalBehavior());
                     campaignStarter.AddBehavior(new KingdomTaxBehavior());
                     campaignStarter.AddBehavior(new BLTLogsBehavior());
+                    campaignStarter.AddBehavior(new BLTHeirBehavior());
                     //campaignStarter.AddBehavior(new BLTClanAllianceBehavior());
                     campaignStarter.AddBehavior(new BLTClanArmyBehavior());
                     campaignStarter.AddBehavior(new PartyOrderBehavior());

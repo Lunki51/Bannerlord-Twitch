@@ -82,7 +82,7 @@ namespace BLTBuffet
             };
 
             // If all agents in all ally teams are adopted heroes then the team is depleted 
-            if (!config.AllowWhenDepleted && target.Team?.ActiveAgents?.All(a => a?.IsAdopted() == true) == true)
+            if (!config.AllowWhenDepleted && target?.Team?.ActiveAgents?.All(a => a?.IsAdopted() == true) == true)
             {
                 onFailure("{=JuJSYmP2}You cannot be use this effect, your side is depleted!".Translate());
                 return;

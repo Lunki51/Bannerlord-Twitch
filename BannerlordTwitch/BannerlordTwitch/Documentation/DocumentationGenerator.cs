@@ -177,10 +177,21 @@ namespace BannerlordTwitch
 
         public IDocumentationGenerator H3(string content) => H3(null, content);
 
+        public IDocumentationGenerator Table(string css, Action content, bool collapsible = true, string summary = "")
+        {
+            if (!collapsible)
+                return ScopedTag("table", css, content);
 
-        public IDocumentationGenerator Table(string css, Action content) => ScopedTag("table", css, content);
-        public IDocumentationGenerator Table(Action content) => Table(null, content);
-
+            return Details(() =>
+            {
+                Summary(summary);
+                ScopedTag("table", css, content);
+            });
+        }
+        public IDocumentationGenerator Table(Action content, bool collapsible = true, string summary = "")
+        {
+            return Table(null, content, collapsible, summary);
+        }
 
         public IDocumentationGenerator TR(string css, Action content) => ScopedTag("tr", css, content);
         public IDocumentationGenerator TR(Action content) => TR(null, content);
