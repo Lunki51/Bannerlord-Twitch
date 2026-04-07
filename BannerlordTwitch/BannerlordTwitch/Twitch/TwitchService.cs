@@ -178,24 +178,24 @@ namespace BannerlordTwitch
                     channelId = user.Id;
 
                     // ── Init extension PubSub (requires channelId) ────────────
-                    //if (authSettings.ExtensionConfigured)
-                    //{
-                    //    extensionPubSub = new ExtensionPubSubService(
-                    //        new CustomTwitchHttpClient(),
-                    //        authSettings.ExtensionClientId,
-                    //        authSettings.ExtensionSecret,
-                    //        channelId,
-                    //        authSettings.AccessToken,
-                    //        authSettings.ClientID);
-                    //    Log.Info("[Extension] PubSub service ready");
-                    //    localRelay = new LocalRelayService();
-                    //    Log.Info("[LocalRelay] Service started — OBS source: http://localhost:3000");
-                    //}
-                    //else
-                    //{
-                    //    Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
-                    //}
-                    localRelay = new LocalRelayService();
+                    if (authSettings.ExtensionConfigured)
+                    {
+                        extensionPubSub = new ExtensionPubSubService(
+                            new CustomTwitchHttpClient(),
+                            authSettings.ExtensionClientId,
+                            authSettings.ExtensionSecret,
+                            channelId,
+                            authSettings.AccessToken,
+                            authSettings.ClientID);
+                        Log.Info("[Extension] PubSub service ready");
+                        localRelay = new LocalRelayService();
+                        Log.Info("[LocalRelay] Service started — OBS source: http://localhost:3000");
+                    }
+                    else
+                    {
+                        Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
+                    }
+
                     // Connect the chatbot
                     bot = new Bot(user.Login, authSettings);
 

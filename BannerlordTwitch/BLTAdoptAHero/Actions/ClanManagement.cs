@@ -474,15 +474,12 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=6vTxAMVx}(create) (clan name)".Translate());
                 return;
             }
-            if (adoptedHero.PartyBelongedTo == Hero.MainHero.PartyBelongedTo)
+            if (adoptedHero.PartyBelongedTo == Hero.MainHero.PartyBelongedTo || (adoptedHero.PartyBelongedTo != null && Clan.PlayerClan.WarPartyComponents.Select(w => w.MobileParty).Contains(adoptedHero.PartyBelongedTo)))
             {
                 onFailure("{=TESTING}You cannot create a clan while in the players party".Translate());
                 return;
             }
-            if (adoptedHero.Clan == Clan.PlayerClan)
-            {
-                adoptedHero.CompanionOf = null;
-            }
+            
 
             var fullClanName = $"[BLT Clan] {desiredName}";
             var existingClan = CampaignHelpers.AllHeroes.Select(h => h.Clan).Distinct().FirstOrDefault(c => c?.Name.ToString().Equals(fullClanName, StringComparison.OrdinalIgnoreCase) == true);
@@ -498,6 +495,10 @@ namespace BLTAdoptAHero.Actions
             }
 
             BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.CreatePrice, true);
+            if (adoptedHero.Clan == Clan.PlayerClan)
+            {
+                adoptedHero.CompanionOf = null;
+            }
             var newClan = Clan.CreateClan(fullClanName);
             newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
             newClan.Culture = adoptedHero.Culture;
@@ -1112,7 +1113,7 @@ namespace BLTAdoptAHero.Actions
                 Settlement newHome = adoptedHero.Clan.Fiefs.FirstOrDefault(t => t.Name.ToString().IndexOf(desiredName, StringComparison.InvariantCultureIgnoreCase) > 0).Settlement;
                 if (newHome == null)
                 {
-                    onFailure($"No settlement named {desiredName}");
+                    onFailure($"No settlement named {desiredName}. Choose from your clan fiefs");
                     return;
                 }
 
@@ -1132,7 +1133,7 @@ namespace BLTAdoptAHero.Actions
                 var vassals = VassalBehavior.Current?.GetVassalClans(adoptedHero.Clan);
                 foreach (Clan vassal in vassals)
                 {
-                    if (vassal.Fiefs.Count > 0) continue;
+                    if (vassal.Fiefs.Count > 0) { vassal.ConsiderAndUpdateHomeSettlement(); continue; }
 
                     var vassalHomeProp = typeof(Clan).GetProperty(
                         "HomeSettlement",
@@ -1153,7 +1154,7 @@ namespace BLTAdoptAHero.Actions
                 Settlement newHome = hasKingdom ? adoptedHero.Clan.Kingdom.Fiefs.FirstOrDefault(t => t.Name.ToString().IndexOf(desiredName, StringComparison.InvariantCultureIgnoreCase) >= 0).Settlement : Town.AllFiefs.FirstOrDefault(t => t.Name.ToString().IndexOf(desiredName, StringComparison.InvariantCultureIgnoreCase) >= 0).Settlement;
                 if (newHome == null)
                 {
-                    onFailure($"No settlement named {desiredName}");
+                    onFailure($"No settlement named {desiredName}.{(hasKingdom ? " Choose from your kingdoms fiefs" : "")}");
                     return;
                 }
 
@@ -1173,7 +1174,7 @@ namespace BLTAdoptAHero.Actions
                 var vassals = VassalBehavior.Current?.GetVassalClans(adoptedHero.Clan);
                 foreach (Clan vassal in vassals)
                 {
-                    if (vassal.Fiefs.Count > 0) continue;
+                    if (vassal.Fiefs.Count > 0) { vassal.ConsiderAndUpdateHomeSettlement(); continue; }
 
                     var vassalHomeProp = typeof(Clan).GetProperty(
                         "HomeSettlement",
