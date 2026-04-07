@@ -715,6 +715,7 @@ namespace BLTAdoptAHero
             float running = currentValue + b;
             if (hero.Clan.Kingdom != null) b += GetKingdomPartySizeBonus(hero.Clan.Kingdom, running);
             if (CapitalBehavior.Current != null) b += CapitalBehavior.Current.GetCapPartySizeBonus(hero.Clan);
+            if (!hero.IsAdopted()) b = (int)(b * (GlobalCommonConfig.Get()?.PartySizeEffectiveness ?? 1f));
             return b;
         }
 

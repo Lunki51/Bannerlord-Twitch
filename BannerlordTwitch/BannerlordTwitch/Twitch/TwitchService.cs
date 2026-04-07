@@ -195,7 +195,7 @@ namespace BannerlordTwitch
                     //{
                     //    Log.Info("[Extension] ExtensionClientId/ExtensionSecret not configured — PubSub disabled");
                     //}
-
+                    localRelay = new LocalRelayService();
                     // Connect the chatbot
                     bot = new Bot(user.Login, authSettings);
 

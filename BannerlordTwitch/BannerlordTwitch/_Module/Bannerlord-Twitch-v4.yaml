@@ -1005,12 +1005,7 @@ Commands:
 - Documentation: ''
   Enabled: true
   Handler: BattleInfo
-  HandlerConfig:
-    Commands: []
-    DisableAutomaticFulfillment: false
-    GlobalConfigs: []
-    Rewards: []
-    SimTesting: 
+  HandlerConfig: 
   Help: ''
   HideHelp: false
   ID: 84f063ca-3c3d-4839-b981-d7ded370609d
@@ -1206,12 +1201,7 @@ Commands:
 - Documentation: ''
   Enabled: true
   Handler: ManageFief
-  HandlerConfig:
-    Commands: []
-    DisableAutomaticFulfillment: false
-    GlobalConfigs: []
-    Rewards: []
-    SimTesting: 
+  HandlerConfig: 
   Help: ''
   HideHelp: false
   ID: c009d87c-b00a-495d-9e56-3dd6db4f21b3

@@ -40,16 +40,16 @@ namespace BLTAdoptAHero.Actions
                 generator.Value($"<strong>Max Kids From Baby Command:</strong> {MakeKidsLimit}");
 
                 generator.Value("<strong>Usage:</strong>");
-                generator.Value(" - spouse");
-                generator.Value(" - spouse rename <name>");
-                generator.Value(" - spouse looks <body>");
+                generator.Value(@" - spouse");
+                generator.Value(@" - spouse rename <name>");
+                generator.Value(@" - spouse looks <body>");
                 generator.Value(" - spouse baby");
                 generator.Value(" - spouse skills");
                 generator.Value(" - children: List all children.");
-                generator.Value(" - <childName>*");
-                generator.Value(" - <childName>* rename <name>");
-                generator.Value(" - <childName>* looks <body>");
-                generator.Value(" - <childName>* marry <viewer>* <viewer_child>*");
+                generator.Value(@" - <childName>*");
+                generator.Value(@" - <childName>* rename <name>");
+                generator.Value(@" - <childName>* looks <body>");
+                generator.Value(@" - <childName>* marry <viewer>* <viewer_child>*");
 
                 generator.Value("<strong>Notes:</strong>");
                 generator.Value("* means command expects 1 word in that field");
