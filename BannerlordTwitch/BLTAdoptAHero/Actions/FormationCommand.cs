@@ -28,10 +28,18 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(1), UsedImplicitly]
             public bool Filter { get; set; } = true;
 
+            [LocDisplayName("{=TESTING}Detachments"),
+             LocCategory("General", "{=TESTING}General"),
+             LocDescription("{=TESTING}Detach commands"),
+             PropertyOrder(2), UsedImplicitly]
+            public bool Detach { get; set; } = true;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value("<strong>Usage:</strong> !formation number");
-                generator.Value("!formation front/back");
+                generator.Value("<strong>Usage:</strong> number");
+                generator.Value("- front/back");
+                generator.Value("- detach/attach");
+                generator.Value("- (while detached): charge/hold/follow/gate/walls");
             }
         }
 
@@ -83,7 +91,8 @@ namespace BLTAdoptAHero.Actions
             var behavior = BLTHeroDetachmentBehavior.Current;
             var keywords = new[] { "detach", "attach", "charge", "hold", "follow", "gate", "walls" };
             if (keywords.Contains(num))
-            {               
+            {      
+                if (!settings.Detach) { onFailure("Detach commands are off"); return; }
                 if (behavior == null) { onFailure("Detachment system not active"); return; }
                 if (!Mission.Current.IsDeploymentFinished) { onFailure("Cannot detach while deploying"); return; }
 
