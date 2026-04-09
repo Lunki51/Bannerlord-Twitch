@@ -25,16 +25,16 @@ namespace BLTAdoptAHero.Actions
         {
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value("<strong>Usage:</strong>\n");
-                generator.Value("• info <fief_name> - Shows detailed information about the specified fief.\n");
-                generator.Value("• projects <fief_name> <building1> <building2> ... - Sets the building projects queue and daily project for the fief.\n");
-                generator.Value("• gold <fief_name> <amount> - Changes the building boost (gold) for the fief.\n\n");
-                generator.Value("• explanation <building_name> - Shows the description and effect of the specified building.\n\n");
                 generator.Value("<strong>Description:</strong> Allows a clan leader to manage their fiefs. You can view fief info, set building projects, adjust gold boosts for construction, and view building explanations.\n\n");
+                generator.Value("<strong>Usage:</strong>\n");
+                generator.Value(@"• info <fief_name> - Shows detailed information about the specified fief.\n");
+                generator.Value(@"• projects <fief_name> <building1> <building2> ... - Sets the building projects queue and daily project for the fief.\n");
+                generator.Value(@"• gold <fief_name> <amount> - Changes the building boost (gold) for the fief.\n\n");
+                generator.Value(@"• explanation <building_name> - Shows the description and effect of the specified building.\n\n");              
             }
         }
 
-        //public override Type HandlerConfigType => typeof(Settings);
+        public override Type HandlerConfigType => typeof(Documentation);
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config, Action<string> onSuccess, Action<string> onFailure)
         {
             //if (config is not Settings settings) return;

@@ -23,15 +23,11 @@ namespace BLTAdoptAHero
         {
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value("<strong>Usage:</strong> !battleinfo [hero name]\n");
                 generator.Value("<strong>Description:</strong> Shows detailed information about your adopted hero's current battle status, including health, mount, weapons, kills, retinue, gold, XP, and active powers.\n");
-                generator.Value("<strong>Notes:</strong> ");
-                generator.Value("• Only works if the hero is adopted and currently in a mission.\n");
-                generator.Value("• Shows death info and cooldown if hero is not active in battle.\n");
             }
         }
 
-        public override Type HandlerConfigType => typeof(Settings);
+        public override Type HandlerConfigType => typeof(Documentation);
 
 
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
