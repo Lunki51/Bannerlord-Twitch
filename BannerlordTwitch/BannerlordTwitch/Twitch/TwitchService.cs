@@ -5,8 +5,8 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using BannerlordTwitch.BLTOverlay;
 using BannerlordTwitch.Dummy;
+using BannerlordTwitch.Extension;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.Testing;
@@ -178,18 +178,35 @@ namespace BannerlordTwitch
                     channelId = user.Id;
 
                     // ── Init extension PubSub (requires channelId) ────────────
+                    // Each service is wrapped in its own try/catch so a failure in
+                    // either one cannot prevent bot and eventsub from initialising.
                     if (authSettings.ExtensionConfigured)
                     {
-                        extensionPubSub = new ExtensionPubSubService(
-                            new CustomTwitchHttpClient(),
-                            authSettings.ExtensionClientId,
-                            authSettings.ExtensionSecret,
-                            channelId,
-                            authSettings.AccessToken,
-                            authSettings.ClientID);
-                        Log.Info("[Extension] PubSub service ready");
-                        localRelay = new LocalRelayService();
-                        Log.Info("[LocalRelay] Service started — OBS source: http://localhost:3000");
+                        try
+                        {
+                            extensionPubSub = new ExtensionPubSubService(
+                                new CustomTwitchHttpClient(),
+                                authSettings.ExtensionClientId,
+                                authSettings.ExtensionSecret,
+                                channelId,
+                                authSettings.AccessToken,
+                                authSettings.ClientID);
+                            Log.Info("[Extension] PubSub service ready");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error($"[Extension] PubSub init failed: {ex.Message}");
+                        }
+
+                        try
+                        {
+                            localRelay = new LocalRelayService();
+                            Log.Info("[LocalRelay] Service started — OBS source: http://localhost:3000");
+                        }
+                        catch (Exception ex)
+                        {
+                            Log.Error($"[LocalRelay] Init failed — OBS overlay may not function: {ex.Message}");
+                        }
                     }
                     else
                     {
@@ -408,8 +425,8 @@ namespace BannerlordTwitch
                 try
                 {
 #endif
-                redemptionCache.TryAdd(redemption.Id, redemption);
-                ActionManager.HandleReward(reward.Handler, context, reward.HandlerConfig);
+                    redemptionCache.TryAdd(redemption.Id, redemption);
+                    ActionManager.HandleReward(reward.Handler, context, reward.HandlerConfig);
 #if !DEBUG
                 }
                 catch (Exception e)
@@ -578,7 +595,7 @@ namespace BannerlordTwitch
                 try
                 {
 #endif
-                ActionManager.HandleCommand(cmd.Handler, context, cmd.HandlerConfig);
+                    ActionManager.HandleCommand(cmd.Handler, context, cmd.HandlerConfig);
 #if !DEBUG
                 }
                 catch (Exception e)
