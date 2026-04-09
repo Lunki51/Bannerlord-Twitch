@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using BannerlordTwitch.Util;
 using BLTOverlay;
-using Microsoft.AspNet.SignalR.Messaging;
 using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Moderation.GetModerators;
 using TwitchLib.Api.Helix.Models.Soundtrack;

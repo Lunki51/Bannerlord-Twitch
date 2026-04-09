@@ -11,7 +11,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using BannerlordTwitch.Util;
 using TwitchLib.Api.Core.Enums;
-using BannerlordTwitch.BLTOverlay;
+using BannerlordTwitch.Extension;
 
 namespace BannerlordTwitch
 {
@@ -261,7 +261,7 @@ namespace BannerlordTwitch
         }
     }
 
-    namespace BLTOverlay
+    namespace Extension
     {
         public class BltWireMessage
         {
