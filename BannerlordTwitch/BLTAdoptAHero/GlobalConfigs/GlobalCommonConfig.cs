@@ -136,6 +136,12 @@ namespace BLTAdoptAHero
          PropertyOrder(14)]
         public bool AllowAIJoinBLT { get; set; } = true;
 
+        [LocDisplayName("Non-blt party size effectiveness"),
+         LocCategory("General", "{=GeneralCat}General"),
+         LocDescription("Percentage effectiveness party size upgrades non-blt heroes get."),
+         PropertyOrder(15), UsedImplicitly, DefaultValue(1f), Range(0f, 1f)]
+        public float PartySizeEffectiveness { get; set; } = 1f;
+
         [YamlIgnore, Browsable(false)]
         public HashSet<string> RestrictedItemIds
         {

@@ -23,6 +23,7 @@ using TaleWorlds.CampaignSystem.Siege;
 using System.Linq;
 using TaleWorlds.CampaignSystem.MapEvents;
 using System.Runtime.CompilerServices;
+using BLTAdoptAHero.Behaviors;
 
 namespace BLTAdoptAHero
 {
@@ -431,72 +432,98 @@ namespace BLTAdoptAHero
 
     #region ClanPatches
     [HarmonyPatch(typeof(Clan))]
-        internal static class ClanPatches
+    internal static class ClanPatches
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch("UpdateBannerColorsAccordingToKingdom")]
+        private static bool Prefix_UpdateBannerColorsAccordingToKingdom(Clan __instance)
         {
-            [HarmonyPrefix]
-            [HarmonyPatch("UpdateBannerColorsAccordingToKingdom")]
-            private static bool Prefix_UpdateBannerColorsAccordingToKingdom(Clan __instance)
+            if (__instance?.Leader != null && __instance.Leader.IsAdopted())
             {
-                if (__instance?.Leader != null && __instance.Leader.IsAdopted())
-                {
-                    try
-                    {
-#if DEBUG
-                Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
-#endif
-                        return false;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
-                    }
-                }
-                return true;
-            }
-        }
-    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
-        internal class BLTMarriage
-        {
-            static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
-            {
-                if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
-                    return;
-
-                if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
-                    return;
-
-                if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
-                    return;
-
-                if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
-                    return;
-
-                if (firstHero.Clan.Leader.IsAdopted())
-                {
-                    __result = firstHero.Clan;
-                }
-                else { __result = secondHero.Clan; }
-#if DEBUG
-                Log.Trace($"[BLT] Changed marriage clan for {firstHero.FirstName}/{secondHero.FirstName} to {__result.Name}");
-#endif
-            }
-        }
-    [HarmonyPatch(typeof(KillCharacterAction), nameof(KillCharacterAction.ApplyInLabor))]
-        internal class BLTNoPregnancyDeath_Action
-        {
-            static bool Prefix(Hero lostMother, bool showNotification)
-            {
-                if (lostMother.IsAdopted())
+                try
                 {
 #if DEBUG
-                    Log.Trace($"[BLT] Prevented childbirth death for {lostMother?.Name}");
+            Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
 #endif
                     return false;
                 }
+                catch (Exception ex)
+                {
+                    Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
+                }
+            }
             return true;
+        }
+    }
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+    internal class BLTAfterMarriage
+    {
+        static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
+        {
+            if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
+                return;
+
+            if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
+                return;
+
+            if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
+                return;
+
+            if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
+                return;
+
+            if (firstHero.Clan.Leader.IsAdopted())
+            {
+                __result = firstHero.Clan;
+            }
+            else { __result = secondHero.Clan; }
+#if DEBUG
+            Log.Trace($"[BLT] Changed marriage clan for {firstHero.FirstName}/{secondHero.FirstName} to {__result.Name}");
+#endif
+        }
+    }
+    [HarmonyPatch(typeof(KillCharacterAction), nameof(KillCharacterAction.ApplyInLabor))]
+    internal class BLTNoPregnancyDeath_Action
+    {
+        static bool Prefix(Hero lostMother, bool showNotification)
+        {
+            if (lostMother.IsAdopted())
+            {
+#if DEBUG
+                Log.Trace($"[BLT] Prevented childbirth death for {lostMother?.Name}");
+#endif
+                return false;
+            }
+        return true;
+        }
+
+    }
+
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.IsSuitableForMarriage))]
+    internal class BLTMarriageBlock
+    {
+        static void Postfix(ref bool __result, Hero maidenOrSuitor)
+        {
+            if (maidenOrSuitor == null) return;
+            if (maidenOrSuitor.IsAdopted())
+            {
+                __result = false;
+#if DEBUG
+                Log.Trace($"[BLT] Overwrote marriage for adopted hero");
+#endif
+                return;
             }
 
+            var heirs = Campaign.Current.GetCampaignBehavior<BLTHeirBehavior>()?._heirs;
+            if (heirs != null && heirs.Contains(maidenOrSuitor))
+            {
+#if DEBUG
+                Log.Trace($"[BLT] Overwrote marriage for heir");
+#endif
+                __result = false;
+            }
         }
+    }
 
     #endregion
 

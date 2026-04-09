@@ -1005,12 +1005,7 @@ Commands:
 - Documentation: ''
   Enabled: true
   Handler: BattleInfo
-  HandlerConfig:
-    Commands: []
-    DisableAutomaticFulfillment: false
-    GlobalConfigs: []
-    Rewards: []
-    SimTesting: 
+  HandlerConfig: {}
   Help: ''
   HideHelp: false
   ID: 84f063ca-3c3d-4839-b981-d7ded370609d
@@ -1206,12 +1201,7 @@ Commands:
 - Documentation: ''
   Enabled: true
   Handler: ManageFief
-  HandlerConfig:
-    Commands: []
-    DisableAutomaticFulfillment: false
-    GlobalConfigs: []
-    Rewards: []
-    SimTesting: 
+  HandlerConfig: {}
   Help: ''
   HideHelp: false
   ID: c009d87c-b00a-495d-9e56-3dd6db4f21b3
@@ -3018,6 +3008,7 @@ GlobalConfigs:
     NametagHeight: 30
     NametagKey: H
     NametagWidth: 150
+    PartySizeEffectiveness: 1
     ProsperityMultiplier: 25
     RawXPSkillCap: 330
     ReferenceLevelReward: 15
@@ -5364,17 +5355,17 @@ SimTesting:
     Type: Command
     Weight: 0
   - Args: ''
-    Enabled: true
+    Enabled: false
     Id: tournament
     ID: ca586ddf-b9b0-4c59-954c-d166f5c9b644
     Type: Command
     Weight: 0
   - Args: '{=4tflp34a}archer'
-    Enabled: false
+    Enabled: true
     Id: '{=nV9iIsDC}class'
     ID: 0c4706d4-882f-40ba-b2ec-6077a957fc78
     Type: Command
-    Weight: 1
+    Weight: 0.33
   - Args: ''
     Enabled: false
     Id: Summon
@@ -5387,8 +5378,20 @@ SimTesting:
     ID: d95e0ecc-ec57-4196-8738-22522b3001ef
     Type: Command
     Weight: 1
-  IntervalMaxMS: 500
-  IntervalMinMS: 50
+  - Args: cavalry
+    Enabled: true
+    Id: '{=nV9iIsDC}class'
+    ID: 0c4706d4-882f-40ba-b2ec-6077a957fc78
+    Type: Command
+    Weight: 0.33
+  - Args: infantry
+    Enabled: true
+    Id: '{=nV9iIsDC}class'
+    ID: 0c4706d4-882f-40ba-b2ec-6077a957fc78
+    Type: Command
+    Weight: 0.33
+  IntervalMaxMS: 1000
+  IntervalMinMS: 100
   Use:
   - Args: ''
     Enabled: true
@@ -5409,13 +5412,13 @@ SimTesting:
     Type: Reward
     Weight: 1
   - Args: ''
-    Enabled: true
+    Enabled: false
     Id: '{=wHqxd4kb}equip'
     ID: 06539d16-25cb-4314-8cdd-4aada76b27bc
     Type: Command
     Weight: 0.4
   - Args: ''
-    Enabled: true
+    Enabled: false
     Id: '{=fGfTaAoD}reequip'
     ID: 76efdf69-6fc5-4163-8271-4540402f28b3
     Type: Command
@@ -5427,7 +5430,7 @@ SimTesting:
     Type: Reward
     Weight: 0.2
   - Args: ''
-    Enabled: true
+    Enabled: false
     Id: '{=mge9rH9J}retinue'
     ID: 9513732e-6522-429c-ab92-e1eab16518ef
     Type: Command
@@ -5450,48 +5453,6 @@ SimTesting:
     ID: f1f5a043-fdf6-43e5-9fe5-e70009c56bf5
     Type: Command
     Weight: 0.05
-  - Args: '{=m8bz4drX}infantry'
-    Enabled: true
-    Id: '{=nV9iIsDC}class'
-    ID: a67ca1e9-d434-4af1-a3b6-69979b72d804
-    Type: Command
-    Weight: 0.1
-  - Args: '{=4tflp34a}archer'
-    Enabled: false
-    Id: '{=nV9iIsDC}class'
-    ID: 5e33c3f4-40de-44cd-8cf8-493f304c203a
-    Type: Command
-    Weight: 0.1
-  - Args: '{=JncRD8tX}heavyarcher'
-    Enabled: false
-    Id: '{=nV9iIsDC}class'
-    ID: 5e33c3f4-40de-44cd-8cf8-493f304c203a
-    Type: Command
-    Weight: 0.1
-  - Args: '{=wV6R9Si5}crossbow'
-    Enabled: true
-    Id: '{=nV9iIsDC}class'
-    ID: 5e33c3f4-40de-44cd-8cf8-493f304c203a
-    Type: Command
-    Weight: 0.1
-  - Args: '{=bpzytNbP}heavycrossbow'
-    Enabled: true
-    Id: '{=nV9iIsDC}class'
-    ID: 5e33c3f4-40de-44cd-8cf8-493f304c203a
-    Type: Command
-    Weight: 0.1
-  - Args: '{=jNaFWF9t}cavalry'
-    Enabled: true
-    Id: '{=nV9iIsDC}class'
-    ID: 6162aec8-8ffd-4d65-bcdd-0529081528ee
-    Type: Command
-    Weight: 0.1
-  - Args: '{=mJ8RVORq}camelry'
-    Enabled: true
-    Id: '{=nV9iIsDC}class'
-    ID: 6162aec8-8ffd-4d65-bcdd-0529081528ee
-    Type: Command
-    Weight: 0.1
   - Args: '{=p5qJfkkp}horsearcher'
     Enabled: false
     Id: '{=nV9iIsDC}class'
@@ -5505,31 +5466,31 @@ SimTesting:
     Type: Command
     Weight: 0.1
   - Args: '{=9euSgzCd}skirmisher'
-    Enabled: true
+    Enabled: false
     Id: '{=nV9iIsDC}class'
     ID: 7032b576-86b5-4540-b0b8-5d933f0fd87a
     Type: Command
     Weight: 0.1
   - Args: '{=wVjXAFal}berserker'
-    Enabled: true
+    Enabled: false
     Id: '{=nV9iIsDC}class'
     ID: 71a8a8de-3be2-4e3c-8844-60bf9e9f08d7
     Type: Command
     Weight: 0.1
   - Args: '{=4JffsJMD}looter'
-    Enabled: true
+    Enabled: false
     Id: '{=nV9iIsDC}class'
     ID: 71a8a8de-3be2-4e3c-8844-60bf9e9f08d7
     Type: Command
     Weight: 0.1
   - Args: ''
-    Enabled: true
+    Enabled: false
     Id: clan
     ID: 584c161e-da84-46af-8fa4-3aeb3768663b
     Type: Command
     Weight: 0.05
   - Args: ''
-    Enabled: true
+    Enabled: false
     Id: power
     ID: d701da05-a87d-4f81-a94c-07aadb937636
     Type: Command
@@ -5547,7 +5508,7 @@ SimTesting:
     Type: Command
     Weight: 0.1
   - Args: join Aserai
-    Enabled: true
+    Enabled: false
     Id: kingdom
     ID: 71a8a8de-3be2-4e3c-8844-60bf9e9f08d7
     Type: Command
@@ -5558,5 +5519,59 @@ SimTesting:
     ID: 71a8a8de-3be2-4e3c-8844-60bf9e9f08d7
     Type: Command
     Weight: 0.1
+  - Args: front
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
+  - Args: back
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
+  - Args: detach
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
+  - Args: attach
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.1
+  - Args: charge
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
+  - Args: follow
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
+  - Args: hold
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
+  - Args: gate
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
+  - Args: walls
+    Enabled: true
+    Id: formation
+    ID: e4e1fbca-1830-4c27-a90b-e70052f5ed7f
+    Type: Command
+    Weight: 0.5
   UserCount: 20
   UserStayTime: 300

@@ -104,11 +104,15 @@ namespace BLTAdoptAHero
         {
             Hero adoptedHero = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(userName);
             Hero ancestor = BLTAdoptAHeroCampaignBehavior.Current.GetAdoptedHero(userName) ?? BLTAdoptAHeroCampaignBehavior.Current.GetRetiredHero(userName);
-            Hero heirHero;
+            Hero heirHero = null;
+            bool leader = false;
             var behavior = Campaign.Current.GetCampaignBehavior<BLTHeirBehavior>();
-            if (behavior == null) return(false, "BLTHeirBehavior not initialized");
-            behavior.heirList.TryGetValue(ancestor, out heirHero);
-
+            if (behavior == null) return (false, "BLTHeirBehavior not initialized");
+            if (behavior.heirList.TryGetValue(ancestor, out var value))
+            {
+                heirHero = value.heir;
+                leader = value.flag;
+            }
             // Determine heir logic
             if (adoptedHero != null && heirHero == null)
             {
@@ -120,7 +124,7 @@ namespace BLTAdoptAHero
                     if (newHeir == null)
                         return (false, "No suitable heir found in adopted hero's clan.");
 
-                    behavior.heirList.Add(adoptedHero, newHeir);
+                    behavior.heirList.Add(adoptedHero, (newHeir, adoptedHero.IsClanLeader));
                     behavior._heirs.Add(newHeir);
                     return (true, $"Assigned heir to {newHeir.FirstName}");
                 }
@@ -133,7 +137,7 @@ namespace BLTAdoptAHero
                     if (newHeir == null)
                         return (false, $"No hero named '{contextArgs}' found to adopt as heir.");
 
-                    behavior.heirList.Add(adoptedHero, newHeir);
+                    behavior.heirList.Add(adoptedHero, (newHeir, adoptedHero.IsClanLeader));
                     behavior._heirs.Add(newHeir);
                     return (true, $"Assigned heir to {newHeir.FirstName}");
                 }
@@ -149,7 +153,7 @@ namespace BLTAdoptAHero
                     if (newHeir == null)
                         return (false, $"No hero named '{contextArgs}' found to adopt as heir.");
                     behavior.heirList.Remove(adoptedHero);
-                    behavior.heirList.Add(adoptedHero, newHeir);
+                    behavior.heirList.Add(adoptedHero, (newHeir,adoptedHero.IsClanLeader));
                     behavior._heirs.Remove(heirHero);
                     behavior._heirs.Add(newHeir);
                     return (true, $"Assigned heir to {newHeir.FirstName}");
@@ -195,7 +199,7 @@ namespace BLTAdoptAHero
                     newHero.HeroDeveloper.SetInitialSkillLevel(CampaignHelpers.AllSkillObjects.First(), 1);
                 }
                 
-                if (ancestor.IsClanLeader && heirHero.Clan == ancestor.Clan)
+                if (ancestor.IsClanLeader && heirHero.Clan == ancestor.Clan || behavior.heirList.FirstOrDefault(h => h.Key == ancestor).Value.flag == true)
                 {
                     ChangeClanLeaderAction.ApplyWithSelectedNewLeader(heirHero.Clan, heirHero);
                 }
@@ -244,7 +248,7 @@ namespace BLTAdoptAHero
 
                 // Cleanup lists
                 behavior._heirs.Remove(heirHero);
-                var key = behavior.heirList.FirstOrDefault(h => h.Value == heirHero).Key;
+                var key = behavior.heirList.FirstOrDefault(h => h.Key == ancestor).Key;
                 behavior.heirList.Remove(key);
 
                 return inherited.Any()
