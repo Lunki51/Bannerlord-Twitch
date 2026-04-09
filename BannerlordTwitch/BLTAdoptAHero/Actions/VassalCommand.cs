@@ -224,6 +224,12 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Cannot vassal a blt");
                 return;
             }
+            var heir = Campaign.Current.GetCampaignBehavior<BLTHeirBehavior>();
+            if (heir !=null && heir._heirs.Contains(vassal))
+            {
+                onFailure("Cannot vassal a heir");
+                return;
+            }
             if (vassal.IsPrisoner)
             {
                 onFailure($"{childName} is prisoner");

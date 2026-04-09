@@ -29,13 +29,13 @@ namespace BLTAdoptAHero.Behaviors
 {
     public class BLTHeirBehavior : CampaignBehaviorBase
     {
-        public Dictionary<Hero, Hero> heirList = new();
+        public Dictionary<Hero, (Hero heir, bool flag)> heirList = new();
         public HashSet<Hero> _heirs = new();
         public override void RegisterEvents()
         {
             CampaignEvents.OnGameLoadFinishedEvent.AddNonSerializedListener(this, () =>
             {
-                _heirs = heirList.Values.ToHashSet();
+                _heirs = heirList.Values.Select(v => v.heir).ToHashSet();
             });
 
             CampaignEvents.HeroKilledEvent.AddNonSerializedListener(this, (victim, killer, actionDetail, showNotification) =>
@@ -43,7 +43,7 @@ namespace BLTAdoptAHero.Behaviors
                 if (_heirs.Contains(victim))
                 {
                     _heirs.Remove(victim);
-                    var key = heirList.FirstOrDefault(h => h.Value == victim).Key;
+                    var key = heirList.FirstOrDefault(h => h.Value.heir == victim).Key;
                     heirList.Remove(key);
                     Log.ShowInformation($"{key.Name}'s heir has died. Select a new one");
                 }
@@ -52,21 +52,42 @@ namespace BLTAdoptAHero.Behaviors
             CampaignEvents.HeroComesOfAgeEvent.AddNonSerializedListener(this, hero =>
             {
                 var father = hero.Father;
+                var mother = hero.Mother;
+                if (father == null && mother == null) return;
                 if (father != null && father.IsAdopted() && !heirList.ContainsKey(father))
                 {
-                    heirList[father] = hero;
+                    heirList[father] = (hero, father.IsClanLeader);
                     _heirs.Add(hero);
                 }
                 else 
                 {
-                    var mother = hero.Mother;
+                    
                     if (mother != null && mother.IsAdopted() && !heirList.ContainsKey(mother))
                     {
-                        heirList[mother] = hero;
+                        heirList[mother] = (hero, mother.IsClanLeader);
                         _heirs.Add(hero);
                     }
                 }
                 
+            });
+
+            CampaignEvents.OnClanLeaderChangedEvent.AddNonSerializedListener(this, (Hero leader, Hero newLeader) =>
+            {
+                var kv1 = heirList.FirstOrDefault(h => h.Value.heir == leader);
+                if (kv1.Key != null && leader.IsAdopted())
+                {
+                    var entry = heirList[kv1.Key];
+                    entry.flag = true;       
+                    heirList[kv1.Key] = entry; 
+                }
+
+                var kv2 = heirList.FirstOrDefault(h => h.Value.heir == newLeader);
+                if (kv2.Key != null && newLeader.IsAdopted())
+                {
+                    var entry = heirList[kv2.Key];
+                    entry.flag = false;      
+                    heirList[kv2.Key] = entry; 
+                }
             });
 
 
