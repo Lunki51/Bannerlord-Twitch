@@ -115,7 +115,7 @@ namespace BLTAdoptAHero.Actions
 
             if (num == "front" || num == "back")
             {
-                if (behavior.IsDetached(agent))
+                if (agent.IsDetachedFromFormation)
                 {
                     onFailure("Reattach before moving");
                     return;
@@ -161,7 +161,7 @@ namespace BLTAdoptAHero.Actions
                     onSuccess($"{formType} {position}/{count} {currentFormation.CountOfUnits} | {sb}");
                     return;
                 }
-                if (behavior.IsDetached(agent))
+                if (agent.IsDetachedFromFormation)
                 {
                     onFailure("Reattach before changing formations");
                     return;
@@ -215,7 +215,7 @@ namespace BLTAdoptAHero.Actions
                     onSuccess($"{formType} {position}/{count} {currentFormation.CountOfUnits} | {sb}");
                     return;
                 }
-                if (behavior.IsDetached(agent))
+                if (agent.IsDetachedFromFormation)
                 {
                     onFailure("Reattach before changing formations");
                     return;
@@ -229,7 +229,7 @@ namespace BLTAdoptAHero.Actions
                 var newformation = allFormations.ElementAt(numb - 1);
                 TransferHeroToFormation(agent, newformation);
 
-                onSuccess("Moved.");
+                onSuccess($"Moved. {newformation.CountOfUnits} troops");
             }
         }
 

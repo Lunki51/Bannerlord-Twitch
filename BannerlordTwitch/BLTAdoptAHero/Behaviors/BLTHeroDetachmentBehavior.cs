@@ -6,6 +6,7 @@ using TaleWorlds.Core;
 using TaleWorlds.Engine;
 using TaleWorlds.Library;
 using BannerlordTwitch.Helpers;
+using BannerlordTwitch.Util;
 
 namespace BLTAdoptAHero
 {
@@ -46,27 +47,44 @@ namespace BLTAdoptAHero
 
             var formation = agent.Formation;
             if (formation == null) return "No formation";
+
             try
             {
                 var detachment = new HeroDetachment(formation);
                 formation.JoinDetachment(detachment);
 
-                // Detach the unit explicitly here. 
-                // Pass FALSE to prevent LineFormation from gap-filling and crashing the MBList2D.
+                
+                if (agent.IsDetachedFromFormation)
+                {
+                    if (!agent.TryAttachToFormation())
+                    {
+                        return "Failed to detach";
+                    }
+                    
+                }
+                              
                 agent.Formation?.DetachUnit(agent, false);
-
                 detachment.AddAgentAtSlotIndex(agent, 0);
+        
                 _detachments[agent] = new DetachmentState { Detachment = detachment };
             }
-            catch { }
+            catch (Exception e)
+            {
+                Log.Error($"Detach failed for agent {agent?.Name ?? "unknown"}");
+#if DEBUG
+                Log.Trace(e.StackTrace);
+#endif              
+            }
             return null;
         }
 
         public string Attach(Agent agent)
         {
             if (agent == null) return "Invalid agent";
-            if (!_detachments.TryGetValue(agent, out var state)) return "Not detached";
-            CleanupDetachment(agent, state);
+            if (!agent.IsDetachedFromFormation) return "Not detached";
+            _detachments.TryGetValue(agent, out var state);
+            if (state != null) CleanupDetachment(agent, state);
+            else agent.Formation?.AttachUnit(agent);
             return null;
         }
 
@@ -190,9 +208,9 @@ namespace BLTAdoptAHero
                 }
                 else
                 {
-                    WorldPosition pos = nearestGate.WaitPosition != null
-                        ? nearestGate.WaitPosition.Position
-                        : nearestGate.DefenseWaitFrame.Origin;
+                    WorldPosition pos = nearestGate.MiddlePosition != null
+                        ? nearestGate.MiddlePosition.Position
+                        : nearestGate.WaitPosition.Position;
 
                     if (!pos.IsValid) return "Gate has no valid position";
 
@@ -225,39 +243,85 @@ namespace BLTAdoptAHero
                 bool found = false;
 
                 // 1. Wall segments
+                WallSegment bestWall = null;
+                float bestWallDist = float.MaxValue;
+
                 foreach (var obj in Mission.ActiveMissionObjects)
                 {
                     if (obj is not WallSegment wall) continue;
-                    if (!wall.IsBreachedWall && agent.Team.IsAttacker) continue;
 
-                    WorldPosition worldPos;
+                    if (!wall.IsBreachedWall && agent.Team.IsAttacker)
+                        continue;
+
+                    float dist = wall.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
+
+                    if (dist < bestWallDist)
+                    {
+                        bestWallDist = dist;
+                        bestWall = wall;
+                    }
+                }
+
+                if (bestWall != null)
+                {
+
                     if (agent.Team.IsAttacker)
                     {
-                        if (wall.AttackerWaitPosition != null)
-                            worldPos = wall.AttackerWaitPosition.Position;
-                        else if (wall.AttackerWaitFrame.Origin.IsValid)
-                            worldPos = wall.AttackerWaitFrame.Origin;
-                        else
-                            continue;
+                        var tac = bestWall.MiddlePosition ?? bestWall.AttackerWaitPosition ?? bestWall.WaitPosition;
+
+                        if (tac == null) return "No attacker pos";
+
+                        targetPos = tac.Position;
+                        found = true;
                     }
                     else
                     {
-                        if (wall.WaitPosition != null)
-                            worldPos = wall.WaitPosition.Position;
-                        else if (wall.MiddlePosition != null)
-                            worldPos = wall.MiddlePosition.Position;
-                        else
-                            continue;
-                    }
+                        //if (bestWall.DefencePoints != null && bestWall.DefencePoints.Any())
+                        //{
+                        //    var point = bestWall.DefencePoints
+                        //        .Select(dp =>
+                        //        {
+                        //            dp.PurgeInactiveDefenders();
 
-                    if (!worldPos.IsValid) continue;
+                        //            var pos = dp.GameEntity.GlobalPosition;
 
-                    float dist = wall.GameEntity.GlobalPosition.DistanceSquared(agent.Position);
-                    if (dist < nearestDist)
-                    {
-                        nearestDist = dist;
-                        targetPos = worldPos;
+                        //            float dist = pos.DistanceSquared(agent.Position);
+                        //            int occupied = dp.CountOccupiedDefenderPositions();
+
+                        //            float score = dist + occupied * 5f;
+
+                        //            return new { dp, pos, score };
+                        //        })
+                        //        .OrderBy(x => x.score)
+                        //        .FirstOrDefault();
+
+                        //    if (point != null)
+                        //    {
+                        //        // small offset so multiple agents don't stack on exact same spot
+                        //        Vec3 pos = point.pos;
+                        //        Vec3 dir = (pos - agent.Position);
+                        //        dir.z = 0;
+                        //        dir.Normalize();
+
+                        //        pos += dir * 1.5f;
+
+                        //        var worldPos = new WorldPosition(Mission.Scene, pos);
+
+                        //        if (worldPos.IsValid)
+                        //        {
+                        //            targetPos = worldPos;
+                        //            found = true;
+                        //        }
+                        //    }
+                        //}
+                        //else
+                        //{
+
+                        targetPos = bestWall.MiddlePosition.Position;
                         found = true;
+
+                        //Log.Trace("[Walls] No DefencePoint, fallback");
+                        //}
                     }
                 }
 
@@ -451,13 +515,24 @@ namespace BLTAdoptAHero
             var detachment = state.Detachment;
             var formation = agent.Formation;
 
+            // 1. remove from custom detachment first
             detachment?.RemoveAgent(agent);
 
+            // 2. force engine state reset BEFORE reattach
             if (formation != null)
             {
                 formation.LeaveDetachment(detachment);
+
+
+                agent.TryRemoveAllDetachmentScores();
+            }
+
+            // 3. reattach cleanly
+            if (formation != null)
+            {
                 formation.AttachUnit(agent);
             }
+
 
             _detachments.Remove(agent);
         }
@@ -490,7 +565,33 @@ namespace BLTAdoptAHero
         {
             if (agent == null || _agents.Contains(agent)) return;
             _agents.Add(agent);
-            //agent.Formation?.DetachUnit(agent, IsLoose);
+
+            var formation = agent.Formation;
+            if (formation != null && !agent.IsDetachedFromFormation)
+            {
+                int fileIndex = ((IFormationUnit)agent).FormationFileIndex;
+                int rankIndex = ((IFormationUnit)agent).FormationRankIndex;
+
+                // FormationFileIndex == -1 means the agent is in the unpositioned list,
+                // not in the 2D grid. DetachUnit -> LineFormation.RemoveUnit will crash
+                // trying to null out _units2D[fileIndex, rankIndex] with bad indices.
+                // Only call DetachUnit when indices are valid (agent is in the 2D grid).
+                if (fileIndex >= 0 && rankIndex >= 0)
+                {
+                    try { formation.DetachUnit(agent, IsLoose); }
+                    catch (Exception e)
+                    {
+                        Log.Error($"BLTHeroDetachment: DetachUnit failed for {agent.Name}");
+#if DEBUG
+                        Log.Trace(e.StackTrace);
+#endif
+                    }
+                }
+                // If fileIndex == -1, agent is unpositioned — skip DetachUnit entirely.
+                // The agent will still get Detachment set below so our behavior works,
+                // and the formation won't crash trying to remove from an invalid grid position.
+            }
+
             agent.Detachment = this;
             agent.SetDetachmentWeight(1f);
         }
