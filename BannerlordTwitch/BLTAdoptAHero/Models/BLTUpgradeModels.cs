@@ -52,9 +52,21 @@ namespace BLTAdoptAHero.Models
         {
             var result = _previous.CalculateFinalSpeed(mobileParty, finalSpeed);
 
-            if (UpgradeBehavior.Current != null)
+            if (UpgradeBehavior.Current == null) return result;
+
+            if (mobileParty.Army != null)
             {
-                result.Add(UpgradeBehavior.Current.GetTotalPartySpeedBonus(mobileParty.LeaderHero), Text);
+                float armyBonus = UpgradeBehavior.Current
+                    .GetTotalArmySpeedBonus(mobileParty.Army);
+                if (armyBonus != 0f)
+                    result.Add(armyBonus, Text);
+            }
+            else
+            {
+                float partyBonus = UpgradeBehavior.Current
+                    .GetTotalPartySpeedBonus(mobileParty.LeaderHero);
+                if (partyBonus != 0f)
+                    result.Add(partyBonus, Text);
             }
 
             return result;
@@ -79,41 +91,65 @@ namespace BLTAdoptAHero.Models
         }
 
         public override ExplainedNumber GetPartyMemberSizeLimit(
-            PartyBase party,
-            bool includeDescriptions = true)
+    PartyBase party,
+    bool includeDescriptions = true)
         {
             var result = _previous.GetPartyMemberSizeLimit(party, includeDescriptions);
 
-            //if (MercenaryArmyPatches.IsMercenaryParty(party.MobileParty))
-            //{
-            //    result = new ExplainedNumber(10000, true, MercArmyText);
-            //    return result;
-            //}
+            if (UpgradeBehavior.Current == null) return result;
 
-            if (party?.LeaderHero != null && UpgradeBehavior.Current != null)
+            // War-party size bonus (clan/kingdom upgrades via PartySizeBonus)
+            if (party?.LeaderHero != null)
             {
                 int bonus = UpgradeBehavior.Current.GetTotalPartySizeBonus(party.LeaderHero);
                 if (bonus != 0)
                     result.Add(bonus, UpgradeText);
             }
 
+            // Garrison capacity bonus — must be here because the game engine enforces
+            // the garrison cap via Party.PartySizeLimit → GetPartyMemberSizeLimit,
+            // NOT via CalculateGarrisonPartySizeLimit, so the bonus must live here
+            // to actually be enforced in-game (not just displayed in the info screen).
+            if (party?.MobileParty != null && party.MobileParty.IsGarrison)
+            {
+                var settlement = party.MobileParty.CurrentSettlement
+                              ?? party.MobileParty.HomeSettlement;
+                if (settlement != null)
+                {
+                    int garrisonBonus = UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
+                    if (garrisonBonus != 0)
+                        result.Add(garrisonBonus, UpgradeText);
+                }
+            }
+
             return result;
         }
+
+        //public override ExplainedNumber CalculateGarrisonPartySizeLimit(
+        //    Settlement settlement,
+        //    bool includeDescriptions = true)
+        //{
+        //    var result = _previous.CalculateGarrisonPartySizeLimit(settlement, includeDescriptions);
+        //
+        //    if (settlement != null && UpgradeBehavior.Current != null)
+        //    {
+        //        int bonus = UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
+        //        if (bonus != 0)
+        //            result.Add(bonus, UpgradeText);
+        //    }
+        //
+        //    return result;
+        //}
 
         public override ExplainedNumber CalculateGarrisonPartySizeLimit(
             Settlement settlement,
             bool includeDescriptions = true)
         {
-            var result = _previous.CalculateGarrisonPartySizeLimit(settlement, includeDescriptions);
-
-            if (settlement != null && UpgradeBehavior.Current != null)
-            {
-                int bonus = UpgradeBehavior.Current.GetTotalGarrisonCapacityBonus(settlement);
-                if (bonus != 0)
-                    result.Add(bonus, UpgradeText);
-            }
-
-            return result;
+            // Delegate entirely to _previous — the garrison capacity bonus is now
+            // applied in GetPartyMemberSizeLimit to ensure the engine enforces it.
+            // Previously adding it here caused it to show correctly in the info
+            // screen but have no effect on actual enforcement.
+            return _previous.CalculateGarrisonPartySizeLimit(settlement, includeDescriptions);
         }
 
         public override ExplainedNumber GetPartyPrisonerSizeLimit(PartyBase party, bool includeDescriptions = false)

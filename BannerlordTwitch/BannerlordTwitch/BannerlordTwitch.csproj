@@ -285,6 +285,9 @@
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.9.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Bcl.TimeProvider, Version=8.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.TimeProvider.8.0.1\lib\net462\Microsoft.Bcl.TimeProvider.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="Microsoft.Extensions.Configuration, Version=9.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Configuration.9.0.0\lib\net462\Microsoft.Extensions.Configuration.dll</HintPath>
@@ -366,6 +369,18 @@
     </Reference>
     <Reference Include="Microsoft.Extensions.Primitives, Version=9.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Extensions.Primitives.9.0.0\lib\net462\Microsoft.Extensions.Primitives.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.Abstractions, Version=8.16.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.Abstractions.8.16.0\lib\net472\Microsoft.IdentityModel.Abstractions.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.JsonWebTokens, Version=8.16.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.JsonWebTokens.8.16.0\lib\net472\Microsoft.IdentityModel.JsonWebTokens.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.Logging, Version=8.16.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.Logging.8.16.0\lib\net472\Microsoft.IdentityModel.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.IdentityModel.Tokens, Version=8.16.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.IdentityModel.Tokens.8.16.0\lib\net472\Microsoft.IdentityModel.Tokens.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Owin, Version=4.2.2.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Owin.4.2.2\lib\net45\Microsoft.Owin.dll</HintPath>
@@ -482,6 +497,9 @@
       <HintPath>..\packages\System.Diagnostics.DiagnosticSource.9.0.0\lib\net462\System.Diagnostics.DiagnosticSource.dll</HintPath>
     </Reference>
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IdentityModel.Tokens.Jwt, Version=8.16.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.IdentityModel.Tokens.Jwt.8.16.0\lib\net472\System.IdentityModel.Tokens.Jwt.dll</HintPath>
+    </Reference>
     <Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
       <Private>True</Private>
@@ -655,9 +673,13 @@
     <Compile Include="Settings\SimTestingConfig.cs" />
     <Compile Include="Settings\SimTestingItem.cs" />
     <Compile Include="Testing\SimulationTest.cs" />
+    <Compile Include="Twitch\ExtensionService.cs" />
     <Compile Include="Twitch\CustomTwitchHttpClient.cs" />
     <Compile Include="Twitch\Dummy\AffiliateSpoofingHttpCallHandler.cs" />
     <Compile Include="Twitch\Dummy\TwitchRedirectingHttpCallHandler.cs" />
+    <Compile Include="Twitch\RandomOverlay\BLTProtocol.cs" />
+    <Compile Include="Twitch\RandomOverlay\ExtensionReceiverService.cs" />
+    <Compile Include="Twitch\RandomOverlay\LocalRelayService.cs" />
     <Compile Include="Twitch\TwitchEventSubSocket.cs" />
     <Compile Include="Twitch\TwitchService.Bot.cs" />
     <Compile Include="Twitch\TwitchService.cs" />
@@ -726,6 +748,7 @@
     <Content Include="Scripts\jquery-3.7.1.slim.min.js" />
     <Content Include="Scripts\jquery.signalR-2.4.3.js" />
     <Content Include="Scripts\jquery.signalR-2.4.3.min.js" />
+    <Content Include="Twitch\RandomOverlay\server.js" />
     <Content Include="Web.config" />
     <Content Include="_Module\Bannerlord-Twitch-Auth.yaml" />
     <Content Include="_Module\Bannerlord-Twitch-Documentation.css" />
@@ -855,6 +878,9 @@
     <None Include="app.config" />
     <None Include="Scripts\jquery-3.7.1.min.map" />
     <None Include="Scripts\jquery-3.7.1.slim.min.map" />
+    <None Include="Twitch\RandomOverlay\package.json" />
+    <None Include="Twitch\RandomOverlay\start.bat" />
+    <None Include="Twitch\RandomOverlay\start.sh" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

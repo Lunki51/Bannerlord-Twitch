@@ -333,6 +333,7 @@
     <Compile Include="Actions\CampaignInfo.cs" />
     <Compile Include="Actions\BattleInfo.cs" />
     <Compile Include="Actions\CampaignLogs.cs" />
+    <Compile Include="Actions\VassalCommand.cs" />
     <Compile Include="Actions\FormationCommand.cs" />
     <Compile Include="Actions\EquipCustomItem.cs" />
     <Compile Include="Actions\ManageFief.cs" />
@@ -394,15 +395,21 @@
     <Compile Include="Behaviors\BLTTournamentSkillAdjustBehavior.cs" />
     <Compile Include="Behaviors\BLTClanBehavior.cs" />
     <Compile Include="Behaviors\BLTLogsBehavior.cs" />
+    <Compile Include="Behaviors\BLTHeroDetachmentBehavior.cs" />
+    <Compile Include="Behaviors\BLTHeirBehavior.cs" />
     <Compile Include="Behaviors\GoldIncomeBehavior.cs" />
     <Compile Include="Behaviors\HarmonyPatches.cs" />
     <Compile Include="Behaviors\KingdomTaxBehavior.cs" />
     <Compile Include="Behaviors\PartyOrderBehavior.cs" />
     <Compile Include="Behaviors\PowerHandler.cs" />
     <Compile Include="Behaviors\ReinforcementBehavior.cs" />
+    <Compile Include="Behaviors\TrainingBehavior.cs" />
     <Compile Include="Behaviors\UpgradeBehavior.cs" />
     <Compile Include="Behaviors\VassalBehavior.cs" />
     <Compile Include="BLTAdoptAHero.cs" />
+    <Compile Include="Capital\CapitalAction.cs" />
+    <Compile Include="Capital\CapitalBehavior.cs" />
+    <Compile Include="Capital\CapitalDefinitions.cs" />
     <Compile Include="Diplomacy\BLTAllianceBehavior.cs" />
     <Compile Include="Diplomacy\BLTPlayerOffersBehavior.cs" />
     <Compile Include="Diplomacy\BLTDiplomacyBehavior.cs" />
@@ -416,6 +423,8 @@
     <Compile Include="GlobalConfigs\GlobalHeroClassConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalHeroPowerConfig.cs" />
     <Compile Include="GlobalConfigs\GlobalTournamentConfig.cs" />
+    <Compile Include="IndependentsOverhaul\BLTClanArmyBehavior.cs" />
+    <Compile Include="IndependentsOverhaul\BLTClanDiplomacyBehavior.cs" />
     <Compile Include="Models\BLTUpgradeModels.cs" />
     <Compile Include="Overlay\CampaignMap\MapHub.cs" />
     <Compile Include="Overlay\MissionInfo\MissionInfo.cs" />
@@ -581,9 +590,7 @@
       <Name>BannerlordTwitch</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="MercenaryArmy\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)BLTBuildTargets.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

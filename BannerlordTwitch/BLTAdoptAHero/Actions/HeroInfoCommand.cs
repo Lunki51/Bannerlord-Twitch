@@ -453,7 +453,7 @@ namespace BLTAdoptAHero
                                         ));
 
                         var achievements = BLTAdoptAHeroCampaignBehavior.Current
-                        .GetAchievements(adoptedHero)
+                        .GetAchievements(adoptedHero).Where(a => a.IsAchieved(adoptedHero))
                         .ToList();
                         var achPowers = achievements
                             .Select(id => id.PassivePowerReward)
@@ -465,6 +465,78 @@ namespace BLTAdoptAHero
                                 : "{=ktM8kF1Q}(none)".Translate()
                             )
                         );
+                        // DMG
+                        float dmgMultiplier = 1f;
+                        float dmgFlat = 0f;
+
+                        var sequentialDMGGroups = new List<IEnumerable<AddDamagePower>>
+                        {
+                            passivePowers.OfType<AddDamagePower>(),
+                            achPowers.OfType<AddDamagePower>(),
+                            activePowers.OfType<AddDamagePower>()
+                        };
+
+                        foreach (var group in sequentialDMGGroups)
+                        {
+                            foreach (var p in group)
+                            {
+                                // 1. Current flat damage gets multiplied by the new power's multiplier
+                                dmgFlat *= (p.DamageModifierPercent / 100f);
+
+                                // 2. The global multiplier compounds
+                                dmgMultiplier *= (p.DamageModifierPercent / 100f);
+
+                                // 3. The new flat damage is added at the end (per the internal logic of AddDamagePower)
+                                dmgFlat += p.DamageToAdd;
+                            }
+                        }
+
+                        // Append the final calculated modifier to the UI
+                        if (dmgMultiplier != 1f || dmgFlat != 0)
+                        {
+                            string multiplierStr = dmgMultiplier != 1f ? $"{dmgMultiplier:0.##}x" : "";
+                            string flatStr = dmgFlat != 0 ? $"{(dmgFlat > 0 ? "+" : "")}{dmgFlat:0.#}" : "";
+
+                            // Join with a space or separator if both exist
+                            string combined = string.Join(" ", new[] { multiplierStr, flatStr }.Where(s => !string.IsNullOrEmpty(s)));
+                            infoStrings.Add("{=DMG_MOD}[DMG]".Translate() + " " + combined);
+                        }
+
+                        // HP
+                        float hpMultiplier = 1f;
+                        float hpFlat = 0f;
+
+                        var sequentialHPGroups = new List<IEnumerable<AddHealthPower>>
+                        {
+                            passivePowers.OfType<AddHealthPower>(),
+                            achPowers.OfType<AddHealthPower>(),
+                            activePowers.OfType<AddHealthPower>()
+                        };
+
+                        foreach (var group in sequentialHPGroups)
+                        {
+                            foreach (var p in group)
+                            {
+                                // 1. Current flat HP gets multiplied by the new power's multiplier
+                                hpFlat *= (p.HealthModifierPercent / 100f);
+
+                                // 2. The global multiplier compounds
+                                hpMultiplier *= (p.HealthModifierPercent / 100f);
+
+                                // 3. The new flat HP is added at the end
+                                hpFlat += p.HealthToAdd;
+                            }
+                        }
+
+                        // Append the final calculated modifier to the UI
+                        if (hpMultiplier != 1f || hpFlat != 0)
+                        {
+                            string multiplierStr = hpMultiplier != 1f ? $"{hpMultiplier:0.##}x" : "";
+                            string flatStr = hpFlat != 0 ? $"{(hpFlat > 0 ? "+" : "")}{hpFlat:0.#}" : "";
+
+                            string combined = string.Join(" ", new[] { multiplierStr, flatStr }.Where(s => !string.IsNullOrEmpty(s)));
+                            infoStrings.Add("{=HP_MOD}[HP]".Translate() + " " + combined);
+                        }
                     }
                 }
                 if (settings.ShowFamily)

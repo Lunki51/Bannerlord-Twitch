@@ -19,6 +19,17 @@ namespace BLTAdoptAHero
      UsedImplicitly]
     public class BattleInfo : HeroCommandHandlerBase
     {
+        private class Documentation : IDocumentable
+        {
+            public void GenerateDocumentation(IDocumentationGenerator generator)
+            {
+                generator.Value("<strong>Description:</strong> Shows detailed information about your adopted hero's current battle status, including health, mount, weapons, kills, retinue, gold, XP, and active powers.\n");
+            }
+        }
+
+        public override Type HandlerConfigType => typeof(Documentation);
+
+
         protected override void ExecuteInternal(Hero adoptedHero, ReplyContext context, object config,
             Action<string> onSuccess, Action<string> onFailure)
         {
@@ -42,6 +53,8 @@ namespace BLTAdoptAHero
             Team playerTeam = null;
             Team allyTeam = null;
             Team enemyTeam = null;
+            int allyTotal = 0;
+            int enemyTotal = 0;
             if (!MissionHelpers.InTournament())
             {
                 // Count alive agents by side
@@ -51,9 +64,14 @@ namespace BLTAdoptAHero
                 playerTeam = mission.PlayerTeam;
                 allyTeam = mission.PlayerAllyTeam;
                 enemyTeam = mission.PlayerEnemyTeam;
+
                 
                 if (playerTeam != null && playerTeam.Side == BattleSideEnum.Defender || (allyTeam != null && allyTeam.Side == BattleSideEnum.Defender))
                     isDefend = true;
+
+                // Count all healthy troops in map encounter
+                allyTotal = isDefend ? mapEvent.DefenderSide.TroopCount : mapEvent.AttackerSide.TroopCount;
+                enemyTotal = isDefend ? mapEvent.AttackerSide.TroopCount : mapEvent.DefenderSide.TroopCount;
             }
 
             var missionBehavior = BLTAdoptAHeroCommonMissionBehavior.Current;
@@ -79,8 +97,14 @@ namespace BLTAdoptAHero
 
             if (agent == null && !MissionHelpers.InTournament())
             {
-                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
-                string battlestring = $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+                string battlestring = "";
+                try
+                {
+                    string playerFaction = (isDefend ? mapEvent.DefenderSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString()); string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
+                    battlestring += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{allyTotal}({defendCount})/{enemyTotal}({attackCount}) - " : $"{allyTotal}({attackCount})/{enemyTotal}({defendCount}) - ");
+                }
+                catch (Exception e) { battlestring += "Error getting factions - "; Log.Trace(e.StackTrace); }
+
 
                 battlestring += $"Hero is not currently in battle! ({cd}s)";
 
@@ -129,11 +153,11 @@ namespace BLTAdoptAHero
             }
 
             // Active combat
-            float currentTime = Mission.Current.CurrentTime;
-            bool hasAttacked = (currentTime - agent.LastMeleeAttackTime < 10f)
+            //float currentTime = Mission.Current.CurrentTime;
+            bool hasAttacked = /*(currentTime - agent.LastMeleeAttackTime < 10f)
                 || (currentTime - agent.LastRangedAttackTime < 10f)
                 || (currentTime - agent.LastMeleeHitTime < 10f)
-                || (currentTime - agent.LastRangedHitTime < 10f);
+                || (currentTime - agent.LastRangedHitTime < 10f);*/false;
 
 
             // Mounted info
@@ -231,9 +255,12 @@ namespace BLTAdoptAHero
             string message = "";
             if (!MissionHelpers.InTournament())
             {
-                var leader = enemyTeam?.Leader ?? enemyTeam?.GeneralAgent;
-                string playerFaction = playerTeam.Leader.GetHero().MapFaction.Name.ToString() ?? "unknown"; string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
-                message += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+                try
+                {
+                    string playerFaction = (isDefend ? mapEvent.DefenderSide.MapFaction.Name.ToString() : mapEvent.AttackerSide.MapFaction.Name.ToString()); string enemyFaction = (isDefend ? mapEvent.AttackerSide.MapFaction.Name.ToString() : mapEvent.DefenderSide.MapFaction.Name.ToString());
+                    message += $"{playerFaction} vs {enemyFaction}(P/E):" + (isDefend ? $"{defendCount}/{attackCount} - " : $"{attackCount}/{defendCount} - ");
+                }
+                catch (Exception e) { message += "Error getting factions - "; Log.Trace(e.StackTrace); }
             }
                 
             message +=

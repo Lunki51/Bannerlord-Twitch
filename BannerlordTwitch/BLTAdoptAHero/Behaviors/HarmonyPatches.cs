@@ -8,6 +8,7 @@ using TaleWorlds.CampaignSystem.Actions;
 using TaleWorlds.CampaignSystem.CampaignBehaviors;
 using TaleWorlds.CampaignSystem.Naval;
 using TaleWorlds.CampaignSystem.Party;
+using TaleWorlds.CampaignSystem.Map;
 using TaleWorlds.CampaignSystem.Settlements;
 using TaleWorlds.Core;
 using NavalDLC.CampaignBehaviors;
@@ -17,8 +18,12 @@ using TaleWorlds.CampaignSystem.GameComponents;
 using TaleWorlds.CampaignSystem.Election;
 using TaleWorlds.CampaignSystem.ViewModelCollection.KingdomManagement.Diplomacy;
 using static TaleWorlds.MountAndBlade.Launcher.Library.NativeMessageBox;
+using TaleWorlds.CampaignSystem.CampaignBehaviors.AiBehaviors;
+using TaleWorlds.CampaignSystem.Siege;
 using System.Linq;
 using TaleWorlds.CampaignSystem.MapEvents;
+using System.Runtime.CompilerServices;
+using BLTAdoptAHero.Behaviors;
 
 namespace BLTAdoptAHero
 {
@@ -26,7 +31,7 @@ namespace BLTAdoptAHero
     {
         public static bool _allowKingdomMove = false;
         public static bool _allowDiplomacyAction = false;
-        //public static bool _allowMarriage = false;
+        public static bool _allowBLTArmyCreation = false;
         public static bool _allowAIjoinBLT = GlobalCommonConfig.Get().AllowAIJoinBLT;
     }
 
@@ -427,72 +432,119 @@ namespace BLTAdoptAHero
 
     #region ClanPatches
     [HarmonyPatch(typeof(Clan))]
-        internal static class ClanPatches
+    internal static class ClanPatches
+    {
+        [HarmonyPrefix]
+        [HarmonyPatch("UpdateBannerColorsAccordingToKingdom")]
+        private static bool Prefix_UpdateBannerColorsAccordingToKingdom(Clan __instance)
         {
-            [HarmonyPrefix]
-            [HarmonyPatch("UpdateBannerColorsAccordingToKingdom")]
-            private static bool Prefix_UpdateBannerColorsAccordingToKingdom(Clan __instance)
+            if (__instance?.Leader != null && __instance.Leader.IsAdopted())
             {
-                if (__instance?.Leader != null && __instance.Leader.IsAdopted())
-                {
-                    try
-                    {
-#if DEBUG
-                Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
-#endif
-                        return false;
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
-                    }
-                }
-                return true;
-            }
-        }
-    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
-        internal class BLTMarriage
-        {
-            static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
-            {
-                if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
-                    return;
-
-                if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
-                    return;
-
-                if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
-                    return;
-
-                if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
-                    return;
-
-                if (firstHero.Clan.Leader.IsAdopted())
-                {
-                    __result = firstHero.Clan;
-                }
-                else { __result = secondHero.Clan; }
-#if DEBUG
-                Log.Trace($"[BLT] Changed marriage clan for {firstHero.FirstName}/{secondHero.FirstName} to {__result.Name}");
-#endif
-            }
-        }
-    [HarmonyPatch(typeof(KillCharacterAction), nameof(KillCharacterAction.ApplyInLabor))]
-        internal class BLTNoPregnancyDeath_Action
-        {
-            static bool Prefix(Hero lostMother, bool showNotification)
-            {
-                if (lostMother.IsAdopted())
+                try
                 {
 #if DEBUG
-                    Log.Trace($"[BLT] Prevented childbirth death for {lostMother?.Name}");
+            Log.Trace("[BLT] Blocked UpdateBannerColorsAccordingToKingdom for adopted clan");
 #endif
                     return false;
                 }
+                catch (Exception ex)
+                {
+                    Log.Error($"[BLT] Prefix_UpdateBannerColorsAccordingToKingdom error: {ex}");
+                }
+            }
             return true;
+        }
+    }
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.GetClanAfterMarriage))]
+    internal class BLTAfterMarriage
+    {
+        static void Postfix(DefaultMarriageModel __instance, ref Clan __result, Hero firstHero, Hero secondHero)
+        {
+            if (firstHero.Clan?.Leader == firstHero || secondHero.Clan?.Leader == secondHero)
+                return;
+
+            if (firstHero.IsAdopted() == true || secondHero.IsAdopted() == true)
+                return;
+
+            if (firstHero.Clan?.Leader.IsAdopted() == false && secondHero.Clan?.Leader.IsAdopted() == false)
+                return;
+
+            if (firstHero.Clan?.Leader.IsAdopted() == true && secondHero.Clan?.Leader.IsAdopted() == true)
+                return;
+
+            if (firstHero.Clan.Leader.IsAdopted())
+            {
+                __result = firstHero.Clan;
+            }
+            else { __result = secondHero.Clan; }
+#if DEBUG
+            Log.Trace($"[BLT] Changed marriage clan for {firstHero.FirstName}/{secondHero.FirstName} to {__result.Name}");
+#endif
+        }
+    }
+    [HarmonyPatch(typeof(KillCharacterAction), nameof(KillCharacterAction.ApplyInLabor))]
+    internal class BLTNoPregnancyDeath_Action
+    {
+        static bool Prefix(Hero lostMother, bool showNotification)
+        {
+            if (lostMother.IsAdopted())
+            {
+#if DEBUG
+                Log.Trace($"[BLT] Prevented childbirth death for {lostMother?.Name}");
+#endif
+                return false;
+            }
+        return true;
+        }
+
+    }
+
+    [HarmonyPatch(typeof(DefaultMarriageModel), nameof(DefaultMarriageModel.IsSuitableForMarriage))]
+    internal class BLTMarriageBlock
+    {
+        static void Postfix(ref bool __result, Hero maidenOrSuitor)
+        {
+            if (maidenOrSuitor == null) return;
+            if (maidenOrSuitor.IsAdopted())
+            {
+                __result = false;
+#if DEBUG
+                Log.Trace($"[BLT] Overwrote marriage for adopted hero");
+#endif
+                return;
             }
 
+            var heirs = Campaign.Current.GetCampaignBehavior<BLTHeirBehavior>()?._heirs;
+            if (heirs != null && heirs.Contains(maidenOrSuitor))
+            {
+#if DEBUG
+                Log.Trace($"[BLT] Overwrote marriage for heir");
+#endif
+                __result = false;
+            }
         }
+    }
+
+    #endregion
+
+    #region DEATH
+
+    [HarmonyPatch(typeof(KillCharacterAction), "ApplyInternal")]
+    internal class BLTNoDeathAllowed
+    {
+        static bool Prefix(Hero victim, Hero killer, KillCharacterAction.KillCharacterActionDetail actionDetail, bool showNotification, bool isForced = false)
+        {           
+            if (isForced) return true;
+            if (!victim.IsAdopted()) return true;
+            if (killer == Hero.MainHero && actionDetail == KillCharacterAction.KillCharacterActionDetail.Executed) return true;
+            var config = GlobalCommonConfig.Get();
+            if (!config.AllowDeath) return false;
+            if (victim.Age > config.MinimumAge) return true;
+
+            return false;
+        }
+    }
+
 
     #endregion
 
@@ -526,7 +578,7 @@ namespace BLTAdoptAHero
             [HarmonyPrefix]
             public static bool FoodStocksUpperLimitPrefix(ref int __result)
             {
-                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 100000 : 300;
+                __result = BLTAdoptAHeroModule.CommonConfig.UncapFoodStocks ? 10000 : 300;
                 return false; // Skip original method
             }
         }
@@ -553,72 +605,86 @@ namespace BLTAdoptAHero
     #endregion
 
     #region DiplomacyPatches
-    /// <summary>
-    /// Harmony patches to prevent peace in certain conditions
-    /// </summary>
+
     [HarmonyPatch]
     public class BLTDiplomacyPatches
     {
         /// <summary>
-        /// Patch MakePeaceAction.Apply to prevent peace when minimum war duration not met
-        /// or when AI tries to peace with BLT kingdoms
+        /// Intercepts MakePeaceAction.ApplyInternal BEFORE any siege/stance teardown occurs.
+        /// For BLT-involved kingdoms we either block outright (min duration) or block and
+        /// route the attempt into a visible proposal (AI→BLT). No war re-declaration is ever
+        /// needed because peace never actually takes effect.
         /// </summary>
         [HarmonyPrefix]
         [HarmonyPatch(typeof(MakePeaceAction), "ApplyInternal")]
         public static bool Prefix_MakePeaceAction_Apply(
             IFaction faction1,
-            IFaction faction2, 
-            int dailyTributeFrom1To2, 
-            int dailyTributeDuration, 
+            IFaction faction2,
+            int dailyTributeFrom1To2,
+            int dailyTributeDuration,
             MakePeaceAction.MakePeaceDetail detail = MakePeaceAction.MakePeaceDetail.Default)
         {
-            // Allow BLT-controlled peace actions
+            // Always allow peace that BLT itself initiated
             if (AdoptedHeroFlags._allowDiplomacyAction)
                 return true;
 
-            // Only handle kingdoms
             var k1 = faction1 as Kingdom;
             var k2 = faction2 as Kingdom;
             if (k1 == null || k2 == null)
                 return true;
 
-            // Check if BLT treaty system is active
             if (BLTTreatyManager.Current == null)
                 return true;
 
-            // Check if either kingdom is BLT-controlled
             bool k1IsBLT = k1.Leader != null && k1.Leader.IsAdopted() && k1 != Hero.MainHero?.Clan?.Kingdom;
             bool k2IsBLT = k2.Leader != null && k2.Leader.IsAdopted() && k2 != Hero.MainHero?.Clan?.Kingdom;
 
             if (!k1IsBLT && !k2IsBLT)
-                return true; // No BLT kingdoms, allow peace
+                return true; // pure AI-vs-AI: let it through
 
-            // Check minimum war duration
+            // ── Case 1: minimum war duration not yet met ──────────────────────────
             if (!BLTTreatyManager.Current.CanMakePeace(k1, k2, out string reason))
             {
 #if DEBUG
-                    Log.Trace($"[BLT-Harmony] Blocked peace (min duration): {k1.Name} <-> {k2.Name} - {reason}");
+            Log.Trace($"[BLT-Harmony] Blocked peace (min duration): {k1.Name} <-> {k2.Name} - {reason}");
 #endif
-                // Block the peace entirely
-                return false;
+                if (k1IsBLT && k1.Leader != null)
+                {
+                    string n = k1.Leader.FirstName.ToString()
+                        .Replace(BLTAdoptAHeroModule.Tag, "").Replace(BLTAdoptAHeroModule.DevTag, "").Trim();
+                    Log.LogFeedResponse($"@{n} Peace with {k2.Name} rejected - {reason}");
+                }
+                if (k2IsBLT && k2.Leader != null)
+                {
+                    string n = k2.Leader.FirstName.ToString()
+                        .Replace(BLTAdoptAHeroModule.Tag, "").Replace(BLTAdoptAHeroModule.DevTag, "").Trim();
+                    Log.LogFeedResponse($"@{n} Peace with {k1.Name} rejected - {reason}");
+                }
+                Log.ShowInformation($"Peace rejected - {reason}", k1.Leader?.CharacterObject);
+                return false; // blocked — no re-declare needed, war never ended
             }
 
-            // If AI is trying to make peace with BLT kingdom, block it
-            // (we'll handle it via OnMakePeace event to create proposal)
-            if (k1IsBLT || k2IsBLT)
+            // ── Case 2: AI trying to make peace with a BLT kingdom ───────────────
+            if (k1IsBLT != k2IsBLT)
             {
+                Kingdom aiKingdom = k1IsBLT ? k2 : k1;
+                Kingdom bltKingdom = k1IsBLT ? k1 : k2;
 #if DEBUG
-                    Log.Trace($"[BLT-Harmony] Blocked AI->BLT peace: {k1.Name} <-> {k2.Name} (will create proposal)");
+            Log.Trace($"[BLT-Harmony] Blocked AI->BLT peace: {aiKingdom.Name} -> {bltKingdom.Name}. Creating proposal.");
 #endif
-                CampaignEventDispatcher.Instance.OnMakePeace(faction1, faction2, detail);
-                // Block the peace - our event handler will create a proposal instead
-                return false;
+                // Delegate proposal creation to the behavior (handles dedup + notifications)
+                BLTDiplomacyBehavior.Current?.HandleAIPeaceAttempt(aiKingdom, bltKingdom);
+                return false; // blocked — siege state untouched
             }
 
-            // Allow all other peace
-            return true;
+            // ── Case 3: Both BLT without _allowDiplomacyAction (shouldn't happen) ─
+#if DEBUG
+        Log.Trace($"[BLT-Harmony] Blocked unsanctioned BLT-BLT peace: {k1.Name} <-> {k2.Name}");
+#endif
+            return false;
         }
     }
+
     #endregion
 
     #region ArmyDispersionAndCohesionPatches
@@ -765,11 +831,9 @@ namespace BLTAdoptAHero
     /// <summary>
     /// Fixes the vanilla bug where retreating from a siege assault causes the ENTIRE
     /// besieging army to be captured/killed, and lords made fugitive respawning with 1 troop.
+    /// This version safely tracks mutated MapEvent instances instead of using ThreadStatic.
     /// </summary>
 
-    // -------------------------------------------------------------------------
-    // Part 1: Suppress troop capture for siege retreats with survivors
-    // -------------------------------------------------------------------------
     [HarmonyPatch(typeof(MapEvent), "CalculateAndCommitMapEventResults")]
     internal static class BLT_SiegeRetreatFix
     {
@@ -777,15 +841,14 @@ namespace BLTAdoptAHero
             typeof(MapEvent).GetProperty("RetreatingSide",
                 BindingFlags.Public | BindingFlags.Instance);
 
-        [ThreadStatic]
-        private static bool _didMutate;
+        // Tracks MapEvent instances we mutate so we can safely restore them.
+        private static readonly HashSet<MapEvent> _mutated = new();
 
         private static bool IsSiegeRelated(MapEvent e) =>
             e.IsSiegeAssault || e.IsSallyOut || e.IsSiegeOutside;
 
         static void Prefix(MapEvent __instance)
         {
-            _didMutate = false;
             try
             {
                 if (!IsSiegeRelated(__instance))
@@ -802,39 +865,35 @@ namespace BLTAdoptAHero
                     return;
 
                 int survivors = defeatedSide.GetTotalHealthyTroopCountOfSide();
-
                 if (survivors <= 0)
-                    return; // Truly wiped out — full vanilla capture is correct
+                    return; // Truly wiped out — allow vanilla full capture
 
                 RetreatingSideProp?.SetValue(__instance, __instance.DefeatedSide);
-                _didMutate = true;
+                _mutated.Add(__instance);
 
 #if DEBUG
-                Log.Trace($"[BLT] SiegeRetreatFix: {survivors} survivors on " +
-                          $"{__instance.DefeatedSide} side — temporarily suppressing troop capture.");
+            Log.Trace($"[BLT] SiegeRetreatFix: {survivors} survivors on " +
+                      $"{__instance.DefeatedSide} side — temporarily suppressing troop capture.");
 #endif
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] BLT_SiegeRetreatFix Prefix error: {ex}");
-                _didMutate = false;
             }
         }
 
         static void Postfix(MapEvent __instance)
         {
-            if (!_didMutate)
-                return;
-
-            _didMutate = false;
             try
             {
-                // Restore so FinalizeEventAux → OnMapEventEnded → AiMilitaryBehavior
-                // sees the expected state (siege defeat, not retreat).
+                if (!_mutated.Remove(__instance))
+                    return;
+
+                // Restore original state so later systems see correct battle result
                 RetreatingSideProp?.SetValue(__instance, BattleSideEnum.None);
 
 #if DEBUG
-                Log.Trace($"[BLT] SiegeRetreatFix: RetreatingSide restored to None.");
+            Log.Trace("[BLT] SiegeRetreatFix: RetreatingSide restored to None.");
 #endif
             }
             catch (Exception ex)
@@ -844,11 +903,12 @@ namespace BLTAdoptAHero
         }
     }
 
+
     // -------------------------------------------------------------------------
     // Part 2: Safety net — prevent lords from being made fugitive if they belong
-    //         to a party that is actively part of a siege besieger camp.
-    //         This catches any code path that bypasses Part 1.
+    //         to a party actively part of a siege besieger camp.
     // -------------------------------------------------------------------------
+
     [HarmonyPatch(typeof(MakeHeroFugitiveAction), nameof(MakeHeroFugitiveAction.Apply))]
     internal static class BLT_SiegeLordFugitiveFix
     {
@@ -856,38 +916,167 @@ namespace BLTAdoptAHero
         {
             try
             {
-                // Allow normally if the hero has no party or isn't in a siege
                 MobileParty party = fugitive.PartyBelongedTo;
                 if (party == null)
                     return true;
 
-                // If the party (or its army leader) is besieging a settlement,
-                // this hero is retreating from a siege — don't make them fugitive.
-                // Only land sieges — exclude naval blockades which have different finalization
                 var mapEvent = party.MapEvent ?? party.Army?.LeaderParty?.MapEvent;
+
+                // Ignore naval blockades
                 if (mapEvent != null && (mapEvent.IsBlockade || mapEvent.IsBlockadeSallyOut))
                     return true;
 
-                bool isInSiegingParty = party.BesiegedSettlement != null
-                    || (party.Army != null && party.Army.LeaderParty?.BesiegedSettlement != null);
+                bool isInSiegingParty =
+                    party.BesiegedSettlement != null ||
+                    (party.Army != null &&
+                     party.Army.LeaderParty?.BesiegedSettlement != null);
 
                 if (!isInSiegingParty)
                     return true;
 
-                // Extra guard: only suppress if there are healthy troops remaining —
-                // if the party is truly wiped out, let vanilla do its thing.
-                if (party.Party.NumberOfHealthyMembers <= 0)
+                // Only suppress if the party still has healthy troops
+                if (party.Party?.NumberOfHealthyMembers <= 0)
                     return true;
 
 #if DEBUG
-                Log.Trace($"[BLT] SiegeLordFugitiveFix: Blocked MakeHeroFugitive for " +
-                          $"{fugitive.Name} (besieging {party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
+            Log.Trace($"[BLT] SiegeLordFugitiveFix: Blocked MakeHeroFugitive for " +
+                      $"{fugitive.Name} (besieging " +
+                      $"{party.BesiegedSettlement?.Name ?? party.Army?.LeaderParty?.BesiegedSettlement?.Name})");
 #endif
-                return false; // Hero stays in their party
+
+                return false; // Prevent fugitive conversion
             }
             catch (Exception ex)
             {
                 Log.Error($"[BLT] BLT_SiegeLordFugitiveFix error: {ex}");
+                return true;
+            }
+        }
+    }
+
+    #endregion
+
+    #region BlockArmies
+    [HarmonyPatch(typeof(Kingdom), "CreateArmy")]
+    internal static class BLT_BlockAIArmyCreation
+    {
+        [HarmonyPrefix]
+        private static bool Prefix(Kingdom __instance, Hero armyLeader)
+        {
+            try
+            {
+                // Always allow the player
+                if (armyLeader == Hero.MainHero)
+                    return true;
+
+                var pb = PartyOrderBehavior.Current;
+
+                if (armyLeader?.IsAdopted() == true)
+                {
+                    // Block all BLT army creation unless a BLT command explicitly allowed it
+                    if (!AdoptedHeroFlags._allowBLTArmyCreation)
+                    {
+#if DEBUG
+                    Log.Trace($"[BLT] Blocked unsanctioned BLT army creation by {armyLeader?.Name} in {__instance?.Name}");
+#endif
+                        return false;
+                    }
+                    // Sanctioned creation: still respect the per-kingdom block flag
+                    return pb == null || !pb.IsBLTArmiesBlocked(__instance);
+                }
+
+                // AI hero
+                if (pb == null) return true;
+                return !pb.IsAIArmiesBlocked(__instance);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_BlockAIArmyCreation Prefix error: {ex}");
+                return true; // fail-safe
+            }
+        }
+    }
+    #endregion
+
+    #region ClanArmyPatches
+
+    /// <summary>
+    /// Patches Army.FindBestGatheringSettlementAndMoveTheLeader for clan armies
+    /// (Army.Kingdom == null).  The vanilla method unconditionally iterates
+    /// this.Kingdom.Settlements, which would throw a NullReferenceException.
+    ///
+    /// When Kingdom is non-null the prefix returns true and vanilla runs unchanged.
+    /// When Kingdom is null (clan army) the prefix:
+    ///   • Calls BLTClanArmyBehavior.FindClanGatherSettlement to pick a friendly settlement.
+    ///   • Sets AiBehaviorObject to that settlement.
+    ///   • Moves the leader party toward it (replicating SendLeaderPartyToReachablePointAroundPosition).
+    ///   • Returns false to skip the vanilla body entirely.
+    /// </summary>
+    [HarmonyPatch(typeof(Army), "FindBestGatheringSettlementAndMoveTheLeader")]
+    internal static class BLT_ClanArmyFindGatheringPatch
+    {
+        [HarmonyPrefix]
+        static bool Prefix(Army __instance, Settlement focusSettlement)
+        {
+            try
+            {
+                if (__instance.Kingdom != null) return true;
+
+                var gather = BLTClanArmyBehavior.FindClanGatherSettlement(__instance)
+                             ?? focusSettlement;
+
+                if (gather == null)
+                {
+                    __instance.LeaderParty.SetMoveModeHold();
+                    return false;
+                }
+
+                __instance.AiBehaviorObject = gather;
+
+                __instance.LeaderParty.SetMoveGoToPoint(
+                    NavigationHelper.FindReachablePointAroundPosition(
+                        gather.GatePosition,
+                        MobileParty.NavigationType.Default,
+                        __instance.GatheringPositionMaxDistanceToTheSettlement,
+                        __instance.GatheringPositionMinDistanceToTheSettlement,
+                        false),
+                    __instance.LeaderParty.NavigationCapability);
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_ClanArmyFindGatheringPatch error: {ex}");
+                return true;
+            }
+        }
+    }
+
+    #endregion
+
+    #region ClanSiegePatches
+
+    [HarmonyPatch(typeof(AiPartyThinkBehavior), "PartyHourlyAiTick")]
+    internal static class BLT_PartyHourlyAiTickPatch
+    {
+        [HarmonyPrefix]
+        static bool Prefix(MobileParty mobileParty)
+        {
+            try
+            {
+                // If this party has an active siege order, skip the vanilla AI tick entirely
+                // — our PartyOrderBehavior.OnHourlyTickParty handles it instead
+                var order = PartyOrderBehavior.Current?.GetActiveOrder(mobileParty.StringId);
+                if (order?.Type != PartyOrderType.Siege) return true;
+                if (mobileParty.MapFaction.IsKingdomFaction) return true;
+                if (mobileParty.MapFaction == Clan.PlayerClan.MapFaction) return true;
+
+                //Log.Trace("AiPartyTick");
+                return false; // Skip vanilla tick — prevent Hold/disband interference
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"[BLT] BLT_PartyHourlyAiTickPatch error: {ex}");
                 return true;
             }
         }

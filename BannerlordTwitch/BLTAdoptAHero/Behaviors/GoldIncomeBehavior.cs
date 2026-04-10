@@ -145,14 +145,21 @@ namespace BLTAdoptAHero.Behaviors
 
             total += fiefIncome;
 
-            // Calculate mercenary income for this BLT clan (not taxed)
-            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled && clan.IsUnderMercenaryService)
+            if (BLTAdoptAHeroModule.CommonConfig.MercenaryIncomeEnabled)
             {
-                int MercUpBonus = UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader);
-                float MercUpMult = UpgradeBehavior.Current.GetPercentClanMercBonus(clan);
-
-                total += (int)(GoldIncomeAction.CalculateMercenaryIncome(clan) * MercUpMult);
-                total += (int)(MercUpBonus * MercUpMult);
+                if (clan.IsUnderMercenaryService)
+                {
+                    // Mercs: base income * percent multiplier + flat bonus * percent multiplier (original behaviour)
+                    int MercUpBonus = UpgradeBehavior.Current.GetFlatMercBonus(clan.Leader);
+                    float MercUpMult = UpgradeBehavior.Current.GetPercentClanMercBonus(clan);
+                    total += (int)(GoldIncomeAction.CalculateMercenaryIncome(clan) * MercUpMult);
+                    total += (int)(MercUpBonus * MercUpMult);
+                }
+                else
+                {
+                    // Lords: no base merc income, but flat bonus still applies (percent has nothing to multiply, so skip it)
+                    total += UpgradeBehavior.Current.GetFlatMercBonusAllClans(clan);
+                }
             }
 
             // Calculate bonus from vassal mercenary contracts (not taxed)

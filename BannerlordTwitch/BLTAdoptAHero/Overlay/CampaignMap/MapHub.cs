@@ -20,18 +20,22 @@ namespace BLTAdoptAHero.UI
         private static readonly TimeSpan UpdateInterval = TimeSpan.FromMinutes(3);
         private static Mission lastMission = null;
 
-        // Overlay dimensions for aspect ratio calculation
         private const float OVERLAY_WIDTH = 100f;
         private const float OVERLAY_HEIGHT = 95f;
-        private const float OVERLAY_ASPECT_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT; // 3.33
+        private const float OVERLAY_ASPECT_RATIO = OVERLAY_WIDTH / OVERLAY_HEIGHT;
 
         public static MapHub.MapData CurrentMapData => currentMapData;
+        private static List<CoastlineSegment> _cachedCoastline = null;
+        private static List<SettlementData> _cachedSettlements = null;
 
         public class MapData
         {
             public List<KingdomData> Kingdoms { get; set; } = new();
             public List<SettlementData> Settlements { get; set; } = new();
-            public List<TerrainZone> TerrainZones { get; set; } = new();
+            public List<CoastlineSegment> Coastline { get; set; } = new();
+
+            public float MapTownRadius { get; set; } = 2.15f;
+            public float MapCastleLength { get; set; } = 2.5f;
         }
 
         public class KingdomData
@@ -52,10 +56,12 @@ namespace BLTAdoptAHero.UI
             public float Y { get; set; }
         }
 
-        public class TerrainZone
+        public class CoastlineSegment
         {
-            public string Type { get; set; }
-            public List<float[]> Points { get; set; } = new();
+            public float X1 { get; set; }
+            public float Y1 { get; set; }
+            public float X2 { get; set; }
+            public float Y2 { get; set; }
         }
 
         public override Task OnConnected()
@@ -66,32 +72,29 @@ namespace BLTAdoptAHero.UI
 
         public void Refresh()
         {
-            // Check if map overlay is disabled in settings
             if (BLTAdoptAHeroModule.CommonConfig?.ShowCampaignMapOverlay != true)
             {
                 Clients.Caller.updateMap(null);
                 return;
             }
 
-            // Check if in mission - always respond immediately
             if (Mission.Current != null || Campaign.Current?.MapSceneWrapper == null)
             {
                 Clients.Caller.updateMap(null);
                 return;
             }
 
-            // Send current data if we have it, otherwise trigger update
             if (currentMapData != null)
             {
                 Clients.Caller.updateMap(currentMapData);
             }
             else
             {
-                // Force immediate update
                 UpdateMapDataInternal(true);
                 Clients.Caller.updateMap(currentMapData);
             }
         }
+
         private static string GetKingdomColor(Kingdom k, bool first)
         {
             if (first)
@@ -99,7 +102,6 @@ namespace BLTAdoptAHero.UI
                 uint color = (k.Color != 0 && (k.Color & 0x00FFFFFF) != 0)
                     ? k.Color
                     : k.RulingClan.Color;
-
                 return ColorToHex(color | 0xFF000000);
             }
             else
@@ -107,10 +109,8 @@ namespace BLTAdoptAHero.UI
                 uint color = (k.Color2 != 0 && (k.Color2 & 0x00FFFFFF) != 0)
                     ? k.Color2
                     : k.RulingClan.Color2;
-
                 return ColorToHex(color | 0xFF000000);
             }
-            
         }
 
         public static void UpdateMapData()
@@ -122,7 +122,6 @@ namespace BLTAdoptAHero.UI
         {
             var context = GlobalHost.ConnectionManager.GetHubContext<MapHub>();
 
-            // Check if map overlay is disabled in settings
             if (BLTAdoptAHeroModule.CommonConfig?.ShowCampaignMapOverlay != true)
             {
                 if (currentMapData != null)
@@ -134,14 +133,11 @@ namespace BLTAdoptAHero.UI
                 return;
             }
 
-            // Check mission status - if it changed, update immediately
             bool missionChanged = lastMission != Mission.Current;
             lastMission = Mission.Current;
 
-            // Check if in mission or not on campaign map
             if (Mission.Current != null || Campaign.Current?.MapSceneWrapper == null)
             {
-                // In mission or not on campaign map - hide the map
                 if (currentMapData != null || missionChanged)
                 {
                     context.Clients.All.updateMap(null);
@@ -151,14 +147,12 @@ namespace BLTAdoptAHero.UI
                 return;
             }
 
-            // If we just left a mission, update immediately
             if (missionChanged)
             {
                 forceUpdate = true;
                 Log.Trace("[MapHub] Mission ended, forcing map update");
             }
 
-            // Check throttle (unless forced)
             if (!forceUpdate && DateTime.Now - lastUpdate < UpdateInterval && currentMapData != null)
                 return;
 
@@ -173,7 +167,10 @@ namespace BLTAdoptAHero.UI
 
                 var mapData = new MapData();
 
-                // Get all active kingdoms
+                mapData.MapTownRadius = GlobalCommonConfig.Get().MapTownRadius;
+                mapData.MapCastleLength = GlobalCommonConfig.Get().MapCastleLength;
+
+
                 mapData.Kingdoms = Campaign.Current.Kingdoms
                     .Where(k => !k.IsEliminated && k.StringId != null)
                     .Select(k => new KingdomData
@@ -185,61 +182,57 @@ namespace BLTAdoptAHero.UI
                     })
                     .ToList();
 
-                // Get map bounds
                 var mapBounds = GetMapBounds();
-                float worldWidth = mapBounds.maxX - mapBounds.minX;
-                float worldHeight = mapBounds.maxY - mapBounds.minY;
 
-                Log.Trace($"[MapHub] World bounds: X({mapBounds.minX:F1} to {mapBounds.maxX:F1}) Width:{worldWidth:F1}, Y({mapBounds.minY:F1} to {mapBounds.maxY:F1}) Height:{worldHeight:F1}");
-
-                // Get all settlements (only towns and castles, no villages)
                 var rawSettlements = Campaign.Current.Settlements
                     .Where(s => (s.IsTown || s.IsCastle) && (s.Position.X != 0 || s.Position.Y != 0))
                     .ToList();
 
-                // Normalize settlements
-                var settlements = new List<SettlementData>();
-                float minNormX = 98f, maxNormX = 2f;
-                float minNormY = 96f, maxNormY = 2f;
-
-                foreach (var s in rawSettlements)
+                // Only rebuild settlements if they've changed
+                if (_cachedSettlements == null)
                 {
-                    var settlement = new SettlementData
+                    var settlements = new List<SettlementData>();
+                    foreach (var s in rawSettlements)
                     {
-                        Id = s.StringId ?? s.Name?.ToString() ?? "unknown",
-                        Name = s.Name?.ToString() ?? "Unknown",
-                        Type = s.IsTown ? "Town" : "Castle",
-                        KingdomId = s.OwnerClan?.Kingdom?.StringId,
-                        X = NormalizeX(s.Position.X, mapBounds),
-                        Y = NormalizeY(s.Position.Y, mapBounds)
-                    };
-                 
-                    settlements.Add(settlement);
+                        settlements.Add(new SettlementData
+                        {
+                            Id = s.StringId ?? s.Name?.ToString() ?? "unknown",
+                            Name = s.Name?.ToString() ?? "Unknown",
+                            Type = s.IsTown ? "Town" : "Castle",
+                            KingdomId = s.OwnerClan?.Kingdom?.StringId,
+                            X = NormalizeX(s.Position.X, mapBounds),
+                            Y = NormalizeY(s.Position.Y, mapBounds)
+                        });
+                    }
+                    //SpreadSettlements(settlements);
+                    _cachedSettlements = settlements;
+                    Log.Trace($"[MapHub] Settlement positions cached: {_cachedSettlements.Count}");
                 }
 
-                //float normWidth = maxNormX - minNormX;
-                //float normHeight = maxNormY - minNormY;
+                // KingdomId can change without positions changing, update that cheaply
+                var kingdomLookup = rawSettlements.ToDictionary(
+                    s => s.StringId ?? s.Name?.ToString() ?? "unknown",
+                    s => s.OwnerClan?.Kingdom?.StringId);
+                foreach (var s in _cachedSettlements)
+                {
+                    if (kingdomLookup.TryGetValue(s.Id, out var kid))
+                        s.KingdomId = kid;
+                }
 
-                //Log.Trace($"[MapHub] Normalized BEFORE spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
+                mapData.Settlements = _cachedSettlements;
 
-                //// Track AFTER spreading
-                //minNormX = settlements.Min(s => s.X);
-                //maxNormX = settlements.Max(s => s.X);
-                //minNormY = settlements.Min(s => s.Y);
-                //maxNormY = settlements.Max(s => s.Y);
-                //normWidth = maxNormX - minNormX;
-                //normHeight = maxNormY - minNormY;
-
-                //Log.Trace($"[MapHub] Normalized AFTER spread: X({minNormX:F1} to {maxNormX:F1}) Width:{normWidth:F1}, Y({minNormY:F1} to {maxNormY:F1}) Height:{normHeight:F1}");
-                SpreadSettlements(settlements);
-                mapData.Settlements = settlements;
+                if (_cachedCoastline == null || _cachedCoastline.Count == 0)
+                {
+                    Log.Trace("[MapHub] Generating coastline cache...");
+                    _cachedCoastline = GenerateCoastline(mapBounds, _cachedSettlements);
+                    Log.Trace($"[MapHub] Coastline cache built: {_cachedCoastline.Count} segments");
+                }
+                mapData.Coastline = _cachedCoastline;
 
                 currentMapData = mapData;
                 lastUpdate = DateTime.Now;
 
-                // Broadcast to all connected clients
                 context.Clients.All.updateMap(mapData);
-
                 Log.Trace($"[MapHub] Updated map data: {mapData.Kingdoms.Count} kingdoms, {mapData.Settlements.Count} settlements");
             }
             catch (Exception ex)
@@ -257,11 +250,26 @@ namespace BLTAdoptAHero.UI
             if (!settlements.Any())
                 return (0, 1000, 0, 1000);
 
-            // Get EXACT bounds - no padding here
             var minX = settlements.Min(s => s.Position.X);
             var maxX = settlements.Max(s => s.Position.X);
             var minY = settlements.Min(s => s.Position.Y);
             var maxY = settlements.Max(s => s.Position.Y);
+
+            float width = maxX - minX;
+            float height = maxY - minY;
+
+            if (width == 0) width = 1;
+            if (height == 0) height = 1;
+
+            float marginPercent = 0.05f; // 5% margin on all sides
+
+            float marginX = width * marginPercent;
+            float marginY = height * marginPercent;
+
+            minX -= marginX;
+            maxX += marginX;
+            minY -= marginY;
+            maxY += marginY;
 
             return (minX, maxX, minY, maxY);
         }
@@ -270,48 +278,35 @@ namespace BLTAdoptAHero.UI
         {
             float width = bounds.maxX - bounds.minX;
             if (width == 0) return 50f;
-
-            // Normalize to 0-1 range
             float normalized = (x - bounds.minX) / width;
-
-            // STRETCH TO FULL WIDTH: Map to 0-100 (edge to edge)
-            return 3f + (normalized * 94f);
+            return normalized * 100f;
         }
 
         private static float NormalizeY(float y, (float minX, float maxX, float minY, float maxY) bounds)
         {
             float height = bounds.maxY - bounds.minY;
             if (height == 0) return 47.5f;
-
-            // Normalize to 0-1 range
             float normalized = (y - bounds.minY) / height;
-
-            // Invert for SVG (SVG 0 is top, Game 0 is bottom)
-            // Add padding: map to 5-90 instead of 0-95 (5 units padding top/bottom)
-            return 5f + ((1f - normalized) * 85f);
+            return (1f - normalized) * 100f;
         }
-
 
         private static void SpreadSettlements(List<SettlementData> settlements)
         {
             if (settlements.Count == 0) return;
 
-            // --- Tuning knobs ---
-            const float clumpRadius = 8.0f;   // Settlements within this range form one clump
-            float minSpacing = GlobalCommonConfig.Get().MapOverlayMinSpacing;  // Min centre-to-centre gap (icons are ~4 units wide)
-            const float spreadBias = 1.4f;   // Multiplier: clumps expand to this * minSpacing per pair
-            const float clumpRepelRadius = 10.0f;  // Clump centres within this range get pushed apart
-            const float clumpRepelStrength = 0.5f;   // Fraction of overlap to correct per iteration
-            const int intraIter = 150;    // Iterations for within-clump separation
-            const int interIter = 40;     // Iterations for clump-vs-clump repulsion
+            const float clumpRadius = 8.0f;
+            float minSpacing = 2.5f;//GlobalCommonConfig.Get().MapOverlayMinSpacing;
+            const float spreadBias = 1.4f;
+            const float clumpRepelRadius = 10.0f;
+            const float clumpRepelStrength = 0.5f;
+            const int intraIter = 150;
+            const int interIter = 40;
 
             int n = settlements.Count;
 
-            // Save original positions so clumps can be anchored to their geographic centre
             float[] origX = settlements.Select(s => s.X).ToArray();
             float[] origY = settlements.Select(s => s.Y).ToArray();
 
-            // --- Step 1: Union-Find clustering on ORIGINAL positions ---
             int[] parent = Enumerable.Range(0, n).ToArray();
 
             int Find(int i)
@@ -334,7 +329,6 @@ namespace BLTAdoptAHero.UI
                         Union(i, j);
                 }
 
-            // Group indices by clump
             var clumps = new Dictionary<int, List<int>>();
             for (int i = 0; i < n; i++)
             {
@@ -344,17 +338,12 @@ namespace BLTAdoptAHero.UI
                 list.Add(i);
             }
 
-            // --- Step 2: Spread within each clump ---
-            // We spread positions outward from the original centroid. After each full pass we
-            // re-anchor the centroid so the clump stays geographically correct while its members
-            // fan out. We use a target spacing of spreadBias * minSpacing so there's visible air.
             float targetSpacing = minSpacing * spreadBias;
 
             foreach (var clump in clumps.Values)
             {
                 if (clump.Count <= 1) continue;
 
-                // Original centroid (geographic anchor)
                 float anchorX = clump.Average(i => origX[i]);
                 float anchorY = clump.Average(i => origY[i]);
 
@@ -375,7 +364,6 @@ namespace BLTAdoptAHero.UI
                                 float dist = distSq > 1e-6f ? (float)Math.Sqrt(distSq) : 0.01f;
                                 if (dist < 0.01f)
                                 {
-                                    // Exact stack: break symmetry deterministically
                                     dx = 0.3f + a * 0.07f;
                                     dy = 0.2f + b * 0.05f;
                                     dist = (float)Math.Sqrt(dx * dx + dy * dy);
@@ -390,7 +378,6 @@ namespace BLTAdoptAHero.UI
                             }
                         }
 
-                    // Re-anchor centroid every iteration so the clump fans out in place
                     float cx = clump.Average(i => settlements[i].X);
                     float cy = clump.Average(i => settlements[i].Y);
                     float shiftX = anchorX - cx;
@@ -405,8 +392,6 @@ namespace BLTAdoptAHero.UI
                 }
             }
 
-            // --- Step 3: Gentle inter-clump repulsion ---
-            // Treat each clump as a rigid body and push overlapping clumps apart.
             var clumpList = clumps.Values.ToList();
             for (int iter = 0; iter < interIter; iter++)
             {
@@ -436,7 +421,6 @@ namespace BLTAdoptAHero.UI
                 if (!moved) break;
             }
 
-            // --- Step 4: Clamp to overlay bounds ---
             foreach (var s in settlements)
             {
                 s.X = Math.Max(3f, Math.Min(97f, s.X));
@@ -446,11 +430,288 @@ namespace BLTAdoptAHero.UI
 
         private static string ColorToHex(uint color)
         {
-            // Convert TaleWorlds ARGB format to hex
             var r = (color >> 16) & 0xFF;
             var g = (color >> 8) & 0xFF;
             var b = color & 0xFF;
             return $"#{r:X2}{g:X2}{b:X2}";
+        }
+
+        private static List<CoastlineSegment> GenerateCoastline(
+            (float minX, float maxX, float minY, float maxY) settlementBounds,
+            List<SettlementData> normalizedSettlements)
+        {
+            var map = Campaign.Current?.MapSceneWrapper;
+            if (map == null) return new List<CoastlineSegment>();
+
+            map.GetMapBorders(out Vec2 minPos, out Vec2 maxPos, out float _);
+            var sampleBounds = (minX: minPos.x, maxX: maxPos.x, minY: minPos.y, maxY: maxPos.y);
+
+            const int GRID_W = 120;
+            const int GRID_H = 114;
+
+            float worldW = sampleBounds.maxX - sampleBounds.minX;
+            float worldH = sampleBounds.maxY - sampleBounds.minY;
+            float cellW = worldW / GRID_W;
+            float cellH = worldH / GRID_H;
+
+            var waterValue = new float[GRID_W * GRID_H];
+            var isLandRestriction = new bool[GRID_W * GRID_H];
+            for (int i = 0; i < waterValue.Length; i++) waterValue[i] = -1f;
+            int validSamples = 0;
+
+            for (int gy = 0; gy < GRID_H; gy++)
+            {
+                float worldY = sampleBounds.minY + (gy + 0.5f) * cellH;
+                int rowBase = gy * GRID_W;
+                for (int gx = 0; gx < GRID_W; gx++)
+                {
+                    float worldX = sampleBounds.minX + (gx + 0.5f) * cellW;
+                    if (worldX + cellW * 0.5f < settlementBounds.minX || worldX - cellW * 0.5f > settlementBounds.maxX ||
+                        worldY + cellH * 0.5f < settlementBounds.minY || worldY - cellH * 0.5f > settlementBounds.maxY)
+                    {
+                        // leave as -1f
+                        continue;
+                    }
+                    try
+                    {
+                        var (isWaterCell, terrainType, valid) = SampleTerrain(map, worldX, worldY, cellW, cellH);
+                        isLandRestriction[rowBase + gx] = (terrainType == TerrainType.LandRestriction || terrainType == TerrainType.SeaRestriction);
+                        waterValue[rowBase + gx] = isWaterCell ? 1f : 0f;
+                        if (valid) validSamples++;
+                    }
+                    catch { waterValue[rowBase + gx] = 1f; }
+                }
+            }
+
+            Log.Trace($"[MapHub] Coastline sampled {validSamples}/{GRID_W * GRID_H}");
+
+            bool changed = true;
+            int passes = 0;
+            while (changed && passes < 20)
+            {
+                changed = false; passes++;
+                for (int i = 0; i < waterValue.Length; i++)
+                {
+                    if (waterValue[i] >= 0f) continue;
+                    int gx = i % GRID_W, gy = i / GRID_W;
+                    float sum = 0f; int count = 0;
+                    if (gx > 0 && waterValue[i - 1] >= 0f) { sum += waterValue[i - 1]; count++; }
+                    if (gx < GRID_W - 1 && waterValue[i + 1] >= 0f) { sum += waterValue[i + 1]; count++; }
+                    if (gy > 0 && waterValue[i - GRID_W] >= 0f) { sum += waterValue[i - GRID_W]; count++; }
+                    if (gy < GRID_H - 1 && waterValue[i + GRID_W] >= 0f) { sum += waterValue[i + GRID_W]; count++; }
+                    if (count > 0) { waterValue[i] = sum / count; changed = true; }
+                }
+            }
+
+            var blurred = new float[GRID_W * GRID_H];
+            float[] kernel = { 1f, 2f, 1f, 2f, 4f, 2f, 1f, 2f, 1f };
+            const float kernelSum = 16f;
+            for (int gy = 1; gy < GRID_H - 1; gy++)
+                for (int gx = 1; gx < GRID_W - 1; gx++)
+                {
+                    float sum = 0f; int k = 0;
+                    for (int dy = -1; dy <= 1; dy++)
+                        for (int dx = -1; dx <= 1; dx++)
+                            sum += waterValue[(gy + dy) * GRID_W + (gx + dx)] * kernel[k++];
+                    blurred[gy * GRID_W + gx] = sum / kernelSum;
+                }
+            for (int gx = 0; gx < GRID_W; gx++)
+            {
+                blurred[gx] = waterValue[gx];
+                blurred[(GRID_H - 1) * GRID_W + gx] = waterValue[(GRID_H - 1) * GRID_W + gx];
+            }
+            for (int gy = 0; gy < GRID_H; gy++)
+            {
+                blurred[gy * GRID_W] = waterValue[gy * GRID_W];
+                blurred[gy * GRID_W + GRID_W - 1] = waterValue[gy * GRID_W + GRID_W - 1];
+            }
+
+            var isWater = new bool[GRID_W * GRID_H];
+            for (int i = 0; i < isWater.Length; i++)
+                isWater[i] = blurred[i] >= 0.5f;
+
+            var segments = new List<CoastlineSegment>(GRID_W * GRID_H / 5);
+
+            for (int gy = 0; gy < GRID_H - 1; gy++)
+            {
+                int rowA = gy * GRID_W, rowB = (gy + 1) * GRID_W;
+                float edgeWorldY = sampleBounds.minY + (gy + 1) * cellH;
+                float edgeSvgY = NormalizeY(edgeWorldY, settlementBounds);
+
+                for (int gx = 0; gx < GRID_W; gx++)
+                {
+                    if (waterValue[rowA + gx] < 0f || waterValue[rowB + gx] < 0f) continue;
+                    if (isLandRestriction[rowA + gx] || isLandRestriction[rowB + gx]) continue;
+                    if (isWater[rowA + gx] != isWater[rowB + gx])
+                    {
+                        float svgX1 = NormalizeX(sampleBounds.minX + gx * cellW, settlementBounds);
+                        float svgX2 = NormalizeX(sampleBounds.minX + (gx + 1) * cellW, settlementBounds);
+                        segments.Add(new CoastlineSegment { X1 = svgX1, Y1 = edgeSvgY, X2 = svgX2, Y2 = edgeSvgY });
+                    }
+                }
+            }
+
+            for (int gy = 0; gy < GRID_H; gy++)
+            {
+                int rowBase = gy * GRID_W;
+                float svgY1 = NormalizeY(sampleBounds.minY + gy * cellH, settlementBounds);
+                float svgY2 = NormalizeY(sampleBounds.minY + (gy + 1) * cellH, settlementBounds);
+
+                for (int gx = 0; gx < GRID_W - 1; gx++)
+                {
+                    if (waterValue[rowBase + gx] < 0f || waterValue[rowBase + gx + 1] < 0f) continue;
+                    if (isLandRestriction[rowBase + gx] || isLandRestriction[rowBase + gx + 1]) continue;
+                    if (isWater[rowBase + gx] != isWater[rowBase + gx + 1])
+                    {
+                        float edgeSvgX = NormalizeX(sampleBounds.minX + (gx + 1) * cellW, settlementBounds);
+                        segments.Add(new CoastlineSegment { X1 = edgeSvgX, Y1 = svgY1, X2 = edgeSvgX, Y2 = svgY2 });
+                    }
+                }
+            }
+
+            segments = FilterCoastlineSegments(segments, normalizedSettlements);
+            Log.Trace($"[MapHub] Coastline after proximity filter: {segments.Count} segments");
+            return segments;
+        }
+
+        private static List<CoastlineSegment> FilterCoastlineSegments(
+        List<CoastlineSegment> segments,
+        List<SettlementData> settlements,
+        float maxDistFromSettlement = 12f,
+        float maxChainDistance = 15f)  // SVG units of connected coastline away from a qualifying segment
+        {
+            if (settlements.Count == 0) return segments;
+
+            int n = segments.Count;
+            if (n == 0) return segments;
+
+            var positions = settlements.Select(s => (s.X, s.Y)).ToList();
+            const float ENDPOINT_EPSILON = 0.01f;
+
+            // --- Step 1: Build adjacency with edge lengths ---
+            var adjacency = new List<(int index, float length)>[n];
+            for (int i = 0; i < n; i++) adjacency[i] = new List<(int, float)>();
+
+            for (int i = 0; i < n; i++)
+                for (int j = i + 1; j < n; j++)
+                {
+                    var a = segments[i]; var b = segments[j];
+                    bool shared =
+                        Near(a.X1, a.Y1, b.X1, b.Y1) || Near(a.X1, a.Y1, b.X2, b.Y2) ||
+                        Near(a.X2, a.Y2, b.X1, b.Y1) || Near(a.X2, a.Y2, b.X2, b.Y2);
+                    if (shared)
+                    {
+                        // Length of segment j = cost to traverse it
+                        float dx = b.X2 - b.X1, dy = b.Y2 - b.Y1;
+                        float len = (float)Math.Sqrt(dx * dx + dy * dy);
+                        adjacency[i].Add((j, len));
+                        adjacency[j].Add((i, len));
+                    }
+                }
+
+            // --- Step 2: Mark segments close to a settlement ---
+            var closeToSettlement = new bool[n];
+            for (int i = 0; i < n; i++)
+            {
+                float midX = (segments[i].X1 + segments[i].X2) * 0.5f;
+                float midY = (segments[i].Y1 + segments[i].Y2) * 0.5f;
+                foreach (var (sx, sy) in positions)
+                {
+                    float dx = midX - sx, dy = midY - sy;
+                    if (dx * dx + dy * dy <= maxDistFromSettlement * maxDistFromSettlement)
+                    {
+                        closeToSettlement[i] = true;
+                        break;
+                    }
+                }
+            }
+
+            // --- Step 3: Dijkstra from close segments, propagate up to maxChainDistance ---
+            var bestDist = new float[n];
+            for (int i = 0; i < n; i++) bestDist[i] = float.MaxValue;
+
+            // Priority queue: (distanceSoFar, segmentIndex)
+            var pq = new SortedSet<(float dist, int idx)>(Comparer<(float, int)>.Create(
+                (a, b) => a.Item1 != b.Item1 ? a.Item1.CompareTo(b.Item1) : a.Item2.CompareTo(b.Item2)));
+
+            for (int i = 0; i < n; i++)
+                if (closeToSettlement[i]) { bestDist[i] = 0f; pq.Add((0f, i)); }
+
+            while (pq.Count > 0)
+            {
+                var (dist, idx) = pq.Min;
+                pq.Remove(pq.Min);
+
+                if (dist > bestDist[idx]) continue;
+                if (dist >= maxChainDistance) continue;
+
+                foreach (var (neighbour, len) in adjacency[idx])
+                {
+                    float newDist = dist + len;
+                    if (newDist < bestDist[neighbour] && newDist <= maxChainDistance)
+                    {
+                        bestDist[neighbour] = newDist;
+                        pq.Add((newDist, neighbour));
+                    }
+                }
+            }
+
+            var result = new List<CoastlineSegment>(n);
+            for (int i = 0; i < n; i++)
+                if (bestDist[i] <= maxChainDistance) result.Add(segments[i]);
+
+            Log.Trace($"[MapHub] Coastline filter: {n} -> {result.Count} segments (maxDist={maxDistFromSettlement}, maxChain={maxChainDistance})");
+            return result;
+
+            bool Near(float x1, float y1, float x2, float y2)
+            {
+                float dx = x1 - x2, dy = y1 - y2;
+                return dx * dx + dy * dy <= ENDPOINT_EPSILON * ENDPOINT_EPSILON;
+            }
+        }
+
+        private static bool IsWaterTerrain(TerrainType terrain)
+        {
+            switch (terrain)
+            {
+                case TerrainType.Water:
+                case TerrainType.SeaRestriction:
+                case TerrainType.OpenSea:
+                case TerrainType.CoastalSea:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static (bool isWater, TerrainType terrain, bool valid) SampleTerrain(
+            IMapScene map, float worldX, float worldY, float cellW, float cellH)
+        {
+            foreach (bool isOnLand in new[] { true, false })
+            {
+                var vec = new CampaignVec2(new Vec2(worldX, worldY), isOnLand);
+                var face = map.GetFaceIndex(in vec);
+                if (face.IsValid())
+                {
+                    var terrain = map.GetFaceTerrainType(face);
+                    return (IsWaterTerrain(terrain), terrain, true);
+                }
+            }
+            foreach (var (ox, oy) in new[] { (0.4f, 0f), (-0.4f, 0f), (0f, 0.4f), (0f, -0.4f) })
+            {
+                float nx = worldX + ox * cellW, ny = worldY + oy * cellH;
+                foreach (bool isOnLand in new[] { true, false })
+                {
+                    var vec = new CampaignVec2(new Vec2(nx, ny), isOnLand);
+                    var face = map.GetFaceIndex(in vec);
+                    if (face.IsValid())
+                    {
+                        var terrain = map.GetFaceTerrainType(face);
+                        return (IsWaterTerrain(terrain), terrain, true);
+                    }
+                }
+            }
+            return (true, TerrainType.Water, false);
         }
 
         public static void Register()

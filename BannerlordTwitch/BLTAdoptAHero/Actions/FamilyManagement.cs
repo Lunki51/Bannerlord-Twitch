@@ -35,7 +35,27 @@ namespace BLTAdoptAHero.Actions
 
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
-                generator.Value($"Max Kids From Baby Command: {MakeKidsLimit}");
+
+                generator.Value("<strong>Family Management:</strong> Manage and view your hero's family members, including spouse, children, and parents.");
+                generator.Value($"<strong>Max Kids From Baby Command:</strong> {MakeKidsLimit}");
+
+                generator.Value("<strong>Usage:</strong>");
+                generator.Value(@" - spouse");
+                generator.Value(@" - spouse rename [name]");
+                generator.Value(@" - spouse looks [body]");
+                generator.Value(" - spouse baby");
+                generator.Value(" - spouse skills");
+                generator.Value(" - children: List all children.");
+                generator.Value(@" - [childName>]*");
+                generator.Value(@" - [childName]* rename [name]");
+                generator.Value(@" - [childName]* looks [body]");
+                generator.Value(@" - [childName]* marry [viewer]* [viewer_child]*");
+                generator.Value(@" - [childName]* [grandchildName]*");
+
+                generator.Value("<strong>Notes:</strong>");
+                generator.Value("* means command expects 1 word in that field");
+                generator.Value("If 2 children are named same add a number at the end, eg Caladog1, Caladog2");
+
             }
 
         }
@@ -88,9 +108,10 @@ namespace BLTAdoptAHero.Actions
             int spouseCount = (adoptedHero.Spouse != null ? 1 : 0) + adoptedHero.ExSpouses.Count(h=> !h.IsDead);
             int childrenCount = adoptedHero.Children.Count(h => !h.IsDead);
             int grandchildrenCount = adoptedHero.Children.Sum(c => c.Children.Count(h => !h.IsDead));
+            int greatCount = adoptedHero.Children.Sum(c => c.Children.Sum(g => g.Children.Count(h => !h.IsDead)));
             int parentCount = ((adoptedHero.Father != null && !adoptedHero.Father.IsDead) ? 1 : 0) + ((adoptedHero.Mother != null && !adoptedHero.Mother.IsDead) ? 1 : 0);
             int siblingCount = adoptedHero.Siblings.Count(h => !h.IsDead);
-            int totalFamily = spouseCount + childrenCount + grandchildrenCount + parentCount + siblingCount;
+            int totalFamily = spouseCount + childrenCount + grandchildrenCount + greatCount + parentCount + siblingCount;
 
             var sb = new StringBuilder();
             sb.Append("{=FamilyOverview}Family Overview: ".Translate());
@@ -98,6 +119,8 @@ namespace BLTAdoptAHero.Actions
             sb.Append("{=ChildCount}Children: {count} | ".Translate(("count", childrenCount)));
             if (grandchildrenCount > 0)
                 sb.Append("{=GrandchildCount}Grandchildren: {count} | ".Translate(("count", grandchildrenCount)));
+            if (greatCount > 0)
+                sb.Append("{=GrandchildCount}Great grandchildren: {count} | ".Translate(("count", greatCount)));
             if (parentCount > 0)
                 sb.Append("{=GrandchildCount}Parents: {count} | ".Translate(("count", parentCount)));
             if (siblingCount > 0)
@@ -296,7 +319,7 @@ namespace BLTAdoptAHero.Actions
                 sb.Append("{=MultipleChildren}Multiple children found: ".Translate());
                 for (int i = 0; i < matchingChildren.Count; i++)
                 {
-                    sb.Append($"{CleanName(matchingChildren[i].Name.ToString())}{i + 1}");
+                    sb.Append($"{CleanName(matchingChildren[i].FirstName.ToString())}{i + 1}");
                     sb.Append($" ({(int)matchingChildren[i].Age}, ");
                     sb.Append(matchingChildren[i].IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
                     if (matchingChildren[i].Spouse != null)
@@ -305,7 +328,8 @@ namespace BLTAdoptAHero.Actions
                         sb.Append(", 💀");
                     if (matchingChildren[i].Children.Count > 0)
                         sb.Append($", 👪:{matchingChildren[i].Children.Count}");
-                    if (i < matchingChildren.Count - 1) sb.Append(", ");
+                    sb.Append(")");
+                    if (i < matchingChildren.Count - 1) sb.Append(" - ");
                 }
                 onFailure(sb.ToString());
                 return;
@@ -383,8 +407,9 @@ namespace BLTAdoptAHero.Actions
                 grandchildName = match.Groups[1].Value;
                 index = int.Parse(match.Groups[2].Value);
             }
-            var family = parent.Children;
-            family.Insert(0, parent.Spouse);
+            var family = parent.Children.ToList();
+            if (parent.Spouse != null)
+                family.Insert(0, parent.Spouse);
 
             var matchingGrandchildren = family
                 .Where(c => CleanName(c.Name.ToString()).IndexOf(grandchildName, StringComparison.OrdinalIgnoreCase) >= 0)
@@ -451,8 +476,27 @@ namespace BLTAdoptAHero.Actions
             {
                 sb.Append(" | ");
                 sb.Append("{=Children}Children: ".Translate());
-                var childNames = child.Children.Select(c => CleanName(c.Name.ToString())).ToList();
-                sb.Append(string.Join(", ", childNames));
+                var children = child.Children.OrderByDescending(c => c.Age).ToList();
+
+                for (int i = 0; i < children.Count; i++)
+                {
+                    var grandchild = children[i];
+                    sb.Append(CleanName(grandchild.FirstName.ToString()));
+                    sb.Append($" ({(int)grandchild.Age}, ");
+                    sb.Append(grandchild.IsFemale ? "{=F}F".Translate() : "{=M}M".Translate());
+                    if (grandchild.Spouse != null)
+                        sb.Append(", 💍");
+                    if (grandchild.IsDead)
+                        sb.Append(", 💀");
+                    if (grandchild.Children.Count > 0)
+                        sb.Append($", 👪:{child.Children.Count}");
+                    sb.Append(")");
+
+                    if (i < children.Count - 1)
+                    {
+                        sb.Append(", ");
+                    }
+                }
             }
 
             onSuccess(sb.ToString());

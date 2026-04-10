@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Linq;
 using BannerlordTwitch;
 using BannerlordTwitch.Localization;
 using BannerlordTwitch.Rewards;
 using BannerlordTwitch.Util;
 using JetBrains.Annotations;
+using TaleWorlds.CampaignSystem;
 using TaleWorlds.MountAndBlade;
 using Xceed.Wpf.Toolkit.PropertyGrid.Attributes;
 
@@ -60,7 +62,17 @@ namespace BLTAdoptAHero
                 // Handle !retinue clear <index>
                 if (args.Length > 0 && string.Compare(args[0], "clear", StringComparison.CurrentCultureIgnoreCase) == 0)
                 {
-                    if (args.Length > 1 && int.TryParse(args[1], out int index))
+                    // Handle !secondary retinue clear all
+                    if (args.Length > 1 && args[1].ToLower() == "all")
+                    {
+                        int count = BLTAdoptAHeroCampaignBehavior.Current.GetRetinue(adoptedHero).Count();
+                        for (int i = 0; i < count; i++)
+                        {
+                            BLTAdoptAHeroCampaignBehavior.Current.KillRetinueAtIndex(adoptedHero, 0);
+                        }
+                        onSuccess("Cleared all retinue slots.");
+                    }
+                    else if (args.Length > 1 && int.TryParse(args[1], out int index))
                     {
                         BLTAdoptAHeroCampaignBehavior.Current.KillRetinueAtIndex(adoptedHero, index - 1);
                         onSuccess($"Removed retinue at slot {index}.");

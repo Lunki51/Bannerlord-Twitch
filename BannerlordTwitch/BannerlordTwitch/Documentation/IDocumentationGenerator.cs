@@ -8,6 +8,7 @@ namespace BannerlordTwitch
         IDocumentationGenerator Div(string css, Action content);
         IDocumentationGenerator Div(Action content);
 
+
         IDocumentationGenerator Details(string css, Action content);
         IDocumentationGenerator Details(Action content);
 
@@ -25,8 +26,8 @@ namespace BannerlordTwitch
         IDocumentationGenerator H3(string css, string content);
         IDocumentationGenerator H3(string content);
 
-        IDocumentationGenerator Table(string css, Action content);
-        IDocumentationGenerator Table(Action content);
+        IDocumentationGenerator Table(string css, Action content, bool collapsible = true, string summary = "View Table");
+        IDocumentationGenerator Table(Action content, bool collapsible = true, string summary = "View Table");
 
         IDocumentationGenerator TR(string css, Action content);
         IDocumentationGenerator TR(Action content);
@@ -59,5 +60,8 @@ namespace BannerlordTwitch
 
         IDocumentationGenerator LinkToAnchor(string tag, Action content);
         IDocumentationGenerator LinkToAnchor(string tag, string content);
+
+        IDocumentationGenerator MapLabel(float x, float y, string name, string type, string kingdomId, Func<string, string> getKingdomColor, Func<string, string> getBorderColor);
+        IDocumentationGenerator MapSegment(float minX, float maxX, float minY, float MaxY);
     }
 }

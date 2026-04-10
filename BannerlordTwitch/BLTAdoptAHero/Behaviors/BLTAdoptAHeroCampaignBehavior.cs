@@ -45,7 +45,7 @@ namespace BLTAdoptAHero
                 public CharacterObject TroopType { get; set; }
                 public int Level { get; set; }
                 public int SavedTroopIndex { get; set; }
-            }
+            }          
 
             public int Gold { get; set; }
             [UsedImplicitly]
@@ -104,8 +104,7 @@ namespace BLTAdoptAHero
             }
         }
 
-        private Dictionary<Hero, HeroData> heroData = new();
-        public Dictionary<Hero, Hero> heirList = new();
+        private Dictionary<Hero, HeroData> heroData = new();       
         private Dictionary<Hero, HashSet<Guid>> heroAchievementPassivePowers = new();
         #endregion
 
@@ -326,16 +325,6 @@ namespace BLTAdoptAHero
             MapHub.UpdateMapData();
         }
 
-        //private Mission lastMission = null;
-        //private void OnTick(float dt)
-        //{
-        //    // Check mission status every tick to immediately hide/show map
-        //    if (Mission.Current != lastMission)
-        //    {
-        //        lastMission = Mission.Current;
-        //        MapHub.UpdateMapData(); // Force immediate update when mission changes
-        //    }
-        //}
         public override void SyncData(IDataStore dataStore)
         {
             using var scopedJsonSync = new ScopedJsonSync(dataStore, nameof(BLTAdoptAHeroCampaignBehavior));
@@ -1175,16 +1164,19 @@ namespace BLTAdoptAHero
 
         public void ApplyAchievementPassivePowers(Hero hero)
         {
-            if (BLTAdoptAHeroModule.CommonConfig?.Achievements == null) return;
+            if (BLTAdoptAHeroModule.CommonConfig?.Achievements == null || !BLTAdoptAHeroModule.CommonConfig.Achievements.Any(a => a.GivePassivePower)) return;
 
             var achievementPowerIds = GetHeroAchievementPassivePowers(hero);
+            var ach = BLTAdoptAHeroCampaignBehavior.Current
+                        .GetAchievements(hero).Where(a => a.IsAchieved(hero))
+                        .ToList();
 
             foreach (var achievementId in achievementPowerIds)
             {
                 var achievement = BLTAdoptAHeroModule.CommonConfig.Achievements
                     .FirstOrDefault(a => a.ID == achievementId);
 
-                if (achievement?.GivePassivePower == true && achievement.PassivePowerReward != null)
+                if (achievement?.GivePassivePower == true && achievement.PassivePowerReward != null && ach.Contains(achievement))
                 {
                     // The PassivePowerGroup.OnHeroJoinedBattle will handle creating/getting handlers
                     achievement.PassivePowerReward.OnHeroJoinedBattle(hero);
@@ -1342,11 +1334,12 @@ namespace BLTAdoptAHero
             int totalCost = 0;
 
             var results = new List<string>();
+            int effectiveMaxRetinue = settings.MaxRetinueSize + (UpgradeBehavior.Current?.GetTotalRetinueSizeBonus(hero) ?? 0);
 
             while (maxToUpgrade-- > 0)
             {
                 // first fill in any missing ones
-                if (heroRetinue.Count < settings.MaxRetinueSize)
+                if (heroRetinue.Count < effectiveMaxRetinue)
                 {
                     var troopType = availableTroops
                         .Shuffle()
@@ -1633,10 +1626,12 @@ namespace BLTAdoptAHero
 
             var results = new List<string>();
 
+            int effectiveMaxRetinue2 = settings.MaxRetinue2Size + (UpgradeBehavior.Current?.GetTotalRetinueSizeBonus(hero) ?? 0);
+
             while (maxToUpgrade-- > 0)
             {
                 // first fill in any missing ones
-                if (heroretinue2.Count < settings.MaxRetinue2Size)
+                if (heroretinue2.Count < effectiveMaxRetinue2)
                 {
                     var troopType = availableTroops
                         .Shuffle()
@@ -2170,6 +2165,102 @@ namespace BLTAdoptAHero
         [CommandLineFunctionality.CommandLineArgumentFunction("CleanupShellParties", "blt")]
         [UsedImplicitly]
         public static string CleanupShellParties(List<string> strings)
+        {
+            if (Campaign.Current == null)
+            {
+                return "Campaign is not active";
+            }
+
+            var partiesToDelete = new List<MobileParty>();
+            int checkedCount = 0;
+            int skippedCount = 0;
+
+            try
+            {
+                foreach (var party in MobileParty.All.ToList())
+                {
+                    if (party == null)
+                        continue;
+
+                    checkedCount++;
+
+                    // Skip the main party (player's party)
+                    if (party.IsMainParty) { skippedCount++; continue; }
+                    // Skip caravans - they don't need a LeaderHero
+                    if (party.IsCaravan) { skippedCount++; continue; }
+                    // Skip villagers - they don't need a LeaderHero
+                    if (party.IsVillager) { skippedCount++; continue; }
+                    // Skip bandits - they don't need a LeaderHero
+                    if (party.IsBandit) { skippedCount++; continue; }
+                    // Skip militia - they don't need a LeaderHero
+                    if (party.IsMilitia) { skippedCount++; continue; }
+                    // Skip garrison parties (shouldn't be mobile but just in case)
+                    if (party.IsGarrison) { skippedCount++; continue; }
+                    // Skip patrol parties - counted as Lord Parties for some reason
+                    if (party.IsPatrolParty) { skippedCount++; continue; }
+
+                    // Delete lord parties that have no leader or a retired leader
+                    if (party.IsLordParty && party.LeaderHero == null)
+                    {
+                        if (!party.IsActive)
+                            party.IsActive = true;
+
+                        partiesToDelete.Add(party);
+                    }
+                    else
+                    {
+                        skippedCount++;
+                    }
+                }
+
+                // Now delete the collected parties
+                int deletedCount = 0;
+                var deletionErrors = new List<string>();
+
+                foreach (var party in partiesToDelete)
+                {
+                    try
+                    {
+                        string partyInfo = party.Name?.ToString() ?? "Unnamed";
+                        if (party.Party?.Owner != null)
+                            partyInfo += $" (Owner: {party.Party.Owner.Name})";
+
+                        DestroyPartyAction.Apply(null, party);
+                        deletedCount++;
+
+                        InformationManager.DisplayMessage(
+                            new InformationMessage($"Deleted shell party: {partyInfo}")
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        deletionErrors.Add($"Failed to delete party {party.Name}: {ex.Message}");
+                    }
+                }
+
+                var result = $"Cleanup complete:" +
+                             $"- Checked: {checkedCount} parties" +
+                             $"- Skipped: {skippedCount} (valid parties)" +
+                             $"- Deleted: {deletedCount} shell lord parties";
+
+                if (deletionErrors.Any())
+                {
+                    result += $"- Errors: {deletionErrors.Count}";
+                    foreach (var error in deletionErrors)
+                        InformationManager.DisplayMessage(new InformationMessage($"Error: {error}"));
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                return $"Cleanup failed: {ex.Message}";
+            }
+        }
+
+        [CommandLineFunctionality.CommandLineArgumentFunction("DeleteBLTParties", "blt")]
+        [UsedImplicitly]
+        public static string DeleteBLTParties(List<string> strings)
         {
             if (Campaign.Current == null)
             {

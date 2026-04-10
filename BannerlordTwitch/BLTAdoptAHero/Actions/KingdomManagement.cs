@@ -35,12 +35,13 @@ namespace BLTAdoptAHero.Actions
          CategoryOrder("Leave", 2),
          CategoryOrder("Create", 3),
          CategoryOrder("Policy", 4),
-         CategoryOrder("Vassal", 5),
+         //CategoryOrder("Vassal", 5),
          CategoryOrder("Stats", 6),
          CategoryOrder("Armies", 7),
          CategoryOrder("Release", 8),
          CategoryOrder("Expel", 9),
-         CategoryOrder("Tax", 10)]
+         CategoryOrder("Tax", 10),
+         CategoryOrder("Sponsor", 11)]
         private class Settings : IDocumentable
         {
             [LocDisplayName("{=pYjIUlTE}Enabled"),
@@ -67,7 +68,25 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(4), UsedImplicitly]
             public int JoinMaxClansBLT { get; set; } = 30;
 
-            // Helper method to get the appropriate max clans setting
+            [LocDisplayName("{=AI_MaxMercClans}Max Mercenary Clans (AI Kingdoms)"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=AI_MaxMercClans_Desc}Maximum Mercenary clans for AI-led kingdoms before join is disallowed"),
+             PropertyOrder(5), UsedImplicitly]
+            public int JoinMaxMercClansAI { get; set; } = 5;
+
+            [LocDisplayName("{=Player_MaxMercClans}Max Mercenary Clans (Player Kingdom)"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=Player_MaxMercClans_Desc}Maximum Mercenary clans for player-led kingdom before join is disallowed"),
+             PropertyOrder(6), UsedImplicitly]
+            public int JoinMaxMercClansPlayer { get; set; } = 3;
+
+            [LocDisplayName("{=BLT_MaxMercClans}Max Mercenary Clans (BLT Kingdoms)"),
+             LocCategory("Join", "{=q5JhpNMF}Join"),
+             LocDescription("{=BLT_MaxMercClans_Desc}Maximum Mercenary clans for BLT/Viewer-led kingdoms before join is disallowed"),
+             PropertyOrder(7), UsedImplicitly]
+            public int JoinMaxMercClansBLT { get; set; } = 10;
+
+            // Helper methods to get the appropriate max clans setting
             public int GetMaxClansForKingdom(Kingdom kingdom)
             {
                 if (kingdom?.Leader == null)
@@ -80,6 +99,19 @@ namespace BLTAdoptAHero.Actions
                     return JoinMaxClansBLT;
 
                 return JoinMaxClansAI;
+            }
+            public int GetMaxMercClansForKingdom(Kingdom kingdom)
+            {
+                if (kingdom?.Leader == null)
+                    return JoinMaxMercClansAI;
+
+                if (kingdom.Leader == Hero.MainHero)
+                    return JoinMaxMercClansPlayer;
+
+                if (kingdom.Leader.IsAdopted())
+                    return JoinMaxMercClansBLT;
+
+                return JoinMaxMercClansAI;
             }
 
             [LocDisplayName("{=6PUxQuLg}Gold Cost"),
@@ -190,43 +222,43 @@ namespace BLTAdoptAHero.Actions
              PropertyOrder(2), UsedImplicitly]
             public int PolicyPrice { get; set; } = 50000;
 
-            [LocDisplayName("{=pYjIUlTE}Enabled"),
-             LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Enable viewer create vassal"),
-             PropertyOrder(1), UsedImplicitly]
-            public bool VassalEnabled { get; set; } = true;
+            //[LocDisplayName("{=pYjIUlTE}Enabled"),
+            // LocCategory("Vassal", "{=TESTING}Vassal"),
+            // LocDescription("{=TESTING}Enable viewer create vassal"),
+            // PropertyOrder(1), UsedImplicitly]
+            //public bool VassalEnabled { get; set; } = true;
 
-            [LocDisplayName("{=BLT_MaxVassals}Max vassal"),
-             LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=BLT_MaxVassalsDesc}Max vassal clans"),
-             PropertyOrder(2), UsedImplicitly]
-            public int VassalAmount { get; set; } = 3;
+            //[LocDisplayName("{=BLT_MaxVassals}Max vassal"),
+            // LocCategory("Vassal", "{=TESTING}Vassal"),
+            // LocDescription("{=BLT_MaxVassalsDesc}Max vassal clans"),
+            // PropertyOrder(2), UsedImplicitly]
+            //public int VassalAmount { get; set; } = 3;
 
-            [LocDisplayName("{=6PUxQuLg}Gold Cost"),
-             LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Cost of creating a vassal clan"),
-             PropertyOrder(3), UsedImplicitly]
-            public int VassalPrice { get; set; } = 250000;
+            //[LocDisplayName("{=6PUxQuLg}Gold Cost"),
+            // LocCategory("Vassal", "{=TESTING}Vassal"),
+            // LocDescription("{=TESTING}Cost of creating a vassal clan"),
+            // PropertyOrder(3), UsedImplicitly]
+            //public int VassalPrice { get; set; } = 250000;
 
-            [LocDisplayName("{=TESTING}Vassal Merc Income Share %"),
-             LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Percentage of vassal mercenary income shared with master (0.0 - 2.0, 0.25 = 25%)"),
-             PropertyOrder(4), UsedImplicitly,
-             Range(0f, 2f)]
-            public float VassalMercIncomeShare { get; set; } = 0.25f; // 25% default
+            //[LocDisplayName("{=TESTING}Vassal Merc Income Share %"),
+            // LocCategory("Vassal", "{=TESTING}Vassal"),
+            // LocDescription("{=TESTING}Percentage of vassal mercenary income shared with master (0.0 - 2.0, 0.25 = 25%)"),
+            // PropertyOrder(4), UsedImplicitly,
+            // Range(0f, 2f)]
+            //public float VassalMercIncomeShare { get; set; } = 0.25f; // 25% default
 
-            [LocDisplayName("{=TESTING}Vassal Fief Income Share %"),
-             LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Percentage of vassal fief income shared with master (0.0 - 2.0, 0.25 = 25%)"),
-             PropertyOrder(5), UsedImplicitly,
-             Range(0f, 2f)]
-            public float VassalFiefIncomeShare { get; set; } = 0.25f; // 25% default
+            //[LocDisplayName("{=TESTING}Vassal Fief Income Share %"),
+            // LocCategory("Vassal", "{=TESTING}Vassal"),
+            // LocDescription("{=TESTING}Percentage of vassal fief income shared with master (0.0 - 2.0, 0.25 = 25%)"),
+            // PropertyOrder(5), UsedImplicitly,
+            // Range(0f, 2f)]
+            //public float VassalFiefIncomeShare { get; set; } = 0.25f; // 25% default
 
-            [LocDisplayName("{=TESTING}King Vassals Only"),
-             LocCategory("Vassal", "{=TESTING}Vassal"),
-             LocDescription("{=TESTING}Prevents anyone except kings to create vassal clans"),
-             PropertyOrder(6), UsedImplicitly]
-            public bool KingVassalsOnly { get; set; } = false;
+            //[LocDisplayName("{=TESTING}King Vassals Only"),
+            // LocCategory("Vassal", "{=TESTING}Vassal"),
+            // LocDescription("{=TESTING}Prevents anyone except kings to create vassal clans"),
+            // PropertyOrder(6), UsedImplicitly]
+            //public bool KingVassalsOnly { get; set; } = false;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Stats", "{=rTee27gM}Stats"),
@@ -239,6 +271,18 @@ namespace BLTAdoptAHero.Actions
              LocDescription("{=CFBJIpux}Enable Armies command"),
              PropertyOrder(1), UsedImplicitly]
             public bool ArmiesEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Allow BLT Armies Default"),
+             LocCategory("Armies", "{=}Armies"),
+             LocDescription("{=TESTING}Default state when a BLT-led kingdom is created: allow BLT adopted heroes to create armies"),
+             PropertyOrder(2), UsedImplicitly]
+            public bool ArmiesAllowBLTDefault { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Allow AI Armies Default"),
+             LocCategory("Armies", "{=}Armies"),
+             LocDescription("{=TESTING}Default state when a BLT-led kingdom is created: allow AI heroes to create armies"),
+             PropertyOrder(3), UsedImplicitly]
+            public bool ArmiesAllowAIDefault { get; set; } = true;
 
             [LocDisplayName("{=pYjIUlTE}Enabled"),
              LocCategory("Release", "{=TESTING}Release"),
@@ -284,6 +328,25 @@ namespace BLTAdoptAHero.Actions
              Range(0f, 100f)]
             public float MaxTaxRate { get; set; } = 50f;
 
+            [LocDisplayName("{=pYjIUlTE}Enabled"),
+             LocCategory("Sponsor", "{=TESTING}Sponsor"),
+             LocDescription("{=TESTING}Enable the sponsor command (buy influence for gold)"),
+             PropertyOrder(1), UsedImplicitly]
+            public bool SponsorEnabled { get; set; } = true;
+
+            [LocDisplayName("{=TESTING}Gold Per Influence"),
+             LocCategory("Sponsor", "{=TESTING}Sponsor"),
+             LocDescription("{=TESTING}Gold cost per 1 influence point purchased"),
+             PropertyOrder(2), UsedImplicitly]
+            public int SponsorGoldPerInfluence { get; set; } = 1000;
+
+            [LocDisplayName("{=TESTING}King Cut %"),
+             LocCategory("Sponsor", "{=TESTING}Sponsor"),
+             LocDescription("{=TESTING}Percentage of gold spent that is forwarded to the kingdom leader (0.0 - 1.0, 0.25 = 25%)"),
+             PropertyOrder(3), UsedImplicitly,
+             Range(0f, 1f)]
+            public float SponsorKingCutPercent { get; set; } = 0.25f;
+
             public void GenerateDocumentation(IDocumentationGenerator generator)
             {
                 var EnabledCommands = new StringBuilder();
@@ -298,8 +361,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Leave, ");
                 if (CreateKEnabled)
                     EnabledCommands.Append("Create, ");
-                if (VassalEnabled)
-                    EnabledCommands.Append("Vassal, ");
+                //if (VassalEnabled)
+                //    EnabledCommands.Append("Vassal, ");
                 if (StatsEnabled)
                     EnabledCommands.Append("Stats, ");
                 if (ArmiesEnabled)
@@ -310,6 +373,8 @@ namespace BLTAdoptAHero.Actions
                     EnabledCommands.Append("Expel, ");
                 if (TaxEnabled)
                     EnabledCommands.Append("Tax, ");
+                if (SponsorEnabled)
+                    EnabledCommands.Append("Sponsor, ");
 
                 if (EnabledCommands.Length > 0)
                     generator.Value("<strong>Enabled Commands:</strong> {commands}".Translate(("commands", EnabledCommands.ToString(0, EnabledCommands.Length - 2))));
@@ -321,6 +386,9 @@ namespace BLTAdoptAHero.Actions
                                     "Max AI Kingdom Clans={maxClans}, ".Translate(("maxClans", JoinMaxClansAI.ToString())) +
                                     "Max Player Kingdom Clans={maxClans}, ".Translate(("maxClans", JoinMaxClansPlayer.ToString())) +
                                     "Max BLT Kingdom Clans={maxClans}, ".Translate(("maxClans", JoinMaxClansBLT.ToString())) +
+                                    "Max AI Kingdom Mercenary Clans={maxMercClans}, ".Translate(("maxMercClans", JoinMaxMercClansAI.ToString())) +
+                                    "Max Player Kingdom Mercenary Clans={maxMercClans}, ".Translate(("maxMercClans", JoinMaxMercClansPlayer.ToString())) +
+                                    "Max BLT Kingdom Mercenary Clans={maxMercClans}, ".Translate(("maxMercClans", JoinMaxMercClansBLT.ToString())) +
                                     "Price={price}{icon}, ".Translate(("price", JoinPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Allow Join Players Kingdom?={allowPlayer}, ".Translate(("allowPlayer", JoinAllowPlayer.ToString())) +
                                     "Player Kingdom Price={price}{icon}".Translate(("price", PlayerJoinPrice.ToString()), ("icon", Naming.Gold)));
@@ -346,15 +414,15 @@ namespace BLTAdoptAHero.Actions
                                     "Price={price}{icon}, ".Translate(("price", CreateKPrice.ToString()), ("icon", Naming.Gold)) +
                                     "Minimum Clan Tier={tier}, ".Translate(("tier", CreateKTierMinimum.ToString())) +
                                     "Minimum Fiefs Amount={count}".Translate(("count", CreateKFiefMinimum.ToString())));
-                if (VassalEnabled)
-                    generator.Value("<strong>Vassal: </strong>" +
-                                    $"Only Kings can make Vassals: {KingVassalsOnly}, " +
-                                    $"Max Vassals: {VassalAmount}, " +
-                                    $"Price={VassalPrice.ToString()}{Naming.Gold}" +
-                                    $"Percent of Vassal's Mercenary Income given to Parent: " +
-                                    $"{(int)(VassalMercIncomeShare * 100)}%, " + 
-                                    $"Percent of Vassal's Fief Income given to Parent: " + 
-                                    $"{(int)(VassalFiefIncomeShare * 100)}%");
+                //if (VassalEnabled)
+                //    generator.Value("<strong>Vassal: </strong>" +
+                //                    $"Only Kings can make Vassals: {KingVassalsOnly}, " +
+                //                    $"Max Vassals: {VassalAmount}, " +
+                //                    $"Price={VassalPrice.ToString()}{Naming.Gold}" +
+                //                    $"Percent of Vassal's Mercenary Income given to Parent: " +
+                //                    $"{(int)(VassalMercIncomeShare * 100)}%, " + 
+                //                    $"Percent of Vassal's Fief Income given to Parent: " + 
+                //                    $"{(int)(VassalFiefIncomeShare * 100)}%");
                 if (ReleaseEnabled)
                     generator.Value("<strong>Release: </strong>" +
                                     $"Price={ReleasePrice.ToString()}{Naming.Gold}");
@@ -364,6 +432,10 @@ namespace BLTAdoptAHero.Actions
                 if (TaxEnabled)
                     generator.Value("<strong>Tax: </strong>" +
                                     $"Min Rate={MinTaxRate}%, Max Rate={MaxTaxRate}%");
+                if (SponsorEnabled)
+                    generator.Value("<strong>Sponsor: </strong>" +
+                                    $"Gold Per Influence={SponsorGoldPerInfluence}{Naming.Gold}, " +
+                                    $"King Cut={SponsorKingCutPercent * 100f:F0}%");
             }
         }
         public override Type HandlerConfigType => typeof(Settings);
@@ -373,11 +445,11 @@ namespace BLTAdoptAHero.Actions
         {
             if (config is not Settings settings) return;
             // Set vassal mercenary income share percentage
-            if (VassalBehavior.Current != null)
-            {
-                VassalBehavior.MercenaryIncomeSharePercent = settings.VassalMercIncomeShare;
-                VassalBehavior.FiefIncomeSharePercent = settings.VassalFiefIncomeShare;
-            }
+            //if (VassalBehavior.Current != null)
+            //{
+            //    VassalBehavior.MercenaryIncomeSharePercent = settings.VassalMercIncomeShare;
+            //    VassalBehavior.FiefIncomeSharePercent = settings.VassalFiefIncomeShare;
+            //}
             if (adoptedHero == null)
             {
                 onFailure(AdoptAHero.NoHeroMessage);
@@ -431,8 +503,8 @@ namespace BLTAdoptAHero.Actions
                 case "create":
                     HandleKCreateCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
-                case "vassal":
-                    HandleVassalCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                //case "vassal":
+                //    HandleVassalCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                         break;
                 case "release":
                     HandleReleaseCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
@@ -444,16 +516,19 @@ namespace BLTAdoptAHero.Actions
                     HandleStatsCommand(settings, adoptedHero, onSuccess, onFailure);
                     break;
                 case "armies":
-                    HandleArmiesCommand(settings, adoptedHero, onSuccess, onFailure);
+                    HandleArmiesCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "tax":
                     HandleTaxCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
+                    break;
+                case "sponsor":
+                    HandleSponsorCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 case "policy":
                     HandlePolicyCommand(settings, adoptedHero, desiredName, onSuccess, onFailure);
                     break;
                 default:
-                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats)".Translate());
+                    onFailure("{=FFxXuX5i}Invalid or empty kingdom action, try (join/merc/rebel/leave/create/vassal/release/expel/stats/armies/tax/sponsor/policy)".Translate());
                     break;
             }
 
@@ -512,7 +587,7 @@ namespace BLTAdoptAHero.Actions
                 onFailure("Rebellion block");
                 return;
             }
-            int maxClans = settings.GetMaxClansForKingdom(desiredKingdom) + UpgradeBehavior.Current.GetTotalGetKingdomMaxClansBonus(desiredKingdom);
+            int maxClans = settings.GetMaxClansForKingdom(desiredKingdom) + UpgradeBehavior.Current.GetTotalKingdomMaxClansBonus(desiredKingdom);
             int currentClans = desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count();
 
             if (currentClans >= maxClans)
@@ -521,12 +596,12 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
-            if (desiredKingdom == Hero.MainHero.Clan.Kingdom && !settings.JoinAllowPlayer)
+            if (desiredKingdom == Hero.MainHero.Clan?.Kingdom && Hero.MainHero.IsKingdomLeader && !settings.JoinAllowPlayer)
             {
                 onFailure("{=L4dccNIC}Joining the players kingdom is disabled".Translate());
                 return;
             }
-            else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && settings.JoinAllowPlayer)
+            else if (desiredKingdom == Hero.MainHero.Clan.Kingdom && Hero.MainHero.IsKingdomLeader && settings.JoinAllowPlayer)
             {
                 joiningPlayer = true;
             }
@@ -745,9 +820,9 @@ namespace BLTAdoptAHero.Actions
             onSuccess("{stats}".Translate(("stats", clanStats.ToString())));
         }
 
-        private void HandleArmiesCommand(Settings settings, Hero adoptedHero, Action<string> onSuccess, Action<string> onFailure)
+        private void HandleArmiesCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
         {
-            if (!settings.StatsEnabled)
+            if (!settings.ArmiesEnabled)
             {
                 onFailure("{=RtwwHrgB}Kingdom stats is disabled".Translate());
                 return;
@@ -758,22 +833,73 @@ namespace BLTAdoptAHero.Actions
                 return;
             }
 
+            // sub-commands: allowblt on/off   allowai on/off   (anything else = status report)
+            var parts = args?.Split(' ') ?? Array.Empty<string>();
+            var sub = parts.Length > 0 ? parts[0].ToLower() : "";
+            var val = parts.Length > 1 ? parts[1].ToLower() : "";
+
+            bool isKing = adoptedHero.Clan.Kingdom.Leader == adoptedHero;
+
+            // ── Toggle: allowblt ────────────────────────────────────────────────────
+            if (sub == "allowblt" || sub == "allowai")
+            {
+                if (!isKing)
+                {
+                    onFailure("You must be the kingdom leader to change army permissions");
+                    return;
+                }
+                if (val != "on" && val != "off")
+                {
+                    onFailure($"Usage: !kingdom armies {sub} on/off");
+                    return;
+                }
+
+                bool allow = val == "on";
+                var pb = PartyOrderBehavior.Current;
+                if (pb == null)
+                {
+                    onFailure("Party order system is not initialised");
+                    return;
+                }
+
+                if (sub == "allowblt")
+                {
+                    pb.SetBLTArmiesBlocked(adoptedHero.Clan.Kingdom, !allow);
+                    onSuccess($"{adoptedHero.Clan.Kingdom.Name}: BLT army creation is now {(allow ? "ALLOWED" : "BLOCKED")}");
+                }
+                else // allowai
+                {
+                    pb.SetAIArmiesBlocked(adoptedHero.Clan.Kingdom, !allow);
+                    onSuccess($"{adoptedHero.Clan.Kingdom.Name}: AI army creation is now {(allow ? "ALLOWED" : "BLOCKED")}");
+                }
+                return;
+            }
+
+            // ── Default: status report ───────────────────────────────────────────────
             var armies = new StringBuilder();
             armies.Append("{=SVlrGgol}Kingdom Name: {name} | ".Translate(("name", adoptedHero.Clan.Kingdom.Name.ToString())));
             armies.Append($"{adoptedHero.Clan.Kingdom.Armies.Count} Armies | ");
+
+            if (isKing && PartyOrderBehavior.Current != null)
+            {
+                bool bltBlocked = PartyOrderBehavior.Current.IsBLTArmiesBlocked(adoptedHero.Clan.Kingdom);
+                bool aiBlocked = PartyOrderBehavior.Current.IsAIArmiesBlocked(adoptedHero.Clan.Kingdom);
+                armies.Append($"BLT armies: {(bltBlocked ? "BLOCKED" : "allowed")} | ");
+                armies.Append($"AI armies: {(aiBlocked ? "BLOCKED" : "allowed")} | ");
+            }
+
             if (adoptedHero.Clan.Kingdom.Armies.Count >= 1)
             {
-                var armiesraw = adoptedHero.Clan.Kingdom.Armies.ToList();
-                foreach (Army army in armiesraw)
+                foreach (Army army in adoptedHero.Clan.Kingdom.Armies.ToList())
                 {
                     armies.Append($"\nArmy: {army.Name.ToString()} | ");
                     armies.Append($"{(int)army.CalculateCurrentStrength()} Strength | ");
                     armies.Append($"{army.TotalHealthyMembers} Troops | ");
-                    armies.Append($"{army.LeaderPartyAndAttachedPartiesCount.ToString()} Parties | ");
-                    if (army?.LeaderParty?.GetBehaviorText() != null || army?.LeaderParty?.GetBehaviorText().ToString() != "")  
-                        armies.Append($"This army is: {army?.LeaderParty?.GetBehaviorText()?.ToString() ?? ""} | ");
-                    if (army.LeaderParty.TargetParty != null || army.LeaderParty.ShortTermTargetParty != null) 
-                        armies.Append($"Target : {army.LeaderParty.ShortTermTargetParty ?? army.LeaderParty.TargetParty} | ");
+                    armies.Append($"{army.LeaderPartyAndAttachedPartiesCount} Parties | ");
+                    if (!string.IsNullOrEmpty(army?.LeaderParty?.GetBehaviorText()?.ToString()))
+                        armies.Append($"Behaviour: {army.LeaderParty.GetBehaviorText()} | ");
+                    if (army.LeaderParty.TargetParty != null || army.LeaderParty.ShortTermTargetParty != null)
+                        armies.Append($"Target: {army.LeaderParty.ShortTermTargetParty ?? army.LeaderParty.TargetParty} | ");
                 }
             }
 
@@ -843,7 +969,7 @@ namespace BLTAdoptAHero.Actions
             }
             if (adoptedHero.Clan.Kingdom != null)
             {
-                onFailure("{=GEGrsLPm}Your clan is already in a kingdom, in order to leave you must rebel against them".Translate());
+                onFailure("{=GEGrsLPm}Your clan is already in a kingdom, leave first".Translate());
                 return;
             }
             if (!adoptedHero.IsClanLeader)
@@ -864,6 +990,15 @@ namespace BLTAdoptAHero.Actions
                 onFailure("{=JdZ2CelP}Could not find the kingdom with the name {name}".Translate(("name", desiredName)));
                 return;
             }
+
+            int maxMercClans = settings.GetMaxMercClansForKingdom(desiredKingdom) + UpgradeBehavior.Current.GetTotalKingdomMaxMercClansBonus(desiredKingdom);
+            int currentMercClans = desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && c.IsUnderMercenaryService).Count();
+
+            if (currentMercClans >= maxMercClans)
+            {
+                onFailure("{=KFzBPUry}The kingdom {name} is full ({currentmercclans}/{maxmercclans} mercenary clans)".Translate(("name", desiredName), ("currentclans", currentMercClans), ("maxclans", maxMercClans)));
+                return;
+            }
             var diplomacyHelper = Campaign.Current.GetCampaignBehavior<BLTDiplomacyHelper>();
             if (diplomacyHelper.IsPeaceBlocked(adoptedHero.Clan, desiredKingdom))
             {
@@ -879,11 +1014,6 @@ namespace BLTAdoptAHero.Actions
             {
                 mercforPlayer = true;
             }
-            //if (desiredKingdom.Clans.Where(c => !VassalBehavior.Current.IsVassal(c) && !c.IsUnderMercenaryService).Count() >= settings.JoinMaxClans)
-            //{
-            //    onFailure("{=KFzBPUry}The kingdom {name} is full".Translate(("name", desiredName)));
-            //    return;
-            //}
             if (!mercforPlayer && BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.MercPrice)
             {
                 onFailure(Naming.NotEnoughGold(settings.MercPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
@@ -966,177 +1096,179 @@ namespace BLTAdoptAHero.Actions
             var newKingdom = adoptedHero.Clan.Kingdom;
             newKingdom.KingdomBudgetWallet = 2000000;
             adoptedHero.Clan.Influence = 2000;
+            adoptedHero.Clan.Kingdom.Banner = adoptedHero.Clan.Banner;
+            adoptedHero.Clan.Kingdom.Banner.ChangeBackgroundColor(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetSecondaryColor());
 
             onSuccess("{=TESTING}Created kingdom {name}".Translate(("name", desiredName)));
             Log.ShowInformation("{=TESTING}{heroName} has founded kingdom {kingdom}!".Translate(("heroName", adoptedHero.Name.ToString()), ("kingdom", adoptedHero.Clan.Kingdom.Name.ToString())), adoptedHero.CharacterObject, Log.Sound.Horns2);
         }
 
-        private void HandleVassalCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
-        {
-            if (!settings.VassalEnabled)
-            {
-                onFailure("Vassal creation is disabled");
-                return;
-            }
+        //private void HandleVassalCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
+        //{
+        //    if (!settings.VassalEnabled)
+        //    {
+        //        onFailure("Vassal creation is disabled");
+        //        return;
+        //    }
 
-            var splitargs = args.Split(' ');
-            var childName = splitargs[0];
-            var setname = string.Join(" ", splitargs.Skip(1)).Trim();
-            if (settings.KingVassalsOnly && adoptedHero.Clan.Kingdom.Leader != adoptedHero)
-            {
-                onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
-                return;
-            }
-            if (adoptedHero.Clan.Kingdom == null)
-            {
-                onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
-                return;
-            }
-            if (!adoptedHero.IsClanLeader)
-            {
-                onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
-                return;
-            }
-            if (string.IsNullOrWhiteSpace(childName) || string.IsNullOrWhiteSpace(setname))
-            {
-                onFailure("{=ETfJQatX}Usage: (vassal) (hero name) (clan name)".Translate());
-                return;
-            }
-            var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString().ToLower() == setname.ToLower() || c.Name.ToString().ToLower() == $"[vassal] {setname.ToLower()}" || c.Name.ToString().ToLower() == $"[blt clan] {setname.ToLower()}");
-            if (existingClan != null)
-            {
-                onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", setname)));
-                return;
-            }
-            if (VassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= (settings.VassalAmount + UpgradeBehavior.Current.GetTotalMaxVassalsBonus(adoptedHero.Clan)))
-            {
-                onFailure($"Max vassals: {settings.VassalAmount + UpgradeBehavior.Current.GetTotalMaxVassalsBonus(adoptedHero.Clan)}");
-                return;
-            }
-            if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.VassalPrice)
-            {
-                onFailure(Naming.NotEnoughGold(settings.VassalPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
-                return;
-            }
+        //    var splitargs = args.Split(' ');
+        //    var childName = splitargs[0];
+        //    var setname = string.Join(" ", splitargs.Skip(1)).Trim();
+        //    if (settings.KingVassalsOnly && adoptedHero.Clan.Kingdom.Leader != adoptedHero)
+        //    {
+        //        onFailure("{=GEGrsLPm}You must be a king to create vassals".Translate());
+        //        return;
+        //    }
+        //    if (adoptedHero.Clan.Kingdom == null)
+        //    {
+        //        onFailure("{=RvkJO6J9}Your clan is not in a kingdom".Translate());
+        //        return;
+        //    }
+        //    if (!adoptedHero.IsClanLeader)
+        //    {
+        //        onFailure("{=HS14GdUa}You cannot manage your kingdom, as you are not your clans leader!".Translate());
+        //        return;
+        //    }
+        //    if (string.IsNullOrWhiteSpace(childName) || string.IsNullOrWhiteSpace(setname))
+        //    {
+        //        onFailure("{=ETfJQatX}Usage: (vassal) (hero name) (clan name)".Translate());
+        //        return;
+        //    }
+        //    var existingClan = Clan.All.FirstOrDefault(c => c.Name.ToString().ToLower() == setname.ToLower() || c.Name.ToString().ToLower() == $"[vassal] {setname.ToLower()}" || c.Name.ToString().ToLower() == $"[blt clan] {setname.ToLower()}");
+        //    if (existingClan != null)
+        //    {
+        //        onFailure("{=TESTING}A clan with the name {name} already exists".Translate(("name", setname)));
+        //        return;
+        //    }
+        //    if (VassalBehavior.Current.GetVassalClans(adoptedHero.Clan).Count >= (settings.VassalAmount + UpgradeBehavior.Current.GetTotalMaxVassalsBonus(adoptedHero.Clan)))
+        //    {
+        //        onFailure($"Max vassals: {settings.VassalAmount + UpgradeBehavior.Current.GetTotalMaxVassalsBonus(adoptedHero.Clan)}");
+        //        return;
+        //    }
+        //    if (BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero) < settings.VassalPrice)
+        //    {
+        //        onFailure(Naming.NotEnoughGold(settings.VassalPrice, BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero)));
+        //        return;
+        //    }
 
 
-            Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.FirstName.ToString().ToLower() == childName.ToLower());
+        //    Hero vassal = adoptedHero.Clan.Heroes.Find(h => h.FirstName.ToString().ToLower() == childName.ToLower());
 
-            if (vassal == null)
-            {
-                onFailure($"No hero named {childName}");
-                return;
-            }
-            if (vassal.Age < 18)
-            {
-                onFailure($"{childName} is too young");
-                return;
-            }
-            if (vassal.Spouse != null && vassal.Spouse.IsAdopted())
-            {
-                onFailure("Cannot vassal a blt spouse");
-                return;
-            }
-            if (vassal.IsAdopted())
-            {
-                onFailure("Cannot vassal a blt");
-                return;                  
-            }
-            if (vassal.IsPrisoner)
-            {
-                onFailure($"{childName} is prisoner");
-                return;
-            }
-            if (vassal.HeroState == Hero.CharacterStates.Fugitive || vassal.HeroState == Hero.CharacterStates.Released || vassal.HeroState == Hero.CharacterStates.Traveling)
-            {
-                onFailure($"{childName} is busy");
-                return;
-            }
-            if (vassal.Spouse == null)
-            {
-                HeroFeatures.SpawnSpouse(vassal, vassal.Culture);
-            }
-            if (vassal.GovernorOf != null)
-            {
-                ChangeGovernorAction.RemoveGovernorOf(vassal);
-            }
-            if (vassal.PartyBelongedTo != null)
-            {
-                var oldParty = vassal.PartyBelongedTo;
-                bool wasLeader = oldParty.LeaderHero == vassal;
-                oldParty.MemberRoster.RemoveTroop(vassal.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
-                MakeHeroFugitiveAction.Apply(vassal, false);
-                if (wasLeader && oldParty.IsLordParty)
-                    DisbandPartyAction.StartDisband(oldParty);
-            }
-            var fullClanName = $"[Vassal] {setname}";
-            var newClan = Clan.CreateClan(fullClanName);
-            newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
-            newClan.Culture = vassal.Culture;
-            newClan.Banner = Banner.CreateOneColoredBannerWithOneIcon(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetFirstIconColor(), -1);
-            if (adoptedHero.Clan.Kingdom != null)
-            {
-            AdoptedHeroFlags._allowKingdomMove = true;
-            if (adoptedHero.Clan.IsUnderMercenaryService)
-                ChangeKingdomAction.ApplyByJoinFactionAsMercenary(newClan, adoptedHero.Clan.Kingdom);
-            else
-                ChangeKingdomAction.ApplyByJoinToKingdom(newClan, adoptedHero.Clan.Kingdom);
-            AdoptedHeroFlags._allowKingdomMove = false;
-            }
-            newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
-            vassal.Clan = newClan;
-            if (vassal.Spouse != null)
-            {
-                if (vassal.Spouse.GovernorOf != null)
-                {
-                    ChangeGovernorAction.RemoveGovernorOf(vassal.Spouse);
-                }
-                if (vassal.Spouse.PartyBelongedTo != null)
-                {
-                    var oldParty = vassal.Spouse.PartyBelongedTo;
-                    bool wasLeader = oldParty.LeaderHero == vassal.Spouse;
-                    oldParty.MemberRoster.RemoveTroop(vassal.Spouse.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
-                    MakeHeroFugitiveAction.Apply(vassal.Spouse, false);
-                    if (wasLeader && oldParty.IsLordParty)
-                        DisbandPartyAction.StartDisband(oldParty);
-                }
-                vassal.Spouse.Clan = newClan;
-            }
-            if (vassal.Children.Count > 0)
-            {
-                foreach (Hero child in vassal.Children)
-                {
-                    if (child.GovernorOf != null)
-                    {
-                        ChangeGovernorAction.RemoveGovernorOf(child);
-                    }
-                    if (child.PartyBelongedTo != null)
-                    {
-                        var oldParty = child.PartyBelongedTo;
-                        bool wasLeader = oldParty.LeaderHero == child;
-                        oldParty.MemberRoster.RemoveTroop(child.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
-                        MakeHeroFugitiveAction.Apply(child, false);
-                        if (wasLeader && oldParty.IsLordParty)
-                            DisbandPartyAction.StartDisband(oldParty);
-                    }
-                    child.Clan = newClan;
-                }
-            }
-            var tierModel = Campaign.Current.Models.ClanTierModel;
-            newClan.AddRenown(tierModel.GetRequiredRenownForTier(tierModel.CompanionToLordClanStartingTier));
-            newClan.SetLeader(vassal);
-            newClan.IsNoble = true;
-            vassal.Gold += 50000;
-            CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
-            ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
+        //    if (vassal == null)
+        //    {
+        //        onFailure($"No hero named {childName}");
+        //        return;
+        //    }
+        //    if (vassal.Age < 18)
+        //    {
+        //        onFailure($"{childName} is too young");
+        //        return;
+        //    }
+        //    if (vassal.Spouse != null && vassal.Spouse.IsAdopted())
+        //    {
+        //        onFailure("Cannot vassal a blt spouse");
+        //        return;
+        //    }
+        //    if (vassal.IsAdopted())
+        //    {
+        //        onFailure("Cannot vassal a blt");
+        //        return;                  
+        //    }
+        //    if (vassal.IsPrisoner)
+        //    {
+        //        onFailure($"{childName} is prisoner");
+        //        return;
+        //    }
+        //    if (vassal.HeroState == Hero.CharacterStates.Fugitive || vassal.HeroState == Hero.CharacterStates.Released || vassal.HeroState == Hero.CharacterStates.Traveling)
+        //    {
+        //        onFailure($"{childName} is busy");
+        //        return;
+        //    }
+        //    if (vassal.Spouse == null)
+        //    {
+        //        HeroFeatures.SpawnSpouse(vassal, vassal.Culture);
+        //    }
+        //    if (vassal.GovernorOf != null)
+        //    {
+        //        ChangeGovernorAction.RemoveGovernorOf(vassal);
+        //    }
+        //    if (vassal.PartyBelongedTo != null)
+        //    {
+        //        var oldParty = vassal.PartyBelongedTo;
+        //        bool wasLeader = oldParty.LeaderHero == vassal;
+        //        oldParty.MemberRoster.RemoveTroop(vassal.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+        //        MakeHeroFugitiveAction.Apply(vassal, false);
+        //        if (wasLeader && oldParty.IsLordParty)
+        //            DisbandPartyAction.StartDisband(oldParty);
+        //    }
+        //    var fullClanName = $"[Vassal] {setname}";
+        //    var newClan = Clan.CreateClan(fullClanName);
+        //    newClan.ChangeClanName(new TextObject(fullClanName), new TextObject(fullClanName));
+        //    newClan.Culture = vassal.Culture;
+        //    newClan.Banner = Banner.CreateOneColoredBannerWithOneIcon(adoptedHero.Clan.Banner.GetPrimaryColor(), adoptedHero.Clan.Banner.GetFirstIconColor(), -1);
+        //    newClan.SetInitialHomeSettlement(Settlement.All.SelectRandom());
+        //    vassal.Clan = newClan;
+        //    if (vassal.Spouse != null)
+        //    {
+        //        if (vassal.Spouse.GovernorOf != null)
+        //        {
+        //            ChangeGovernorAction.RemoveGovernorOf(vassal.Spouse);
+        //        }
+        //        if (vassal.Spouse.PartyBelongedTo != null)
+        //        {
+        //            var oldParty = vassal.Spouse.PartyBelongedTo;
+        //            bool wasLeader = oldParty.LeaderHero == vassal.Spouse;
+        //            oldParty.MemberRoster.RemoveTroop(vassal.Spouse.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+        //            MakeHeroFugitiveAction.Apply(vassal.Spouse, false);
+        //            if (wasLeader && oldParty.IsLordParty)
+        //                DisbandPartyAction.StartDisband(oldParty);
+        //        }
+        //        vassal.Spouse.Clan = newClan;
+        //    }
+        //    if (vassal.Children.Count > 0)
+        //    {
+        //        foreach (Hero child in vassal.Children)
+        //        {
+        //            if (child.GovernorOf != null)
+        //            {
+        //                ChangeGovernorAction.RemoveGovernorOf(child);
+        //            }
+        //            if (child.PartyBelongedTo != null)
+        //            {
+        //                var oldParty = child.PartyBelongedTo;
+        //                bool wasLeader = oldParty.LeaderHero == child;
+        //                oldParty.MemberRoster.RemoveTroop(child.CharacterObject, 1, default(UniqueTroopDescriptor), 0);
+        //                MakeHeroFugitiveAction.Apply(child, false);
+        //                if (wasLeader && oldParty.IsLordParty)
+        //                    DisbandPartyAction.StartDisband(oldParty);
+        //            }
+        //            child.Clan = newClan;
+        //        }
+        //    }
+        //    var tierModel = Campaign.Current.Models.ClanTierModel;
+        //    newClan.AddRenown(tierModel.GetRequiredRenownForTier(tierModel.CompanionToLordClanStartingTier));
+        //    newClan.SetLeader(vassal);
+        //    newClan.IsNoble = true;
+        //    vassal.Gold += 50000;
+        //    if (adoptedHero.Clan.Kingdom != null)
+        //    {
+        //        AdoptedHeroFlags._allowKingdomMove = true;
+        //        if (adoptedHero.Clan.IsUnderMercenaryService)
+        //            ChangeKingdomAction.ApplyByJoinFactionAsMercenary(newClan, adoptedHero.Clan.Kingdom);
+        //        else
+        //            ChangeKingdomAction.ApplyByJoinToKingdom(newClan, adoptedHero.Clan.Kingdom);
+        //        AdoptedHeroFlags._allowKingdomMove = false;
+        //    }
+        //    CampaignEventDispatcher.Instance.OnClanCreated(newClan, false);
+        //    ChangeRelationAction.ApplyRelationChangeBetweenHeroes(adoptedHero, vassal, 100, false);
 
-            // Register the vassal with the VassalBehavior
-            VassalBehavior.Current?.RegisterVassal(newClan, adoptedHero.Clan);
+        //    // Register the vassal with the VassalBehavior
+        //    VassalBehavior.Current?.RegisterVassal(newClan, adoptedHero.Clan);
 
-            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
-            string response = $"Vassal created by {adoptedHero.FirstName}: {newClan.Name}";
-            Log.LogFeedResponse(response);
-        }
+        //    BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -settings.VassalPrice, true);
+        //    string response = $"Vassal created by {adoptedHero.FirstName}: {newClan.Name}";
+        //    Log.LogFeedResponse(response);
+        //}
         private void HandleReleaseCommand(Settings settings, Hero adoptedHero, string targetName, Action<string> onSuccess, Action<string> onFailure)
         {
             if (!settings.ReleaseEnabled)
@@ -1406,6 +1538,64 @@ namespace BLTAdoptAHero.Actions
 
             onSuccess($"Set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%");
             Log.ShowInformation($"{adoptedHero.Name} has set {adoptedHero.Clan.Kingdom.Name} tax rate to {newRate:F1}%!", adoptedHero.CharacterObject);
+        }
+
+        private void HandleSponsorCommand(Settings settings, Hero adoptedHero, string args, Action<string> onSuccess, Action<string> onFailure)
+        {
+            if (!settings.SponsorEnabled)
+            {
+                onFailure("Sponsor command is disabled");
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom == null)
+            {
+                onFailure("You must be in a kingdom to sponsor");
+                return;
+            }
+            if (adoptedHero.Clan.IsUnderMercenaryService)
+            {
+                onFailure("Mercenary clans cannot use the sponsor command");
+                return;
+            }
+            if (adoptedHero.Clan.Kingdom.Leader == adoptedHero)
+            {
+                onFailure("Kings cannot sponsor their own kingdom — use the tax system instead");
+                return;
+            }
+            if (!int.TryParse(args, out int influenceAmount) || influenceAmount <= 0)
+            {
+                onFailure($"Usage: !kingdom sponsor <amount> — costs {settings.SponsorGoldPerInfluence}{Naming.Gold} per influence");
+                return;
+            }
+
+            int totalCost = influenceAmount * settings.SponsorGoldPerInfluence;
+            int heroGold = BLTAdoptAHeroCampaignBehavior.Current.GetHeroGold(adoptedHero);
+
+            if (heroGold < totalCost)
+            {
+                onFailure(Naming.NotEnoughGold(totalCost, heroGold));
+                return;
+            }
+
+            // Deduct gold and grant influence
+            BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(adoptedHero, -totalCost, true);
+            adoptedHero.Clan.Influence += influenceAmount;
+
+            // Forward king cut
+            Hero king = adoptedHero.Clan.Kingdom.Leader;
+            if (king != null && king != adoptedHero && settings.SponsorKingCutPercent > 0f)
+            {
+                int kingCut = (int)(totalCost * settings.SponsorKingCutPercent);
+                if (kingCut > 0)
+                {
+                    if (king.IsAdopted())
+                        BLTAdoptAHeroCampaignBehavior.Current.ChangeHeroGold(king, kingCut, true);
+                    else
+                        king.Gold += kingCut;
+                }
+            }
+
+            onSuccess($"Bought {influenceAmount} influence for {totalCost}{Naming.Gold} — King {king.Name} received {(int)(totalCost * settings.SponsorKingCutPercent)}{Naming.Gold}");
         }
 
         private void HandlePolicyCommand(Settings settings, Hero adoptedHero, string desiredName, Action<string> onSuccess, Action<string> onFailure)

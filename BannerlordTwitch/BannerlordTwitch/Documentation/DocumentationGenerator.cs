@@ -177,10 +177,21 @@ namespace BannerlordTwitch
 
         public IDocumentationGenerator H3(string content) => H3(null, content);
 
+        public IDocumentationGenerator Table(string css, Action content, bool collapsible = true, string summary = "")
+        {
+            if (!collapsible)
+                return ScopedTag("table", css, content);
 
-        public IDocumentationGenerator Table(string css, Action content) => ScopedTag("table", css, content);
-        public IDocumentationGenerator Table(Action content) => Table(null, content);
-
+            return Details(() =>
+            {
+                Summary(summary);
+                ScopedTag("table", css, content);
+            });
+        }
+        public IDocumentationGenerator Table(Action content, bool collapsible = true, string summary = "")
+        {
+            return Table(null, content, collapsible, summary);
+        }
 
         public IDocumentationGenerator TR(string css, Action content) => ScopedTag("tr", css, content);
         public IDocumentationGenerator TR(Action content) => TR(null, content);
@@ -444,5 +455,77 @@ namespace BannerlordTwitch
         //         this._renderCallbacks[str].Actions.Add(setAction);
         //     }
         // }
+        public IDocumentationGenerator MapLabel(float x, float y, string name, string type, string kingdomId, Func<string, string> getFillColor, Func<string, string> getBorderColor)
+        {
+            // Determine shape
+            string shapeStyle = type switch
+            {
+                "Castle" => "border-radius:0%;",  // square
+                "Town" => "border-radius:50%;",   // circle
+                _ => "border-radius:25%;"         // rounded default
+            };
+
+            string fillColor = "#000080";
+            string borderColor = "#000000";
+
+            if (!string.IsNullOrEmpty(kingdomId))
+            {
+                // Get fill and border colors
+                if (getFillColor != null)
+                {
+                    string c = getFillColor(kingdomId);
+                    if (!string.IsNullOrEmpty(c))
+                        fillColor = c.StartsWith("#") ? c : "#" + c;
+                }
+
+                if (getBorderColor != null)
+                {
+                    string c = getBorderColor(kingdomId);
+                    if (!string.IsNullOrEmpty(c))
+                        borderColor = c.StartsWith("#") ? c : "#" + c;
+                }
+            }                             
+
+            string size = "12px";
+
+            return Div(() =>
+            {
+                // Marker
+                P($"<div style=\"position:absolute; left:{x}px; top:{y}px;" +
+                  "transform:translate(-50%,-50%);" +
+                  $"width:{size}; height:{size}; background:{fillColor}; {shapeStyle};" +
+                  $"border:1px solid {borderColor}; box-shadow:1px 1px 2px rgba(0,0,0,0.5);\"></div>");
+
+                // Name label slightly below marker
+                P($"<div style=\"position:absolute; left:{x}px; top:{y + 8}px;" +
+                  "transform:translate(-50%,0); font-size:10px; font-weight:bold;" +
+                  "text-shadow:1px 1px 2px #000; white-space:nowrap;\">" +
+                  $"{name}</div>");
+            });
+        }
+
+        public IDocumentationGenerator MapSegment(float x1, float y1, float x2, float y2)
+        {
+            string color = "#2b5d87"; float thickness = 2f;
+            float dx = x2 - x1;
+            float dy = y2 - y1;
+
+            float length = (float)Math.Sqrt(dx * dx + dy * dy);
+            float angle = (float)(Math.Atan2(dy, dx) * 180.0 / Math.PI);
+
+            return Div(() =>
+            {
+                P($"<div style=\"position:absolute;" +
+                  $"left:{x1}px;" +
+                  $"top:{y1}px;" +
+                  $"width:{length}px;" +
+                  $"height:{thickness}px;" +
+                  $"background:{color};" +
+                  "transform-origin:0 50%;" +
+                  $"transform:rotate({angle}deg);" +
+                  "box-shadow:0 0 2px rgba(0,0,0,0.4);" +
+                  "\"></div>");
+            });
+        }
     }
 }

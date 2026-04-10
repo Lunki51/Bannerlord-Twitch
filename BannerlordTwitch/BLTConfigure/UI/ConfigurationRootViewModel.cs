@@ -15,14 +15,6 @@ namespace BLTConfigure.UI
 
         public AuthSettings EditedAuthSettings { get; set; }
 
-        // public delegate void NewRewardDelegate(IRewardHandler handler);
-        //
-        // public event NewRewardDelegate OnNewReward;
-        //
-        // public delegate void NewCommandDelegate(ICommandHandler handler);
-        //
-        // public event NewCommandDelegate OnNewCommand;cv
-
         public ConfigurationRootViewModel()
         {
             Load();
@@ -49,7 +41,6 @@ namespace BLTConfigure.UI
             }
         }
 
-
         public string DocsTitle
         {
             get => EditedAuthSettings.DocsTitle;
@@ -70,11 +61,40 @@ namespace BLTConfigure.UI
             }
         }
 
+        // ── Extension ─────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Client ID of the Twitch Extension (from dev console → Extension Settings).
+        /// </summary>
+        public string ExtensionClientId
+        {
+            get => EditedAuthSettings.ExtensionClientId;
+            set
+            {
+                EditedAuthSettings.ExtensionClientId = value;
+                SaveAuth();
+            }
+        }
+
+        /// <summary>
+        /// Base64-encoded extension secret (from dev console → Extension Settings → Show Secret).
+        /// </summary>
+        public string ExtensionSecret
+        {
+            get => EditedAuthSettings.ExtensionSecret;
+            set
+            {
+                EditedAuthSettings.ExtensionSecret = value;
+                SaveAuth();
+            }
+        }
+
+        // ── Actions ───────────────────────────────────────────────────────────
+
         public void RefreshActionList()
         {
             if (EditedSettings != null)
             {
-                // CommandsListBox.ItemsSource = EditedSettings.Commands;
                 ActionFilterView = CollectionViewSource.GetDefaultView(
                     EditedSettings.GlobalConfigs.Cast<object>()
                         .Concat(EditedSettings.Rewards)
@@ -82,10 +102,10 @@ namespace BLTConfigure.UI
                         .Concat(EditedSettings.SimTesting.Yield())
                 );
                 ActionFilterView.GroupDescriptions.Add(new BLTConfigureWindow.TypeGroupDescription());
-                // actionFilterView.SortDescriptions.Add(new SortDescription("Branch", ListSortDirection.Descending));
-                //ActionsListBox.ItemsSource = actionFilterView;
             }
         }
+
+        // ── Load / Save ───────────────────────────────────────────────────────
 
         private void Load()
         {
@@ -98,7 +118,6 @@ namespace BLTConfigure.UI
             catch (Exception ex)
             {
                 Log.Exception($"BLTConfigureWindow.Reload", ex);
-                // MessageBox.Show($"Either the auth settings file didn't exist, or it was corrupted.\nYou need to reauthorize.", "Failed to Load Auth Settings!");
             }
 
             EditedAuthSettings ??= new AuthSettings
@@ -162,12 +181,10 @@ namespace BLTConfigure.UI
                     Settings.ChangeProfile(Profile);
                     PropertyChanged?.Invoke(this, new(nameof(ActiveProfile)));
                     EditedSettings = Settings.Load();
-                    //Log.Info("Profile changed to " + Profile);
                 }
                 catch (Exception ex)
                 {
                     Log.Exception($"BLTConfigureWindow.Reload", ex);
-                    // MessageBox.Show($"Either the settings file didn't exist, or it was corrupted.\nLoaded default settings.\nIf you want to keep your broken settings file then go and copy it somewhere now, as it will be overwritten on exit.\nError: {e}", "Failed to Load Settings!");
                 }
 
                 EditedSettings ??= new Settings();
